@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "rso-backend"
+version = "0.1.0"
+description = "Backend for RSO"
+authors = ["David Saidov <delightxxls@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+django = "^4.2.7"
+psycopg2-binary = "^2.9.9"
+djangorestframework = "^3.14.0"
+python-dotenv = "^1.0.0"
+isort = "^5.12.0"
+flake8 = "^6.1.0"
+pillow = "^10.1.0"
+drf-yasg = "^1.21.7"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
