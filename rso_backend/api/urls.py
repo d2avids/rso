@@ -1,15 +1,47 @@
-from django.contrib import admin
-from django.urls import include, path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import (RSOUserViewSet, UserEducationViewSet, UserDocumentsViewSet,
+                    UserRegionViewSet, UserPrivacySettingsViewSet,
+                    UserMediaViewSet, RegionViewSet)
 
-from .views import (DetachmentDetailView, DetachmentListCreateView,
-                    ProfileDetailView, ProfileListCreateView, login_view,
-                    register_view)
+router = DefaultRouter()
+
+router.register(r'users', RSOUserViewSet)
+router.register(r'regions', RegionViewSet)
+
+user_nested_urls = [
+    path('users/<int:user_id>/education/', UserEducationViewSet.as_view({
+        'get': 'list',
+        'post': 'create',
+        'put': 'update',
+        'delete': 'destroy'
+    }), name='user-education'),
+    path('users/<int:user_id>/documents/', UserDocumentsViewSet.as_view({
+        'get': 'list',
+        'post': 'create',
+        'put': 'update',
+        'delete': 'destroy'
+    }), name='user-documents'),
+    path('users/<int:user_id>/region/', UserRegionViewSet.as_view({
+        'get': 'list',
+        'post': 'create',
+        'put': 'update',
+        'delete': 'destroy'
+    }), name='user-region'),
+    path('users/<int:user_id>/privacy/', UserPrivacySettingsViewSet.as_view({
+        'get': 'list',
+        'post': 'create',
+        'put': 'update',
+        'delete': 'destroy'
+    }), name='user-privacy'),
+    path('users/<int:user_id>/media/', UserMediaViewSet.as_view({
+        'get': 'list',
+        'post': 'create',
+        'put': 'update',
+        'delete': 'destroy'
+    }), name='user-media'),
+]
 
 urlpatterns = [
-    path('login/', login_view, name='login'),
-    path('register/', register_view, name='register'),
-    path('api/v1/profiles/', ProfileListCreateView.as_view(), name='profile-list-create'),
-    path('api/v1/profiles/<int:pk>/', ProfileDetailView.as_view(), name='profile-detail'),
-    path('api/v1/detachments/', DetachmentListCreateView.as_view(), name='detachment-list-create'),
-    path('api/v1/detachments/<int:pk>/', DetachmentDetailView.as_view(), name='detachment-detail'),
-]
+    path('', include(router.urls)),
+] + user_nested_urls

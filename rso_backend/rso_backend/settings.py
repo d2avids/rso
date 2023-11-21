@@ -14,6 +14,8 @@ DEBUG = os.getenv('DEBUG', default=False) == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS',
                           default='127.0.0.1,localhost').split(',')
 
+AUTH_USER_MODEL = 'users.RSOUser'
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -62,7 +64,7 @@ if bool(os.getenv('DEBUG', default=True) == 'True'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'NAME': BASE_DIR / 'dev_db.sqlite3',
         }
     }
 else:
@@ -126,3 +128,4 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'https://127.0.0.1',
 ]
+
