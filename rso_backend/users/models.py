@@ -122,24 +122,6 @@ class RSOUser(AbstractUser):
         verbose_name='Должность'
     )
 
-    @property
-    def position_output(self):
-        # Если должность в отряде, то ЕЁ, инче если оплачен членский БОЕЦ, иначе КАНДИДАТ
-        # return ''.join([self.detachment.name, ' Боец'])
-        if self.unit_type == 'detachment':
-            if self.position == '':
-                if self.membership_fee:
-                    return 'Боец'
-                else:
-                    return 'Кандидат'
-            else:
-                return self.position
-        elif self.unit_type == 'other_unit':
-            if self.position == '':
-                return 'Специалист'
-            else:
-                return self.position
-
     class Meta:
         verbose_name_plural = 'Пользователи'
         verbose_name = 'Пользователь'
