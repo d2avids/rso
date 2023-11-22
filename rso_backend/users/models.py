@@ -1,21 +1,14 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.utils import timezone
 
 from .constants import (Gender, UnitType, StudyForm, 
                         MilitaryDocType, PrivacyOption, PositionsOption)
-
-
-def user_upload_path(instance, filename):
-    # Построение пути загрузки на основе названия пользователя и его username
-    return (f'users/'
-            f'{instance.user.username}/'
-            f'{timezone.now().strftime("%Y/%m/%d")}/'
-            f'{filename}')
+from .utils import user_upload_path
 
 
 class RSOUser(AbstractUser):
+    """Пользователь"""
     email = models.EmailField(
         max_length=254,
         unique=True,
@@ -150,7 +143,7 @@ class RSOUser(AbstractUser):
 
 
 class UserEducation(models.Model):
-    """Информация об образовательной организации пользователя."""
+    """Информация об образовательной организации пользователя"""
     user = models.OneToOneField(
         to=RSOUser,
         on_delete=models.CASCADE,
@@ -211,7 +204,7 @@ class UserEducation(models.Model):
 
 
 class UserDocuments(models.Model):
-    """Информация о документах пользователя."""
+    """Информация о документах пользователя"""
     user = models.OneToOneField(
         to=RSOUser,
         on_delete=models.CASCADE,
@@ -312,7 +305,7 @@ class UserDocuments(models.Model):
 
 class UserRegion(models.Model):
     """
-    Информация о регионе и проживании (фактическом и по прописке) пользователя.
+    Информация о регионе и проживании (фактическом и по прописке) пользователя
     """
     user = models.OneToOneField(
         to=RSOUser,
@@ -381,7 +374,7 @@ class UserRegion(models.Model):
 
 
 class UserPrivacySettings(models.Model):
-    """Настройки приватности пользователя."""
+    """Настройки приватности пользователя"""
     user = models.OneToOneField(
         to=RSOUser,
         on_delete=models.CASCADE,
@@ -435,7 +428,7 @@ class UserPrivacySettings(models.Model):
 
 
 class UserMedia(models.Model):
-    """Аватарка, баннер и другие медиа-файлы."""
+    """Аватарка, баннер и другие медиа-файлы"""
     user = models.OneToOneField(
         to=RSOUser,
         on_delete=models.CASCADE,
@@ -495,7 +488,7 @@ class UserMedia(models.Model):
 
 
 class UserStatementDocuments(models.Model):
-    """Документы пользователя для вступления в РСО."""
+    """Документы пользователя для вступления в РСО"""
     user = models.OneToOneField(
         to=RSOUser,
         on_delete=models.CASCADE,
@@ -597,171 +590,3 @@ class UserStatementDocuments(models.Model):
             f'Пользователь {self.user.last_name} '
             f'{self.user.first_name}. Id: {self.user.id}'
         )
-
-
-class Region(models.Model):
-    name = models.CharField(
-        max_length=100,
-        db_index=True,
-        blank=True,
-        null=True,
-        verbose_name='Название'
-    )
-
-    branch = models.CharField(
-        max_length=100,
-        db_index=True,
-        blank=True,
-        null=True,
-        default='региональное отделение',
-        verbose_name='Региональное отделение'
-    )
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = 'регионы'
-        verbose_name = 'Регион'
-
-
-class Area(models.Model):
-    name = models.CharField(
-        max_length=50,
-        blank=True,
-        null=True,
-        verbose_name='Название направления'
-    )
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = 'направления'
-        verbose_name = 'Направление'
-
-
-class Unit(models.Model):
-    """Структурная единица"""
-    name = models.CharField(
-        max_length=100,
-        db_index=True,
-        blank=True,
-        null=True,
-        verbose_name='Название'
-    )
-    commander = models.OneToOneField(
-        RSOUser,
-        related_name='commander',
-        blank=True,
-        null=True,
-        on_delete=models.PROTECT,
-        verbose_name='Командир'
-    )
-    about = models.CharField(
-        max_length=500,
-        blank=True,
-        null=True,
-        verbose_name='Описание',
-        default=''
-    )
-    emblem = models.ImageField(
-        upload_to=user_upload_path,
-        blank=True,
-        null=True,
-        verbose_name='Эмблема'
-    )
-    social_vk = models.CharField(
-        max_length=50,
-        blank=True,
-        null=True,
-        default='https://vk.com/',
-        verbose_name='Ссылка ВК'
-    )
-    social_tg = models.CharField(
-        max_length=50,
-        blank=True,
-        null=True,
-        default='https://',
-        verbose_name='Ссылка Телеграм'
-    )
-    banner = models.ImageField(
-        upload_to=user_upload_path,
-        blank=True,
-        null=True,
-        verbose_name='Баннер'
-    )
-    slogan = models.CharField(
-        max_length=100,
-        blank=True,
-        null=True,
-        default='',
-        verbose_name='Девиз'
-    )
-    founding_date = models.DateField(
-        blank=True,
-        null=True,
-        verbose_name='Дата основания'
-    )
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = 'структурные единицы'
-        verbose_name = 'Структурная единица'
-
-
-
-class Detachment(Unit):
-    area = models.ForeignKey(
-        Area,
-        blank=True,
-        null=True,
-        on_delete=models.PROTECT,
-        verbose_name='Направление'
-    )
-
-    def clean(self):
-        if not self.commander:
-            raise ValidationError('Отряд должен иметь командира.')
-
-    # регион
-    # institution = models.ForeignKey(
-    #   'Institution',
-    #   null=True,
-    #   blank=True,
-    #   on_delete=models.PROTECT,
-    #   verbose_name='Учебное заведение'
-    #  )
-    # город
-    # Местный штаб
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = 'отряды'
-        verbose_name = 'Отряд'
-
-
-
-# Штаб Образовательной Организации
-# Регион
-# Учебное заведение
-# Местный штаб
-#
-# МестныйШтаб
-# Регион
-# Номер участника в реестре
-# Дата участника в реестре
-#
-# Региональный Штаб
-# Регион
-# Год появления Отрядов в регионе
-# Дата учредительной конференции
-# Номер участника в реестре
-# Дата участника в реестре
-# Окружной штаб
-#
-# Окружной Штаб
