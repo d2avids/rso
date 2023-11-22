@@ -1,6 +1,9 @@
-from django.db import IntegrityError
 from rest_framework import serializers
 
+from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
+                           MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
+                           REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS)
+from api.utils import create_first_or_exception
 from users.models import (Region, RSOUser, UserDocuments, UserEducation,
                           UserMedia, UserPrivacySettings, UserRegion,
                           UserStatementDocuments)
@@ -9,7 +12,7 @@ from users.models import (Region, RSOUser, UserDocuments, UserEducation,
 class RegionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Region
-        fields = '__all__'
+        fields = ('name', 'branch')
 
 
 class UserEducationSerializer(serializers.ModelSerializer):
@@ -25,13 +28,12 @@ class UserEducationSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
-        try:
-            return UserEducation.objects.create(**validated_data)
-        except IntegrityError:
-            raise serializers.ValidationError(
-                {'detail': 'Образовательная информация для '
-                           'данного пользователя уже существует'}
-            )
+        return create_first_or_exception(
+            self,
+            validated_data,
+            UserEducation,
+            EDUCATION_RAW_EXISTS
+        )
 
 
 class UserDocumentsSerializer(serializers.ModelSerializer):
@@ -53,12 +55,12 @@ class UserDocumentsSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
-        try:
-            return UserDocuments.objects.create(**validated_data)
-        except IntegrityError:
-            raise serializers.ValidationError(
-                {'detail': 'Документы для данного пользователя уже существуют'}
-            )
+        return create_first_or_exception(
+            self,
+            validated_data,
+            UserDocuments,
+            DOCUMENTS_RAW_EXISTS
+        )
 
 
 class UserPrivacySettingsSerializer(serializers.ModelSerializer):
@@ -73,14 +75,12 @@ class UserPrivacySettingsSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
-        try:
-            return UserPrivacySettings.objects.create(**validated_data)
-        except IntegrityError:
-            raise serializers.ValidationError(
-                {
-                    'detail': 'Настройки приватности для данного '
-                              'пользователя уже существуют'}
-            )
+        return create_first_or_exception(
+            self,
+            validated_data,
+            UserPrivacySettings,
+            PRIVACY_RAW_EXISTS
+        )
 
 
 class UserMediaSerializer(serializers.ModelSerializer):
@@ -96,14 +96,12 @@ class UserMediaSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
-        try:
-            return UserMedia.objects.create(**validated_data)
-        except IntegrityError:
-            raise serializers.ValidationError(
-                {
-                    'detail': 'Медиа-данные для данного '
-                              'пользователя уже существуют'}
-            )
+        return create_first_or_exception(
+            self,
+            validated_data,
+            UserMedia,
+            MEDIA_RAW_EXISTS
+        )
 
 
 class UserStatementDocumentsSerializer(serializers.ModelSerializer):
@@ -128,14 +126,12 @@ class UserStatementDocumentsSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
-        try:
-            return UserStatementDocuments.objects.create(**validated_data)
-        except IntegrityError:
-            raise serializers.ValidationError(
-                {
-                    'detail': 'Документы пользователя для вступления в РСО '
-                              'уже существуют для данного пользователя'}
-            )
+        return create_first_or_exception(
+            self,
+            validated_data,
+            UserStatementDocuments,
+            STATEMENT_RAW_EXISTS
+        )
 
 
 class UserRegionSerializer(serializers.ModelSerializer):
@@ -168,16 +164,19 @@ class UserRegionSerializer(serializers.ModelSerializer):
         read_only_fields = ('reg_region', 'fact_region')
 
     def create(self, validated_data):
-        try:
-            return UserRegion.objects.create(**validated_data)
-        except IntegrityError:
-            raise serializers.ValidationError(
-                {'detail': 'Данные региона для данного пользователя '
-                           'уже существуют'}
-            )
+        return create_first_or_exception(
+            self,
+            validated_data,
+            UserRegion,
+            REGION_RAW_EXISTS
+        )
 
 
 class RSOUserSerializer(serializers.ModelSerializer):
+    """
+    Выводит личные данные пользователя, а также все данные из всех
+    связанных моделей.
+    """
     user_region = UserRegionSerializer(read_only=True)
     documents = UserDocumentsSerializer(read_only=True)
     statement = UserStatementDocumentsSerializer(read_only=True)

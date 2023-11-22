@@ -2,8 +2,8 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from .constants import (Gender, MilitaryDocType, PositionsOption,
-                        PrivacyOption, StudyForm, UnitType)
+from users.constants import (Gender, MilitaryDocType, PositionsOption,
+                             PrivacyOption, StudyForm, UnitType)
 
 
 class RSOUser(AbstractUser):

@@ -3,19 +3,24 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from api.mixins import ListRetrieveUpdateViewSet, ListRetrieveViewSet
+from api.serializers import (RegionSerializer, RSOUserSerializer,
+                             UserDocumentsSerializer, UserEducationSerializer,
+                             UserMediaSerializer,
+                             UserPrivacySettingsSerializer,
+                             UserRegionSerializer,
+                             UserStatementDocumentsSerializer)
 from users.models import (Region, RSOUser, UserDocuments, UserEducation,
                           UserMedia, UserPrivacySettings, UserRegion,
                           UserStatementDocuments)
 
-from .mixins import ListRetrieveViewSet, ListRetrieveUpdateViewSet
-from .serializers import (RegionSerializer, RSOUserSerializer,
-                          UserDocumentsSerializer, UserEducationSerializer,
-                          UserMediaSerializer, UserPrivacySettingsSerializer,
-                          UserRegionSerializer,
-                          UserStatementDocumentsSerializer)
-
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
+    """
+    Представляет пользователей. Доступны операции чтения.
+    Пользователь имеет возможность изменять собственные данные
+    по id или по эндпоинту /users/me.
+    """
     queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
 
@@ -26,9 +31,12 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
         serializer_class=RSOUserSerializer,
     )
     def me(self, request, pk=None):
+        """Представляет текущего авторизованного пользователя."""
         if request.method == 'PATCH':
             serializer = self.get_serializer(
-                request.user, data=request.data, partial=True
+                request.user,
+                data=request.data,
+                partial=True
             )
             serializer.is_valid(raise_exception=True)
             serializer.save()
@@ -37,14 +45,51 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
 
 
 class RegionViewSet(ListRetrieveViewSet):
+    """Представляет регионы. Доступны только операции чтения."""
     queryset = Region.objects.all()
     serializer_class = RegionSerializer
 
 
 class BaseUserViewSet(viewsets.ModelViewSet):
     """
-    Базовый вьюсет для расширения дочерними вьюсетами для моделей
-    связанными с User.
+    Базовый класс ViewSet для работы с моделями,
+    связанными с пользователем (RSOUser).
+
+    Этот класс предназначен для расширения и создания специализированных
+    ViewSets для различных пользовательских моделей. Он обеспечивает полный
+    набор CRUD-операций (создание, чтение, обновление, удаление) для моделей,
+    связанных с пользователем.
+
+    Атрибуты:
+    - permission_classes: используется permissions.IsAuthenticated для
+    проверки, что пользователь аутентифицирован.
+
+    Методы:
+    - create(request, *args, **kwargs): Обрабатывает POST-запросы для создания
+    новой записи. Вызывает описанный ниже perform_create метод.
+
+    - perform_create(serializer): Позволяет связать создаваемую запись с
+    текущим (авторизованным) пользователем.
+
+    - retrieve(request, *args, **kwargs): Обрабатывает GET-запросы
+    для получения записи текущего пользователя без явного указания ID в урле
+
+    - update(request, *args, **kwargs): Обрабатывает PUT/PATCH-запросы для
+    обновления существующей записи текущего пользователя без
+    явного указания ID в урле
+
+    - destroy(request, *args, **kwargs): Обрабатывает DELETE-запросы для
+    удаления существующей записи текущего пользователя без
+    явного указания ID в урле
+
+    Параметры:
+    - request: Объект HttpRequest, содержащий данные запроса.
+    - args, kwargs: Дополнительные аргументы и ключевые аргументы, переданные
+    в метод.
+
+    Возвращаемое значение:
+    - Ответ HttpResponse или Response, содержащий данные записи
+    (для create, retrieve, update) или пустой ответ (для destroy).
     """
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -80,14 +125,17 @@ class BaseUserViewSet(viewsets.ModelViewSet):
 
 
 class UserEducationViewSet(BaseUserViewSet):
+    """Представляет образовательную информацию пользователя."""
     queryset = UserEducation.objects.all()
     serializer_class = UserEducationSerializer
 
     def get_object(self):
+        """Определяет instance для операций с объектом (get, upd, del)."""
         return get_object_or_404(UserEducation, user=self.request.user)
 
 
 class UserDocumentsViewSet(BaseUserViewSet):
+    """Представляет документы пользователя."""
     queryset = UserDocuments.objects.all()
     serializer_class = UserDocumentsSerializer
 
@@ -96,6 +144,7 @@ class UserDocumentsViewSet(BaseUserViewSet):
 
 
 class UserRegionViewSet(BaseUserViewSet):
+    """Представляет информацию о проживании пользователя."""
     queryset = UserRegion.objects.all()
     serializer_class = UserRegionSerializer
 
@@ -104,6 +153,7 @@ class UserRegionViewSet(BaseUserViewSet):
 
 
 class UserPrivacySettingsViewSet(BaseUserViewSet):
+    """Представляет настройки приватности пользователя."""
     queryset = UserPrivacySettings.objects.all()
     serializer_class = UserPrivacySettingsSerializer
 
@@ -112,6 +162,7 @@ class UserPrivacySettingsViewSet(BaseUserViewSet):
 
 
 class UserMediaViewSet(BaseUserViewSet):
+    """Представляет медиа-данные пользователя."""
     queryset = UserMedia.objects.all()
     serializer_class = UserMediaSerializer
 
@@ -120,10 +171,12 @@ class UserMediaViewSet(BaseUserViewSet):
 
 
 class UserStatementDocumentsViewSet(BaseUserViewSet):
+    """Представляет заявление на вступление в РСО пользователя."""
     queryset = UserStatementDocuments.objects.all()
     serializer_class = UserStatementDocumentsSerializer
 
     def get_object(self):
         return get_object_or_404(
-            UserStatementDocuments, user=self.request.user
+            UserStatementDocuments,
+            user=self.request.user
         )
