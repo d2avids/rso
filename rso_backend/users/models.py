@@ -1,9 +1,9 @@
+from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.contrib.auth.models import AbstractUser
 
-from .constants import (Gender, UnitType, StudyForm, 
-                        MilitaryDocType, PrivacyOption, PositionsOption)
+from .constants import (Gender, MilitaryDocType, PositionsOption,
+                        PrivacyOption, StudyForm, UnitType)
 
 
 class RSOUser(AbstractUser):
@@ -318,7 +318,7 @@ class UserRegion(models.Model):
         null=True,
         verbose_name='Улица, дом, кв. прописки'
     )
-    reg_fac_same_address = models.BooleanField(
+    reg_fact_same_address = models.BooleanField(
         default=False,
         verbose_name='Адреса регистрации и фактический совпадают'
     )

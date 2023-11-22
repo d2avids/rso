@@ -1,9 +1,9 @@
 from django.contrib import admin
-from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import (Area, Detachment, Region,
-                     RSOUser, UserRegion, UserMedia,
-                     UserEducation, UserDocuments, UserPrivacySettings)
+from django.contrib.auth.models import Group
+
+from .models import (Area, Detachment, Region, RSOUser, UserDocuments,
+                     UserEducation, UserMedia, UserPrivacySettings, UserRegion)
 
 
 class UserRegionInline(admin.StackedInline):
@@ -50,12 +50,12 @@ class RegionAdmin(admin.ModelAdmin):
 
 
 @admin.register(Area)
-class RegionAdmin(admin.ModelAdmin):
+class AreaAdmin(admin.ModelAdmin):
     pass
 
 
 @admin.register(Detachment)
-class RegionAdmin(admin.ModelAdmin):
+class DetachmentAdmin(admin.ModelAdmin):
     pass
 
 

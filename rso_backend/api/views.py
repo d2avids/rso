@@ -1,75 +1,112 @@
-from rest_framework import viewsets
-from users.models import (RSOUser, UserEducation, UserDocuments,
-                          UserRegion, UserPrivacySettings, UserMedia, Region)
-from .serializers import (RSOUserSerializer, UserEducationSerializer,
-                          UserDocumentsSerializer,
+from django.shortcuts import get_object_or_404
+from rest_framework import permissions, status, viewsets
+from rest_framework.response import Response
+
+from users.models import (Region, RSOUser, UserDocuments, UserEducation,
+                          UserMedia, UserPrivacySettings, UserRegion,
+                          UserStatementDocuments)
+
+from .mixins import ListRetrieveViewSet
+from .serializers import (RegionSerializer, RSOUserSerializer,
+                          UserDocumentsSerializer, UserEducationSerializer,
+                          UserMediaSerializer, UserPrivacySettingsSerializer,
                           UserRegionSerializer,
-                          UserPrivacySettingsSerializer,
-                          UserMediaSerializer,
-                          RegionSerializer)
+                          UserStatementDocumentsSerializer)
 
 
-class RSOUserViewSet(viewsets.ModelViewSet):
+class RSOUserViewSet(ListRetrieveViewSet):
     queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
 
 
-class UserEducationViewSet(viewsets.ModelViewSet):
+class RegionViewSet(ListRetrieveViewSet):
+    queryset = Region.objects.all()
+    serializer_class = RegionSerializer
+
+
+class BaseUserViewSet(viewsets.ModelViewSet):
+    """
+    Базовый вьюсет для расширения дочерними вьюсетами для моделей
+    связанными с User.
+    """
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def perform_create(self, serializer):
+        user_id = self.kwargs.get('user_pk', None)
+        user = get_object_or_404(
+            RSOUser, id=user_id
+        ) if user_id else self.request.user
+        serializer.save(user=user)
+
+
+class UserEducationViewSet(BaseUserViewSet):
     queryset = UserEducation.objects.all()
     serializer_class = UserEducationSerializer
 
-    def get_queryset(self):
-        # Optionally, filter by user ID if required
-        user_id = self.kwargs.get('user_id')
-        if user_id:
-            return self.queryset.filter(user_id=user_id)
-        return self.queryset
+    def get_object(self):
+        return get_object_or_404(UserEducation, user=self.request.user)
 
 
-class UserDocumentsViewSet(viewsets.ModelViewSet):
+class UserDocumentsViewSet(BaseUserViewSet):
     queryset = UserDocuments.objects.all()
     serializer_class = UserDocumentsSerializer
 
-    def get_queryset(self):
-        user_id = self.kwargs.get('user_id')
-        if user_id:
-            return self.queryset.filter(user_id=user_id)
-        return self.queryset
+    def get_object(self):
+        return get_object_or_404(UserDocuments, user=self.request.user)
 
 
-class UserRegionViewSet(viewsets.ModelViewSet):
+class UserRegionViewSet(BaseUserViewSet):
     queryset = UserRegion.objects.all()
     serializer_class = UserRegionSerializer
 
-    def get_queryset(self):
-        user_id = self.kwargs.get('user_id')
-        if user_id:
-            return self.queryset.filter(user_id=user_id)
-        return self.queryset
+    def get_object(self):
+        return get_object_or_404(UserRegion, user=self.request.user)
 
 
-class UserPrivacySettingsViewSet(viewsets.ModelViewSet):
+class UserPrivacySettingsViewSet(BaseUserViewSet):
     queryset = UserPrivacySettings.objects.all()
     serializer_class = UserPrivacySettingsSerializer
 
-    def get_queryset(self):
-        user_id = self.kwargs.get('user_id')
-        if user_id:
-            return self.queryset.filter(user_id=user_id)
-        return self.queryset
+    def get_object(self):
+        return get_object_or_404(UserPrivacySettings, user=self.request.user)
 
 
-class UserMediaViewSet(viewsets.ModelViewSet):
+class UserMediaViewSet(BaseUserViewSet):
     queryset = UserMedia.objects.all()
     serializer_class = UserMediaSerializer
 
-    def get_queryset(self):
-        user_id = self.kwargs.get('user_id')
-        if user_id:
-            return self.queryset.filter(user_id=user_id)
-        return self.queryset
+    def get_object(self):
+        return get_object_or_404(UserMedia, user=self.request.user)
 
 
-class RegionViewSet(viewsets.ModelViewSet):
-    queryset = Region.objects.all()
-    serializer_class = RegionSerializer
+class UserStatementDocumentsViewSet(BaseUserViewSet):
+    queryset = UserStatementDocuments.objects.all()
+    serializer_class = UserStatementDocumentsSerializer
+
+    def get_object(self):
+        return get_object_or_404(
+            UserStatementDocuments, user=self.request.user
+        )
