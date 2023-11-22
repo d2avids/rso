@@ -1,12 +1,13 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from users.models import (Region, RSOUser, UserDocuments, UserEducation,
                           UserMedia, UserPrivacySettings, UserRegion,
                           UserStatementDocuments)
 
-from .mixins import ListRetrieveViewSet
+from .mixins import ListRetrieveViewSet, ListRetrieveUpdateViewSet
 from .serializers import (RegionSerializer, RSOUserSerializer,
                           UserDocumentsSerializer, UserEducationSerializer,
                           UserMediaSerializer, UserPrivacySettingsSerializer,
@@ -14,9 +15,25 @@ from .serializers import (RegionSerializer, RSOUserSerializer,
                           UserStatementDocumentsSerializer)
 
 
-class RSOUserViewSet(ListRetrieveViewSet):
+class RSOUserViewSet(ListRetrieveUpdateViewSet):
     queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
+
+    @action(
+        detail=False,
+        methods=['get', 'patch'],
+        permission_classes=(permissions.IsAuthenticated,),
+        serializer_class=RSOUserSerializer,
+    )
+    def me(self, request, pk=None):
+        if request.method == 'PATCH':
+            serializer = self.get_serializer(
+                request.user, data=request.data, partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+        return Response(self.get_serializer(request.user).data)
 
 
 class RegionViewSet(ListRetrieveViewSet):
