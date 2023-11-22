@@ -1,45 +1,33 @@
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from .views import (RSOUserViewSet, UserEducationViewSet, UserDocumentsViewSet,
-                    UserRegionViewSet, UserPrivacySettingsViewSet,
-                    UserMediaViewSet, RegionViewSet)
+
+from api.constants import CRUD_METHODS_WITHOUT_LIST
+from api.views import (RegionViewSet, RSOUserViewSet, UserDocumentsViewSet,
+                       UserEducationViewSet, UserMediaViewSet,
+                       UserPrivacySettingsViewSet, UserRegionViewSet,
+                       UserStatementDocumentsViewSet)
 
 router = DefaultRouter()
 
 router.register(r'users', RSOUserViewSet)
 router.register(r'regions', RegionViewSet)
 
+UserEduVS = UserEducationViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
+UserDocVS = UserDocumentsViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
+UserRegVS = UserRegionViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
+UserPrivacyVS = UserPrivacySettingsViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
+UserMediaVS = UserMediaViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
+UserStatementVS = UserStatementDocumentsViewSet.as_view(
+    CRUD_METHODS_WITHOUT_LIST
+)
+
 user_nested_urls = [
-    path('users/<int:user_id>/education/', UserEducationViewSet.as_view({
-        'get': 'list',
-        'post': 'create',
-        'put': 'update',
-        'delete': 'destroy'
-    }), name='user-education'),
-    path('users/<int:user_id>/documents/', UserDocumentsViewSet.as_view({
-        'get': 'list',
-        'post': 'create',
-        'put': 'update',
-        'delete': 'destroy'
-    }), name='user-documents'),
-    path('users/<int:user_id>/region/', UserRegionViewSet.as_view({
-        'get': 'list',
-        'post': 'create',
-        'put': 'update',
-        'delete': 'destroy'
-    }), name='user-region'),
-    path('users/<int:user_id>/privacy/', UserPrivacySettingsViewSet.as_view({
-        'get': 'list',
-        'post': 'create',
-        'put': 'update',
-        'delete': 'destroy'
-    }), name='user-privacy'),
-    path('users/<int:user_id>/media/', UserMediaViewSet.as_view({
-        'get': 'list',
-        'post': 'create',
-        'put': 'update',
-        'delete': 'destroy'
-    }), name='user-media'),
+    path('users/me/education/', UserEduVS, name='user-education'),
+    path('users/me/documents/', UserDocVS, name='user-documents'),
+    path('users/me/region/', UserRegVS, name='user-region'),
+    path('users/me/privacy/', UserPrivacyVS, name='user-privacy'),
+    path('users/me/media/', UserMediaVS, name='user-media'),
+    path('users/me/statement/', UserStatementVS, name='user-statement'),
 ]
 
 urlpatterns = [
