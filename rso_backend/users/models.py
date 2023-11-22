@@ -8,7 +8,7 @@ from .utils import user_upload_path
 
 
 class RSOUser(AbstractUser):
-    """Пользователь"""
+    """Пользователь."""
     email = models.EmailField(
         max_length=254,
         unique=True,
@@ -143,7 +143,7 @@ class RSOUser(AbstractUser):
 
 
 class UserEducation(models.Model):
-    """Информация об образовательной организации пользователя"""
+    """Информация об образовательной организации пользователя."""
     user = models.OneToOneField(
         to=RSOUser,
         on_delete=models.CASCADE,
@@ -204,7 +204,7 @@ class UserEducation(models.Model):
 
 
 class UserDocuments(models.Model):
-    """Информация о документах пользователя"""
+    """Информация о документах пользователя."""
     user = models.OneToOneField(
         to=RSOUser,
         on_delete=models.CASCADE,
@@ -305,7 +305,7 @@ class UserDocuments(models.Model):
 
 class UserRegion(models.Model):
     """
-    Информация о регионе и проживании (фактическом и по прописке) пользователя
+    Информация о регионе и проживании (фактическом и по прописке) пользователя.
     """
     user = models.OneToOneField(
         to=RSOUser,
@@ -374,7 +374,7 @@ class UserRegion(models.Model):
 
 
 class UserPrivacySettings(models.Model):
-    """Настройки приватности пользователя"""
+    """Настройки приватности пользователя."""
     user = models.OneToOneField(
         to=RSOUser,
         on_delete=models.CASCADE,
@@ -428,7 +428,7 @@ class UserPrivacySettings(models.Model):
 
 
 class UserMedia(models.Model):
-    """Аватарка, баннер и другие медиа-файлы"""
+    """Аватарка, баннер и другие медиа-файлы."""
     user = models.OneToOneField(
         to=RSOUser,
         on_delete=models.CASCADE,
@@ -488,7 +488,7 @@ class UserMedia(models.Model):
 
 
 class UserStatementDocuments(models.Model):
-    """Документы пользователя для вступления в РСО"""
+    """Документы пользователя для вступления в РСО."""
     user = models.OneToOneField(
         to=RSOUser,
         on_delete=models.CASCADE,

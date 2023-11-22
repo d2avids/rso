@@ -33,7 +33,7 @@ class Region(models.Model):
 
 
 class Area(models.Model):
-    """Направление деятельности"""
+    """Направление деятельности."""
     name = models.CharField(
         max_length=50,
         blank=True,
@@ -50,7 +50,7 @@ class Area(models.Model):
 
 
 class Unit(models.Model):
-    """Структурная единица"""
+    """Структурная единица."""
     name = models.CharField(
         max_length=100,
         db_index=True,
@@ -74,7 +74,7 @@ class Unit(models.Model):
         default=''
     )
     emblem = models.ImageField(
-        upload_to=user_upload_path,
+        upload_to=unit_upload_path,
         blank=True,
         null=True,
         verbose_name='Эмблема'
@@ -94,7 +94,7 @@ class Unit(models.Model):
         verbose_name='Ссылка Телеграм'
     )
     banner = models.ImageField(
-        upload_to=user_upload_path,
+        upload_to=unit_upload_path,
         blank=True,
         null=True,
         verbose_name='Баннер'
@@ -121,7 +121,7 @@ class Unit(models.Model):
 
 
 class Detachment(Unit):
-    """Отряд"""
+    """Отряд."""
     area = models.ForeignKey(
         Area,
         blank=True,
