@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+from django.core.validators import MinLengthValidator
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
@@ -115,11 +116,21 @@ class RSOUser(AbstractUser):
         verbose_name='Отряд'
     )
     position = models.CharField(
-        max_length=20, 
-        blank=True, 
+        max_length=20,
+        blank=True,
         null=True,
         choices=PositionsOption.choices, 
         verbose_name='Должность'
+    )
+    password = models.CharField(
+        verbose_name='Пароль',
+        max_length=12,
+        validators=[
+            MinLengthValidator(8),
+            ValidationError(
+                'Пароль должен содержать от 8 до 12 символов.'
+            )
+        ]
     )
 
     class Meta:

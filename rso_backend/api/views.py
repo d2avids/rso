@@ -73,3 +73,5 @@ class UserMediaViewSet(viewsets.ModelViewSet):
 class RegionViewSet(viewsets.ModelViewSet):
     queryset = Region.objects.all()
     serializer_class = RegionSerializer
+
+
