@@ -107,23 +107,7 @@ class RSOUser(AbstractUser):
         default=False,
         verbose_name='Членский взнос оплачен'
     )
-    detachment = models.ForeignKey(
-        to='Detachment',
-        blank=True,
-        null=True,
-        on_delete=models.PROTECT,
-        verbose_name='Отряд'
-    )
-    position = models.CharField(
-        max_length=20,
-        blank=True,
-        null=True,
-        choices=PositionsOption.choices,
-        verbose_name='Должность'
-    )
-    password = models.CharField(
-        max_length=12,
-    )
+
 
     class Meta:
         verbose_name_plural = 'Пользователи'
