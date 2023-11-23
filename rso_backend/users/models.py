@@ -2,9 +2,9 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
-from .constants import (Gender, UnitType, StudyForm,
+from users.constants import (Gender, UnitType, StudyForm,
                         MilitaryDocType, PrivacyOption, PositionsOption)
-from .utils import user_upload_path
+from users.utils import user_upload_path
 
 
 class RSOUser(AbstractUser):
