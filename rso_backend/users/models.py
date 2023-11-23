@@ -125,12 +125,6 @@ class RSOUser(AbstractUser):
     password = models.CharField(
         verbose_name='Пароль',
         max_length=12,
-        validators=[
-            MinLengthValidator(8),
-            ValidationError(
-                'Пароль должен содержать от 8 до 12 символов.'
-            )
-        ]
     )
 
     class Meta:

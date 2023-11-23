@@ -1,4 +1,6 @@
+from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
+
 from users.models import RSOUser, UserEducation, UserDocuments, UserRegion, UserPrivacySettings, UserMedia, Region
 
 
@@ -44,8 +46,7 @@ class RegionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class UserCreateSerializer(serializers.ModelSerializer):
-    password_confirm = serializers.CharField(write_only=True)
+class CustomUserCreateSerializer(UserCreateSerializer):
 
     class Meta:
         model = RSOUser
@@ -59,16 +60,19 @@ class UserCreateSerializer(serializers.ModelSerializer):
             'email',
             'username',
             'password',
-            'password_confirm',
         )
 
-    def validate(self, attrs):
-        if attrs['password'] != attrs['password_confirm']:
-            raise serializers.ValidationError("Пароли не совпадают")
-        return attrs
 
+    def create(self, validated_data):
+        user = RSOUser(
+            email=validated_data['email'],
+            username=validated_data['username']
+        )
+        user.set_password(validated_data['password'])
+        user.save()
+        return user
 
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(UserSerializer):
     class Meta:
         model = RSOUser
         fields = (

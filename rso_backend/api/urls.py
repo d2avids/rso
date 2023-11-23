@@ -4,6 +4,8 @@ from .views import (RSOUserViewSet, UserEducationViewSet, UserDocumentsViewSet,
                     UserRegionViewSet, UserPrivacySettingsViewSet,
                     UserMediaViewSet, RegionViewSet)
 
+app_name = 'api'
+
 router = DefaultRouter()
 
 router.register(r'users', RSOUserViewSet)
