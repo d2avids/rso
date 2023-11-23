@@ -149,7 +149,7 @@ DJOSER = {
     'PASSWORD_CHANGE_EMAIL_CONFIRMATION': False,
     'SERIALIZERS': {
         'user_create': 'api.serializers.CustomUserCreateSerializer',
-        'user': 'api.serializers.UserSerializer',
+        'user': 'api.serializers.CustomUserSerializer',
         'current_user': 'api.serializers.RSOUserSerializer',
     },
 }

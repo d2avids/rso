@@ -119,11 +119,10 @@ class RSOUser(AbstractUser):
         max_length=20,
         blank=True,
         null=True,
-        choices=PositionsOption.choices, 
+        choices=PositionsOption.choices,
         verbose_name='Должность'
     )
     password = models.CharField(
-        verbose_name='Пароль',
         max_length=12,
     )
 

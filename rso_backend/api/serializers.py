@@ -72,7 +72,8 @@ class CustomUserCreateSerializer(UserCreateSerializer):
         user.save()
         return user
 
-class UserSerializer(UserSerializer):
+
+class CustomUserSerializer(UserSerializer):
     class Meta:
         model = RSOUser
         fields = (
