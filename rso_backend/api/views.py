@@ -12,6 +12,7 @@ from .serializers import (RSOUserSerializer, UserEducationSerializer,
 class RSOUserViewSet(viewsets.ModelViewSet):
     queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
+    http_method_names = ('get', 'update', 'delete')
 
 
 class UserEducationViewSet(viewsets.ModelViewSet):

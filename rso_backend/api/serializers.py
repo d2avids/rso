@@ -62,7 +62,6 @@ class CustomUserCreateSerializer(UserCreateSerializer):
             'password',
         )
 
-
     def create(self, validated_data):
         user = RSOUser(
             email=validated_data['email'],
@@ -71,6 +70,7 @@ class CustomUserCreateSerializer(UserCreateSerializer):
         user.set_password(validated_data['password'])
         user.save()
         return user
+
 
 
 class CustomUserSerializer(UserSerializer):

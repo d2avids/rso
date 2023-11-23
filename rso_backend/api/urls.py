@@ -46,4 +46,4 @@ user_nested_urls = [
 
 urlpatterns = [
     path('', include(router.urls)),
-] + user_nested_urls
+]
