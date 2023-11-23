@@ -54,7 +54,7 @@ class CustomUserCreateSerializer(UserCreateSerializer):
             'region',
             'last_name',
             'first_name',
-            'patronymic',
+            'patronymic_name',
             'date_of_birth',
             'phone_number',
             'email',
@@ -79,7 +79,7 @@ class CustomUserSerializer(UserSerializer):
         fields = (
             'last_name',
             'first_name',
-            'patronymic',
+            'patronymic_name',
             'position',
             'region',
             'social_vk',
