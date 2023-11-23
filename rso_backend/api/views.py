@@ -23,6 +23,7 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
     """
     queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
+    http_method_names = ('get', 'update', 'delete')
 
     @action(
         detail=False,

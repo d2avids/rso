@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
+from django.core.validators import MinLengthValidator
 from django.db import models
 
 from users.constants import (Gender, MilitaryDocType, PositionsOption,
@@ -115,11 +116,14 @@ class RSOUser(AbstractUser):
         verbose_name='Отряд'
     )
     position = models.CharField(
-        max_length=20, 
-        blank=True, 
+        max_length=20,
+        blank=True,
         null=True,
-        choices=PositionsOption.choices, 
+        choices=PositionsOption.choices,
         verbose_name='Должность'
+    )
+    password = models.CharField(
+        max_length=12,
     )
 
     class Meta:

@@ -7,6 +7,8 @@ from api.views import (RegionViewSet, RSOUserViewSet, UserDocumentsViewSet,
                        UserPrivacySettingsViewSet, UserRegionViewSet,
                        UserStatementDocumentsViewSet)
 
+app_name = 'api'
+
 router = DefaultRouter()
 
 router.register(r'users', RSOUserViewSet)
@@ -32,4 +34,4 @@ user_nested_urls = [
 
 urlpatterns = [
     path('', include(router.urls)),
-] + user_nested_urls
+]

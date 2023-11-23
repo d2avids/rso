@@ -8,11 +8,13 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-SECRET_KEY = 'django-insecure-dl&3bbouqc0^o2fz$0$&9b=4cn(u#3gu5nzl3c+^o-_vzt@+h6'
+SECRET_KEY = os.getenv('SECRET_KEY', default='key')
 
 DEBUG = os.getenv('DEBUG', default=False) == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS',
-                          default='127.0.0.1,localhost').split(',')
+ALLOWED_HOSTS = os.getenv(
+    'ALLOWED_HOSTS',
+    default='127.0.0.1,localhost'
+).split(',')
 
 AUTH_USER_MODEL = 'users.RSOUser'
 
@@ -24,7 +26,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',
     'drf_yasg',
+    'djoser',
+
+]
+
+INSTALLED_APPS += [
     'api.apps.ApiConfig',
     'users.apps.UsersConfig',
     'headquarters.apps.HeadquartersConfig',
@@ -60,7 +68,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'rso_backend.wsgi.application'
 
-if bool(os.getenv('DEBUG', default=True) == 'True'):
+if DEBUG:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -104,17 +112,12 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
-
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'collected_static'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -129,3 +132,34 @@ CSRF_TRUSTED_ORIGINS = [
     'https://127.0.0.1',
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+}
+
+DJOSER = {
+    'LOGIN_FIELD': 'username',
+    'USERNAME_FIELD': 'username',
+    'USER_CREATE_PASSWORD_RETYPE': True,
+    'SEND_ACTIVATION_EMAIL': False,
+    'PASSWORD_CHANGE_EMAIL_CONFIRMATION': False,
+    'SERIALIZERS': {
+        'user_create': 'api.serializers.CustomUserCreateSerializer',
+        'user': 'api.serializers.CustomUserSerializer',
+        'current_user': 'api.serializers.RSOUserSerializer',
+    },
+}
+
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+        }
+    }
+}
