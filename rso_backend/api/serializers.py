@@ -1,4 +1,4 @@
-from djoser.serializers import UserCreateSerializer, UserSerializer
+from djoser.serializers import UserCreatePasswordRetypeSerializer
 from rest_framework import serializers
 
 from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
@@ -14,7 +14,6 @@ class RegionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Region
         fields = ('name', 'branch')
-
 
 
 class UserEducationSerializer(serializers.ModelSerializer):
@@ -235,7 +234,12 @@ class RSOUserSerializer(serializers.ModelSerializer):
         ).data if privacy_settings else None
 
 
-class CustomUserCreateSerializer(UserCreateSerializer):
+class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
+    region = serializers.PrimaryKeyRelatedField(
+        queryset=Region.objects.all(),
+        allow_null=True,
+        required=False,
+    )
 
     class Meta:
         model = RSOUser
@@ -249,30 +253,4 @@ class CustomUserCreateSerializer(UserCreateSerializer):
             'email',
             'username',
             'password',
-        )
-
-    def create(self, validated_data):
-        user = RSOUser(
-            email=validated_data['email'],
-            username=validated_data['username']
-        )
-        user.set_password(validated_data['password'])
-        user.save()
-        return user
-
-
-
-class CustomUserSerializer(UserSerializer):
-    class Meta:
-        model = RSOUser
-        fields = (
-            'last_name',
-            'first_name',
-            'patronymic_name',
-            'position',
-            'region',
-            'social_vk',
-            'social_tg',
-            'phone_number',
-            'email',
         )

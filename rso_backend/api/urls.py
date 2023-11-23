@@ -1,4 +1,5 @@
 from django.urls import include, path
+from djoser.views import UserViewSet
 from rest_framework.routers import DefaultRouter
 
 from api.constants import CRUD_METHODS_WITHOUT_LIST
@@ -33,5 +34,7 @@ user_nested_urls = [
 ]
 
 urlpatterns = [
+    path('register/', UserViewSet.as_view({'post': 'create'}),
+         name='user-create'),
     path('', include(router.urls)),
-]
+] + user_nested_urls
