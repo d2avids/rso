@@ -1,8 +1,7 @@
 from django.contrib.auth.models import AbstractUser
-from django.core.exceptions import ValidationError
 from django.db import models
 
-from users.constants import (Gender, MilitaryDocType, PositionsOption,
+from users.constants import (Gender, MilitaryDocType,
                              PrivacyOption, StudyForm, UnitType)
 
 
@@ -66,12 +65,12 @@ class RSOUser(AbstractUser):
         max_length=30,
         choices=Gender.choices,
     )
-    region = models.ForeignKey(
-        to='Region',
-        null=True,
-        on_delete=models.PROTECT,
-        verbose_name='Регион ОО'
-    )
+    # region = models.ForeignKey(
+    #     to='headquarters.Region',
+    #     null=True,
+    #     on_delete=models.PROTECT,
+    #     verbose_name='Регион ОО'
+    # )
     unit_type = models.CharField(
         verbose_name='Тип структурной единицы',
         max_length=150,
@@ -121,9 +120,9 @@ class RSOUser(AbstractUser):
 
 class UserEducation(models.Model):
     """Информация об образовательной организации пользователя."""
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         verbose_name='Пользователь',
-        to=RSOUser,
+        to='RSOUser',
         on_delete=models.CASCADE,
         related_name='education',
     )
@@ -182,9 +181,9 @@ class UserEducation(models.Model):
 
 class UserDocuments(models.Model):
     """Информация о документах пользователя."""
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         verbose_name='Пользователь',
-        to=RSOUser,
+        to='RSOUser',
         on_delete=models.CASCADE,
         related_name='documents',
     )
@@ -278,14 +277,14 @@ class UserRegion(models.Model):
     """
     Информация о регионе и проживании (фактическом и по прописке) пользователя.
     """
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         verbose_name='Пользователь',
-        to=RSOUser,
+        to='RSOUser',
         on_delete=models.CASCADE,
         related_name='user_region',
     )
     reg_region = models.ForeignKey(
-        to='Region',
+        to='headquarters.Region',
         null=True,
         blank=True,
         on_delete=models.PROTECT,
@@ -309,7 +308,7 @@ class UserRegion(models.Model):
         verbose_name='Адреса регистрации и фактический совпадают'
     )
     fact_region = models.ForeignKey(
-        to='Region',
+        to='headquarters.Region',
         null=True,
         blank=True,
         on_delete=models.PROTECT,
@@ -346,9 +345,9 @@ class UserRegion(models.Model):
 
 class UserPrivacySettings(models.Model):
     """Настройки приватности пользователя."""
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         verbose_name='Пользователь',
-        to=RSOUser,
+        to='RSOUser',
         on_delete=models.CASCADE,
         related_name='privacy',
     )
@@ -400,9 +399,9 @@ class UserPrivacySettings(models.Model):
 
 class UserMedia(models.Model):
     """Аватарка, баннер и другие медиа-файлы."""
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         verbose_name='Пользователь',
-        to=RSOUser,
+        to='RSOUser',
         on_delete=models.CASCADE,
         related_name='media',
     )
@@ -454,9 +453,9 @@ class UserMedia(models.Model):
 
 class UserStatementDocuments(models.Model):
     """Документы пользователя для вступления в РСО."""
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         verbose_name='Пользователь',
-        to=RSOUser,
+        to='RSOUser',
         on_delete=models.CASCADE,
         related_name='statement',
     )
@@ -555,136 +554,3 @@ class UserStatementDocuments(models.Model):
             f'Пользователь {self.user.last_name} '
             f'{self.user.first_name}. Id: {self.user.id}'
         )
-
-
-class Region(models.Model):
-    name = models.CharField(
-        max_length=100,
-        db_index=True,
-        verbose_name='Название'
-    )
-    branch = models.CharField(
-        max_length=100,
-        db_index=True,
-        default='региональное отделение',
-        verbose_name='Региональное отделение'
-    )
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = 'регионы'
-        verbose_name = 'Регион'
-
-
-class Area(models.Model):
-    name = models.CharField(max_length=50, blank=False, verbose_name='Название направления')
-
-    # Направления определяются админом/ЦШ или же региональными штабами? Точно должно быть отдельной сущностью.
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = 'направления'
-        verbose_name = 'Направление'
-
-
-class Unit(models.Model):
-    """Структурная единица"""
-    name = models.CharField(max_length=100, db_index=True, verbose_name='Название')
-    commander = models.OneToOneField(RSOUser, related_name='commander', null=True, blank=True, on_delete=models.PROTECT,
-                                     verbose_name='Командир')
-    about = models.CharField(max_length=500, blank=True, verbose_name='Описание', default='')
-    emblem = models.ImageField(upload_to='emblems/%Y/%m/%d', blank=True, verbose_name='Эмблема')
-    social_vk = models.CharField(max_length=50, blank=True, verbose_name='Ссылка ВК', default='https://vk.com/')
-    social_tg = models.CharField(max_length=50, blank=True, verbose_name='Ссылка Телеграм', default='https://')
-    banner = models.ImageField(upload_to='emblems/%Y/%m/%d', blank=True, verbose_name='Баннер')
-    slogan = models.CharField(max_length=100, blank=True, default='', verbose_name='Девиз')
-    founding_date = models.DateField(blank=True, null=True, verbose_name='Дата основания')
-
-    # Уровень Линейный отряд, Штаб учебного заведения, Региональное отделение, (Направление)
-    # area = models.ForeignKey('Area', null=True, blank=True, on_delete=models.PROTECT, verbose_name='Направление')
-    #
-    # flag = models.ImageField(upload_to='flags/%Y/%m/%d', blank=True, verbose_name='Флаг')
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = 'структурные единицы'
-        verbose_name = 'Структурная единица'
-
-
-
-class Detachment(Unit):
-    area = models.ForeignKey(Area, null=False, blank=False, on_delete=models.PROTECT, verbose_name='Направление')
-
-    def clean(self):
-        if not self.commander:
-            raise ValidationError('Отряд должен иметь командира.')
-
-    # регион
-    # institution = models.ForeignKey('Institution', null=True, blank=True, on_delete=models.PROTECT,
-    #                                verbose_name='Учебное заведение')
-    # город
-    # Местный штаб
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = 'отряды'
-        verbose_name = 'Отряд'
-
-
-
-# Штаб Образовательной Организации
-# Регион
-# Учебное заведение
-# Местный штаб
-#
-# МестныйШтаб
-# Регион
-# Номер участника в реестре
-# Дата участника в реестре
-#
-# Региональный Штаб
-# Регион
-# Год появления Отрядов в регионе
-# Дата учредительной конференции
-# Номер участника в реестре
-# Дата участника в реестре
-# Окружной штаб
-#
-# Окружной Штаб
-
-
-# class Event(models.Model):
-# Формат (онлайн)
-# Масштаб
-# Название
-# Адрес
-# Ссылка на конференцию
-# Количество участников
-# Баннер
-# О мероприятии
-# Направление (?)
-# Вид заявок
-# Кто может отправлять заявку
-# Многодневное
-# Дата начала
-# Время начала
-# Дата конца
-# Время конца
-# Дата и время окончания регистрации
-# Нужен паспорт
-# Нужен СНИЛС
-# Нужен ИНН
-# Нужна Трудовая книжка
-# Нужен Военный билет или приписное свидетельство
-# Нужно согласие на обработку персональных данных
-# Дополнительный вопрос 1
-# Дополнительный вопрос 2
-# Дополнительный вопрос 3

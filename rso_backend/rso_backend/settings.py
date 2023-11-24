@@ -72,7 +72,7 @@ if DEBUG:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'devdb.sqlite3',
+            'NAME': BASE_DIR / 'dbb.sqlite3',
         }
     }
 else:

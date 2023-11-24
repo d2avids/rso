@@ -10,9 +10,10 @@ from api.serializers import (RegionSerializer, RSOUserSerializer,
                              UserPrivacySettingsSerializer,
                              UserRegionSerializer,
                              UserStatementDocumentsSerializer)
-from users.models import (Region, RSOUser, UserDocuments, UserEducation,
+from users.models import (RSOUser, UserDocuments, UserEducation,
                           UserMedia, UserPrivacySettings, UserRegion,
                           UserStatementDocuments)
+from headquarters.models import Region
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -23,7 +24,6 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
     """
     queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
-    http_method_names = ('get', 'update', 'delete')
 
     @action(
         detail=False,
