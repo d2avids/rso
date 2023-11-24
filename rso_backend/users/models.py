@@ -65,12 +65,12 @@ class RSOUser(AbstractUser):
         max_length=30,
         choices=Gender.choices,
     )
-    # region = models.ForeignKey(
-    #     to='headquarters.Region',
-    #     null=True,
-    #     on_delete=models.PROTECT,
-    #     verbose_name='Регион ОО'
-    # )
+    region = models.ForeignKey(
+        to='headquarters.Region',
+        null=True,
+        on_delete=models.PROTECT,
+        verbose_name='Регион ОО'
+    )
     unit_type = models.CharField(
         verbose_name='Тип структурной единицы',
         max_length=150,
