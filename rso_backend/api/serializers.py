@@ -179,6 +179,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
     Выводит личные данные пользователя, а также все данные из всех
     связанных моделей.
     """
+
     user_region = UserRegionSerializer(read_only=True)
     documents = UserDocumentsSerializer(read_only=True)
     statement = UserStatementDocumentsSerializer(read_only=True)
@@ -223,6 +224,11 @@ class RSOUserSerializer(serializers.ModelSerializer):
 
 
 class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
+    """Сериализатор создания пользователя.
+
+    Подключается к Djoser в settings.py -> DJOSER -> SERIALIZERS.
+    """
+
     region = serializers.PrimaryKeyRelatedField(
         queryset=Region.objects.all(),
         allow_null=True,

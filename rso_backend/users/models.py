@@ -1,8 +1,25 @@
+import os
+from datetime import datetime as dt
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 from users.constants import (Gender, MilitaryDocType,
                              PrivacyOption, StudyForm, UnitType)
+
+
+def image_path(instance, filename):
+    """Функция для формирования пути сохранения изображения.
+
+    :param instance: Экземпляр модели.
+    :param filename: Имя файла. Добавляем к имени текущую дату и время.
+    :return: Путь к изображению.
+    Сохраняем в filepath/{instance.name}/filename
+    """
+
+    filename = dt.today().strftime('%Y%m%d%H%M%S') + '_' + filename
+    filepath = 'images/users'
+    return os.path.join(filepath, instance.name, filename)
 
 
 class RSOUser(AbstractUser):
@@ -399,6 +416,7 @@ class UserPrivacySettings(models.Model):
 
 class UserMedia(models.Model):
     """Аватарка, баннер и другие медиа-файлы."""
+
     user = models.OneToOneField(
         verbose_name='Пользователь',
         to='RSOUser',
@@ -406,32 +424,32 @@ class UserMedia(models.Model):
         related_name='media',
     )
     banner = models.ImageField(
-        upload_to='users/banner/%Y/%m/%d',
+        upload_to=image_path,
         blank=True,
         verbose_name='Баннер личной страницы'
     )
     photo = models.ImageField(
-        upload_to='users/avatar/%Y/%m/%d',
+        upload_to=image_path,
         blank=True,
         verbose_name='Аватарка'
     )
     photo1 = models.ImageField(
-        upload_to='users/photo/%Y/%m/%d',
+        upload_to=image_path,
         blank=True,
         verbose_name='Фото 1'
     )
     photo2 = models.ImageField(
-        upload_to='users/photo/%Y/%m/%d',
+        upload_to=image_path,
         blank=True,
         verbose_name='Фото 2'
     )
     photo3 = models.ImageField(
-        upload_to='users/photo/%Y/%m/%d',
+        upload_to=image_path,
         blank=True,
         verbose_name='Фото 3'
     )
     photo4 = models.ImageField(
-        upload_to='users/photo/%Y/%m/%d',
+        upload_to=image_path,
         blank=True,
         verbose_name='Фото 4'
     )
@@ -450,9 +468,27 @@ class UserMedia(models.Model):
             f'{self.user.first_name}. Id: {self.user.id}'
         )
 
+#TODO: Разобраться как переименовывать каждый файл
+# в зависимости от типа документа.
+
+
+def document_path(instance, filename):
+    """Функция для формирования пути сохранения сканов документов юзера.
+
+    :param instance: Экземпляр модели.
+    :param filename: Имя файла. Добавляем к имени текущую дату и время.
+    :return: Путь к скану документа.
+    Сохраняем в filepath/{instance.name}/filename
+    """
+
+    filename = dt.today().strftime('%Y%m%d%H%M%S') + '_' + filename
+    filepath = 'documents/users'
+    return os.path.join(filepath, instance.name, filename)
+
 
 class UserStatementDocuments(models.Model):
     """Документы пользователя для вступления в РСО."""
+
     user = models.OneToOneField(
         verbose_name='Пользователь',
         to='RSOUser',
@@ -460,68 +496,68 @@ class UserStatementDocuments(models.Model):
         related_name='statement',
     )
     statement = models.FileField(
-        upload_to='users/statement/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Заявление на вступлении в РСО'
     )
     consent_personal_data = models.FileField(
-        upload_to='users/pdconsent/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Согласие на обработку персональных данных'
     )
     consent_personal_data_representative = models.FileField(
-        upload_to='users/pdconsent_repr/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Согласие официального представителя на '
                      'обработку персональных данных несовершеннолетнего'
     )
     passport = models.FileField(
-        upload_to='users/passport/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Паспорт гражданина РФ'
     )
     passport_representative = models.FileField(
-        upload_to='users/passport_repr/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Паспорт законного представителя'
     )
     snils_file = models.FileField(
-        upload_to='users/snils/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='СНИЛС'
     )
     inn_file = models.FileField(
-        upload_to='users/inn/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='ИИН'
     )
     employment_document = models.FileField(
-        upload_to='users/inn/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Трудовая книжка'
     )
     military_document = models.FileField(
-        upload_to='users/militarydoc/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Военный билет'
     )
     international_passport = models.FileField(
-        upload_to='users/intpassport/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Загранпаспорт'
     )
     additional_document = models.FileField(
-        upload_to='users/adddoc/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Дополнительный документ'
@@ -545,8 +581,10 @@ class UserStatementDocuments(models.Model):
         verbose_name_plural = 'Заявления на вступление в РСО пользователей'
         verbose_name = 'Заявление на вступление в РСО пользователя'
         constraints = [
-            models.UniqueConstraint(fields=['user'],
-                                    name='unique_user_statement')
+            models.UniqueConstraint(
+                fields=['user'],
+                name='unique_user_statement'
+            )
         ]
 
     def __str__(self):
