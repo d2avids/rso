@@ -1,9 +1,9 @@
 from django.contrib.auth.models import AbstractUser
-from django.core.exceptions import ValidationError
 from django.db import models
 
-from users.constants import (Gender, MilitaryDocType, PositionsOption,
+from users.constants import (Gender, MilitaryDocType,
                              PrivacyOption, StudyForm, UnitType)
+from users.utils import document_path, image_path
 
 
 class RSOUser(AbstractUser):
@@ -67,7 +67,7 @@ class RSOUser(AbstractUser):
         choices=Gender.choices,
     )
     region = models.ForeignKey(
-        to='Region',
+        to='headquarters.Region',
         null=True,
         on_delete=models.PROTECT,
         verbose_name='Регион ОО'
@@ -121,9 +121,9 @@ class RSOUser(AbstractUser):
 
 class UserEducation(models.Model):
     """Информация об образовательной организации пользователя."""
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         verbose_name='Пользователь',
-        to=RSOUser,
+        to='RSOUser',
         on_delete=models.CASCADE,
         related_name='education',
     )
@@ -182,9 +182,9 @@ class UserEducation(models.Model):
 
 class UserDocuments(models.Model):
     """Информация о документах пользователя."""
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         verbose_name='Пользователь',
-        to=RSOUser,
+        to='RSOUser',
         on_delete=models.CASCADE,
         related_name='documents',
     )
@@ -278,14 +278,14 @@ class UserRegion(models.Model):
     """
     Информация о регионе и проживании (фактическом и по прописке) пользователя.
     """
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         verbose_name='Пользователь',
-        to=RSOUser,
+        to='RSOUser',
         on_delete=models.CASCADE,
         related_name='user_region',
     )
     reg_region = models.ForeignKey(
-        to='Region',
+        to='headquarters.Region',
         null=True,
         blank=True,
         on_delete=models.PROTECT,
@@ -309,7 +309,7 @@ class UserRegion(models.Model):
         verbose_name='Адреса регистрации и фактический совпадают'
     )
     fact_region = models.ForeignKey(
-        to='Region',
+        to='headquarters.Region',
         null=True,
         blank=True,
         on_delete=models.PROTECT,
@@ -346,9 +346,9 @@ class UserRegion(models.Model):
 
 class UserPrivacySettings(models.Model):
     """Настройки приватности пользователя."""
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         verbose_name='Пользователь',
-        to=RSOUser,
+        to='RSOUser',
         on_delete=models.CASCADE,
         related_name='privacy',
     )
@@ -400,39 +400,40 @@ class UserPrivacySettings(models.Model):
 
 class UserMedia(models.Model):
     """Аватарка, баннер и другие медиа-файлы."""
-    user = models.ForeignKey(
+
+    user = models.OneToOneField(
         verbose_name='Пользователь',
-        to=RSOUser,
+        to='RSOUser',
         on_delete=models.CASCADE,
         related_name='media',
     )
     banner = models.ImageField(
-        upload_to='users/banner/%Y/%m/%d',
+        upload_to=image_path,
         blank=True,
         verbose_name='Баннер личной страницы'
     )
     photo = models.ImageField(
-        upload_to='users/avatar/%Y/%m/%d',
+        upload_to=image_path,
         blank=True,
         verbose_name='Аватарка'
     )
     photo1 = models.ImageField(
-        upload_to='users/photo/%Y/%m/%d',
+        upload_to=image_path,
         blank=True,
         verbose_name='Фото 1'
     )
     photo2 = models.ImageField(
-        upload_to='users/photo/%Y/%m/%d',
+        upload_to=image_path,
         blank=True,
         verbose_name='Фото 2'
     )
     photo3 = models.ImageField(
-        upload_to='users/photo/%Y/%m/%d',
+        upload_to=image_path,
         blank=True,
         verbose_name='Фото 3'
     )
     photo4 = models.ImageField(
-        upload_to='users/photo/%Y/%m/%d',
+        upload_to=image_path,
         blank=True,
         verbose_name='Фото 4'
     )
@@ -454,75 +455,76 @@ class UserMedia(models.Model):
 
 class UserStatementDocuments(models.Model):
     """Документы пользователя для вступления в РСО."""
-    user = models.ForeignKey(
+
+    user = models.OneToOneField(
         verbose_name='Пользователь',
-        to=RSOUser,
+        to='RSOUser',
         on_delete=models.CASCADE,
         related_name='statement',
     )
     statement = models.FileField(
-        upload_to='users/statement/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Заявление на вступлении в РСО'
     )
     consent_personal_data = models.FileField(
-        upload_to='users/pdconsent/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Согласие на обработку персональных данных'
     )
     consent_personal_data_representative = models.FileField(
-        upload_to='users/pdconsent_repr/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Согласие официального представителя на '
                      'обработку персональных данных несовершеннолетнего'
     )
     passport = models.FileField(
-        upload_to='users/passport/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Паспорт гражданина РФ'
     )
     passport_representative = models.FileField(
-        upload_to='users/passport_repr/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Паспорт законного представителя'
     )
     snils_file = models.FileField(
-        upload_to='users/snils/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='СНИЛС'
     )
     inn_file = models.FileField(
-        upload_to='users/inn/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='ИИН'
     )
     employment_document = models.FileField(
-        upload_to='users/inn/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Трудовая книжка'
     )
     military_document = models.FileField(
-        upload_to='users/militarydoc/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Военный билет'
     )
     international_passport = models.FileField(
-        upload_to='users/intpassport/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Загранпаспорт'
     )
     additional_document = models.FileField(
-        upload_to='users/adddoc/%Y/%m/%d',
+        upload_to=document_path,
         blank=True,
         null=True,
         verbose_name='Дополнительный документ'
@@ -546,8 +548,10 @@ class UserStatementDocuments(models.Model):
         verbose_name_plural = 'Заявления на вступление в РСО пользователей'
         verbose_name = 'Заявление на вступление в РСО пользователя'
         constraints = [
-            models.UniqueConstraint(fields=['user'],
-                                    name='unique_user_statement')
+            models.UniqueConstraint(
+                fields=['user'],
+                name='unique_user_statement'
+            )
         ]
 
     def __str__(self):
@@ -555,136 +559,3 @@ class UserStatementDocuments(models.Model):
             f'Пользователь {self.user.last_name} '
             f'{self.user.first_name}. Id: {self.user.id}'
         )
-
-
-class Region(models.Model):
-    name = models.CharField(
-        max_length=100,
-        db_index=True,
-        verbose_name='Название'
-    )
-    branch = models.CharField(
-        max_length=100,
-        db_index=True,
-        default='региональное отделение',
-        verbose_name='Региональное отделение'
-    )
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = 'регионы'
-        verbose_name = 'Регион'
-
-
-class Area(models.Model):
-    name = models.CharField(max_length=50, blank=False, verbose_name='Название направления')
-
-    # Направления определяются админом/ЦШ или же региональными штабами? Точно должно быть отдельной сущностью.
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = 'направления'
-        verbose_name = 'Направление'
-
-
-class Unit(models.Model):
-    """Структурная единица"""
-    name = models.CharField(max_length=100, db_index=True, verbose_name='Название')
-    commander = models.OneToOneField(RSOUser, related_name='commander', null=True, blank=True, on_delete=models.PROTECT,
-                                     verbose_name='Командир')
-    about = models.CharField(max_length=500, blank=True, verbose_name='Описание', default='')
-    emblem = models.ImageField(upload_to='emblems/%Y/%m/%d', blank=True, verbose_name='Эмблема')
-    social_vk = models.CharField(max_length=50, blank=True, verbose_name='Ссылка ВК', default='https://vk.com/')
-    social_tg = models.CharField(max_length=50, blank=True, verbose_name='Ссылка Телеграм', default='https://')
-    banner = models.ImageField(upload_to='emblems/%Y/%m/%d', blank=True, verbose_name='Баннер')
-    slogan = models.CharField(max_length=100, blank=True, default='', verbose_name='Девиз')
-    founding_date = models.DateField(blank=True, null=True, verbose_name='Дата основания')
-
-    # Уровень Линейный отряд, Штаб учебного заведения, Региональное отделение, (Направление)
-    # area = models.ForeignKey('Area', null=True, blank=True, on_delete=models.PROTECT, verbose_name='Направление')
-    #
-    # flag = models.ImageField(upload_to='flags/%Y/%m/%d', blank=True, verbose_name='Флаг')
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = 'структурные единицы'
-        verbose_name = 'Структурная единица'
-
-
-
-class Detachment(Unit):
-    area = models.ForeignKey(Area, null=False, blank=False, on_delete=models.PROTECT, verbose_name='Направление')
-
-    def clean(self):
-        if not self.commander:
-            raise ValidationError('Отряд должен иметь командира.')
-
-    # регион
-    # institution = models.ForeignKey('Institution', null=True, blank=True, on_delete=models.PROTECT,
-    #                                verbose_name='Учебное заведение')
-    # город
-    # Местный штаб
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name_plural = 'отряды'
-        verbose_name = 'Отряд'
-
-
-
-# Штаб Образовательной Организации
-# Регион
-# Учебное заведение
-# Местный штаб
-#
-# МестныйШтаб
-# Регион
-# Номер участника в реестре
-# Дата участника в реестре
-#
-# Региональный Штаб
-# Регион
-# Год появления Отрядов в регионе
-# Дата учредительной конференции
-# Номер участника в реестре
-# Дата участника в реестре
-# Окружной штаб
-#
-# Окружной Штаб
-
-
-# class Event(models.Model):
-# Формат (онлайн)
-# Масштаб
-# Название
-# Адрес
-# Ссылка на конференцию
-# Количество участников
-# Баннер
-# О мероприятии
-# Направление (?)
-# Вид заявок
-# Кто может отправлять заявку
-# Многодневное
-# Дата начала
-# Время начала
-# Дата конца
-# Время конца
-# Дата и время окончания регистрации
-# Нужен паспорт
-# Нужен СНИЛС
-# Нужен ИНН
-# Нужна Трудовая книжка
-# Нужен Военный билет или приписное свидетельство
-# Нужно согласие на обработку персональных данных
-# Дополнительный вопрос 1
-# Дополнительный вопрос 2
-# Дополнительный вопрос 3

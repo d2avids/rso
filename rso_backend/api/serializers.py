@@ -5,9 +5,10 @@ from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                            MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
                            REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS)
 from api.utils import create_first_or_exception
-from users.models import (Region, RSOUser, UserDocuments, UserEducation,
+from users.models import (RSOUser, UserDocuments, UserEducation,
                           UserMedia, UserPrivacySettings, UserRegion,
                           UserStatementDocuments)
+from headquarters.models import Region
 
 
 class RegionSerializer(serializers.ModelSerializer):
@@ -35,7 +36,6 @@ class UserEducationSerializer(serializers.ModelSerializer):
             UserEducation,
             EDUCATION_RAW_EXISTS
         )
-
 
 
 class UserDocumentsSerializer(serializers.ModelSerializer):
@@ -179,6 +179,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
     Выводит личные данные пользователя, а также все данные из всех
     связанных моделей.
     """
+
     user_region = UserRegionSerializer(read_only=True)
     documents = UserDocumentsSerializer(read_only=True)
     statement = UserStatementDocumentsSerializer(read_only=True)
@@ -188,8 +189,8 @@ class RSOUserSerializer(serializers.ModelSerializer):
         allow_null=True,
         required=False,
     )
-    media = serializers.SerializerMethodField()
-    privacy = serializers.SerializerMethodField()
+    media = UserMediaSerializer(read_only=True)
+    privacy = UserPrivacySettingsSerializer(read_only=True)
 
     class Meta:
         model = RSOUser
@@ -221,20 +222,13 @@ class RSOUserSerializer(serializers.ModelSerializer):
             'privacy',
         )
 
-    @staticmethod
-    def get_media(obj):
-        media = obj.media.first()
-        return UserMediaSerializer(media).data if media else None
-
-    @staticmethod
-    def get_privacy(obj):
-        privacy_settings = obj.privacy.first()
-        return UserPrivacySettingsSerializer(
-            privacy_settings
-        ).data if privacy_settings else None
-
 
 class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
+    """Сериализатор создания пользователя.
+
+    Подключается к Djoser в settings.py -> DJOSER -> SERIALIZERS.
+    """
+
     region = serializers.PrimaryKeyRelatedField(
         queryset=Region.objects.all(),
         allow_null=True,

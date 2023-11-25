@@ -10,9 +10,10 @@ from api.serializers import (RegionSerializer, RSOUserSerializer,
                              UserPrivacySettingsSerializer,
                              UserRegionSerializer,
                              UserStatementDocumentsSerializer)
-from users.models import (Region, RSOUser, UserDocuments, UserEducation,
+from users.models import (RSOUser, UserDocuments, UserEducation,
                           UserMedia, UserPrivacySettings, UserRegion,
                           UserStatementDocuments)
+from headquarters.models import Region
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -23,7 +24,6 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
     """
     queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
-    http_method_names = ('get', 'update', 'delete')
 
     @action(
         detail=False,
@@ -127,6 +127,7 @@ class BaseUserViewSet(viewsets.ModelViewSet):
 
 class UserEducationViewSet(BaseUserViewSet):
     """Представляет образовательную информацию пользователя."""
+
     queryset = UserEducation.objects.all()
     serializer_class = UserEducationSerializer
 
@@ -137,6 +138,7 @@ class UserEducationViewSet(BaseUserViewSet):
 
 class UserDocumentsViewSet(BaseUserViewSet):
     """Представляет документы пользователя."""
+
     queryset = UserDocuments.objects.all()
     serializer_class = UserDocumentsSerializer
 
@@ -146,6 +148,7 @@ class UserDocumentsViewSet(BaseUserViewSet):
 
 class UserRegionViewSet(BaseUserViewSet):
     """Представляет информацию о проживании пользователя."""
+
     queryset = UserRegion.objects.all()
     serializer_class = UserRegionSerializer
 
@@ -155,6 +158,7 @@ class UserRegionViewSet(BaseUserViewSet):
 
 class UserPrivacySettingsViewSet(BaseUserViewSet):
     """Представляет настройки приватности пользователя."""
+
     queryset = UserPrivacySettings.objects.all()
     serializer_class = UserPrivacySettingsSerializer
 
@@ -164,6 +168,7 @@ class UserPrivacySettingsViewSet(BaseUserViewSet):
 
 class UserMediaViewSet(BaseUserViewSet):
     """Представляет медиа-данные пользователя."""
+
     queryset = UserMedia.objects.all()
     serializer_class = UserMediaSerializer
 
@@ -173,6 +178,7 @@ class UserMediaViewSet(BaseUserViewSet):
 
 class UserStatementDocumentsViewSet(BaseUserViewSet):
     """Представляет заявление на вступление в РСО пользователя."""
+
     queryset = UserStatementDocuments.objects.all()
     serializer_class = UserStatementDocumentsSerializer
 
