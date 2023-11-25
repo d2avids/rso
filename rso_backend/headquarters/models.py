@@ -6,6 +6,8 @@ from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 
+from headquarters.constants import PositionsOption
+
 
 def image_path(instance, filename):
     """Функция для формирования пути сохранения изображения.
@@ -43,12 +45,19 @@ class EducationalInstitution(models.Model):
         null=True,
         verbose_name='Электронная почта ректора'
     )
-    region = models.OneToOneField(
+    region = models.ForeignKey(
         'Region',
         related_name='institutions',
         on_delete=models.PROTECT,
         verbose_name='Регион'
     )
+
+    class Meta:
+        verbose_name_plural = 'Образовательные организации'
+        verbose_name = 'Образовательная организация'
+
+    def __str__(self):
+        return self.name
 
 
 class Region(models.Model):
@@ -58,12 +67,12 @@ class Region(models.Model):
         verbose_name='Название'
     )
 
+    class Meta:
+        verbose_name_plural = 'Регионы'
+        verbose_name = 'Регион'
+
     def __str__(self):
         return self.name
-
-    class Meta:
-        verbose_name_plural = 'регионы'
-        verbose_name = 'Регион'
 
 
 class Area(models.Model):
@@ -73,12 +82,12 @@ class Area(models.Model):
         verbose_name='Название направления'
     )
 
-    def __str__(self):
-        return self.name
-
     class Meta:
         verbose_name_plural = 'направления'
         verbose_name = 'Направление'
+
+    def __str__(self):
+        return self.name
 
 
 class Unit(models.Model):
@@ -86,48 +95,49 @@ class Unit(models.Model):
 
     name = models.CharField(
         max_length=100,
-        db_index=True,
         verbose_name='Название'
     )
-    commander = models.OneToOneField(
+    commander = models.ForeignKey(
         'users.RSOUser',
-        null=True,
-        blank=True,
         on_delete=models.PROTECT,
         verbose_name='Командир'
     )
     about = models.CharField(
         max_length=500,
         blank=True,
+        null=True,
         verbose_name='Описание',
-        default=''
     )
     emblem = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Эмблема'
     )
     social_vk = models.CharField(
         max_length=50,
         blank=True,
+        null=True,
         verbose_name='Ссылка ВК',
         default='https://vk.com/'
     )
     social_tg = models.CharField(
         max_length=50,
         blank=True,
+        null=True,
         verbose_name='Ссылка Телеграм',
         default='https://'
     )
     banner = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Баннер'
     )
     slogan = models.CharField(
         max_length=100,
         blank=True,
-        default='',
+        null=True,
         verbose_name='Девиз'
     )
     founding_date = models.DateField(
@@ -136,31 +146,21 @@ class Unit(models.Model):
         verbose_name='Дата основания'
     )
 
-    # Уровень Линейный отряд, Штаб учебного заведения, Региональное отделение,
-    # (Направление)
-    # area = models.ForeignKey(
-    # 'Area',
-    # null=True,
-    # blank=True,
-    # on_delete=models.PROTECT,
-    # verbose_name='Направление'
-    # )
-    #
-    # flag = models.ImageField(
-    # upload_to='flags/%Y/%m/%d', blank=True, verbose_name='Флаг'
-    # )
+    def clean(self):
+        if not self.commander:
+            raise ValidationError('Отряд должен иметь командира.')
+
+    class Meta:
+        abstract = True
 
     def __str__(self):
         return self.name
 
-    class Meta:
-        abstract = True
-        verbose_name_plural = 'Структурные единицы'
-        verbose_name = 'Структурная единица'
-
 
 class CentralHeadquarter(Unit):
-    pass
+    class Meta:
+        verbose_name_plural = 'Центральные штабы'
+        verbose_name = 'Центральный штаб'
 
 
 @receiver(pre_delete, sender=CentralHeadquarter)
@@ -174,17 +174,35 @@ def delete_image_with_object_central_headquarter(sender, instance, **kwargs):
 
 
 class DistrictHeadquarter(Unit):
-    pass
+    central_headquarter = models.ForeignKey(
+        'CentralHeadquarter',
+        related_name='district_headquarters',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к ЦШ'
+    )
+
+    class Meta:
+        verbose_name_plural = 'Окружные штабы'
+        verbose_name = 'Окружной штаб'
 
 
 class RegionalHeadquarter(Unit):
-
-    region = models.OneToOneField(
+    region = models.ForeignKey(
         'Region',
         related_name='headquarters',
         on_delete=models.PROTECT,
         verbose_name='Регион'
     )
+    district_headquarter = models.ForeignKey(
+        'DistrictHeadquarter',
+        related_name='regional_headquarters',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к ОШ'
+    )
+
+    class Meta:
+        verbose_name_plural = 'Региональные штабы'
+        verbose_name = 'Региональный штаб'
 
 
 @receiver(pre_delete, sender=RegionalHeadquarter)
@@ -198,14 +216,86 @@ def delete_image_with_object_regional_headquarter(sender, instance, **kwargs):
 
 
 class LocalHeadquarter(Unit):
-    pass
+    regional_headquarter = models.ForeignKey(
+        'RegionalHeadquarter',
+        related_name='local_headquarters',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к РШ'
+    )
+
+    class Meta:
+        verbose_name_plural = 'Местные штабы'
+        verbose_name = 'Местный штаб'
 
 
 class EducationalHeadquarter(Unit):
-    pass
+    local_headquarter = models.ForeignKey(
+        'LocalHeadquarter',
+        related_name='educational_headquarters',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к МШ',
+        blank=True,
+        null=True,
+    )
+    regional_headquarter = models.ForeignKey(
+        'RegionalHeadquarter',
+        related_name='educational_headquarters',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к РШ',
+    )
+    educational_institution = models.ForeignKey(
+        'EducationalInstitution',
+        related_name='headquarters',
+        on_delete=models.PROTECT,
+        verbose_name='Образовательная организация',
+    )
+
+    def clean(self):
+        """
+        Проверяет, что местный штаб (local_headquarter) связан с тем же
+        региональным штабом (regional_headquarter),
+        что и образовательный штаб (EducationalHeadquarter).
+        """
+        super().clean()
+
+        if self.local_headquarter and self.regional_headquarter:
+            if (
+                self.local_headquarter.regional_headquarter !=
+                self.regional_headquarter
+            ):
+                raise ValidationError({
+                    'local_headquarter': 'Этот местный штаб связан '
+                                         'с другим региональным штабом.'
+                })
+
+    class Meta:
+        verbose_name_plural = 'Образовательные штабы'
+        verbose_name = 'Образовательный штаб'
 
 
 class Detachment(Unit):
+    educational_headquarter = models.ForeignKey(
+        'EducationalHeadquarter',
+        related_name='detachments',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к ШОО',
+        blank=True,
+        null=True,
+    )
+    local_headquarter = models.ForeignKey(
+        'LocalHeadquarter',
+        related_name='detachments',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к МШ',
+        blank=True,
+        null=True,
+    )
+    regional_headquarter = models.ForeignKey(
+        'RegionalHeadquarter',
+        related_name='detachments',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к РШ',
+    )
     area = models.ForeignKey(
         Area,
         null=False,
@@ -215,25 +305,51 @@ class Detachment(Unit):
     )
 
     def clean(self):
-        if not self.commander:
-            raise ValidationError('Отряд должен иметь командира.')
+        """
+        Проверяет согласованность между
+        образовательным штабом (educational_headquarter),
+        местным штабом (local_headquarter)
+        и региональным штабом (regional_headquarter).
+        """
+        super().clean()
 
-    # регион
-    # institution = models.ForeignKey(
-    # 'Institution',
-    # null=True,
-    # blank=True,
-    # on_delete=models.PROTECT,
-    # verbose_name='Учебное заведение'
-    # )
-    # город
-    # Местный штаб
+        if self.educational_headquarter and self.local_headquarter:
+            if (
+                self.educational_headquarter.local_headquarter !=
+                self.local_headquarter
+            ):
+                raise ValidationError({
+                    'educational_headquarter': 'Этот образовательный штаб '
+                                               'связан с другим местным '
+                                               'штабом.'
+                })
+
+        if self.local_headquarter and self.regional_headquarter:
+            if (
+                self.local_headquarter.regional_headquarter !=
+                self.regional_headquarter
+            ):
+                raise ValidationError({
+                    'local_headquarter': 'Этот местный штаб связан с '
+                                         'другим региональным штабом.'
+                })
+
+        if self.educational_headquarter and self.regional_headquarter:
+            if (
+                self.educational_headquarter.regional_headquarter !=
+                self.regional_headquarter
+            ):
+                raise ValidationError({
+                    'educational_headquarter': 'Этот образовательный штаб '
+                                               'связан с другим региональным '
+                                               'штабом.'
+                })
 
     def __str__(self):
         return self.name
 
     class Meta:
-        verbose_name_plural = 'отряды'
+        verbose_name_plural = 'Отряды'
         verbose_name = 'Отряд'
 
 
@@ -245,3 +361,5 @@ def delete_image_with_object_detachment(sender, instance, **kwargs):
     """
     instance.emblem.delete(False)
     instance.banner.delete(False)
+
+

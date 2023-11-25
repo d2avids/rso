@@ -5,7 +5,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 from users.constants import (Gender, MilitaryDocType,
-                             PrivacyOption, StudyForm, UnitType)
+                             PrivacyOption, StudyForm)
 
 
 def image_path(instance, filename):
@@ -88,12 +88,6 @@ class RSOUser(AbstractUser):
         on_delete=models.PROTECT,
         verbose_name='Регион ОО'
     )
-    unit_type = models.CharField(
-        verbose_name='Тип структурной единицы',
-        max_length=150,
-        choices=UnitType.choices,
-        default='detachment',
-    )
     address = models.CharField(
         verbose_name='Фактическое место проживания',
         max_length=150,
@@ -152,12 +146,6 @@ class UserEducation(models.Model):
     study_faculty = models.CharField(
         verbose_name='Факультет',
         max_length=200,
-        blank=True,
-        null=True,
-    )
-    study_group = models.CharField(
-        verbose_name='Группа',
-        max_length=20,
         blank=True,
         null=True,
     )

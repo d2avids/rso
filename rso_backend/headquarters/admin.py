@@ -1,5 +1,22 @@
 from django.contrib import admin
-from headquarters.models import Region, Area, Detachment
+
+from headquarters.models import (Area, CentralHeadquarter, Detachment,
+                                 DistrictHeadquarter, Region, EducationalInstitution)
+
+
+@admin.register(EducationalInstitution)
+class EducationalInstAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(CentralHeadquarter)
+class CentralAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(DistrictHeadquarter)
+class DistrictAdmin(admin.ModelAdmin):
+    pass
 
 
 @admin.register(Region)

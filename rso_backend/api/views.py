@@ -3,17 +3,25 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from api.mixins import ListRetrieveUpdateViewSet, ListRetrieveViewSet
-from api.serializers import (RegionSerializer, RSOUserSerializer,
-                             UserDocumentsSerializer, UserEducationSerializer,
-                             UserMediaSerializer,
+from api.mixins import (ListRetrieveUpdateViewSet,
+                        ListRetrieveViewSet)
+from api.serializers import (CentralHeadquarterSerializer,
+                             DetachmentSerializer,
+                             DistrictHeadquarterSerializer,
+                             EducationalHeadquarterSerializer,
+                             LocalHeadquarterSerializer,
+                             RegionalHeadquarterSerializer, RegionSerializer,
+                             RSOUserSerializer, UserDocumentsSerializer,
+                             UserEducationSerializer, UserMediaSerializer,
                              UserPrivacySettingsSerializer,
                              UserRegionSerializer,
                              UserStatementDocumentsSerializer)
-from users.models import (RSOUser, UserDocuments, UserEducation,
-                          UserMedia, UserPrivacySettings, UserRegion,
+from headquarters.models import (CentralHeadquarter, Detachment,
+                                 DistrictHeadquarter, EducationalHeadquarter,
+                                 LocalHeadquarter, Region, RegionalHeadquarter)
+from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
+                          UserPrivacySettings, UserRegion,
                           UserStatementDocuments)
-from headquarters.models import Region
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -187,3 +195,33 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
             UserStatementDocuments,
             user=self.request.user
         )
+
+
+class CentralViewSet(ListRetrieveUpdateViewSet):
+    queryset = CentralHeadquarter.objects.all()
+    serializer_class = CentralHeadquarterSerializer
+
+
+class DistrictViewSet(viewsets.ModelViewSet):
+    queryset = DistrictHeadquarter.objects.all()
+    serializer_class = DistrictHeadquarterSerializer
+
+
+class RegionalViewSet(viewsets.ModelViewSet):
+    queryset = RegionalHeadquarter.objects.all()
+    serializer_class = RegionalHeadquarterSerializer
+
+
+class LocalViewSet(viewsets.ModelViewSet):
+    queryset = LocalHeadquarter.objects.all()
+    serializer_class = LocalHeadquarterSerializer
+
+
+class EducationalViewSet(viewsets.ModelViewSet):
+    queryset = EducationalHeadquarter.objects.all()
+    serializer_class = EducationalHeadquarterSerializer
+
+
+class DetachmentViewSet(viewsets.ModelViewSet):
+    queryset = Detachment.objects.all()
+    serializer_class = DetachmentSerializer

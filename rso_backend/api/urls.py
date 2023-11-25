@@ -3,7 +3,9 @@ from djoser.views import UserViewSet
 from rest_framework.routers import DefaultRouter
 
 from api.constants import CRUD_METHODS_WITHOUT_LIST
-from api.views import (RegionViewSet, RSOUserViewSet, UserDocumentsViewSet,
+from api.views import (CentralViewSet, DetachmentViewSet, DistrictViewSet,
+                       EducationalViewSet, LocalViewSet, RegionalViewSet,
+                       RegionViewSet, RSOUserViewSet, UserDocumentsViewSet,
                        UserEducationViewSet, UserMediaViewSet,
                        UserPrivacySettingsViewSet, UserRegionViewSet,
                        UserStatementDocumentsViewSet)
@@ -14,6 +16,12 @@ router = DefaultRouter()
 
 router.register(r'users', RSOUserViewSet)
 router.register(r'regions', RegionViewSet)
+router.register(r'districts', DistrictViewSet)
+router.register(r'regionals', RegionalViewSet)
+router.register(r'educationals', EducationalViewSet)
+router.register(r'locals', LocalViewSet)
+router.register(r'detachments', DetachmentViewSet)
+router.register(r'centrals', CentralViewSet)
 
 UserEduVS = UserEducationViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
 UserDocVS = UserDocumentsViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
