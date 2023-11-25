@@ -27,7 +27,6 @@ class UserEducationSerializer(serializers.ModelSerializer):
         fields = (
             'study_institution',
             'study_faculty',
-            'study_group',
             'study_form',
             'study_year',
             'study_specialty',
@@ -212,7 +211,6 @@ class RSOUserSerializer(serializers.ModelSerializer):
             'phone_number',
             'gender',
             'region',
-            'unit_type',
             'address',
             'bio',
             'social_vk',
@@ -255,7 +253,12 @@ class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
 
 
 class BaseUnitSerializer(serializers.ModelSerializer):
-    """Базовый сериализатор для хранения общей логики штабов."""
+    """Базовый сериализатор для хранения общей логики штабов.
+
+    Предназначен для использования как родительский класс для всех
+    сериализаторов штабов, обеспечивая наследование общих полей и методов.
+    """
+
     commander = serializers.PrimaryKeyRelatedField(
         queryset=RSOUser.objects.all(),
     )
@@ -276,15 +279,27 @@ class BaseUnitSerializer(serializers.ModelSerializer):
         )
 
 
-class CentralHeadquarterSerializer(serializers.BaseSerializer):
+class CentralHeadquarterSerializer(BaseUnitSerializer):
+    """Сериализатор для центрального штаба.
+
+    Наследует общую логику и поля от BaseUnitSerializer и связывает
+    с моделью CentralHeadquarter.
+    """
+
     class Meta:
         model = CentralHeadquarter
         fields = BaseUnitSerializer.Meta.fields
 
 
 class DistrictHeadquarterSerializer(BaseUnitSerializer):
+    """Сериализатор для окружного штаба.
+
+    Дополнительно к полям из BaseUnitSerializer, добавляет поле
+    central_headquarter для связи с центральным штабом.
+    """
+
     central_headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=CentralHeadquarter.objects.all(),
+        queryset=CentralHeadquarter.objects.first(),
     )
     commander = serializers.PrimaryKeyRelatedField(
         queryset=RSOUser.objects.all(),
@@ -296,6 +311,12 @@ class DistrictHeadquarterSerializer(BaseUnitSerializer):
 
 
 class RegionalHeadquarterSerializer(BaseUnitSerializer):
+    """Сериализатор для регионального штаба.
+
+    Включает в себя поля из BaseUnitSerializer, а также поля region и
+    district_headquarter для указания региона и привязки к окружному штабу.
+    """
+
     region = serializers.PrimaryKeyRelatedField(
         queryset=Region.objects.all()
     )
@@ -312,6 +333,12 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
 
 
 class LocalHeadquarterSerializer(BaseUnitSerializer):
+    """Сериализатор для местного штаба.
+
+    Расширяет BaseUnitSerializer, добавляя поле regional_headquarter
+    для связи с региональным штабом.
+    """
+
     regional_headquarter = serializers.PrimaryKeyRelatedField(
         queryset=RegionalHeadquarter.objects.all(),
     )
@@ -322,6 +349,13 @@ class LocalHeadquarterSerializer(BaseUnitSerializer):
 
 
 class EducationalHeadquarterSerializer(BaseUnitSerializer):
+    """Сериализатор для образовательного штаба.
+
+    Содержит ссылки на образовательное учреждение и связанные
+    местный и региональный штабы. Включает в себя валидацию для
+    проверки согласованности связей между штабами.
+    """
+
     educational_institution = serializers.PrimaryKeyRelatedField(
         queryset=EducationalInstitution.objects.all(),
     )
@@ -354,6 +388,15 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
 
 
 class DetachmentSerializer(BaseUnitSerializer):
+    """ Сериализатор для отряда.
+
+    Наследует общие поля из BaseUnitSerializer и добавляет специфические поля
+    для отряда, включая связи с образовательным, местным и региональным
+    штабами, а также поле для указания области деятельности (area).
+    Включает в себя валидацию для
+    проверки согласованности связей между штабами.
+    """
+
     educational_headquarter = serializers.PrimaryKeyRelatedField(
         queryset=EducationalHeadquarter.objects.all()
     )

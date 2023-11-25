@@ -353,6 +353,10 @@ class Detachment(Unit):
         verbose_name = 'Отряд'
 
 
+class Position(models.Model):
+    """Класс """
+
+
 @receiver(pre_delete, sender=Detachment)
 def delete_image_with_object_detachment(sender, instance, **kwargs):
     """
