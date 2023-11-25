@@ -34,7 +34,13 @@ class UserPrivacySettingsInline(admin.StackedInline):
 
 @admin.register(RSOUser)
 class UserAdmin(BaseUserAdmin):
-    inlines = [UserRegionInline, UserMediaInline, UserEducationInline, UserDocumentsInline, UserPrivacySettingsInline]
+    inlines = [
+        UserRegionInline,
+        UserMediaInline,
+        UserEducationInline,
+        UserDocumentsInline,
+        UserPrivacySettingsInline
+    ]
 
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff')
     search_fields = ('username', 'email', 'first_name', 'last_name')

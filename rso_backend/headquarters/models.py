@@ -1,24 +1,7 @@
-import os
-from datetime import datetime as dt
-
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models.signals import pre_delete
-from django.dispatch import receiver
 
-
-def image_path(instance, filename):
-    """Функция для формирования пути сохранения изображения.
-
-    :param instance: Экземпляр модели.
-    :param filename: Имя файла. Добавляем к имени текущую дату и время.
-    :return: Путь к изображению.
-    Сохраняем в filepath/{instance.name}/filename
-    """
-
-    filename = dt.today().strftime('%Y%m%d%H%M%S') + '_' + filename
-    filepath = 'images/headquarters'
-    return os.path.join(filepath, instance.name, filename)
+from headquarters.utils import image_path
 
 
 class EducationalInstitution(models.Model):
@@ -163,16 +146,6 @@ class CentralHeadquarter(Unit):
     pass
 
 
-@receiver(pre_delete, sender=CentralHeadquarter)
-def delete_image_with_object_central_headquarter(sender, instance, **kwargs):
-    """
-    Функция для удаления изображения, связанного с
-    объектом модели CentralHeadquarter.
-    """
-    instance.emblem.delete(False)
-    instance.banner.delete(False)
-
-
 class DistrictHeadquarter(Unit):
     pass
 
@@ -185,16 +158,6 @@ class RegionalHeadquarter(Unit):
         on_delete=models.PROTECT,
         verbose_name='Регион'
     )
-
-
-@receiver(pre_delete, sender=RegionalHeadquarter)
-def delete_image_with_object_regional_headquarter(sender, instance, **kwargs):
-    """
-    Функция для удаления изображения, связанного с
-    объектом модели RegionalHeadquarter.
-    """
-    instance.emblem.delete(False)
-    instance.banner.delete(False)
 
 
 class LocalHeadquarter(Unit):
@@ -235,13 +198,3 @@ class Detachment(Unit):
     class Meta:
         verbose_name_plural = 'отряды'
         verbose_name = 'Отряд'
-
-
-@receiver(pre_delete, sender=Detachment)
-def delete_image_with_object_detachment(sender, instance, **kwargs):
-    """
-    Функция для удаления изображения, связанного с
-    объектом модели Detachment.
-    """
-    instance.emblem.delete(False)
-    instance.banner.delete(False)
