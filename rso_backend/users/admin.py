@@ -43,8 +43,12 @@ class UserAdmin(BaseUserAdmin):
         UserMediaInline,
         UserEducationInline,
         UserDocumentsInline,
+<<<<<<< HEAD
         UserPrivacySettingsInline,
         UsersParentInline
+=======
+        UserPrivacySettingsInline
+>>>>>>> aa2f949b4ed3bf54733d76f456d011247f791064
     ]
 
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff')

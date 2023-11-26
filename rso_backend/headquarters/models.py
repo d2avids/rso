@@ -1,11 +1,7 @@
-import os
-from datetime import datetime as dt
-
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models.signals import pre_delete
-from django.dispatch import receiver
 
+<<<<<<< HEAD
 from headquarters.constants import PositionsOption
 from users.models import RSOUser
 
@@ -22,6 +18,9 @@ def image_path(instance, filename):
     filename = dt.today().strftime('%Y%m%d%H%M%S') + '_' + filename
     filepath = 'images/headquarters'
     return os.path.join(filepath, instance.name, filename)
+=======
+from headquarters.utils import image_path
+>>>>>>> aa2f949b4ed3bf54733d76f456d011247f791064
 
 
 class EducationalInstitution(models.Model):
@@ -164,16 +163,6 @@ class CentralHeadquarter(Unit):
         verbose_name = 'Центральный штаб'
 
 
-@receiver(pre_delete, sender=CentralHeadquarter)
-def delete_image_with_object_central_headquarter(sender, instance, **kwargs):
-    """
-    Функция для удаления изображения, связанного с
-    объектом модели CentralHeadquarter.
-    """
-    instance.emblem.delete(False)
-    instance.banner.delete(False)
-
-
 class DistrictHeadquarter(Unit):
     central_headquarter = models.ForeignKey(
         'CentralHeadquarter',
@@ -204,16 +193,6 @@ class RegionalHeadquarter(Unit):
     class Meta:
         verbose_name_plural = 'Региональные штабы'
         verbose_name = 'Региональный штаб'
-
-
-@receiver(pre_delete, sender=RegionalHeadquarter)
-def delete_image_with_object_regional_headquarter(sender, instance, **kwargs):
-    """
-    Функция для удаления изображения, связанного с
-    объектом модели RegionalHeadquarter.
-    """
-    instance.emblem.delete(False)
-    instance.banner.delete(False)
 
 
 class LocalHeadquarter(Unit):
@@ -352,6 +331,7 @@ class Detachment(Unit):
     class Meta:
         verbose_name_plural = 'Отряды'
         verbose_name = 'Отряд'
+<<<<<<< HEAD
 
 
 class Position(models.Model):
@@ -608,3 +588,5 @@ def delete_image_with_object_detachment(sender, instance, **kwargs):
     """
     instance.emblem.delete(False)
     instance.banner.delete(False)
+=======
+>>>>>>> aa2f949b4ed3bf54733d76f456d011247f791064
