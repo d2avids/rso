@@ -5,6 +5,7 @@ CRUD_METHODS_WITHOUT_LIST = {
         'patch': 'partial_update',
         'delete': 'destroy'
     }
+CREATE_METHOD = {'post': 'create',}
 EDUCATION_RAW_EXISTS = (
         'Образовательная информация для данного пользователя уже существует'
 )

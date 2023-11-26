@@ -1,9 +1,36 @@
+<<<<<<< HEAD
+import os
+from datetime import datetime as dt
+from datetime import date
+
+from django.core.exceptions import ValidationError
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
+from users.constants import (Gender, MilitaryDocType, PrivacyOption,
+                             StudyForm, RelationshipType)
+
+
+def image_path(instance, filename):
+    """Функция для формирования пути сохранения изображения.
+
+    :param instance: Экземпляр модели.
+    :param filename: Имя файла. Добавляем к имени текущую дату и время.
+    :return: Путь к изображению.
+    Сохраняем в filepath/{instance.name}/filename
+    """
+
+    filename = dt.today().strftime('%Y%m%d%H%M%S') + '_' + filename
+    filepath = 'images/users'
+    return os.path.join(filepath, instance.name, filename)
+=======
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 from users.constants import (Gender, MilitaryDocType,
                              PrivacyOption, StudyForm, UnitType)
 from users.utils import document_path, image_path
+>>>>>>> aa2f949b4ed3bf54733d76f456d011247f791064
 
 
 class RSOUser(AbstractUser):
@@ -72,12 +99,6 @@ class RSOUser(AbstractUser):
         on_delete=models.PROTECT,
         verbose_name='Регион ОО'
     )
-    unit_type = models.CharField(
-        verbose_name='Тип структурной единицы',
-        max_length=150,
-        choices=UnitType.choices,
-        default='detachment',
-    )
     address = models.CharField(
         verbose_name='Фактическое место проживания',
         max_length=150,
@@ -102,6 +123,10 @@ class RSOUser(AbstractUser):
         blank=True,
         default='https://t.me/',
     )
+    is_verified = models.BooleanField(
+        verbose_name='Статус верификации',
+        default=False,
+    )
     # ---Для несовершеннолетних---
     membership_fee = models.BooleanField(
         default=False,
@@ -111,6 +136,58 @@ class RSOUser(AbstractUser):
     class Meta:
         verbose_name_plural = 'Пользователи'
         verbose_name = 'Пользователь'
+
+    def save(self, *args, **kwargs):
+        """Функция для сохранения профиля пользователя.
+
+        При создании профиля проверяем возраст пользователя.
+        Если он несовершеннолетний, то создаем объект UsersParent
+        с пустыми полями. Перед сохранием профиля проверяем,
+        что у законного представителя заполнены все обязательные поля.
+        """
+        if self.date_of_birth:
+            today = date.today()
+            age = (today.year - self.date_of_birth.year
+                   - ((today.month, today.day) < (
+                    self.date_of_birth.month,
+                    self.date_of_birth.day
+                   )))
+            if age < 18:
+                parent = UsersParent(
+                    user=self,
+                    parent_last_name='',
+                    parent_first_name='',
+                    parent_patronymic_name='',
+                    parent_date_of_birth=None,
+                    relationship='',
+                    parent_phone_number='',
+                    russian_passport=True,
+                    passport_number='',
+                    passport_date=None,
+                    passport_authority='',
+                    region=None,
+                    city='',
+                    address='',
+                )
+                parent.save()
+                if (
+                    not parent.parent_last_name
+                    or not parent.parent_first_name
+                    or not parent.parent_patronymic_name
+                    or not parent.parent_date_of_birth
+                    or not parent.relationship
+                    or not parent.parent_phone_number
+                    or not parent.passport_number
+                    or not parent.passport_date
+                    or not parent.passport_authority
+                    or not parent.region
+                    or not parent.city
+                    or not parent.address
+                ):
+                    raise ValidationError(
+                        'Необходимо заполнить все поля законного представителя'
+                    )
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return (
@@ -136,12 +213,6 @@ class UserEducation(models.Model):
     study_faculty = models.CharField(
         verbose_name='Факультет',
         max_length=200,
-        blank=True,
-        null=True,
-    )
-    study_group = models.CharField(
-        verbose_name='Группа',
-        max_length=20,
         blank=True,
         null=True,
     )
@@ -452,6 +523,23 @@ class UserMedia(models.Model):
             f'{self.user.first_name}. Id: {self.user.id}'
         )
 
+<<<<<<< HEAD
+
+def document_path(instance, filename):
+    """Функция для формирования пути сохранения сканов документов юзера.
+
+    :param instance: Экземпляр модели.
+    :param filename: Имя файла. Добавляем к имени текущую дату и время.
+    :return: Путь к скану документа.
+    Сохраняем в filepath/{instance.name}/filename
+    """
+
+    filename = dt.today().strftime('%Y%m%d%H%M%S') + '_' + filename
+    filepath = 'documents/users'
+    return os.path.join(filepath, instance.name, filename)
+
+=======
+>>>>>>> aa2f949b4ed3bf54733d76f456d011247f791064
 
 class UserStatementDocuments(models.Model):
     """Документы пользователя для вступления в РСО."""
@@ -558,4 +646,101 @@ class UserStatementDocuments(models.Model):
         return (
             f'Пользователь {self.user.last_name} '
             f'{self.user.first_name}. Id: {self.user.id}'
+        )
+
+
+class UsersParent(models.Model):
+    """Законный представитель несовершеннолетнего."""
+    user = models.OneToOneField(
+        verbose_name='Пользователь',
+        to='RSOUser',
+        on_delete=models.CASCADE,
+        related_name='parent',
+    )
+    parent_last_name = models.CharField(
+        null=True,
+        blank=True,
+        max_length=150,
+        verbose_name='Фамилия',
+    )
+    parent_first_name = models.CharField(
+        null=True,
+        blank=True,
+        max_length=150,
+        verbose_name='Имя',
+    )
+    parent_patronymic_name = models.CharField(
+        null=True,
+        blank=True,
+        max_length=150,
+        verbose_name='Отчество',
+    )
+    parent_date_of_birth = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='Дата рождения',
+    )
+    relationship = models.CharField(
+        null=True,
+        blank=True,
+        verbose_name='Кем является',
+        max_length=8,
+        choices=RelationshipType.choices,
+    )
+    parent_phone_number = models.CharField(
+        null=True,
+        blank=True,
+        verbose_name='Номер телефона',
+        max_length=30,
+        default='+7',
+    )
+    russian_passport = models.BooleanField(
+        verbose_name='Паспорт гражданина РФ',
+        default=True,
+    )
+    passport_number = models.CharField(
+        null=True,
+        blank=True,
+        verbose_name='Номер и серия',
+        max_length=50,
+
+    )
+    passport_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name='Дата выдачи',
+    )
+    passport_authority = models.CharField(
+        null=True,
+        blank=True,
+        verbose_name='Кем выдан',
+        max_length=150,
+    )
+    region = models.ForeignKey(
+        null=True,
+        blank=True,
+        to='headquarters.Region',
+        on_delete=models.PROTECT,
+        verbose_name='Регион'
+    )
+    city = models.CharField(
+        null=True,
+        blank=True,
+        verbose_name='Населенный пункт',
+        max_length=50,
+    )
+    address = models.CharField(
+        null=True,
+        blank=True,
+        verbose_name='Улица, дом, квартира',
+        max_length=200,
+    )
+
+    class Meta:
+        verbose_name = 'Законный представитель несовершеннолетнего'
+
+    def __str__(self):
+        return (
+            f'Представитель {self.parent_last_name} '
+            f'{self.parent_first_name}. Id: {self.user.id}'
         )

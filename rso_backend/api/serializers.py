@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from djoser.serializers import UserCreatePasswordRetypeSerializer
 from rest_framework import serializers
 
@@ -5,16 +6,20 @@ from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                            MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
                            REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS)
 from api.utils import create_first_or_exception
-from users.models import (RSOUser, UserDocuments, UserEducation,
-                          UserMedia, UserPrivacySettings, UserRegion,
+from headquarters.models import (Area, CentralHeadquarter, Detachment,
+                                 DistrictHeadquarter, EducationalHeadquarter,
+                                 EducationalInstitution, LocalHeadquarter,
+                                 Region, RegionalHeadquarter,
+                                 UserDetachmentPosition)
+from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
+                          UserPrivacySettings, UserRegion, UsersParent,
                           UserStatementDocuments)
-from headquarters.models import Region
 
 
 class RegionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Region
-        fields = ('name', 'branch')
+        fields = ('id', 'name',)
 
 
 class UserEducationSerializer(serializers.ModelSerializer):
@@ -23,7 +28,6 @@ class UserEducationSerializer(serializers.ModelSerializer):
         fields = (
             'study_institution',
             'study_faculty',
-            'study_group',
             'study_form',
             'study_year',
             'study_specialty',
@@ -174,6 +178,13 @@ class UserRegionSerializer(serializers.ModelSerializer):
         )
 
 
+class UsersParentSerializer(serializers.ModelSerializer):
+    """Сериализатор законного представителя."""
+    class Meta:
+        model = UsersParent
+        fields = '__all__'
+
+
 class RSOUserSerializer(serializers.ModelSerializer):
     """
     Выводит личные данные пользователя, а также все данные из всех
@@ -191,6 +202,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
     )
     media = UserMediaSerializer(read_only=True)
     privacy = UserPrivacySettingsSerializer(read_only=True)
+    parent = UsersParentSerializer(read_only=True)
 
     class Meta:
         model = RSOUser
@@ -208,7 +220,6 @@ class RSOUserSerializer(serializers.ModelSerializer):
             'phone_number',
             'gender',
             'region',
-            'unit_type',
             'address',
             'bio',
             'social_vk',
@@ -220,6 +231,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
             'media',
             'education',
             'privacy',
+            'parent',
         )
 
 
@@ -247,4 +259,198 @@ class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
             'email',
             'username',
             'password',
+        )
+
+
+class BaseUnitSerializer(serializers.ModelSerializer):
+    """Базовый сериализатор для хранения общей логики штабов.
+
+    Предназначен для использования как родительский класс для всех
+    сериализаторов штабов, обеспечивая наследование общих полей и методов.
+    """
+
+    commander = serializers.PrimaryKeyRelatedField(
+        queryset=RSOUser.objects.all(),
+    )
+
+    class Meta:
+        model = None
+        fields = (
+            'id',
+            'name',
+            'commander',
+            'about',
+            'emblem',
+            'social_vk',
+            'social_tg',
+            'banner',
+            'slogan',
+            'founding_date',
+        )
+
+
+class CentralHeadquarterSerializer(BaseUnitSerializer):
+    """Сериализатор для центрального штаба.
+
+    Наследует общую логику и поля от BaseUnitSerializer и связывает
+    с моделью CentralHeadquarter.
+    """
+
+    class Meta:
+        model = CentralHeadquarter
+        fields = BaseUnitSerializer.Meta.fields
+
+
+class DistrictHeadquarterSerializer(BaseUnitSerializer):
+    """Сериализатор для окружного штаба.
+
+    Дополнительно к полям из BaseUnitSerializer, добавляет поле
+    central_headquarter для связи с центральным штабом.
+    """
+
+    central_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=CentralHeadquarter.objects.first(),
+    )
+    commander = serializers.PrimaryKeyRelatedField(
+        queryset=RSOUser.objects.all(),
+    )
+
+    class Meta:
+        model = DistrictHeadquarter
+        fields = BaseUnitSerializer.Meta.fields + ('central_headquarter',)
+
+
+class RegionalHeadquarterSerializer(BaseUnitSerializer):
+    """Сериализатор для регионального штаба.
+
+    Включает в себя поля из BaseUnitSerializer, а также поля region и
+    district_headquarter для указания региона и привязки к окружному штабу.
+    """
+
+    region = serializers.PrimaryKeyRelatedField(
+        queryset=Region.objects.all()
+    )
+    district_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=DistrictHeadquarter.objects.all(),
+    )
+
+    class Meta:
+        model = RegionalHeadquarter
+        fields = BaseUnitSerializer.Meta.fields + (
+            'region',
+            'district_headquarter'
+        )
+
+
+class LocalHeadquarterSerializer(BaseUnitSerializer):
+    """Сериализатор для местного штаба.
+
+    Расширяет BaseUnitSerializer, добавляя поле regional_headquarter
+    для связи с региональным штабом.
+    """
+
+    regional_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=RegionalHeadquarter.objects.all(),
+    )
+
+    class Meta:
+        model = LocalHeadquarter
+        fields = BaseUnitSerializer.Meta.fields + ('regional_headquarter',)
+
+
+class EducationalHeadquarterSerializer(BaseUnitSerializer):
+    """Сериализатор для образовательного штаба.
+
+    Содержит ссылки на образовательное учреждение и связанные
+    местный и региональный штабы. Включает в себя валидацию для
+    проверки согласованности связей между штабами.
+    """
+
+    educational_institution = serializers.PrimaryKeyRelatedField(
+        queryset=EducationalInstitution.objects.all(),
+    )
+    regional_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=RegionalHeadquarter.objects.all(),
+    )
+    local_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=LocalHeadquarter.objects.all(),
+    )
+
+    class Meta:
+        model = EducationalHeadquarter
+        fields = BaseUnitSerializer.Meta.fields + (
+            'educational_institution',
+            'local_headquarter',
+            'regional_headquarter',
+        )
+
+    def validate(self, data):
+        """
+        Вызывает валидацию модели для проверки согласованности между местным
+         и региональным штабами.
+        """
+        instance = EducationalHeadquarter(**data)
+        try:
+            instance.full_clean()
+        except ValidationError as e:
+            raise serializers.ValidationError(e.message_dict)
+        return data
+
+
+class DetachmentSerializer(BaseUnitSerializer):
+    """Сериализатор для отряда.
+
+    Наследует общие поля из BaseUnitSerializer и добавляет специфические поля
+    для отряда, включая связи с образовательным, местным и региональным
+    штабами, а также поле для указания области деятельности (area).
+    Включает в себя валидацию для
+    проверки согласованности связей между штабами.
+    """
+
+    educational_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=EducationalHeadquarter.objects.all()
+    )
+    local_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=LocalHeadquarter.objects.all()
+    )
+    regional_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=RegionalHeadquarter.objects.all()
+    )
+    area = serializers.PrimaryKeyRelatedField(
+        queryset=Area.objects.all()
+    )
+
+    class Meta:
+        model = Detachment
+        fields = BaseUnitSerializer.Meta.fields + (
+            'educational_headquarter',
+            'local_headquarter',
+            'regional_headquarter',
+            'area',
+        )
+
+    def validate(self, data):
+        """
+        Вызывает валидацию модели для проверки согласованности между
+        образовательным, местным и региональным штабами.
+        """
+        instance = Detachment(**data)
+        try:
+            instance.full_clean()
+        except ValidationError as e:
+            raise serializers.ValidationError(e.message_dict)
+        return data
+
+
+class DetachmentPositionSerializer(serializers.ModelSerializer):
+    """Сериализаатор для добавления пользователя в отряд."""
+
+    class Meta:
+        model = UserDetachmentPosition
+        fields = (
+            'id',
+            'user',
+            'position',
+            'is_trusted',
+            'headquarter',
         )

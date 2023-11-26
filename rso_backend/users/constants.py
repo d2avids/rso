@@ -7,12 +7,6 @@ class Gender(models.TextChoices):
     FEMALE = 'female', 'Женский'
 
 
-class UnitType(models.TextChoices):
-    """Структурные единицы."""
-    DETACHMENT = 'detachment', 'Отряд'
-    OTHER_UNIT = 'other_unit', 'Другая структурная единица'
-
-
 class StudyForm(models.TextChoices):
     """Формы обучения."""
     full_time = 'full_time', 'очная'
@@ -37,10 +31,8 @@ class PrivacyOption(models.TextChoices):
     MANAGEMENT_MEMBERS = 'management_members', 'Руководство'
 
 
-class PositionsOption(models.TextChoices):
-    """Позиции пользователя."""
-    no_position = 'no_position', 'Без должности'
-    comissioner = 'comissioner', 'Комиссар'
-    master_methodologist = 'master_methodologist', 'Мастер-методист'
-    specialist = 'specialist', 'Специалист'
-    commander = 'commander', 'Командир'
+class RelationshipType(models.TextChoices):
+    """Типы отношений."""
+    father = 'father', 'Отец'
+    mother = 'mother', 'Мать'
+    guardian = 'guardian', 'Опекун'

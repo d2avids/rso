@@ -1,7 +1,26 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 
+<<<<<<< HEAD
+from headquarters.constants import PositionsOption
+from users.models import RSOUser
+
+
+def image_path(instance, filename):
+    """Функция для формирования пути сохранения изображения.
+
+    :param instance: Экземпляр модели.
+    :param filename: Имя файла. Добавляем к имени текущую дату и время.
+    :return: Путь к изображению.
+    Сохраняем в filepath/{instance.name}/filename
+    """
+
+    filename = dt.today().strftime('%Y%m%d%H%M%S') + '_' + filename
+    filepath = 'images/headquarters'
+    return os.path.join(filepath, instance.name, filename)
+=======
 from headquarters.utils import image_path
+>>>>>>> aa2f949b4ed3bf54733d76f456d011247f791064
 
 
 class EducationalInstitution(models.Model):
@@ -26,12 +45,19 @@ class EducationalInstitution(models.Model):
         null=True,
         verbose_name='Электронная почта ректора'
     )
-    region = models.OneToOneField(
+    region = models.ForeignKey(
         'Region',
         related_name='institutions',
         on_delete=models.PROTECT,
         verbose_name='Регион'
     )
+
+    class Meta:
+        verbose_name_plural = 'Образовательные организации'
+        verbose_name = 'Образовательная организация'
+
+    def __str__(self):
+        return self.name
 
 
 class Region(models.Model):
@@ -41,12 +67,12 @@ class Region(models.Model):
         verbose_name='Название'
     )
 
+    class Meta:
+        verbose_name_plural = 'Регионы'
+        verbose_name = 'Регион'
+
     def __str__(self):
         return self.name
-
-    class Meta:
-        verbose_name_plural = 'регионы'
-        verbose_name = 'Регион'
 
 
 class Area(models.Model):
@@ -56,12 +82,12 @@ class Area(models.Model):
         verbose_name='Название направления'
     )
 
-    def __str__(self):
-        return self.name
-
     class Meta:
         verbose_name_plural = 'направления'
         verbose_name = 'Направление'
+
+    def __str__(self):
+        return self.name
 
 
 class Unit(models.Model):
@@ -69,48 +95,49 @@ class Unit(models.Model):
 
     name = models.CharField(
         max_length=100,
-        db_index=True,
         verbose_name='Название'
     )
-    commander = models.OneToOneField(
+    commander = models.ForeignKey(
         'users.RSOUser',
-        null=True,
-        blank=True,
         on_delete=models.PROTECT,
         verbose_name='Командир'
     )
     about = models.CharField(
         max_length=500,
         blank=True,
+        null=True,
         verbose_name='Описание',
-        default=''
     )
     emblem = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Эмблема'
     )
     social_vk = models.CharField(
         max_length=50,
         blank=True,
+        null=True,
         verbose_name='Ссылка ВК',
         default='https://vk.com/'
     )
     social_tg = models.CharField(
         max_length=50,
         blank=True,
+        null=True,
         verbose_name='Ссылка Телеграм',
         default='https://'
     )
     banner = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Баннер'
     )
     slogan = models.CharField(
         max_length=100,
         blank=True,
-        default='',
+        null=True,
         verbose_name='Девиз'
     )
     founding_date = models.DateField(
@@ -119,56 +146,136 @@ class Unit(models.Model):
         verbose_name='Дата основания'
     )
 
-    # Уровень Линейный отряд, Штаб учебного заведения, Региональное отделение,
-    # (Направление)
-    # area = models.ForeignKey(
-    # 'Area',
-    # null=True,
-    # blank=True,
-    # on_delete=models.PROTECT,
-    # verbose_name='Направление'
-    # )
-    #
-    # flag = models.ImageField(
-    # upload_to='flags/%Y/%m/%d', blank=True, verbose_name='Флаг'
-    # )
+    def clean(self):
+        if not self.commander:
+            raise ValidationError('Отряд должен иметь командира.')
+
+    class Meta:
+        abstract = True
 
     def __str__(self):
         return self.name
 
-    class Meta:
-        abstract = True
-        verbose_name_plural = 'Структурные единицы'
-        verbose_name = 'Структурная единица'
-
 
 class CentralHeadquarter(Unit):
-    pass
+    class Meta:
+        verbose_name_plural = 'Центральные штабы'
+        verbose_name = 'Центральный штаб'
 
 
 class DistrictHeadquarter(Unit):
-    pass
+    central_headquarter = models.ForeignKey(
+        'CentralHeadquarter',
+        related_name='district_headquarters',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к ЦШ'
+    )
+
+    class Meta:
+        verbose_name_plural = 'Окружные штабы'
+        verbose_name = 'Окружной штаб'
 
 
 class RegionalHeadquarter(Unit):
-
-    region = models.OneToOneField(
+    region = models.ForeignKey(
         'Region',
         related_name='headquarters',
         on_delete=models.PROTECT,
         verbose_name='Регион'
     )
+    district_headquarter = models.ForeignKey(
+        'DistrictHeadquarter',
+        related_name='regional_headquarters',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к ОШ'
+    )
+
+    class Meta:
+        verbose_name_plural = 'Региональные штабы'
+        verbose_name = 'Региональный штаб'
 
 
 class LocalHeadquarter(Unit):
-    pass
+    regional_headquarter = models.ForeignKey(
+        'RegionalHeadquarter',
+        related_name='local_headquarters',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к РШ'
+    )
+
+    class Meta:
+        verbose_name_plural = 'Местные штабы'
+        verbose_name = 'Местный штаб'
 
 
 class EducationalHeadquarter(Unit):
-    pass
+    local_headquarter = models.ForeignKey(
+        'LocalHeadquarter',
+        related_name='educational_headquarters',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к МШ',
+        blank=True,
+        null=True,
+    )
+    regional_headquarter = models.ForeignKey(
+        'RegionalHeadquarter',
+        related_name='educational_headquarters',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к РШ',
+    )
+    educational_institution = models.ForeignKey(
+        'EducationalInstitution',
+        related_name='headquarters',
+        on_delete=models.PROTECT,
+        verbose_name='Образовательная организация',
+    )
+
+    def clean(self):
+        """
+        Проверяет, что местный штаб (local_headquarter) связан с тем же
+        региональным штабом (regional_headquarter),
+        что и образовательный штаб (EducationalHeadquarter).
+        """
+        super().clean()
+
+        if self.local_headquarter and self.regional_headquarter:
+            if (
+                self.local_headquarter.regional_headquarter !=
+                self.regional_headquarter
+            ):
+                raise ValidationError({
+                    'local_headquarter': 'Этот местный штаб связан '
+                                         'с другим региональным штабом.'
+                })
+
+    class Meta:
+        verbose_name_plural = 'Образовательные штабы'
+        verbose_name = 'Образовательный штаб'
 
 
 class Detachment(Unit):
+    educational_headquarter = models.ForeignKey(
+        'EducationalHeadquarter',
+        related_name='detachments',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к ШОО',
+        blank=True,
+        null=True,
+    )
+    local_headquarter = models.ForeignKey(
+        'LocalHeadquarter',
+        related_name='detachments',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к МШ',
+        blank=True,
+        null=True,
+    )
+    regional_headquarter = models.ForeignKey(
+        'RegionalHeadquarter',
+        related_name='detachments',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к РШ',
+    )
     area = models.ForeignKey(
         Area,
         null=False,
@@ -178,23 +285,308 @@ class Detachment(Unit):
     )
 
     def clean(self):
-        if not self.commander:
-            raise ValidationError('Отряд должен иметь командира.')
+        """
+        Проверяет согласованность между
+        образовательным штабом (educational_headquarter),
+        местным штабом (local_headquarter)
+        и региональным штабом (regional_headquarter).
+        """
+        super().clean()
 
-    # регион
-    # institution = models.ForeignKey(
-    # 'Institution',
-    # null=True,
-    # blank=True,
-    # on_delete=models.PROTECT,
-    # verbose_name='Учебное заведение'
-    # )
-    # город
-    # Местный штаб
+        if self.educational_headquarter and self.local_headquarter:
+            if (
+                self.educational_headquarter.local_headquarter !=
+                self.local_headquarter
+            ):
+                raise ValidationError({
+                    'educational_headquarter': 'Этот образовательный штаб '
+                                               'связан с другим местным '
+                                               'штабом.'
+                })
+
+        if self.local_headquarter and self.regional_headquarter:
+            if (
+                self.local_headquarter.regional_headquarter !=
+                self.regional_headquarter
+            ):
+                raise ValidationError({
+                    'local_headquarter': 'Этот местный штаб связан с '
+                                         'другим региональным штабом.'
+                })
+
+        if self.educational_headquarter and self.regional_headquarter:
+            if (
+                self.educational_headquarter.regional_headquarter !=
+                self.regional_headquarter
+            ):
+                raise ValidationError({
+                    'educational_headquarter': 'Этот образовательный штаб '
+                                               'связан с другим региональным '
+                                               'штабом.'
+                })
 
     def __str__(self):
         return self.name
 
     class Meta:
-        verbose_name_plural = 'отряды'
+        verbose_name_plural = 'Отряды'
         verbose_name = 'Отряд'
+<<<<<<< HEAD
+
+
+class Position(models.Model):
+    """Хранение наименований должностей для членов отрядов и штабов."""
+
+    name = models.CharField(max_length=150, verbose_name='Должность')
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name_plural = 'Должности'
+        verbose_name = 'Должность'
+
+
+class UserUnitPosition(models.Model):
+    """
+    Абстрактная базовая модель для представления пользователя в качестве
+    члена тех или иных структурных единиц.
+
+    Эта модель определяет общие атрибуты для хранения информации о
+    пользователе, его должности и статусе доверенности в конкретной структурной
+    единице.
+    """
+    user = models.ForeignKey(
+        'users.RSOUser',
+        on_delete=models.CASCADE,
+        verbose_name='Пользователь',
+        related_name="%(class)s_position"
+    )
+    position = models.ForeignKey(
+        'Position',
+        on_delete=models.CASCADE,
+        verbose_name='Должность',
+        null=True,
+        blank=True,
+    )
+    is_trusted = models.BooleanField(default=False, verbose_name='Доверенный')
+
+    def save(self, *args, **kwargs):
+        """
+        Родительский метод хранит логику добавления пользователя в качестве
+        участника во все структурные единицы, стоящие выше по иерархии того
+        отряда, в который он был добавлен.
+
+        Принимает параметры 'headquarter' и 'class_above', переданные в kwargs,
+        которые указывают на структурную единицу и связанную модель выше по
+        иерархии соответственно.
+
+        Исключения:
+        - ValueError: выбрасывается, если в дочернем классе не предоставлены
+        необходимые параметры 'headquarter' и 'class_above' при создании
+        нового объекта (не вызывается для центрального штаба).
+        """
+        if self._state.adding:
+            headquarter = kwargs.pop('headquarter', None)
+            class_above = kwargs.pop('class_above', None)
+            if headquarter and class_above:
+                user_id = self.user_id
+                if self.__class__.objects.filter(user_id=user_id).exists():
+                    raise ValidationError(
+                        'Пользователь уже является членом одного из отрядов.'
+                    )
+                class_above.objects.create(
+                    user_id=user_id,
+                    headquarter=headquarter
+                )
+            else:
+                raise ValueError(
+                    'headquarter и class_above должны быть переданы '
+                    'в качестве kwargs в подклассах'
+                )
+        super().save(*args, **kwargs)
+
+    def delete_user_from_all_units(self):
+        """
+        Удаляет пользователя из всех связанных структурных единиц.
+        """
+        UserCentralHeadquarterPosition.objects.filter(user=self.user).delete()
+        UserDistrictHeadquarterPosition.objects.filter(user=self.user).delete()
+        UserRegionalHeadquarterPosition.objects.filter(user=self.user).delete()
+        UserLocalHeadquarterPosition.objects.filter(user=self.user).delete()
+        UserEducationalHeadquarterPosition.objects.filter(
+            user=self.user).delete()
+        UserDetachmentPosition.objects.filter(user=self.user).delete()
+
+    def delete(self, *args, **kwargs):
+        """
+        Переопределяет стандартный метод delete для обеспечения
+        удаления пользователя из всех структурных единиц при его удалении
+        из одной из структур.
+        """
+        self.delete_user_from_all_units()
+        super().delete(*args, **kwargs)
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        position = self.position.name if self.position else 'без должности'
+        return (
+            f'Пользователь {self.user.username} - '
+            f'{position} '
+            f'в структурной единице "{self.headquarter.name}"'
+        )
+
+
+class UserCentralHeadquarterPosition(UserUnitPosition):
+    headquarter = models.ForeignKey(
+        'CentralHeadquarter',
+        on_delete=models.CASCADE,
+        verbose_name='Центральный штаб',
+        related_name='members'
+    )
+
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            return
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name_plural = 'Члены центрального штаба'
+        verbose_name = 'Член центрального штаба'
+
+
+class UserDistrictHeadquarterPosition(UserUnitPosition):
+    headquarter = models.ForeignKey(
+        'DistrictHeadquarter',
+        on_delete=models.CASCADE,
+        verbose_name='Окружной штаб',
+        related_name='members'
+    )
+
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            central_position = UserCentralHeadquarterPosition.objects.create(
+                user_id=self.user_id,
+                headquarter=CentralHeadquarter.objects.first(),
+            )
+            central_position.save_base(force_insert=True)
+            kwargs['headquarter'] = self.headquarter.central_headquarter
+            kwargs['class_above'] = UserCentralHeadquarterPosition
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name_plural = 'Члены окружных штабов'
+        verbose_name = 'Член окружного штаба'
+
+
+class UserRegionalHeadquarterPosition(UserUnitPosition):
+    headquarter = models.ForeignKey(
+        'RegionalHeadquarter',
+        on_delete=models.CASCADE,
+        verbose_name='Региональный штаб',
+        related_name='members'
+    )
+
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            kwargs['headquarter'] = self.headquarter.district_headquarter
+            kwargs['class_above'] = UserDistrictHeadquarterPosition
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name_plural = 'Члены региональных штабов'
+        verbose_name = 'Член регионального штаба'
+
+
+class UserLocalHeadquarterPosition(UserUnitPosition):
+    headquarter = models.ForeignKey(
+        'LocalHeadquarter',
+        on_delete=models.CASCADE,
+        verbose_name='Локальный штаб',
+        related_name='members'
+    )
+
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            kwargs['headquarter'] = self.headquarter.regional_headquarter
+            kwargs['class_above'] = UserRegionalHeadquarterPosition
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name_plural = 'Члены локальных штабов'
+        verbose_name = 'Член локального штаба'
+
+
+class UserEducationalHeadquarterPosition(UserUnitPosition):
+    headquarter = models.ForeignKey(
+        'EducationalHeadquarter',
+        on_delete=models.CASCADE,
+        verbose_name='Образовательный штаб',
+        related_name='members'
+    )
+
+    def get_first_filled_headquarter(self):
+        """
+        Возвращает первый связанный с ШОО заполненный штаб по иерархии:
+        МШ или РШ.
+        """
+        local_headquarter = self.headquarter.local_headquarter
+        if local_headquarter:
+            return local_headquarter
+        return self.headquarter.regional_headquarter
+
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            kwargs['headquarter'] = self.get_first_filled_headquarter()
+            kwargs['class_above'] = UserLocalHeadquarterPosition
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name_plural = 'Члены образовательных штабов'
+        verbose_name = 'Член образовательного штаба'
+
+
+class UserDetachmentPosition(UserUnitPosition):
+    headquarter = models.ForeignKey(
+        'Detachment',
+        on_delete=models.CASCADE,
+        verbose_name='Отряд',
+        related_name='members'
+    )
+
+    def get_first_filled_headquarter(self):
+        """
+        Возвращает первый связанный с отрядом заполненный штаб по иерархии: 
+        ШОО, МШ или РШ.
+        """
+        educational_headquarter = self.headquarter.educational_headquarter
+        if educational_headquarter:
+            return educational_headquarter
+        local_headquarter = self.headquarter.local_headquarter
+        if local_headquarter:
+            return local_headquarter
+        return self.headquarter.regional_headquarter
+
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            kwargs['headquarter'] = self.get_first_filled_headquarter()
+            kwargs['class_above'] = UserEducationalHeadquarterPosition
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name_plural = 'Члены отрядов'
+        verbose_name = 'Член отряда'
+
+
+@receiver(pre_delete, sender=Detachment)
+def delete_image_with_object_detachment(sender, instance, **kwargs):
+    """
+    Функция для удаления изображения, связанного с
+    объектом модели Detachment.
+    """
+    instance.emblem.delete(False)
+    instance.banner.delete(False)
+=======
+>>>>>>> aa2f949b4ed3bf54733d76f456d011247f791064
