@@ -8,7 +8,7 @@ from users.models import UserMedia, UserStatementDocuments
 
 
 @receiver(pre_delete, sender=UserMedia)
-def delete_imageы_with_object_user_media(sender, instance, **kwargs):
+def delete_image_with_object_user_media(sender, instance, **kwargs):
     """
     Функция для удаления папки с файлами, связанными с
     объектом модели UserMedia.
@@ -19,7 +19,7 @@ def delete_imageы_with_object_user_media(sender, instance, **kwargs):
 
 
 @receiver(pre_delete, sender=UserStatementDocuments)
-def delete_imageы_with_object_user_statement_docs(sender, instance, **kwargs):
+def delete_image_with_object_user_statement_docs(sender, instance, **kwargs):
     """
     Функция для удаления папки с файлами, связанными с
     объектом модели UserStatementDocuments.
