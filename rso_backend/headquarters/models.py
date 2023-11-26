@@ -1,26 +1,8 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 
-<<<<<<< HEAD
-from headquarters.constants import PositionsOption
 from users.models import RSOUser
-
-
-def image_path(instance, filename):
-    """Функция для формирования пути сохранения изображения.
-
-    :param instance: Экземпляр модели.
-    :param filename: Имя файла. Добавляем к имени текущую дату и время.
-    :return: Путь к изображению.
-    Сохраняем в filepath/{instance.name}/filename
-    """
-
-    filename = dt.today().strftime('%Y%m%d%H%M%S') + '_' + filename
-    filepath = 'images/headquarters'
-    return os.path.join(filepath, instance.name, filename)
-=======
 from headquarters.utils import image_path
->>>>>>> aa2f949b4ed3bf54733d76f456d011247f791064
 
 
 class EducationalInstitution(models.Model):
@@ -331,7 +313,6 @@ class Detachment(Unit):
     class Meta:
         verbose_name_plural = 'Отряды'
         verbose_name = 'Отряд'
-<<<<<<< HEAD
 
 
 class Position(models.Model):
@@ -578,15 +559,3 @@ class UserDetachmentPosition(UserUnitPosition):
     class Meta:
         verbose_name_plural = 'Члены отрядов'
         verbose_name = 'Член отряда'
-
-
-@receiver(pre_delete, sender=Detachment)
-def delete_image_with_object_detachment(sender, instance, **kwargs):
-    """
-    Функция для удаления изображения, связанного с
-    объектом модели Detachment.
-    """
-    instance.emblem.delete(False)
-    instance.banner.delete(False)
-=======
->>>>>>> aa2f949b4ed3bf54733d76f456d011247f791064
