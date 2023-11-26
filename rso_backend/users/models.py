@@ -1,8 +1,3 @@
-import os
-from datetime import datetime as dt
-from datetime import date
-
-from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
 
 from django.contrib.auth.models import AbstractUser
@@ -116,58 +111,6 @@ class RSOUser(AbstractUser):
     class Meta:
         verbose_name_plural = 'Пользователи'
         verbose_name = 'Пользователь'
-
-    def save(self, *args, **kwargs):
-        """Функция для сохранения профиля пользователя.
-
-        При создании профиля проверяем возраст пользователя.
-        Если он несовершеннолетний, то создаем объект UsersParent
-        с пустыми полями. Перед сохранием профиля проверяем,
-        что у законного представителя заполнены все обязательные поля.
-        """
-        if self.date_of_birth:
-            today = date.today()
-            age = (today.year - self.date_of_birth.year
-                   - ((today.month, today.day) < (
-                    self.date_of_birth.month,
-                    self.date_of_birth.day
-                   )))
-            if age < 18:
-                parent = UsersParent(
-                    user=self,
-                    parent_last_name='',
-                    parent_first_name='',
-                    parent_patronymic_name='',
-                    parent_date_of_birth=None,
-                    relationship='',
-                    parent_phone_number='',
-                    russian_passport=True,
-                    passport_number='',
-                    passport_date=None,
-                    passport_authority='',
-                    region=None,
-                    city='',
-                    address='',
-                )
-                parent.save()
-                if (
-                    not parent.parent_last_name
-                    or not parent.parent_first_name
-                    or not parent.parent_patronymic_name
-                    or not parent.parent_date_of_birth
-                    or not parent.relationship
-                    or not parent.parent_phone_number
-                    or not parent.passport_number
-                    or not parent.passport_date
-                    or not parent.passport_authority
-                    or not parent.region
-                    or not parent.city
-                    or not parent.address
-                ):
-                    raise ValidationError(
-                        'Необходимо заполнить все поля законного представителя'
-                    )
-        super().save(*args, **kwargs)
 
     def __str__(self):
         return (
