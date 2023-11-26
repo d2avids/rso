@@ -9,6 +9,7 @@ from api.views import (CentralViewSet, DetachmentViewSet, DistrictViewSet,
                        UserEducationViewSet, UserMediaViewSet,
                        UserPrivacySettingsViewSet, UserRegionViewSet,
                        UserStatementDocumentsViewSet,
+                       UsersParentViewSet,
                        DetachmentPositionViewSet)
 
 app_name = 'api'
@@ -32,6 +33,7 @@ UserMediaVS = UserMediaViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
 UserStatementVS = UserStatementDocumentsViewSet.as_view(
     CRUD_METHODS_WITHOUT_LIST
 )
+UsersParentVS = UsersParentViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
 DetachmentPositionVS = DetachmentPositionViewSet.as_view(CREATE_METHOD)
 
 user_nested_urls = [
@@ -41,6 +43,7 @@ user_nested_urls = [
     path('users/me/privacy/', UserPrivacyVS, name='user-privacy'),
     path('users/me/media/', UserMediaVS, name='user-media'),
     path('users/me/statement/', UserStatementVS, name='user-statement'),
+    path('users/me/parent/', UsersParentVS, name='user-parent'),
 ]
 
 urlpatterns = [

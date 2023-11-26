@@ -9,9 +9,10 @@ from api.utils import create_first_or_exception
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
-                                 Region, RegionalHeadquarter, UserDetachmentPosition)
+                                 Region, RegionalHeadquarter,
+                                 UserDetachmentPosition)
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
-                          UserPrivacySettings, UserRegion,
+                          UserPrivacySettings, UserRegion, UsersParent,
                           UserStatementDocuments)
 
 
@@ -177,6 +178,13 @@ class UserRegionSerializer(serializers.ModelSerializer):
         )
 
 
+class UsersParentSerializer(serializers.ModelSerializer):
+    """Сериализатор законного представителя."""
+    class Meta:
+        model = UsersParent
+        fields = '__all__'
+
+
 class RSOUserSerializer(serializers.ModelSerializer):
     """
     Выводит личные данные пользователя, а также все данные из всех
@@ -194,6 +202,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
     )
     media = UserMediaSerializer(read_only=True)
     privacy = UserPrivacySettingsSerializer(read_only=True)
+    parent = UsersParentSerializer(read_only=True)
 
     class Meta:
         model = RSOUser
@@ -222,6 +231,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
             'media',
             'education',
             'privacy',
+            'parent',
         )
 
 

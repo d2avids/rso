@@ -16,13 +16,14 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserPrivacySettingsSerializer,
                              UserRegionSerializer,
                              UserStatementDocumentsSerializer,
-                             DetachmentPositionSerializer)
+                             DetachmentPositionSerializer,
+                             UsersParentSerializer)
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Region, RegionalHeadquarter,
                                  UserDetachmentPosition)
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
-                          UserPrivacySettings, UserRegion,
+                          UserPrivacySettings, UserRegion, UsersParent,
                           UserStatementDocuments)
 
 
@@ -197,6 +198,12 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
             UserStatementDocuments,
             user=self.request.user
         )
+
+
+class UsersParentViewSet(BaseUserViewSet):
+    """Представляет законного представителя пользователя."""
+    queryset = UsersParent.objects.all()
+    serializer_class = UsersParentSerializer
 
 
 class CentralViewSet(ListRetrieveUpdateViewSet):

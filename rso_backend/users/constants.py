@@ -29,3 +29,10 @@ class PrivacyOption(models.TextChoices):
     ALL = 'all', 'Все'
     DETACHMENT_MEMBERS = 'detachment_members', 'Члены отряда',
     MANAGEMENT_MEMBERS = 'management_members', 'Руководство'
+
+
+class RelationshipType(models.TextChoices):
+    """Типы отношений."""
+    father = 'father', 'Отец'
+    mother = 'mother', 'Мать'
+    guardian = 'guardian', 'Опекун'
