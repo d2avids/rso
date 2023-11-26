@@ -2,13 +2,14 @@ from django.urls import include, path
 from djoser.views import UserViewSet
 from rest_framework.routers import DefaultRouter
 
-from api.constants import CRUD_METHODS_WITHOUT_LIST
+from api.constants import CRUD_METHODS_WITHOUT_LIST, CREATE_METHOD
 from api.views import (CentralViewSet, DetachmentViewSet, DistrictViewSet,
                        EducationalViewSet, LocalViewSet, RegionalViewSet,
                        RegionViewSet, RSOUserViewSet, UserDocumentsViewSet,
                        UserEducationViewSet, UserMediaViewSet,
                        UserPrivacySettingsViewSet, UserRegionViewSet,
-                       UserStatementDocumentsViewSet)
+                       UserStatementDocumentsViewSet,
+                       DetachmentPositionViewSet)
 
 app_name = 'api'
 
@@ -31,6 +32,7 @@ UserMediaVS = UserMediaViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
 UserStatementVS = UserStatementDocumentsViewSet.as_view(
     CRUD_METHODS_WITHOUT_LIST
 )
+DetachmentPositionVS = DetachmentPositionViewSet.as_view(CREATE_METHOD)
 
 user_nested_urls = [
     path('users/me/education/', UserEduVS, name='user-education'),
@@ -42,7 +44,7 @@ user_nested_urls = [
 ]
 
 urlpatterns = [
-    path('register/', UserViewSet.as_view({'post': 'create'}),
-         name='user-create'),
+    path('detachments/apply/', DetachmentPositionVS, name='user-apply'),
+    path('register/', UserViewSet.as_view(CREATE_METHOD), name='user-create'),
     path('', include(router.urls)),
 ] + user_nested_urls

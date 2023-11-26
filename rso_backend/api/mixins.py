@@ -17,3 +17,8 @@ class ListRetrieveUpdateViewSet(mixins.RetrieveModelMixin,
     Миксин для эндпоинта /user, разрешающий только методы чтения и обновления.
     """
     pass
+
+
+class CreateViewSet(mixins.CreateModelMixin,
+                    GenericViewSet):
+    pass

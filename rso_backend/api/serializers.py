@@ -9,7 +9,7 @@ from api.utils import create_first_or_exception
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
-                                 Region, RegionalHeadquarter)
+                                 Region, RegionalHeadquarter, UserDetachmentPosition)
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserPrivacySettings, UserRegion,
                           UserStatementDocuments)
@@ -388,7 +388,7 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
 
 
 class DetachmentSerializer(BaseUnitSerializer):
-    """ Сериализатор для отряда.
+    """Сериализатор для отряда.
 
     Наследует общие поля из BaseUnitSerializer и добавляет специфические поля
     для отряда, включая связи с образовательным, местным и региональным
@@ -430,3 +430,17 @@ class DetachmentSerializer(BaseUnitSerializer):
         except ValidationError as e:
             raise serializers.ValidationError(e.message_dict)
         return data
+
+
+class DetachmentPositionSerializer(serializers.ModelSerializer):
+    """Сериализаатор для добавления пользователя в отряд."""
+
+    class Meta:
+        model = UserDetachmentPosition
+        fields = (
+            'id',
+            'user',
+            'position',
+            'is_trusted',
+            'headquarter',
+        )

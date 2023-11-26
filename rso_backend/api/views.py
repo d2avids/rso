@@ -3,8 +3,8 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from api.mixins import (ListRetrieveUpdateViewSet,
-                        ListRetrieveViewSet)
+from api.mixins import ListRetrieveUpdateViewSet, ListRetrieveViewSet, \
+    CreateViewSet
 from api.serializers import (CentralHeadquarterSerializer,
                              DetachmentSerializer,
                              DistrictHeadquarterSerializer,
@@ -15,10 +15,12 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserEducationSerializer, UserMediaSerializer,
                              UserPrivacySettingsSerializer,
                              UserRegionSerializer,
-                             UserStatementDocumentsSerializer)
+                             UserStatementDocumentsSerializer,
+                             DetachmentPositionSerializer)
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
-                                 LocalHeadquarter, Region, RegionalHeadquarter)
+                                 LocalHeadquarter, Region, RegionalHeadquarter,
+                                 UserDetachmentPosition)
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserPrivacySettings, UserRegion,
                           UserStatementDocuments)
@@ -225,3 +227,8 @@ class EducationalViewSet(viewsets.ModelViewSet):
 class DetachmentViewSet(viewsets.ModelViewSet):
     queryset = Detachment.objects.all()
     serializer_class = DetachmentSerializer
+
+
+class DetachmentPositionViewSet(CreateViewSet):
+    queryset = UserDetachmentPosition.objects.all()
+    serializer_class = DetachmentPositionSerializer

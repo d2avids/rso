@@ -4,8 +4,7 @@ from datetime import datetime as dt
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from users.constants import (Gender, MilitaryDocType,
-                             PrivacyOption, StudyForm)
+from users.constants import Gender, MilitaryDocType, PrivacyOption, StudyForm
 
 
 def image_path(instance, filename):
@@ -111,6 +110,10 @@ class RSOUser(AbstractUser):
         max_length=50,
         blank=True,
         default='https://t.me/',
+    )
+    is_verified = models.BooleanField(
+        verbose_name='Статус верификации',
+        default=False,
     )
     # ---Для несовершеннолетних---
     membership_fee = models.BooleanField(
