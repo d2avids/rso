@@ -1,16 +1,10 @@
-import os
-from datetime import datetime as dt
-from datetime import date
-
 from django.core.exceptions import ValidationError
-from django.contrib.auth.models import AbstractUser
-
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 from users.constants import (Gender, MilitaryDocType,
                              PrivacyOption, StudyForm, RelationshipType)
-from users.utils import document_path, image_path
+from users.utils import document_path, image_path, validate_years
 
 
 class RSOUser(AbstractUser):
@@ -117,58 +111,6 @@ class RSOUser(AbstractUser):
         verbose_name_plural = 'Пользователи'
         verbose_name = 'Пользователь'
 
-    def save(self, *args, **kwargs):
-        """Функция для сохранения профиля пользователя.
-
-        При создании профиля проверяем возраст пользователя.
-        Если он несовершеннолетний, то создаем объект UsersParent
-        с пустыми полями. Перед сохранием профиля проверяем,
-        что у законного представителя заполнены все обязательные поля.
-        """
-        if self.date_of_birth:
-            today = date.today()
-            age = (today.year - self.date_of_birth.year
-                   - ((today.month, today.day) < (
-                    self.date_of_birth.month,
-                    self.date_of_birth.day
-                   )))
-            if age < 18:
-                parent = UsersParent(
-                    user=self,
-                    parent_last_name='',
-                    parent_first_name='',
-                    parent_patronymic_name='',
-                    parent_date_of_birth=None,
-                    relationship='',
-                    parent_phone_number='',
-                    russian_passport=True,
-                    passport_number='',
-                    passport_date=None,
-                    passport_authority='',
-                    region=None,
-                    city='',
-                    address='',
-                )
-                parent.save()
-                if (
-                    not parent.parent_last_name
-                    or not parent.parent_first_name
-                    or not parent.parent_patronymic_name
-                    or not parent.parent_date_of_birth
-                    or not parent.relationship
-                    or not parent.parent_phone_number
-                    or not parent.passport_number
-                    or not parent.passport_date
-                    or not parent.passport_authority
-                    or not parent.region
-                    or not parent.city
-                    or not parent.address
-                ):
-                    raise ValidationError(
-                        'Необходимо заполнить все поля законного представителя'
-                    )
-        super().save(*args, **kwargs)
-
     def __str__(self):
         return (
             f'Пользователь {self.last_name} '
@@ -223,6 +165,51 @@ class UserEducation(models.Model):
             models.UniqueConstraint(fields=['user'],
                                     name='unique_user_education')
         ]
+
+    def __str__(self):
+        return (
+            f'Пользователь {self.user.last_name} '
+            f'{self.user.first_name}. Id: {self.user.id}'
+        )
+
+
+class ProfessionalEduction(models.Model):
+    "Дополнительное профессиональное образование."
+    user = models.ForeignKey(
+        verbose_name='Пользователь',
+        to='RSOUser',
+        on_delete=models.CASCADE,
+        related_name='proffesional_education',
+    )
+    study_institution = models.CharField(
+        verbose_name='Образовательная организация',
+        max_length=200,
+        blank=True,
+        null=True
+    )
+    years_of_study = models.CharField(
+        verbose_name='Годы обучения',
+        blank=True,
+        null=True,
+        max_length=9,
+        validators=[validate_years]
+    )
+    exam_score = models.CharField(
+        verbose_name='Оценка',
+        max_length=20,
+        blank=True,
+        null=True
+    )
+    qualification = models.CharField(
+        verbose_name='Квалификация',
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    class Meta:
+        verbose_name_plural = 'Дополнительные профессиональные образования.'
+        verbose_name = 'Дополнительное профессиональное образование.'
 
     def __str__(self):
         return (

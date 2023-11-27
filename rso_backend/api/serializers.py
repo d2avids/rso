@@ -4,7 +4,8 @@ from rest_framework import serializers
 
 from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                            MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
-                           REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS)
+                           REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS,
+                           TOO_MANY_EDUCATIONS)
 from api.utils import create_first_or_exception
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
@@ -13,7 +14,7 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserDetachmentPosition)
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserPrivacySettings, UserRegion, UsersParent,
-                          UserStatementDocuments)
+                          UserStatementDocuments, ProfessionalEduction)
 
 
 class RegionSerializer(serializers.ModelSerializer):
@@ -40,6 +41,23 @@ class UserEducationSerializer(serializers.ModelSerializer):
             UserEducation,
             EDUCATION_RAW_EXISTS
         )
+
+
+class UserProfessionalEductionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProfessionalEduction
+        fields = (
+            'study_institution',
+            'years_of_study',
+            'exam_score',
+            'qualification',
+        )
+
+    def create(self, validated_data):
+        manager = ProfessionalEduction.objects
+        if manager.count() < 5:
+            return manager.create(**validated_data)
+        raise serializers.ValidationError(TOO_MANY_EDUCATIONS)
 
 
 class UserDocumentsSerializer(serializers.ModelSerializer):

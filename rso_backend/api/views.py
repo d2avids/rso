@@ -17,14 +17,15 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserRegionSerializer,
                              UserStatementDocumentsSerializer,
                              DetachmentPositionSerializer,
-                             UsersParentSerializer)
+                             UsersParentSerializer,
+                             UserProfessionalEductionSerializer)
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Region, RegionalHeadquarter,
                                  UserDetachmentPosition)
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserPrivacySettings, UserRegion, UsersParent,
-                          UserStatementDocuments)
+                          UserStatementDocuments, ProfessionalEduction)
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -145,6 +146,17 @@ class UserEducationViewSet(BaseUserViewSet):
     def get_object(self):
         """Определяет instance для операций с объектом (get, upd, del)."""
         return get_object_or_404(UserEducation, user=self.request.user)
+
+
+class UserProfessionalEducationViewSet(BaseUserViewSet):
+    """Представляет профессиональную информацию пользователя."""
+
+    queryset = ProfessionalEduction.objects.all()
+    serializer_class = UserProfessionalEductionSerializer
+
+    def get_object(self):
+        """Определяет instance для операций с объектом (get, upd, del)."""
+        return get_object_or_404(ProfessionalEduction, user=self.request.user)
 
 
 class UserDocumentsViewSet(BaseUserViewSet):

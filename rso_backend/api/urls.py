@@ -10,7 +10,8 @@ from api.views import (CentralViewSet, DetachmentViewSet, DistrictViewSet,
                        UserPrivacySettingsViewSet, UserRegionViewSet,
                        UserStatementDocumentsViewSet,
                        UsersParentViewSet,
-                       DetachmentPositionViewSet)
+                       DetachmentPositionViewSet,
+                       UserProfessionalEducationViewSet)
 
 app_name = 'api'
 
@@ -26,6 +27,9 @@ router.register(r'detachments', DetachmentViewSet)
 router.register(r'centrals', CentralViewSet)
 
 UserEduVS = UserEducationViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
+UserProfEduVS = UserProfessionalEducationViewSet.as_view(
+    CRUD_METHODS_WITHOUT_LIST
+)
 UserDocVS = UserDocumentsViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
 UserRegVS = UserRegionViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
 UserPrivacyVS = UserPrivacySettingsViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
@@ -44,6 +48,11 @@ user_nested_urls = [
     path('users/me/media/', UserMediaVS, name='user-media'),
     path('users/me/statement/', UserStatementVS, name='user-statement'),
     path('users/me/parent/', UsersParentVS, name='user-parent'),
+    path(
+        'users/me/professional-education/',
+        UserProfEduVS,
+        name='user-prof-education'
+    ),
 ]
 
 urlpatterns = [

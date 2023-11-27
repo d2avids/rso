@@ -5,7 +5,7 @@ CRUD_METHODS_WITHOUT_LIST = {
         'patch': 'partial_update',
         'delete': 'destroy'
     }
-CREATE_METHOD = {'post': 'create',}
+CREATE_METHOD = {'post': 'create', }
 EDUCATION_RAW_EXISTS = (
         'Образовательная информация для данного пользователя уже существует'
 )
@@ -20,4 +20,7 @@ STATEMENT_RAW_EXISTS = (
 )
 REGION_RAW_EXISTS = (
         'Данные региона для данного пользователя уже существуют'
+)
+TOO_MANY_EDUCATIONS = (
+        'Уже существует 5 записей о допобразовании.'
 )
