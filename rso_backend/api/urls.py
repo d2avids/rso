@@ -25,6 +25,8 @@ router.register(r'educationals', EducationalViewSet)
 router.register(r'locals', LocalViewSet)
 router.register(r'detachments', DetachmentViewSet)
 router.register(r'centrals', CentralViewSet)
+router.register(r'users', UserProfessionalEducationViewSet)
+router.register(r'users', UsersParentViewSet)
 
 UserEduVS = UserEducationViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
 UserProfEduVS = UserProfessionalEducationViewSet.as_view(
@@ -49,7 +51,7 @@ user_nested_urls = [
     path('users/me/statement/', UserStatementVS, name='user-statement'),
     path('users/me/parent/', UsersParentVS, name='user-parent'),
     path(
-        'users/me/professional-education/',
+        'users/me/professional_education/',
         UserProfEduVS,
         name='user-prof-education'
     ),

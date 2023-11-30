@@ -43,7 +43,7 @@ class UserEducationSerializer(serializers.ModelSerializer):
         )
 
 
-class UserProfessionalEductionSerializer(serializers.ModelSerializer):
+class UserProfessionalEducationSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProfessionalEduction
         fields = (
@@ -208,7 +208,6 @@ class RSOUserSerializer(serializers.ModelSerializer):
     Выводит личные данные пользователя, а также все данные из всех
     связанных моделей.
     """
-
     user_region = UserRegionSerializer(read_only=True)
     documents = UserDocumentsSerializer(read_only=True)
     statement = UserStatementDocumentsSerializer(read_only=True)
@@ -221,6 +220,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
     media = UserMediaSerializer(read_only=True)
     privacy = UserPrivacySettingsSerializer(read_only=True)
     parent = UsersParentSerializer(read_only=True)
+    professional_education = serializers.SerializerMethodField()
 
     class Meta:
         model = RSOUser
@@ -250,7 +250,15 @@ class RSOUserSerializer(serializers.ModelSerializer):
             'education',
             'privacy',
             'parent',
+            'professional_education',
         )
+
+    def get_professional_education(self, obj):
+        return UserProfessionalEducationSerializer(
+            ProfessionalEduction.objects.filter(user=obj),
+            many=True,
+            context={'request': self.context.get('request')},
+        ).data
 
 
 class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
@@ -424,7 +432,6 @@ class DetachmentSerializer(BaseUnitSerializer):
     Включает в себя валидацию для
     проверки согласованности связей между штабами.
     """
-
     educational_headquarter = serializers.PrimaryKeyRelatedField(
         queryset=EducationalHeadquarter.objects.all()
     )
