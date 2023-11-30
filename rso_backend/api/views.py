@@ -1,4 +1,8 @@
+import os
+import mimetypes
+
 from django.shortcuts import get_object_or_404
+from django.http.response import HttpResponse
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -199,6 +203,23 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
             user=self.request.user
         )
 
+    #TODO: разобраться как подключается этот эндпоинт
+    @action(
+        detail=False,
+        methods=('get',),
+        permission_classes=(permissions.IsAuthenticated,)
+    )
+    def download_membership_file(self, request):
+        """Скачивание заявления на вступление в РСО."""
+
+        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        filename = 'rso_membership_statement.docx'
+        filepath = BASE_DIR + '/templates/membership/' + filename
+        path = open(filepath, 'r')
+        mime_type, _ = mimetypes.guess_type(filepath)
+        response = HttpResponse(path, content_type=mime_type)
+        response['Content-Disposition'] = "attachment; filename=%s" % filename
+        return response
 
 class UsersParentViewSet(BaseUserViewSet):
     """Представляет законного представителя пользователя."""
