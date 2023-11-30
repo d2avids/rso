@@ -335,7 +335,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
         """Метод определения совершеннолетия.
 
         Проверяем возраст пользователя.
-        Если он несовершеннолетний, то возвращаем False.
+        Если он несовершеннолетний (меньше 18 лет), то возвращаем False
         """
         if obj.date_of_birth:
             today = date.today()
