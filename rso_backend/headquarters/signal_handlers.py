@@ -4,9 +4,9 @@ import shutil
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 
-from headquarters.models import (CentralHeadquarter, DistrictHeadquarter,
-                                 RegionalHeadquarter, LocalHeadquarter,
-                                 EducationalHeadquarter, Detachment)
+from headquarters.models import (CentralHeadquarter, Detachment,
+                                 DistrictHeadquarter, EducationalHeadquarter,
+                                 LocalHeadquarter, RegionalHeadquarter)
 
 
 @receiver(pre_delete, sender=CentralHeadquarter)

@@ -1,10 +1,8 @@
 from django.contrib.auth.models import AbstractUser
-
-from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from users.constants import (Gender, MilitaryDocType,
-                             PrivacyOption, StudyForm, RelationshipType)
+from users.constants import (Gender, MilitaryDocType, PrivacyOption,
+                             RelationshipType, StudyForm)
 from users.utils import document_path, image_path
 
 
@@ -643,10 +641,31 @@ class UsersParent(models.Model):
     )
 
     class Meta:
+        verbose_name_plural = 'Законные представители несовершеннолетних'
         verbose_name = 'Законный представитель несовершеннолетнего'
 
     def __str__(self):
         return (
             f'Представитель {self.parent_last_name} '
             f'{self.parent_first_name}. Id: {self.user.id}'
+        )
+
+
+class UserVerificationRequest(models.Model):
+    """Таблица для хранения заявок на верификацию."""
+    user = models.ForeignKey(
+        to='RSOUser',
+        on_delete=models.CASCADE,
+        related_name='veirification',
+        verbose_name='Пользователь, подавший заявку на верификацию',
+    )
+
+    class Meta:
+        verbose_name_plural = 'Заявки на верификацию'
+        verbose_name = 'Заявка на верификацию'
+
+    def __str__(self):
+        return (
+            f'Пользователь {self.user.last_name} {self.user.first_name} '
+            f'{self.user.username} подал заявку.'
         )

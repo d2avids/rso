@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from djoser.serializers import UserCreatePasswordRetypeSerializer
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
+
 from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                            MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
                            REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS)
@@ -11,12 +12,17 @@ from api.utils import create_first_or_exception
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
-                                 Region, RegionalHeadquarter,
+                                 Position, Region, RegionalHeadquarter,
+                                 UserCentralHeadquarterPosition,
+                                 UserDetachmentApplication,
                                  UserDetachmentPosition,
-                                 UserDetachmentApplication, Position, UserEducationalHeadquarterPosition, UserLocalHeadquarterPosition, UserRegionalHeadquarterPosition, UserCentralHeadquarterPosition, UserDistrictHeadquarterPosition)
+                                 UserDistrictHeadquarterPosition,
+                                 UserEducationalHeadquarterPosition,
+                                 UserLocalHeadquarterPosition,
+                                 UserRegionalHeadquarterPosition)
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserPrivacySettings, UserRegion, UsersParent,
-                          UserStatementDocuments)
+                          UserStatementDocuments, UserVerificationRequest)
 
 
 class RegionSerializer(serializers.ModelSerializer):
@@ -243,6 +249,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
             'social_vk',
             'social_tg',
             'membership_fee',
+            'is_verified',
             'user_region',
             'documents',
             'statement',
@@ -267,6 +274,27 @@ class RSOUserSerializer(serializers.ModelSerializer):
                        )
                    ))
             return age >= 18
+
+
+class ShortUserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = RSOUser
+        fields = (
+            'id',
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+        )
+
+
+class UserVerificationSerializer(serializers.ModelSerializer):
+    user = ShortUserSerializer()
+
+    class Meta:
+        model = UserVerificationRequest
+        fields = ('user',)
 
 
 class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
@@ -448,6 +476,7 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
 
     Включает в себя поля из BaseUnitSerializer, а также поля region и
     district_headquarter для указания региона и привязки к окружному штабу.
+    Выводит пользователей для верификации.
     """
 
     region = serializers.PrimaryKeyRelatedField(
@@ -460,6 +489,7 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
         many=True,
         read_only=True
     )
+    users_for_verification = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = RegionalHeadquarter
@@ -467,7 +497,20 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
             'region',
             'district_headquarter',
             'members',
+            'users_for_verification',
         )
+
+    @staticmethod
+    def get_users_for_verification(obj):
+        verification_requests = UserVerificationRequest.objects.filter(
+            user__region=obj.region,
+            user__is_verified=False
+        ).select_related('user')
+        return [{
+            'id': request.user.id,
+            'name': f'{request.user.first_name} {request.user.last_name}',
+            'email': request.user.email
+        } for request in verification_requests]
 
 
 class LocalHeadquarterSerializer(BaseUnitSerializer):
@@ -599,6 +642,7 @@ class DetachmentSerializer(BaseUnitSerializer):
         many=True,
         read_only=True
     )
+    users_for_verification = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Detachment
@@ -609,6 +653,7 @@ class DetachmentSerializer(BaseUnitSerializer):
             'area',
             'applications',
             'members',
+            'users_for_verification',
         )
 
     def validate(self, data):
@@ -622,3 +667,14 @@ class DetachmentSerializer(BaseUnitSerializer):
         except ValidationError as e:
             raise serializers.ValidationError(e.message_dict)
         return data
+
+    @staticmethod
+    def get_users_for_verification(obj):
+        users_positions = obj.members.filter(
+            user__is_verified=False).select_related('user')
+
+        return [{
+            'id': position.user.id,
+            'name': f'{position.user.first_name} {position.user.last_name}',
+            'email': position.user.email
+        } for position in users_positions]

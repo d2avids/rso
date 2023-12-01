@@ -2,16 +2,20 @@ from django.urls import include, path
 from djoser.views import UserViewSet
 from rest_framework.routers import DefaultRouter
 
-from api.constants import (CRUD_METHODS_WITHOUT_LIST, CREATE_METHOD, CREATE_DELETE, LIST, UPDATE)
-from api.views import (CentralViewSet, DetachmentViewSet, DistrictViewSet,
-                       EducationalViewSet, LocalViewSet, RegionalViewSet,
-                       RegionViewSet, RSOUserViewSet, UserDocumentsViewSet,
+from api.constants import (CREATE_DELETE, CREATE_METHOD,
+                           CRUD_METHODS_WITHOUT_LIST, LIST, UPDATE)
+from api.views import (CentralPositionViewSet, CentralViewSet,
+                       DetachmentAcceptViewSet, DetachmentApplicationViewSet,
+                       DetachmentPositionViewSet, DetachmentViewSet,
+                       DistrictPositionViewSet, DistrictViewSet,
+                       EducationalPositionViewSet, EducationalViewSet,
+                       LocalPositionViewSet, LocalViewSet,
+                       RegionalPositionViewSet, RegionalViewSet, RegionViewSet,
+                       RSOUserViewSet, UserDocumentsViewSet,
                        UserEducationViewSet, UserMediaViewSet,
                        UserPrivacySettingsViewSet, UserRegionViewSet,
-                       UserStatementDocumentsViewSet,
-                       UsersParentViewSet,
-                       DetachmentPositionViewSet, DetachmentAcceptViewSet,
-                       DetachmentApplicationViewSet, EducationalPositionViewSet, LocalPositionViewSet, RegionalPositionViewSet, DistrictPositionViewSet, CentralPositionViewSet)
+                       UsersParentViewSet, UserStatementDocumentsViewSet,
+                       apply_for_verification, verify_user)
 
 app_name = 'api'
 
@@ -58,6 +62,16 @@ user_nested_urls = [
     path('users/me/media/', UserMediaVS, name='user-media'),
     path('users/me/statement/', UserStatementVS, name='user-statement'),
     path('users/me/parent/', UsersParentVS, name='user-parent'),
+    path(
+        'users/me/apply_for_verification/',
+        apply_for_verification,
+        name='user-verification'
+    ),
+    path(
+        'users/<int:pk>/verify/',
+        verify_user,
+        name='user-verify'
+    ),
     path(
         'detachments/<int:pk>/applications/',
         DetachmentApplicationVS,
