@@ -3,7 +3,7 @@ from datetime import date
 from django.core.exceptions import ValidationError
 from djoser.serializers import UserCreatePasswordRetypeSerializer
 from rest_framework import serializers
-
+from rest_framework.validators import UniqueTogetherValidator
 from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                            MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
                            REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS)
@@ -12,7 +12,8 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
                                  Region, RegionalHeadquarter,
-                                 UserDetachmentPosition)
+                                 UserDetachmentPosition,
+                                 UserDetachmentApplication, Position, UserEducationalHeadquarterPosition, UserLocalHeadquarterPosition, UserRegionalHeadquarterPosition, UserCentralHeadquarterPosition, UserDistrictHeadquarterPosition)
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserPrivacySettings, UserRegion, UsersParent,
                           UserStatementDocuments)
@@ -295,6 +296,79 @@ class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
         )
 
 
+class BasePositionSerializer(serializers.ModelSerializer):
+    """Для вывода участников при получении штаба."""
+
+    position = serializers.PrimaryKeyRelatedField(
+        queryset=Position.objects.all(),
+        required=False,
+    )
+
+    class Meta:
+        model = UserCentralHeadquarterPosition
+        fields = (
+            'id',
+            'user',
+            'position',
+            'is_trusted',
+        )
+        read_only_fields = ('user',)
+
+
+class CentralPositionSerializer(BasePositionSerializer):
+    """Для вывода участников при получении центрального штаба."""
+
+    class Meta:
+        model = UserCentralHeadquarterPosition
+        fields = BasePositionSerializer.Meta.fields
+        read_only_fields = BasePositionSerializer.Meta.read_only_fields
+
+
+class DistrictPositionSerializer(BasePositionSerializer):
+    """Для вывода участников при получении окружного штаба."""
+
+    class Meta:
+        model = UserDistrictHeadquarterPosition
+        fields = BasePositionSerializer.Meta.fields
+        read_only_fields = BasePositionSerializer.Meta.read_only_fields
+
+
+class RegionalPositionSerializer(BasePositionSerializer):
+    """Для вывода участников при получении регионального штаба."""
+
+    class Meta:
+        model = UserRegionalHeadquarterPosition
+        fields = BasePositionSerializer.Meta.fields
+        read_only_fields = BasePositionSerializer.Meta.read_only_fields
+
+
+class LocalPositionSerializer(BasePositionSerializer):
+    """Для вывода участников при получении местного штаба."""
+
+    class Meta:
+        model = UserLocalHeadquarterPosition
+        fields = BasePositionSerializer.Meta.fields
+        read_only_fields = BasePositionSerializer.Meta.read_only_fields
+
+
+class EducationalPositionSerializer(BasePositionSerializer):
+    """Для вывода участников при получении образовательного штаба."""
+
+    class Meta:
+        model = UserEducationalHeadquarterPosition
+        fields = BasePositionSerializer.Meta.fields
+        read_only_fields = BasePositionSerializer.Meta.read_only_fields
+
+
+class DetachmentPositionSerializer(serializers.ModelSerializer):
+    """Сериализаатор для добавления пользователя в отряд."""
+
+    class Meta:
+        model = UserDetachmentPosition
+        fields = BasePositionSerializer.Meta.fields
+        read_only_fields = BasePositionSerializer.Meta.read_only_fields
+
+
 class BaseUnitSerializer(serializers.ModelSerializer):
     """Базовый сериализатор для хранения общей логики штабов.
 
@@ -305,6 +379,7 @@ class BaseUnitSerializer(serializers.ModelSerializer):
     commander = serializers.PrimaryKeyRelatedField(
         queryset=RSOUser.objects.all(),
     )
+    members_count = serializers.SerializerMethodField()
 
     class Meta:
         model = None
@@ -319,7 +394,11 @@ class BaseUnitSerializer(serializers.ModelSerializer):
             'banner',
             'slogan',
             'founding_date',
+            'members_count',
         )
+
+    def get_members_count(self, obj):
+        return self.Meta.model.objects.get(id=obj.id).members.count()
 
 
 class CentralHeadquarterSerializer(BaseUnitSerializer):
@@ -328,10 +407,14 @@ class CentralHeadquarterSerializer(BaseUnitSerializer):
     Наследует общую логику и поля от BaseUnitSerializer и связывает
     с моделью CentralHeadquarter.
     """
+    members = CentralPositionSerializer(
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = CentralHeadquarter
-        fields = BaseUnitSerializer.Meta.fields
+        fields = BaseUnitSerializer.Meta.fields + ('members',)
 
 
 class DistrictHeadquarterSerializer(BaseUnitSerializer):
@@ -347,10 +430,17 @@ class DistrictHeadquarterSerializer(BaseUnitSerializer):
     commander = serializers.PrimaryKeyRelatedField(
         queryset=RSOUser.objects.all(),
     )
+    members = DistrictPositionSerializer(
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = DistrictHeadquarter
-        fields = BaseUnitSerializer.Meta.fields + ('central_headquarter',)
+        fields = BaseUnitSerializer.Meta.fields + (
+            'central_headquarter',
+            'members',
+        )
 
 
 class RegionalHeadquarterSerializer(BaseUnitSerializer):
@@ -366,12 +456,17 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
     district_headquarter = serializers.PrimaryKeyRelatedField(
         queryset=DistrictHeadquarter.objects.all(),
     )
+    members = RegionalPositionSerializer(
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = RegionalHeadquarter
         fields = BaseUnitSerializer.Meta.fields + (
             'region',
-            'district_headquarter'
+            'district_headquarter',
+            'members',
         )
 
 
@@ -385,10 +480,17 @@ class LocalHeadquarterSerializer(BaseUnitSerializer):
     regional_headquarter = serializers.PrimaryKeyRelatedField(
         queryset=RegionalHeadquarter.objects.all(),
     )
+    members = LocalPositionSerializer(
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = LocalHeadquarter
-        fields = BaseUnitSerializer.Meta.fields + ('regional_headquarter',)
+        fields = BaseUnitSerializer.Meta.fields + (
+            'regional_headquarter',
+            'members',
+        )
 
 
 class EducationalHeadquarterSerializer(BaseUnitSerializer):
@@ -407,6 +509,11 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
     )
     local_headquarter = serializers.PrimaryKeyRelatedField(
         queryset=LocalHeadquarter.objects.all(),
+        required=False,
+    )
+    members = EducationalPositionSerializer(
+        many=True,
+        read_only=True
     )
 
     class Meta:
@@ -415,6 +522,7 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
             'educational_institution',
             'local_headquarter',
             'regional_headquarter',
+            'members',
         )
 
     def validate(self, data):
@@ -430,6 +538,35 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
         return data
 
 
+class UserDetachmentApplicationSerializer(serializers.ModelSerializer):
+    """Сериализатор для подачи заявок в отряд"""
+
+    class Meta:
+        model = UserDetachmentApplication
+        fields = ('id', 'user',)
+        read_only_fields = ('user',)
+
+    def validate(self, attrs):
+        """
+        Запрещает подачу заявки пользователем в отряд, относящемуся к
+        региональному штабу, который не привязан к региону пользователя.
+        Запрещает повторную подачу заявки в тот же или другие отряды.
+        """
+        user = self.context['request'].user
+        detachment = Detachment.objects.get(
+            id=self.context['view'].kwargs.get('pk')
+        )
+        if detachment.regional_headquarter.region != user.region:
+            raise ValidationError(
+                'Нельзя подать заявку на вступление в отряд вне своего региона'
+            )
+        if UserDetachmentApplication.objects.filter(user=user).exists():
+            raise ValidationError(
+                'Вы уже подали заявку в один из отрядов'
+            )
+        return attrs
+
+
 class DetachmentSerializer(BaseUnitSerializer):
     """Сериализатор для отряда.
 
@@ -441,16 +578,26 @@ class DetachmentSerializer(BaseUnitSerializer):
     """
 
     educational_headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=EducationalHeadquarter.objects.all()
+        queryset=EducationalHeadquarter.objects.all(),
+        required=False,
     )
     local_headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=LocalHeadquarter.objects.all()
+        queryset=LocalHeadquarter.objects.all(),
+        required=False
     )
     regional_headquarter = serializers.PrimaryKeyRelatedField(
         queryset=RegionalHeadquarter.objects.all()
     )
     area = serializers.PrimaryKeyRelatedField(
         queryset=Area.objects.all()
+    )
+    applications = UserDetachmentApplicationSerializer(
+        many=True,
+        read_only=True
+    )
+    members = DetachmentPositionSerializer(
+        many=True,
+        read_only=True
     )
 
     class Meta:
@@ -460,6 +607,8 @@ class DetachmentSerializer(BaseUnitSerializer):
             'local_headquarter',
             'regional_headquarter',
             'area',
+            'applications',
+            'members',
         )
 
     def validate(self, data):
@@ -473,17 +622,3 @@ class DetachmentSerializer(BaseUnitSerializer):
         except ValidationError as e:
             raise serializers.ValidationError(e.message_dict)
         return data
-
-
-class DetachmentPositionSerializer(serializers.ModelSerializer):
-    """Сериализаатор для добавления пользователя в отряд."""
-
-    class Meta:
-        model = UserDetachmentPosition
-        fields = (
-            'id',
-            'user',
-            'position',
-            'is_trusted',
-            'headquarter',
-        )

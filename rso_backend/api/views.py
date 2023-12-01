@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from api.mixins import ListRetrieveUpdateViewSet, ListRetrieveViewSet, \
-    CreateViewSet
+    CreateViewSet, CreateDeleteViewSet
 from api.serializers import (CentralHeadquarterSerializer,
                              DetachmentSerializer,
                              DistrictHeadquarterSerializer,
@@ -17,11 +17,18 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserRegionSerializer,
                              UserStatementDocumentsSerializer,
                              DetachmentPositionSerializer,
-                             UsersParentSerializer)
+                             UsersParentSerializer,
+                             UserDetachmentApplicationSerializer,
+                             EducationalPositionSerializer,
+                             LocalPositionSerializer,
+                             RegionalPositionSerializer,
+                             DistrictPositionSerializer,
+                             CentralPositionSerializer)
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Region, RegionalHeadquarter,
-                                 UserDetachmentPosition)
+                                 UserDetachmentPosition,
+                                 UserDetachmentApplication, UserEducationalHeadquarterPosition, UserCentralHeadquarterPosition, UserLocalHeadquarterPosition, UserRegionalHeadquarterPosition, UserDistrictHeadquarterPosition)
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserPrivacySettings, UserRegion, UsersParent,
                           UserStatementDocuments)
@@ -207,35 +214,272 @@ class UsersParentViewSet(BaseUserViewSet):
 
 
 class CentralViewSet(ListRetrieveUpdateViewSet):
+    """Представляет центральные штабы.
+
+    При операции чтения доступно число количества участников в структурной
+    единице по ключу members_count, а также список всех участников по ключу
+    members.
+    """
     queryset = CentralHeadquarter.objects.all()
     serializer_class = CentralHeadquarterSerializer
 
 
 class DistrictViewSet(viewsets.ModelViewSet):
+    """Представляет окружные штабы.
+
+    Привязывается к центральному штабу по ключу central_headquarter.
+    При операции чтения доступно число количества участников в структурной
+    единице по ключу members_count, а также список всех участников по ключу
+    members.
+    """
     queryset = DistrictHeadquarter.objects.all()
     serializer_class = DistrictHeadquarterSerializer
 
 
 class RegionalViewSet(viewsets.ModelViewSet):
+    """Представляет региональные штабы.
+
+    Привязывается к окружному штабу по ключу district_headquarter (id).
+    Привязывается к региону по ключу region (id).
+    При операции чтения доступно число количества участников в структурной
+    единице по ключу members_count, а также список всех участников по ключу
+    members.
+    """
     queryset = RegionalHeadquarter.objects.all()
     serializer_class = RegionalHeadquarterSerializer
 
 
 class LocalViewSet(viewsets.ModelViewSet):
+    """Представляет локальные штабы.
+
+    Привязывается к региональному штабу по ключу regional_headquarter (id).
+    При операции чтения доступно число количества участников в структурной
+    единице по ключу members_count, а также список всех участников по ключу
+    members.
+    """
     queryset = LocalHeadquarter.objects.all()
     serializer_class = LocalHeadquarterSerializer
 
 
 class EducationalViewSet(viewsets.ModelViewSet):
+    """Представляет образовательные штабы.
+
+    Может привязываться к местному штабу по ключу local_headquarter (id).
+    Привязывается к региональному штабу по ключу regional_headquarter (id).
+    Привязывается к образовательному институту по ключу educational_institution
+    (id).
+    Установлена валидация соответствия всех связанных штабов на наличие
+    связи между собой.
+    При операции чтения доступно число количества участников в структурной
+    единице по ключу members_count, а также список всех участников по ключу
+    members.
+    """
     queryset = EducationalHeadquarter.objects.all()
     serializer_class = EducationalHeadquarterSerializer
 
 
 class DetachmentViewSet(viewsets.ModelViewSet):
+    """Представляет информацию об отряде.
+
+    Может привязываться к местному штабу по ключу local_headquarter (id).
+    Может привязываться к образовательному штабу по ключу
+    educational_headquarter (id).
+    Привязывается к региональному штабу по ключу regional_headquarter (id).
+    Привязывается к направлению по ключу area (id).
+    Установлена валидация соответствия всех связанных штабов на наличие
+    связи между собой.
+    При операции чтения доступно число количества участников в структурной
+    единице по ключу members_count, а также список всех участников по ключу
+    members.
+    """
     queryset = Detachment.objects.all()
     serializer_class = DetachmentSerializer
 
 
-class DetachmentPositionViewSet(CreateViewSet):
+class BasePositionViewSet(viewsets.ModelViewSet):
+    """Базовый вьюсет для просмотра/изменения участников штабов.
+
+    Необходимо переопределять метод get_queryset и атрибут serializer_class
+    """
+    serializer_class = None
+
+    def get_queryset(self):
+        pass
+
+    def get_object(self):
+        queryset = self.get_queryset()
+        member_pk = self.kwargs.get('member_pk')
+        obj = queryset.get(pk=member_pk)
+        return obj
+
+
+class CentralPositionViewSet(BasePositionViewSet):
+    """Просмотреть участников и изменить уровень доверенности/позиции.
+
+    Доступно только командиру.
+    """
+    serializer_class = CentralPositionSerializer
+
+    def get_queryset(self):
+        headquarter_id = self.kwargs.get('pk')
+        headquarter = RegionalHeadquarter.objects.get(id=headquarter_id)
+        return UserCentralHeadquarterPosition.objects.filter(
+            headquarter=headquarter
+        )
+
+
+class DistrictPositionViewSet(BasePositionViewSet):
+    """Просмотреть участников и изменить уровень доверенности/позиции.
+
+    Доступно только командиру.
+    """
+    serializer_class = DistrictPositionSerializer
+
+    def get_queryset(self):
+        headquarter_id = self.kwargs.get('pk')
+        headquarter = RegionalHeadquarter.objects.get(id=headquarter_id)
+        return UserDistrictHeadquarterPosition.objects.filter(
+            headquarter=headquarter
+        )
+
+
+class RegionalPositionViewSet(BasePositionViewSet):
+    """Просмотреть участников и изменить уровень доверенности/позиции.
+
+    Доступно только командиру.
+    """
+    serializer_class = RegionalPositionSerializer
+
+    def get_queryset(self):
+        headquarter_id = self.kwargs.get('pk')
+        headquarter = RegionalHeadquarter.objects.get(id=headquarter_id)
+        return UserRegionalHeadquarterPosition.objects.filter(
+            headquarter=headquarter
+        )
+
+
+class LocalPositionViewSet(BasePositionViewSet):
+    """Просмотреть участников и изменить уровень доверенности/позиции.
+
+    Доступно только командиру.
+    """
+    serializer_class = LocalPositionSerializer
+
+    def get_queryset(self):
+        headquarter_id = self.kwargs.get('pk')
+        headquarter = LocalHeadquarter.objects.get(id=headquarter_id)
+        return UserLocalHeadquarterPosition.objects.filter(
+            headquarter=headquarter
+        )
+
+
+class EducationalPositionViewSet(BasePositionViewSet):
+    """Просмотреть участников и изменить уровень доверенности/позиции.
+
+    Доступно только командиру.
+    """
+    serializer_class = EducationalPositionSerializer
+
+    def get_queryset(self):
+        headquarter_id = self.kwargs.get('pk')
+        headquarter = EducationalHeadquarter.objects.get(id=headquarter_id)
+        return UserEducationalHeadquarterPosition.objects.filter(
+            headquarter=headquarter
+        )
+
+
+class DetachmentPositionViewSet(BasePositionViewSet):
+    """Просмотреть участников и изменить уровень доверенности/позиции.
+
+    Доступно только командиру.
+    """
+    serializer_class = DetachmentPositionSerializer
+
+    def get_queryset(self):
+        detachment_id = self.kwargs.get('pk')
+        detachment = Detachment.objects.get(id=detachment_id)
+        return UserDetachmentPosition.objects.filter(headquarter=detachment)
+
+
+class DetachmentAcceptViewSet(CreateDeleteViewSet):
+    """Принять/отклонить заявку участника в отряд по ID заявки.
+
+    Можно дополнительно установить позицию и статус доверенности.
+    Доступно командиру и доверенным лицам.
+    """
     queryset = UserDetachmentPosition.objects.all()
     serializer_class = DetachmentPositionSerializer
+
+    def create(self, request, *args, **kwargs):
+        """Принимает (добавляет пользователя в отряд) юзера, удаляя заявку."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def perform_create(self, serializer):
+        headquarter_id = self.kwargs.get('pk')
+        application_id = self.kwargs.get('application_pk')
+        application = UserDetachmentApplication.objects.get(id=application_id)
+        user = application.user
+        headquarter = get_object_or_404(Detachment, id=headquarter_id)
+        application.delete()
+        serializer.save(user=user, headquarter=headquarter)
+
+    def destroy(self, request, *args, **kwargs):
+        """Отклоняет (удаляет) заявку пользователя."""
+        application_id = self.kwargs.get('application_pk')
+        application = UserDetachmentApplication.objects.get(id=application_id)
+        application.delete()
+        return Response(
+            {'success': 'Заявка отклонена'},
+            status=status.HTTP_204_NO_CONTENT
+        )
+
+
+class DetachmentApplicationViewSet(viewsets.ModelViewSet):
+    """Подать/отменить заявку в отряд. URL-параметры обязательны.
+
+    Доступно только авторизованному пользователю.
+    """
+    serializer_class = UserDetachmentApplicationSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self):
+        detachment_id = self.kwargs.get('pk')
+        detachment = UserDetachmentApplication.objects.get(id=detachment_id)
+        return UserDetachmentApplication.objects.filter(detachment=detachment)
+
+    def create(self, request, *args, **kwargs):
+        """Подает заявку на вступление в отряд, переданный URL-параметром."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        detachment_id = self.kwargs.get('pk')
+        detachment = Detachment.objects.get(id=detachment_id)
+        serializer.save(user=user, detachment=detachment)
+
+    def destroy(self, request, *args, **kwargs):
+        """Отклоняет заявку на вступление в отряд."""
+        detachment_id = self.kwargs.get('pk')
+        print(self.request.user.id)
+        print(detachment_id)
+        try:
+            application = UserDetachmentApplication.objects.get(
+                user=self.request.user,
+                detachment=Detachment.objects.get(id=detachment_id)
+            )
+            application.delete()
+        except UserDetachmentApplication.DoesNotExist:
+            return Response(
+                {'error': 'Не найдена существующая заявка'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        return Response(
+            {'success': 'Заявка отклонена'},
+            status=status.HTTP_204_NO_CONTENT
+        )
