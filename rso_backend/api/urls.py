@@ -2,7 +2,11 @@ from django.urls import include, path
 from djoser.views import UserViewSet
 from rest_framework.routers import DefaultRouter
 
-from api.constants import CRUD_METHODS_WITHOUT_LIST, CREATE_METHOD
+from api.constants import (CRUD_METHODS_WITHOUT_LIST, CREATE_METHOD,
+                           DOWNLOAD_MEMBERSHIP_FILE,
+                           DOWNLOAD_CONSENT_PD,
+                           DOWNLOAD_PARENT_CONSENT_PD,
+                           DOWNLOAD_ALL_FORMS)
 from api.views import (CentralViewSet, DetachmentViewSet, DistrictViewSet,
                        EducationalViewSet, LocalViewSet, RegionalViewSet,
                        RegionViewSet, RSOUserViewSet, UserDocumentsViewSet,
@@ -35,6 +39,19 @@ UserStatementVS = UserStatementDocumentsViewSet.as_view(
 )
 UsersParentVS = UsersParentViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
 DetachmentPositionVS = DetachmentPositionViewSet.as_view(CREATE_METHOD)
+UserStatementMembershipDownloadVS = UserStatementDocumentsViewSet.as_view(
+    DOWNLOAD_MEMBERSHIP_FILE
+)
+UserStatementConsentPDDownloadVS = UserStatementDocumentsViewSet.as_view(
+    DOWNLOAD_CONSENT_PD
+)
+UserStatementParentConsentPDDownloadVS = UserStatementDocumentsViewSet.as_view(
+    DOWNLOAD_PARENT_CONSENT_PD
+)
+UserStatementDownloadAllVS = UserStatementDocumentsViewSet.as_view(
+    DOWNLOAD_ALL_FORMS
+)
+
 
 user_nested_urls = [
     path('users/me/education/', UserEduVS, name='user-education'),
@@ -44,6 +61,26 @@ user_nested_urls = [
     path('users/me/media/', UserMediaVS, name='user-media'),
     path('users/me/statement/', UserStatementVS, name='user-statement'),
     path('users/me/parent/', UsersParentVS, name='user-parent'),
+    path(
+        'users/me/statement/download_membership_statement_file/',
+        UserStatementMembershipDownloadVS,
+        name='download-membership-file'
+    ),
+    path(
+        'users/me/statement/download_consent_to_the_processing_of_personal_data/',
+        UserStatementConsentPDDownloadVS,
+        name='download-consent-pd'
+    ),
+    path(
+        'users/me/statement/download_parent_consent_to_the_processing_of_personal_data/',
+        UserStatementParentConsentPDDownloadVS,
+        name='download-parent-consent-pd'
+    ),
+    path(
+        'users/me/statement/download_all_forms/',
+        UserStatementDownloadAllVS,
+        name='download-all-forms'
+    )
 ]
 
 urlpatterns = [

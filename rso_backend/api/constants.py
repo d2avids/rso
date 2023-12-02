@@ -5,7 +5,11 @@ CRUD_METHODS_WITHOUT_LIST = {
         'patch': 'partial_update',
         'delete': 'destroy'
     }
-CREATE_METHOD = {'post': 'create',}
+CREATE_METHOD = {'post': 'create' ,}
+DOWNLOAD_MEMBERSHIP_FILE = {'get': 'download_membership_file'}
+DOWNLOAD_CONSENT_PD = {'get': 'download_consent_personal_data'}
+DOWNLOAD_PARENT_CONSENT_PD = {'get': 'download_parent_consent_personal_data'}
+DOWNLOAD_ALL_FORMS = {'get': 'download_all_forms'}
 EDUCATION_RAW_EXISTS = (
         'Образовательная информация для данного пользователя уже существует'
 )
