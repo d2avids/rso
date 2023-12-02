@@ -43,21 +43,73 @@ class UserEducationSerializer(serializers.ModelSerializer):
         )
 
 
-class UserProfessionalEducationSerializer(serializers.ModelSerializer):
+class ProfessionalEductionSerializer(serializers.ModelSerializer):
+    """Сериализатор дополнительного проф образования всех юзеров.
+
+    Используется в сериализаторе UserProfessionalEducationSerializer,
+    который будет сериализован в поле users_prof_educations одного пользователя
+    по эндпоинту /users/me/prof_education.
+    """
+
     class Meta:
         model = ProfessionalEduction
         fields = (
             'study_institution',
             'years_of_study',
             'exam_score',
-            'qualification',
+            'qualification'
         )
 
+
+class ProfessionalEductionSerializerID(ProfessionalEductionSerializer):
+    """Сериализатор дополнительного проф образования всех юзеров c ID."""
+
+    class Meta:
+        model = ProfessionalEduction
+        fields = ('id',) + ProfessionalEductionSerializer.Meta.fields
+
     def create(self, validated_data):
+        """Сохраенение в БД допрофобразования.
+
+        В методе реализована проверка количества записей.
+        """
+
         manager = ProfessionalEduction.objects
         if manager.count() < 5:
             return manager.create(**validated_data)
         raise serializers.ValidationError(TOO_MANY_EDUCATIONS)
+
+
+class UserProfessionalEducationSerializer(serializers.ModelSerializer):
+    """Сериализатор дополнительного профобразования."""
+
+    users_prof_educations = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProfessionalEduction
+        fields = (
+            'users_prof_educations',
+        )
+
+    @staticmethod
+    def get_users_prof_educations(obj):
+        """Возвращает список проф образования юзера.
+
+        Декоратор @staticmethod позволяет определить метод как статический
+        без создания экземпляра. Из obj получаем queryset и сериализуем его.
+        При отсутвии проф образования возвращаем исключение с сообщением.
+        """
+        try:
+            users_data = ProfessionalEduction.objects.filter(
+                user_id=obj.first().user_id
+            )
+        except AttributeError:
+            raise serializers.ValidationError(
+                'У данного юзера не введено дополнительное'
+                ' профессиональное образование.',
+            )
+        serializer = ProfessionalEductionSerializerID(users_data, many=True)
+        return serializer.data
 
 
 class UserDocumentsSerializer(serializers.ModelSerializer):
