@@ -1,8 +1,8 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from users.models import RSOUser
 from headquarters.utils import image_path
+from users.models import RSOUser
 
 
 class EducationalInstitution(models.Model):

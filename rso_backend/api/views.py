@@ -1,21 +1,30 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
-from api.mixins import ListRetrieveUpdateViewSet, ListRetrieveViewSet, \
-    CreateViewSet, CreateDeleteViewSet
+from api.mixins import (CreateDeleteViewSet, CreateViewSet,
+                        ListRetrieveUpdateViewSet, ListRetrieveViewSet)
 from api.serializers import (CentralHeadquarterSerializer,
+                             CentralPositionSerializer,
+                             DetachmentPositionSerializer,
                              DetachmentSerializer,
                              DistrictHeadquarterSerializer,
+                             DistrictPositionSerializer,
                              EducationalHeadquarterSerializer,
+                             EducationalPositionSerializer,
                              LocalHeadquarterSerializer,
-                             RegionalHeadquarterSerializer, RegionSerializer,
-                             RSOUserSerializer, UserDocumentsSerializer,
-                             UserEducationSerializer, UserMediaSerializer,
+                             LocalPositionSerializer,
+                             RegionalHeadquarterSerializer,
+                             RegionalPositionSerializer, RegionSerializer,
+                             RSOUserSerializer, ShortUserSerializer,
+                             UserDetachmentApplicationSerializer,
+                             UserDocumentsSerializer, UserEducationSerializer,
+                             UserMediaSerializer,
                              UserPrivacySettingsSerializer,
-                             UserRegionSerializer,
+                             UserRegionSerializer, UsersParentSerializer,
                              UserStatementDocumentsSerializer,
+                             UserVerificationSerializer,
                              DetachmentPositionSerializer,
                              UsersParentSerializer,
                              UserDetachmentApplicationSerializer,
@@ -30,11 +39,17 @@ from api.serializers import (CentralHeadquarterSerializer,
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Region, RegionalHeadquarter,
+                                 UserCentralHeadquarterPosition,
+                                 UserDetachmentApplication,
                                  UserDetachmentPosition,
-                                 UserDetachmentApplication, UserEducationalHeadquarterPosition, UserCentralHeadquarterPosition, UserLocalHeadquarterPosition, UserRegionalHeadquarterPosition, UserDistrictHeadquarterPosition)
+                                 UserDistrictHeadquarterPosition,
+                                 UserEducationalHeadquarterPosition,
+                                 UserLocalHeadquarterPosition,
+                                 UserRegionalHeadquarterPosition)
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserPrivacySettings, UserRegion, UsersParent,
-                          UserStatementDocuments, ProfessionalEduction)
+                          UserStatementDocuments, ProfessionalEduction,
+                          UserStatementDocuments, UserVerificationRequest)
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -314,6 +329,9 @@ class RegionalViewSet(viewsets.ModelViewSet):
     При операции чтения доступно число количества участников в структурной
     единице по ключу members_count, а также список всех участников по ключу
     members.
+    При операции чтения доступен список пользователей, подавших заявку на
+    верификацию и относящихся к тому же региону, что и текущий региональный
+    штаб, по ключу users_for_verification.
     """
 
     queryset = RegionalHeadquarter.objects.all()
@@ -364,6 +382,9 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     При операции чтения доступно число количества участников в структурной
     единице по ключу members_count, а также список всех участников по ключу
     members.
+    При операции чтения доступен список пользователей, подавших заявку на
+    верификацию и относящихся к текущему отряду по
+    ключу users_for_verification.
     """
 
     queryset = Detachment.objects.all()
@@ -565,3 +586,46 @@ class DetachmentApplicationViewSet(viewsets.ModelViewSet):
             {'success': 'Заявка отклонена'},
             status=status.HTTP_204_NO_CONTENT
         )
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def apply_for_verification(request):
+    """Подать заявку на верификацию."""
+    if request.method == 'POST':
+        user = request.user
+        UserVerificationRequest.objects.create(
+            user=user
+        )
+        if request.user.is_verified:
+            return Response(
+                {'error': 'Пользователь не авторизован'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return Response(status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST', 'DELETE'])
+def verify_user(request, pk):
+    """Принять/отклонить заявку пользователя на верификацию.
+
+    Доступно только командирам и доверенным лицам региональных штабов
+    (относящихся к тому же региону, что и юзер) и отрядов (в котором
+    состоит юзер).
+    """
+    if request.method == 'POST':
+        user = RSOUser.objects.get(id=pk)
+        application_for_verification = get_object_or_404(
+            UserVerificationRequest, user=user
+        )
+        user.is_verified = True
+        user.save()
+        application_for_verification.delete()
+        return Response(status=status.HTTP_202_ACCEPTED)
+    if request.method == 'DELETE':
+        user = RSOUser.objects.get(id=id)
+        application_for_verification = get_object_or_404(
+            UserVerificationRequest, user=user
+        )
+        application_for_verification.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
