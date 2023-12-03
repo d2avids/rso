@@ -556,13 +556,13 @@ class UserDetachmentApplicationSerializer(serializers.ModelSerializer):
         detachment = Detachment.objects.get(
             id=self.context['view'].kwargs.get('pk')
         )
-        if detachment.regional_headquarter.region != user.region:
-            raise ValidationError(
-                'Нельзя подать заявку на вступление в отряд вне своего региона'
-            )
         if UserDetachmentApplication.objects.filter(user=user).exists():
             raise ValidationError(
                 'Вы уже подали заявку в один из отрядов'
+            )
+        if detachment.regional_headquarter.region != user.region:
+            raise ValidationError(
+                'Нельзя подать заявку на вступление в отряд вне своего региона'
             )
         return attrs
 

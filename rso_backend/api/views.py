@@ -40,6 +40,7 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
     Пользователь имеет возможность изменять собственные данные
     по id или по эндпоинту /users/me.
     """
+
     queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
 
@@ -65,6 +66,7 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
 
 class RegionViewSet(ListRetrieveViewSet):
     """Представляет регионы. Доступны только операции чтения."""
+
     queryset = Region.objects.all()
     serializer_class = RegionSerializer
 
@@ -110,7 +112,15 @@ class BaseUserViewSet(viewsets.ModelViewSet):
     - Ответ HttpResponse или Response, содержащий данные записи
     (для create, retrieve, update) или пустой ответ (для destroy).
     """
+
     permission_classes = (permissions.IsAuthenticated,)
+
+    def perform_create(self, serializer):
+        user_id = self.kwargs.get('user_pk', None)
+        user = get_object_or_404(
+            RSOUser, id=user_id
+        ) if user_id else self.request.user
+        serializer.save(user=user)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -134,13 +144,6 @@ class BaseUserViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-    def perform_create(self, serializer):
-        user_id = self.kwargs.get('user_pk', None)
-        user = get_object_or_404(
-            RSOUser, id=user_id
-        ) if user_id else self.request.user
-        serializer.save(user=user)
 
 
 class UserEducationViewSet(BaseUserViewSet):
@@ -209,6 +212,7 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
 
 class UsersParentViewSet(BaseUserViewSet):
     """Представляет законного представителя пользователя."""
+
     queryset = UsersParent.objects.all()
     serializer_class = UsersParentSerializer
 
@@ -220,6 +224,7 @@ class CentralViewSet(ListRetrieveUpdateViewSet):
     единице по ключу members_count, а также список всех участников по ключу
     members.
     """
+
     queryset = CentralHeadquarter.objects.all()
     serializer_class = CentralHeadquarterSerializer
 
@@ -232,6 +237,7 @@ class DistrictViewSet(viewsets.ModelViewSet):
     единице по ключу members_count, а также список всех участников по ключу
     members.
     """
+
     queryset = DistrictHeadquarter.objects.all()
     serializer_class = DistrictHeadquarterSerializer
 
@@ -245,6 +251,7 @@ class RegionalViewSet(viewsets.ModelViewSet):
     единице по ключу members_count, а также список всех участников по ключу
     members.
     """
+
     queryset = RegionalHeadquarter.objects.all()
     serializer_class = RegionalHeadquarterSerializer
 
@@ -257,6 +264,7 @@ class LocalViewSet(viewsets.ModelViewSet):
     единице по ключу members_count, а также список всех участников по ключу
     members.
     """
+
     queryset = LocalHeadquarter.objects.all()
     serializer_class = LocalHeadquarterSerializer
 
@@ -274,6 +282,7 @@ class EducationalViewSet(viewsets.ModelViewSet):
     единице по ключу members_count, а также список всех участников по ключу
     members.
     """
+
     queryset = EducationalHeadquarter.objects.all()
     serializer_class = EducationalHeadquarterSerializer
 
@@ -292,6 +301,7 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     единице по ключу members_count, а также список всех участников по ключу
     members.
     """
+
     queryset = Detachment.objects.all()
     serializer_class = DetachmentSerializer
 
@@ -301,6 +311,7 @@ class BasePositionViewSet(viewsets.ModelViewSet):
 
     Необходимо переопределять метод get_queryset и атрибут serializer_class
     """
+
     serializer_class = None
 
     def get_queryset(self):
@@ -318,6 +329,7 @@ class CentralPositionViewSet(BasePositionViewSet):
 
     Доступно только командиру.
     """
+
     serializer_class = CentralPositionSerializer
 
     def get_queryset(self):
@@ -333,6 +345,7 @@ class DistrictPositionViewSet(BasePositionViewSet):
 
     Доступно только командиру.
     """
+
     serializer_class = DistrictPositionSerializer
 
     def get_queryset(self):
@@ -348,6 +361,7 @@ class RegionalPositionViewSet(BasePositionViewSet):
 
     Доступно только командиру.
     """
+
     serializer_class = RegionalPositionSerializer
 
     def get_queryset(self):
@@ -363,6 +377,7 @@ class LocalPositionViewSet(BasePositionViewSet):
 
     Доступно только командиру.
     """
+
     serializer_class = LocalPositionSerializer
 
     def get_queryset(self):
@@ -378,6 +393,7 @@ class EducationalPositionViewSet(BasePositionViewSet):
 
     Доступно только командиру.
     """
+
     serializer_class = EducationalPositionSerializer
 
     def get_queryset(self):
@@ -393,6 +409,7 @@ class DetachmentPositionViewSet(BasePositionViewSet):
 
     Доступно только командиру.
     """
+
     serializer_class = DetachmentPositionSerializer
 
     def get_queryset(self):
@@ -407,17 +424,12 @@ class DetachmentAcceptViewSet(CreateDeleteViewSet):
     Можно дополнительно установить позицию и статус доверенности.
     Доступно командиру и доверенным лицам.
     """
+
     queryset = UserDetachmentPosition.objects.all()
     serializer_class = DetachmentPositionSerializer
 
-    def create(self, request, *args, **kwargs):
-        """Принимает (добавляет пользователя в отряд) юзера, удаляя заявку."""
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
     def perform_create(self, serializer):
+        """Получает user и detachment для сохранения."""
         headquarter_id = self.kwargs.get('pk')
         application_id = self.kwargs.get('application_pk')
         application = UserDetachmentApplication.objects.get(id=application_id)
@@ -425,6 +437,13 @@ class DetachmentAcceptViewSet(CreateDeleteViewSet):
         headquarter = get_object_or_404(Detachment, id=headquarter_id)
         application.delete()
         serializer.save(user=user, headquarter=headquarter)
+
+    def create(self, request, *args, **kwargs):
+        """Принимает (добавляет пользователя в отряд) юзера, удаляя заявку."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, *args, **kwargs):
         """Отклоняет (удаляет) заявку пользователя."""
@@ -442,6 +461,7 @@ class DetachmentApplicationViewSet(viewsets.ModelViewSet):
 
     Доступно только авторизованному пользователю.
     """
+
     serializer_class = UserDetachmentApplicationSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -450,6 +470,12 @@ class DetachmentApplicationViewSet(viewsets.ModelViewSet):
         detachment = UserDetachmentApplication.objects.get(id=detachment_id)
         return UserDetachmentApplication.objects.filter(detachment=detachment)
 
+    def perform_create(self, serializer):
+        user = self.request.user
+        detachment_id = self.kwargs.get('pk')
+        detachment = Detachment.objects.get(id=detachment_id)
+        serializer.save(user=user, detachment=detachment)
+
     def create(self, request, *args, **kwargs):
         """Подает заявку на вступление в отряд, переданный URL-параметром."""
         serializer = self.get_serializer(data=request.data)
@@ -457,17 +483,9 @@ class DetachmentApplicationViewSet(viewsets.ModelViewSet):
         self.perform_create(serializer)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def perform_create(self, serializer):
-        user = self.request.user
-        detachment_id = self.kwargs.get('pk')
-        detachment = Detachment.objects.get(id=detachment_id)
-        serializer.save(user=user, detachment=detachment)
-
     def destroy(self, request, *args, **kwargs):
         """Отклоняет заявку на вступление в отряд."""
         detachment_id = self.kwargs.get('pk')
-        print(self.request.user.id)
-        print(detachment_id)
         try:
             application = UserDetachmentApplication.objects.get(
                 user=self.request.user,
