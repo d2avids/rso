@@ -1,8 +1,3 @@
-import os
-from datetime import datetime as dt
-from datetime import date
-
-from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
 
 from django.contrib.auth.models import AbstractUser
