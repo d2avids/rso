@@ -507,7 +507,10 @@ def apply_for_verification(request):
             user=user
         )
         if request.user.is_verified:
-            return Response(status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {'error': 'Пользователь не авторизован'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         return Response(status=status.HTTP_201_CREATED)
 
 

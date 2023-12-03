@@ -277,7 +277,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
 
 
 class ShortUserSerializer(serializers.ModelSerializer):
-
+    """Для сериализации небольшой части данных пользователя."""
     class Meta:
         model = RSOUser
         fields = (
@@ -290,6 +290,7 @@ class ShortUserSerializer(serializers.ModelSerializer):
 
 
 class UserVerificationSerializer(serializers.ModelSerializer):
+    """Для сериализации заявок на верификацию."""
     user = ShortUserSerializer()
 
     class Meta:
