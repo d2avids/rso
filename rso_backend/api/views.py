@@ -17,14 +17,16 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserRegionSerializer,
                              UserStatementDocumentsSerializer,
                              DetachmentPositionSerializer,
-                             UsersParentSerializer)
+                             UsersParentSerializer,
+                             UserProfessionalEducationSerializer,
+                             ProfessionalEductionSerializer)
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Region, RegionalHeadquarter,
                                  UserDetachmentPosition)
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserPrivacySettings, UserRegion, UsersParent,
-                          UserStatementDocuments)
+                          UserStatementDocuments, ProfessionalEduction)
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -138,7 +140,6 @@ class BaseUserViewSet(viewsets.ModelViewSet):
 
 class UserEducationViewSet(BaseUserViewSet):
     """Представляет образовательную информацию пользователя."""
-
     queryset = UserEducation.objects.all()
     serializer_class = UserEducationSerializer
 
@@ -147,9 +148,72 @@ class UserEducationViewSet(BaseUserViewSet):
         return get_object_or_404(UserEducation, user=self.request.user)
 
 
+class UserProfessionalEducationViewSet(BaseUserViewSet):
+    """Представляет профессиональную информацию пользователя.
+
+    Дополнительные профобразования пользователя доступны по ключу
+    'users_prof_educations'.
+    """
+    queryset = ProfessionalEduction.objects.all()
+
+    def get_object(self):
+        return ProfessionalEduction.objects.filter(
+            user_id=self.request.user.id
+        )
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return UserProfessionalEducationSerializer
+        return ProfessionalEductionSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        """Удаляет профессиональное образование пользователя."""
+
+        queryset = self.get_queryset()
+        if not queryset.filter(pk=kwargs['pk']).exists():
+            return Response(
+                status=status.HTTP_404_NOT_FOUND,
+                data={'detail': 'Нет записи с таким ID.'}
+            )
+        instance = self.get_queryset().get(pk=kwargs['pk'])
+        if instance.user_id != self.request.user.id:
+            return Response(
+                status=status.HTTP_403_FORBIDDEN,
+                data={'detail': 'У вас нет прав на удаление этой записи.'}
+            )
+        instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def update(self, request, *args, **kwargs):
+        """Обновляет профессиональное образование пользователя."""
+
+        queryset = self.get_queryset()
+        if not queryset.filter(pk=kwargs['pk']).exists():
+            return Response(
+                status=status.HTTP_404_NOT_FOUND,
+                data={'detail': 'Нет записи с таким ID.'}
+            )
+        instance = self.get_queryset().get(pk=kwargs['pk'])
+        if instance.user_id != self.request.user.id:
+            return Response(
+                status=status.HTTP_403_FORBIDDEN,
+                data={'detail': 'У вас нет прав на изменение этой записи.'}
+            )
+        if self.action == 'partial_update':
+            serializer = self.get_serializer(
+                instance,
+                data=request.data,
+                partial=True
+            )
+        else:
+            serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
 class UserDocumentsViewSet(BaseUserViewSet):
     """Представляет документы пользователя."""
-
     queryset = UserDocuments.objects.all()
     serializer_class = UserDocumentsSerializer
 
@@ -159,7 +223,6 @@ class UserDocumentsViewSet(BaseUserViewSet):
 
 class UserRegionViewSet(BaseUserViewSet):
     """Представляет информацию о проживании пользователя."""
-
     queryset = UserRegion.objects.all()
     serializer_class = UserRegionSerializer
 
@@ -169,7 +232,6 @@ class UserRegionViewSet(BaseUserViewSet):
 
 class UserPrivacySettingsViewSet(BaseUserViewSet):
     """Представляет настройки приватности пользователя."""
-
     queryset = UserPrivacySettings.objects.all()
     serializer_class = UserPrivacySettingsSerializer
 
@@ -179,7 +241,6 @@ class UserPrivacySettingsViewSet(BaseUserViewSet):
 
 class UserMediaViewSet(BaseUserViewSet):
     """Представляет медиа-данные пользователя."""
-
     queryset = UserMedia.objects.all()
     serializer_class = UserMediaSerializer
 
@@ -189,7 +250,6 @@ class UserMediaViewSet(BaseUserViewSet):
 
 class UserStatementDocumentsViewSet(BaseUserViewSet):
     """Представляет заявление на вступление в РСО пользователя."""
-
     queryset = UserStatementDocuments.objects.all()
     serializer_class = UserStatementDocumentsSerializer
 
@@ -204,6 +264,9 @@ class UsersParentViewSet(BaseUserViewSet):
     """Представляет законного представителя пользователя."""
     queryset = UsersParent.objects.all()
     serializer_class = UsersParentSerializer
+
+    def get_object(self):
+        return get_object_or_404(UsersParent, user=self.request.user)
 
 
 class CentralViewSet(ListRetrieveUpdateViewSet):
