@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.core.exceptions import ValidationError
 from djoser.serializers import UserCreatePasswordRetypeSerializer
 from rest_framework import serializers
@@ -252,7 +254,21 @@ class UsersParentSerializer(serializers.ModelSerializer):
     """Сериализатор законного представителя."""
     class Meta:
         model = UsersParent
-        fields = '__all__'
+        fields = (
+            'parent_last_name',
+            'parent_first_name',
+            'parent_patronymic_name',
+            'parent_date_of_birth',
+            'relationship',
+            'parent_phone_number',
+            'russian_passport',
+            'passport_number',
+            'passport_date',
+            'passport_authority',
+            'region',
+            'city',
+            'address',
+        )
 
 
 class RSOUserSerializer(serializers.ModelSerializer):
@@ -260,6 +276,8 @@ class RSOUserSerializer(serializers.ModelSerializer):
     Выводит личные данные пользователя, а также все данные из всех
     связанных моделей.
     """
+
+    is_adult = serializers.SerializerMethodField(read_only=True)
     user_region = UserRegionSerializer(read_only=True)
     documents = UserDocumentsSerializer(read_only=True)
     statement = UserStatementDocumentsSerializer(read_only=True)
@@ -284,6 +302,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
             'last_name',
             'patronymic_name',
             'date_of_birth',
+            'is_adult',
             'last_name_lat',
             'first_name_lat',
             'patronymic_lat',
@@ -311,6 +330,22 @@ class RSOUserSerializer(serializers.ModelSerializer):
             many=True,
             context={'request': self.context.get('request')},
         ).data
+
+    def get_is_adult(self, obj):
+        """Метод определения совершеннолетия.
+
+        Проверяем возраст пользователя.
+        Если он несовершеннолетний, то возвращаем False.
+        """
+        if obj.date_of_birth:
+            today = date.today()
+            age = (today.year - obj.date_of_birth.year
+                   - (
+                       (today.month, today.day) < (
+                           obj.date_of_birth.month, obj.date_of_birth.day
+                       )
+                   ))
+            return age >= 18
 
 
 class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
@@ -484,6 +519,7 @@ class DetachmentSerializer(BaseUnitSerializer):
     Включает в себя валидацию для
     проверки согласованности связей между штабами.
     """
+
     educational_headquarter = serializers.PrimaryKeyRelatedField(
         queryset=EducationalHeadquarter.objects.all()
     )
