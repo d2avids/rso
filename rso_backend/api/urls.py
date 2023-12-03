@@ -5,6 +5,7 @@ from rest_framework.routers import DefaultRouter
 from api.constants import (CREATE_DELETE, CREATE_METHOD,
                            CRUD_METHODS_WITHOUT_LIST, LIST, RETRIEVE_CREATE,
                            UPDATE, DELETE)
+from api.constants import (CRUD_METHODS_WITHOUT_LIST, CREATE_METHOD, CREATE_DELETE, LIST, UPDATE)
 from api.views import (CentralViewSet, DetachmentViewSet, DistrictViewSet,
                        EducationalViewSet, LocalViewSet, RegionalViewSet,
                        RegionViewSet, RSOUserViewSet, UserDocumentsViewSet,
@@ -13,7 +14,9 @@ from api.views import (CentralViewSet, DetachmentViewSet, DistrictViewSet,
                        UserStatementDocumentsViewSet,
                        UsersParentViewSet,
                        DetachmentPositionViewSet,
-                       UserProfessionalEducationViewSet)
+                       UserProfessionalEducationViewSet,
+                       DetachmentPositionViewSet, DetachmentAcceptViewSet,
+                       DetachmentApplicationViewSet, EducationalPositionViewSet, LocalPositionViewSet, RegionalPositionViewSet, DistrictPositionViewSet, CentralPositionViewSet)
 
 app_name = 'api'
 
@@ -41,7 +44,20 @@ UserStatementVS = UserStatementDocumentsViewSet.as_view(
     CRUD_METHODS_WITHOUT_LIST
 )
 UsersParentVS = UsersParentViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
-DetachmentPositionVS = DetachmentPositionViewSet.as_view(CREATE_METHOD)
+DetachmentAcceptVS = DetachmentAcceptViewSet.as_view(CREATE_DELETE)
+DetachmentApplicationVS = DetachmentApplicationViewSet.as_view(CREATE_DELETE)
+DetachmentPositionListVS = DetachmentPositionViewSet.as_view(LIST)
+DetachmentPositionUpdateVS = DetachmentPositionViewSet.as_view(UPDATE)
+EducationalPositionListVS = EducationalPositionViewSet.as_view(LIST)
+EducationalPositionUpdateVS = EducationalPositionViewSet.as_view(UPDATE)
+LocalPositionListVS = LocalPositionViewSet.as_view(LIST)
+LocalPositionUpdateVS = LocalPositionViewSet.as_view(UPDATE)
+RegionalPositionListVS = RegionalPositionViewSet.as_view(LIST)
+RegionalPositionUpdateVS = RegionalPositionViewSet.as_view(UPDATE)
+DistrictPositionListVS = DistrictPositionViewSet.as_view(LIST)
+DistrictPositionUpdateVS = DistrictPositionViewSet.as_view(UPDATE)
+CentralPositionListVS = CentralPositionViewSet.as_view(LIST)
+CentralPositionUpdateVS = CentralPositionViewSet.as_view(UPDATE)
 
 user_nested_urls = [
     path('users/me/education/', UserEduVS, name='user-education'),
@@ -51,6 +67,76 @@ user_nested_urls = [
     path('users/me/media/', UserMediaVS, name='user-media'),
     path('users/me/statement/', UserStatementVS, name='user-statement'),
     path('users/me/parent/', UsersParentVS, name='user-parent'),
+    path(
+        'detachments/<int:pk>/applications/',
+        DetachmentApplicationVS,
+        name='detachment-application'
+    ),
+    path(
+        'detachments/<int:pk>/applications/<int:application_pk>/accept/',
+         DetachmentAcceptVS,
+        name='user-apply'
+    ),
+    path(
+        'detachments/<int:pk>/members/',
+        DetachmentPositionListVS,
+        name='detachment-members-list'
+    ),
+    path(
+        'detachments/<int:pk>/members/<int:member_pk>/',
+        DetachmentPositionUpdateVS,
+        name='detachment-members-update'
+    ),
+    path(
+        'educationals/<int:pk>/members/',
+        EducationalPositionListVS,
+        name='educational-members-list'
+    ),
+    path(
+        'educationals/<int:pk>/members/<int:member_pk>/',
+        EducationalPositionUpdateVS,
+        name='educational-members-update'
+    ),
+    path(
+        'locals/<int:pk>/members/',
+        LocalPositionListVS,
+        name='local-members-list'
+    ),
+    path(
+        'locals/<int:pk>/members/<int:member_pk>/',
+        LocalPositionUpdateVS,
+        name='local-members-update'
+    ),
+    path(
+        'regionals/<int:pk>/members/',
+        RegionalPositionListVS,
+        name='regional-members-list'
+    ),
+    path(
+        'regionals/<int:pk>/members/<int:member_pk>/',
+        RegionalPositionUpdateVS,
+        name='regional-members-update'
+    ),
+    path(
+        'districts/<int:pk>/members/',
+        DistrictPositionListVS,
+        name='district-members-list'
+    ),
+    path(
+        'districts/<int:pk>/members/<int:member_pk>/',
+        DistrictPositionUpdateVS,
+        name='district-members-update'
+    ),
+    path(
+        'centrals/<int:pk>/members/',
+        CentralPositionListVS,
+        name='central-members-list'
+    ),
+    path(
+        'centrals/<int:pk>/members/<int:member_pk>/',
+        CentralPositionUpdateVS,
+        name='central-members-update'
+    ),
     path(
         'users/me/professional_education/',
         UserProfEduRetrieveCreateVS,
@@ -64,7 +150,6 @@ user_nested_urls = [
 ]
 
 urlpatterns = [
-    path('detachments/apply/', DetachmentPositionVS, name='user-apply'),
     path('register/', UserViewSet.as_view(CREATE_METHOD), name='user-create'),
     path('', include(router.urls)),
 ] + user_nested_urls

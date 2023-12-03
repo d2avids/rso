@@ -559,3 +559,27 @@ class UserDetachmentPosition(UserUnitPosition):
     class Meta:
         verbose_name_plural = 'Члены отрядов'
         verbose_name = 'Член отряда'
+
+
+class UserDetachmentApplication(models.Model):
+    """Таблица для подачи заявок на вступление в отряд."""
+    user = models.ForeignKey(
+        'users.RSOUser',
+        on_delete=models.CASCADE,
+        verbose_name='Пользователь, подавший заявку на вступление в отряд',
+        related_name='applications',
+    )
+    detachment = models.ForeignKey(
+        'Detachment',
+        on_delete=models.CASCADE,
+        verbose_name='Отряд, в который была подана заявка на вступление',
+        related_name='applications',
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'detachment'],
+                                    name='unique_constraint')
+        ]
+        verbose_name_plural = 'Заявки на вступление в отряды'
+        verbose_name = 'Заявка на вступление в отряд'
