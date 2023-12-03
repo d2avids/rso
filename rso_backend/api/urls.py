@@ -2,6 +2,9 @@ from django.urls import include, path
 from djoser.views import UserViewSet
 from rest_framework.routers import DefaultRouter
 
+from api.constants import (CREATE_DELETE, CREATE_METHOD,
+                           CRUD_METHODS_WITHOUT_LIST, LIST, RETRIEVE_CREATE,
+                           UPDATE, DELETE)
 from api.constants import (CRUD_METHODS_WITHOUT_LIST, CREATE_METHOD, CREATE_DELETE, LIST, UPDATE)
 from api.views import (CentralViewSet, DetachmentViewSet, DistrictViewSet,
                        EducationalViewSet, LocalViewSet, RegionalViewSet,
@@ -10,6 +13,8 @@ from api.views import (CentralViewSet, DetachmentViewSet, DistrictViewSet,
                        UserPrivacySettingsViewSet, UserRegionViewSet,
                        UserStatementDocumentsViewSet,
                        UsersParentViewSet,
+                       DetachmentPositionViewSet,
+                       UserProfessionalEducationViewSet,
                        DetachmentPositionViewSet, DetachmentAcceptViewSet,
                        DetachmentApplicationViewSet, EducationalPositionViewSet, LocalPositionViewSet, RegionalPositionViewSet, DistrictPositionViewSet, CentralPositionViewSet)
 
@@ -27,6 +32,10 @@ router.register(r'detachments', DetachmentViewSet)
 router.register(r'centrals', CentralViewSet)
 
 UserEduVS = UserEducationViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
+UserProfEduRetrieveCreateVS = UserProfessionalEducationViewSet.as_view(
+    RETRIEVE_CREATE
+)
+UserProfEduPUDVS = UserProfessionalEducationViewSet.as_view(UPDATE | DELETE)
 UserDocVS = UserDocumentsViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
 UserRegVS = UserRegionViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
 UserPrivacyVS = UserPrivacySettingsViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
@@ -128,6 +137,16 @@ user_nested_urls = [
         CentralPositionUpdateVS,
         name='central-members-update'
     ),
+    path(
+        'users/me/professional_education/',
+        UserProfEduRetrieveCreateVS,
+        name='user-prof-education_retrieve_create',
+    ),
+    path(
+        'users/me/professional_education/<int:pk>/',
+        UserProfEduPUDVS,
+        name='user-prof-education_post_update_delete',
+    )
 ]
 
 urlpatterns = [
