@@ -504,7 +504,7 @@ class CentralPositionViewSet(BasePositionViewSet):
 
     def get_queryset(self):
         headquarter_id = self.kwargs.get('pk')
-        headquarter = RegionalHeadquarter.objects.get(id=headquarter_id)
+        headquarter = CentralHeadquarter.objects.get(id=headquarter_id)
         return UserCentralHeadquarterPosition.objects.filter(
             headquarter=headquarter
         )
@@ -520,7 +520,7 @@ class DistrictPositionViewSet(BasePositionViewSet):
 
     def get_queryset(self):
         headquarter_id = self.kwargs.get('pk')
-        headquarter = RegionalHeadquarter.objects.get(id=headquarter_id)
+        headquarter = DistrictHeadquarter.objects.get(id=headquarter_id)
         return UserDistrictHeadquarterPosition.objects.filter(
             headquarter=headquarter
         )
