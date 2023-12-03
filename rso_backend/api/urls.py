@@ -2,27 +2,25 @@ from django.urls import include, path
 from djoser.views import UserViewSet
 from rest_framework.routers import DefaultRouter
 
-
-from api.constants import (CRUD_METHODS_WITHOUT_LIST, CREATE_METHOD,
+from api.constants import (CREATE_DELETE, CREATE_METHOD,
+                           CRUD_METHODS_WITHOUT_LIST, DELETE,
+                           DOWNLOAD_ALL_FORMS, DOWNLOAD_CONSENT_PD,
                            DOWNLOAD_MEMBERSHIP_FILE,
-                           DOWNLOAD_CONSENT_PD,
-                           DOWNLOAD_PARENT_CONSENT_PD,
-                           DOWNLOAD_ALL_FORMS, CREATE_DELETE, CREATE_METHOD,
-                           CRUD_METHODS_WITHOUT_LIST, LIST, UPDATE,
-                           RETRIEVE_CREATE, DELETE)
-from api.views import (CentralViewSet, DetachmentViewSet, DistrictViewSet,
-                       EducationalViewSet, LocalViewSet, RegionalViewSet,
-                       RegionViewSet, RSOUserViewSet, UserDocumentsViewSet,
+                           DOWNLOAD_PARENT_CONSENT_PD, LIST, RETRIEVE_CREATE,
+                           UPDATE)
+from api.views import (CentralPositionViewSet, CentralViewSet,
+                       DetachmentAcceptViewSet, DetachmentApplicationViewSet,
+                       DetachmentPositionViewSet, DetachmentViewSet,
+                       DistrictPositionViewSet, DistrictViewSet,
+                       EducationalPositionViewSet, EducationalViewSet,
+                       LocalPositionViewSet, LocalViewSet,
+                       RegionalPositionViewSet, RegionalViewSet, RegionViewSet,
+                       RSOUserViewSet, UserDocumentsViewSet,
                        UserEducationViewSet, UserMediaViewSet,
-                       UserPrivacySettingsViewSet, UserRegionViewSet,
+                       UserPrivacySettingsViewSet,
+                       UserProfessionalEducationViewSet, UserRegionViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
-                       apply_for_verification, verify_user,
-                       UserStatementDocumentsViewSet,
-                       UsersParentViewSet,
-                       DetachmentPositionViewSet,
-                       UserProfessionalEducationViewSet,
-                       DetachmentPositionViewSet, DetachmentAcceptViewSet,
-                       DetachmentApplicationViewSet, EducationalPositionViewSet, LocalPositionViewSet, RegionalPositionViewSet, DistrictPositionViewSet, CentralPositionViewSet)
+                       apply_for_verification, verify_user)
 
 app_name = 'api'
 
