@@ -3,7 +3,6 @@ from datetime import date
 from django.core.exceptions import ValidationError
 from djoser.serializers import UserCreatePasswordRetypeSerializer
 from rest_framework import serializers
-from rest_framework.validators import UniqueTogetherValidator
 
 from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                            MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
@@ -21,10 +20,10 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
-from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
-                          UserPrivacySettings, UserRegion, UsersParent,
-                          UserStatementDocuments, UserVerificationRequest,
-                          UserStatementDocuments, ProfessionalEduction)
+from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
+                          UserEducation, UserMedia, UserPrivacySettings,
+                          UserRegion, UsersParent, UserStatementDocuments,
+                          UserVerificationRequest)
 
 
 class RegionSerializer(serializers.ModelSerializer):
@@ -535,7 +534,7 @@ class DistrictHeadquarterSerializer(BaseUnitSerializer):
     """
 
     central_headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=CentralHeadquarter.objects.first(),
+        queryset=lambda: CentralHeadquarter.objects.all()
     )
     commander = serializers.PrimaryKeyRelatedField(
         queryset=RSOUser.objects.all(),

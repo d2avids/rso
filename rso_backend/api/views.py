@@ -1,15 +1,15 @@
-import os
 import mimetypes
+import os
 import zipfile
 
-from django.shortcuts import get_object_or_404
 from django.http.response import HttpResponse
+from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
-from api.mixins import (CreateDeleteViewSet, CreateViewSet,
-                        ListRetrieveUpdateViewSet, ListRetrieveViewSet)
+from api.mixins import (CreateDeleteViewSet, ListRetrieveUpdateViewSet,
+                        ListRetrieveViewSet)
 from api.serializers import (CentralHeadquarterSerializer,
                              CentralPositionSerializer,
                              DetachmentPositionSerializer,
@@ -20,30 +20,18 @@ from api.serializers import (CentralHeadquarterSerializer,
                              EducationalPositionSerializer,
                              LocalHeadquarterSerializer,
                              LocalPositionSerializer,
+                             ProfessionalEductionSerializer,
                              RegionalHeadquarterSerializer,
                              RegionalPositionSerializer, RegionSerializer,
-                             RSOUserSerializer, ShortUserSerializer,
+                             RSOUserSerializer,
                              UserDetachmentApplicationSerializer,
                              UserDocumentsSerializer, UserEducationSerializer,
                              UserMediaSerializer,
                              UserPrivacySettingsSerializer,
-                             UserRegionSerializer, UsersParentSerializer,
-                             UserStatementDocumentsSerializer,
-                             UserVerificationSerializer,
-                             DetachmentPositionSerializer,
-                             UsersParentSerializer,
-                             UsersParentSerializer,
-                             UserDetachmentApplicationSerializer,
-                             EducationalPositionSerializer,
-                             LocalPositionSerializer,
-                             RegionalPositionSerializer,
-                             DistrictPositionSerializer,
-                             CentralPositionSerializer,
-                             UsersParentSerializer,
                              UserProfessionalEducationSerializer,
-                             ProfessionalEductionSerializer)
+                             UserRegionSerializer, UsersParentSerializer,
+                             UserStatementDocumentsSerializer)
 from api.utils import download_file
-
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Region, RegionalHeadquarter,
@@ -54,10 +42,10 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
-from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
-                          UserPrivacySettings, UserRegion, UsersParent,
-                          UserStatementDocuments, ProfessionalEduction,
-                          UserStatementDocuments, UserVerificationRequest)
+from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
+                          UserEducation, UserMedia, UserPrivacySettings,
+                          UserRegion, UsersParent, UserStatementDocuments,
+                          UserVerificationRequest)
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -480,6 +468,8 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     При операции чтения доступен список пользователей, подавших заявку на
     верификацию и относящихся к текущему отряду по
     ключу users_for_verification.
+    При операции чтения доступен список пользователей, подавших заявку на
+    вступление в отряд по ключу applications.
     """
 
     queryset = Detachment.objects.all()

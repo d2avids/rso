@@ -29,7 +29,6 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'drf_yasg',
     'djoser',
-
 ]
 
 INSTALLED_APPS += [
@@ -72,7 +71,7 @@ if DEBUG:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'dbb.sqlite3',
+            'NAME': BASE_DIR / '_db.sqlite3',
         }
     }
 else:
