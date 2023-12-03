@@ -3,13 +3,13 @@ from django.contrib import admin
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
-                                 Region, RegionalHeadquarter,
+                                 Position, Region, RegionalHeadquarter,
                                  UserCentralHeadquarterPosition,
                                  UserDetachmentPosition,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition, Position)
+                                 UserRegionalHeadquarterPosition)
 
 
 @admin.register(CentralHeadquarter)

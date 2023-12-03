@@ -1,9 +1,9 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from users.constants import (Gender, MilitaryDocType,
-                             PrivacyOption, StudyForm, RelationshipType)
-from users.utils import document_path, image_path
+from users.constants import (Gender, MilitaryDocType, PrivacyOption,
+                             RelationshipType, StudyForm)
+from users.utils import document_path, image_path, validate_years
 
 
 class RSOUser(AbstractUser):
@@ -164,6 +164,51 @@ class UserEducation(models.Model):
             models.UniqueConstraint(fields=['user'],
                                     name='unique_user_education')
         ]
+
+    def __str__(self):
+        return (
+            f'Пользователь {self.user.last_name} '
+            f'{self.user.first_name}. Id: {self.user.id}'
+        )
+
+
+class ProfessionalEduction(models.Model):
+    "Дополнительное профессиональное образование."
+    user = models.ForeignKey(
+        verbose_name='Пользователь',
+        to='RSOUser',
+        on_delete=models.CASCADE,
+        related_name='proffesional_education',
+    )
+    study_institution = models.CharField(
+        verbose_name='Образовательная организация',
+        max_length=200,
+        blank=True,
+        null=True
+    )
+    years_of_study = models.CharField(
+        verbose_name='Годы обучения',
+        blank=True,
+        null=True,
+        max_length=9,
+        validators=[validate_years]
+    )
+    exam_score = models.CharField(
+        verbose_name='Оценка',
+        max_length=20,
+        blank=True,
+        null=True
+    )
+    qualification = models.CharField(
+        verbose_name='Квалификация',
+        max_length=100,
+        blank=True,
+        null=True
+    )
+
+    class Meta:
+        verbose_name_plural = 'Дополнительные профессиональные образования.'
+        verbose_name = 'Дополнительное профессиональное образование.'
 
     def __str__(self):
         return (
@@ -641,10 +686,31 @@ class UsersParent(models.Model):
     )
 
     class Meta:
+        verbose_name_plural = 'Законные представители несовершеннолетних'
         verbose_name = 'Законный представитель несовершеннолетнего'
 
     def __str__(self):
         return (
             f'Представитель {self.parent_last_name} '
             f'{self.parent_first_name}. Id: {self.user.id}'
+        )
+
+
+class UserVerificationRequest(models.Model):
+    """Таблица для хранения заявок на верификацию."""
+    user = models.ForeignKey(
+        to='RSOUser',
+        on_delete=models.CASCADE,
+        related_name='veirification',
+        verbose_name='Пользователь, подавший заявку на верификацию',
+    )
+
+    class Meta:
+        verbose_name_plural = 'Заявки на верификацию'
+        verbose_name = 'Заявка на верификацию'
+
+    def __str__(self):
+        return (
+            f'Пользователь {self.user.last_name} {self.user.first_name} '
+            f'{self.user.username} подал заявку.'
         )

@@ -1,3 +1,21 @@
+CREATE_DELETE = {
+        'post': 'create',
+        'delete': 'destroy'
+    }
+LIST = {
+        'get': 'list',
+    }
+UPDATE = {
+        'put': 'update',
+        'patch': 'partial_update',
+}
+RETRIEVE_CREATE = {
+        'get': 'retrieve',
+        'post': 'create',
+}
+DELETE = {
+        'delete': 'destroy',
+}
 CRUD_METHODS_WITHOUT_LIST = {
         'get': 'retrieve',
         'put': 'update',
@@ -24,4 +42,7 @@ STATEMENT_RAW_EXISTS = (
 )
 REGION_RAW_EXISTS = (
         'Данные региона для данного пользователя уже существуют'
+)
+TOO_MANY_EDUCATIONS = (
+        'Уже существует 5 записей о допобразовании.'
 )

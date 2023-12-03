@@ -3,19 +3,28 @@ from datetime import date
 from django.core.exceptions import ValidationError
 from djoser.serializers import UserCreatePasswordRetypeSerializer
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
 from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                            MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
-                           REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS)
+                           REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS,
+                           TOO_MANY_EDUCATIONS)
 from api.utils import create_first_or_exception
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
-                                 Region, RegionalHeadquarter,
-                                 UserDetachmentPosition)
+                                 Position, Region, RegionalHeadquarter,
+                                 UserCentralHeadquarterPosition,
+                                 UserDetachmentApplication,
+                                 UserDetachmentPosition,
+                                 UserDistrictHeadquarterPosition,
+                                 UserEducationalHeadquarterPosition,
+                                 UserLocalHeadquarterPosition,
+                                 UserRegionalHeadquarterPosition)
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserPrivacySettings, UserRegion, UsersParent,
-                          UserStatementDocuments)
+                          UserStatementDocuments, UserVerificationRequest,
+                          UserStatementDocuments, ProfessionalEduction)
 
 
 class RegionSerializer(serializers.ModelSerializer):
@@ -42,6 +51,75 @@ class UserEducationSerializer(serializers.ModelSerializer):
             UserEducation,
             EDUCATION_RAW_EXISTS
         )
+
+
+class ProfessionalEductionSerializer(serializers.ModelSerializer):
+    """Сериализатор дополнительного проф образования всех юзеров.
+
+    Используется в сериализаторе UserProfessionalEducationSerializer,
+    который будет сериализован в поле users_prof_educations одного пользователя
+    по эндпоинту /users/me/prof_education.
+    """
+
+    class Meta:
+        model = ProfessionalEduction
+        fields = (
+            'study_institution',
+            'years_of_study',
+            'exam_score',
+            'qualification'
+        )
+
+
+class ProfessionalEductionSerializerID(ProfessionalEductionSerializer):
+    """Сериализатор дополнительного проф образования всех юзеров c ID."""
+
+    class Meta:
+        model = ProfessionalEduction
+        fields = ('id',) + ProfessionalEductionSerializer.Meta.fields
+
+    def create(self, validated_data):
+        """Сохраенение в БД допрофобразования.
+
+        В методе реализована проверка количества записей.
+        """
+
+        manager = ProfessionalEduction.objects
+        if manager.count() < 5:
+            return manager.create(**validated_data)
+        raise serializers.ValidationError(TOO_MANY_EDUCATIONS)
+
+
+class UserProfessionalEducationSerializer(serializers.ModelSerializer):
+    """Сериализатор дополнительного профобразования."""
+
+    users_prof_educations = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProfessionalEduction
+        fields = (
+            'users_prof_educations',
+        )
+
+    @staticmethod
+    def get_users_prof_educations(obj):
+        """Возвращает список проф образования юзера.
+
+        Декоратор @staticmethod позволяет определить метод как статический
+        без создания экземпляра. Из obj получаем queryset и сериализуем его.
+        При отсутвии проф образования возвращаем исключение с сообщением.
+        """
+        try:
+            users_data = ProfessionalEduction.objects.filter(
+                user_id=obj.first().user_id
+            )
+        except AttributeError:
+            raise serializers.ValidationError(
+                'У данного юзера не введено дополнительное'
+                ' профессиональное образование.',
+            )
+        serializer = ProfessionalEductionSerializerID(users_data, many=True)
+        return serializer.data
 
 
 class UserDocumentsSerializer(serializers.ModelSerializer):
@@ -206,6 +284,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
     Выводит личные данные пользователя, а также все данные из всех
     связанных моделей.
     """
+
     is_adult = serializers.SerializerMethodField(read_only=True)
     user_region = UserRegionSerializer(read_only=True)
     documents = UserDocumentsSerializer(read_only=True)
@@ -219,6 +298,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
     media = UserMediaSerializer(read_only=True)
     privacy = UserPrivacySettingsSerializer(read_only=True)
     parent = UsersParentSerializer(read_only=True)
+    professional_education = serializers.SerializerMethodField()
 
     class Meta:
         model = RSOUser
@@ -242,6 +322,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
             'social_vk',
             'social_tg',
             'membership_fee',
+            'is_verified',
             'user_region',
             'documents',
             'statement',
@@ -249,7 +330,15 @@ class RSOUserSerializer(serializers.ModelSerializer):
             'education',
             'privacy',
             'parent',
+            'professional_education',
         )
+
+    def get_professional_education(self, obj):
+        return UserProfessionalEducationSerializer(
+            ProfessionalEduction.objects.filter(user=obj),
+            many=True,
+            context={'request': self.context.get('request')},
+        ).data
 
     def get_is_adult(self, obj):
         """Метод определения совершеннолетия.
@@ -266,6 +355,28 @@ class RSOUserSerializer(serializers.ModelSerializer):
                        )
                    ))
             return age >= 18
+
+
+class ShortUserSerializer(serializers.ModelSerializer):
+    """Для сериализации небольшой части данных пользователя."""
+    class Meta:
+        model = RSOUser
+        fields = (
+            'id',
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+        )
+
+
+class UserVerificationSerializer(serializers.ModelSerializer):
+    """Для сериализации заявок на верификацию."""
+    user = ShortUserSerializer()
+
+    class Meta:
+        model = UserVerificationRequest
+        fields = ('user',)
 
 
 class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
@@ -295,6 +406,79 @@ class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
         )
 
 
+class BasePositionSerializer(serializers.ModelSerializer):
+    """Для вывода участников при получении штаба."""
+
+    position = serializers.PrimaryKeyRelatedField(
+        queryset=Position.objects.all(),
+        required=False,
+    )
+
+    class Meta:
+        model = UserCentralHeadquarterPosition
+        fields = (
+            'id',
+            'user',
+            'position',
+            'is_trusted',
+        )
+        read_only_fields = ('user',)
+
+
+class CentralPositionSerializer(BasePositionSerializer):
+    """Для вывода участников при получении центрального штаба."""
+
+    class Meta:
+        model = UserCentralHeadquarterPosition
+        fields = BasePositionSerializer.Meta.fields
+        read_only_fields = BasePositionSerializer.Meta.read_only_fields
+
+
+class DistrictPositionSerializer(BasePositionSerializer):
+    """Для вывода участников при получении окружного штаба."""
+
+    class Meta:
+        model = UserDistrictHeadquarterPosition
+        fields = BasePositionSerializer.Meta.fields
+        read_only_fields = BasePositionSerializer.Meta.read_only_fields
+
+
+class RegionalPositionSerializer(BasePositionSerializer):
+    """Для вывода участников при получении регионального штаба."""
+
+    class Meta:
+        model = UserRegionalHeadquarterPosition
+        fields = BasePositionSerializer.Meta.fields
+        read_only_fields = BasePositionSerializer.Meta.read_only_fields
+
+
+class LocalPositionSerializer(BasePositionSerializer):
+    """Для вывода участников при получении местного штаба."""
+
+    class Meta:
+        model = UserLocalHeadquarterPosition
+        fields = BasePositionSerializer.Meta.fields
+        read_only_fields = BasePositionSerializer.Meta.read_only_fields
+
+
+class EducationalPositionSerializer(BasePositionSerializer):
+    """Для вывода участников при получении образовательного штаба."""
+
+    class Meta:
+        model = UserEducationalHeadquarterPosition
+        fields = BasePositionSerializer.Meta.fields
+        read_only_fields = BasePositionSerializer.Meta.read_only_fields
+
+
+class DetachmentPositionSerializer(serializers.ModelSerializer):
+    """Сериализаатор для добавления пользователя в отряд."""
+
+    class Meta:
+        model = UserDetachmentPosition
+        fields = BasePositionSerializer.Meta.fields
+        read_only_fields = BasePositionSerializer.Meta.read_only_fields
+
+
 class BaseUnitSerializer(serializers.ModelSerializer):
     """Базовый сериализатор для хранения общей логики штабов.
 
@@ -305,6 +489,7 @@ class BaseUnitSerializer(serializers.ModelSerializer):
     commander = serializers.PrimaryKeyRelatedField(
         queryset=RSOUser.objects.all(),
     )
+    members_count = serializers.SerializerMethodField()
 
     class Meta:
         model = None
@@ -319,7 +504,11 @@ class BaseUnitSerializer(serializers.ModelSerializer):
             'banner',
             'slogan',
             'founding_date',
+            'members_count',
         )
+
+    def get_members_count(self, obj):
+        return self.Meta.model.objects.get(id=obj.id).members.count()
 
 
 class CentralHeadquarterSerializer(BaseUnitSerializer):
@@ -328,10 +517,14 @@ class CentralHeadquarterSerializer(BaseUnitSerializer):
     Наследует общую логику и поля от BaseUnitSerializer и связывает
     с моделью CentralHeadquarter.
     """
+    members = CentralPositionSerializer(
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = CentralHeadquarter
-        fields = BaseUnitSerializer.Meta.fields
+        fields = BaseUnitSerializer.Meta.fields + ('members',)
 
 
 class DistrictHeadquarterSerializer(BaseUnitSerializer):
@@ -347,10 +540,17 @@ class DistrictHeadquarterSerializer(BaseUnitSerializer):
     commander = serializers.PrimaryKeyRelatedField(
         queryset=RSOUser.objects.all(),
     )
+    members = DistrictPositionSerializer(
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = DistrictHeadquarter
-        fields = BaseUnitSerializer.Meta.fields + ('central_headquarter',)
+        fields = BaseUnitSerializer.Meta.fields + (
+            'central_headquarter',
+            'members',
+        )
 
 
 class RegionalHeadquarterSerializer(BaseUnitSerializer):
@@ -358,6 +558,7 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
 
     Включает в себя поля из BaseUnitSerializer, а также поля region и
     district_headquarter для указания региона и привязки к окружному штабу.
+    Выводит пользователей для верификации.
     """
 
     region = serializers.PrimaryKeyRelatedField(
@@ -366,13 +567,32 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
     district_headquarter = serializers.PrimaryKeyRelatedField(
         queryset=DistrictHeadquarter.objects.all(),
     )
+    members = RegionalPositionSerializer(
+        many=True,
+        read_only=True
+    )
+    users_for_verification = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = RegionalHeadquarter
         fields = BaseUnitSerializer.Meta.fields + (
             'region',
-            'district_headquarter'
+            'district_headquarter',
+            'members',
+            'users_for_verification',
         )
+
+    @staticmethod
+    def get_users_for_verification(obj):
+        verification_requests = UserVerificationRequest.objects.filter(
+            user__region=obj.region,
+            user__is_verified=False
+        ).select_related('user')
+        return [{
+            'id': request.user.id,
+            'name': f'{request.user.first_name} {request.user.last_name}',
+            'email': request.user.email
+        } for request in verification_requests]
 
 
 class LocalHeadquarterSerializer(BaseUnitSerializer):
@@ -385,10 +605,17 @@ class LocalHeadquarterSerializer(BaseUnitSerializer):
     regional_headquarter = serializers.PrimaryKeyRelatedField(
         queryset=RegionalHeadquarter.objects.all(),
     )
+    members = LocalPositionSerializer(
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = LocalHeadquarter
-        fields = BaseUnitSerializer.Meta.fields + ('regional_headquarter',)
+        fields = BaseUnitSerializer.Meta.fields + (
+            'regional_headquarter',
+            'members',
+        )
 
 
 class EducationalHeadquarterSerializer(BaseUnitSerializer):
@@ -407,6 +634,11 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
     )
     local_headquarter = serializers.PrimaryKeyRelatedField(
         queryset=LocalHeadquarter.objects.all(),
+        required=False,
+    )
+    members = EducationalPositionSerializer(
+        many=True,
+        read_only=True
     )
 
     class Meta:
@@ -415,6 +647,7 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
             'educational_institution',
             'local_headquarter',
             'regional_headquarter',
+            'members',
         )
 
     def validate(self, data):
@@ -430,6 +663,35 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
         return data
 
 
+class UserDetachmentApplicationSerializer(serializers.ModelSerializer):
+    """Сериализатор для подачи заявок в отряд"""
+
+    class Meta:
+        model = UserDetachmentApplication
+        fields = ('id', 'user',)
+        read_only_fields = ('user',)
+
+    def validate(self, attrs):
+        """
+        Запрещает подачу заявки пользователем в отряд, относящемуся к
+        региональному штабу, который не привязан к региону пользователя.
+        Запрещает повторную подачу заявки в тот же или другие отряды.
+        """
+        user = self.context['request'].user
+        detachment = Detachment.objects.get(
+            id=self.context['view'].kwargs.get('pk')
+        )
+        if UserDetachmentApplication.objects.filter(user=user).exists():
+            raise ValidationError(
+                'Вы уже подали заявку в один из отрядов'
+            )
+        if detachment.regional_headquarter.region != user.region:
+            raise ValidationError(
+                'Нельзя подать заявку на вступление в отряд вне своего региона'
+            )
+        return attrs
+
+
 class DetachmentSerializer(BaseUnitSerializer):
     """Сериализатор для отряда.
 
@@ -441,10 +703,12 @@ class DetachmentSerializer(BaseUnitSerializer):
     """
 
     educational_headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=EducationalHeadquarter.objects.all()
+        queryset=EducationalHeadquarter.objects.all(),
+        required=False,
     )
     local_headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=LocalHeadquarter.objects.all()
+        queryset=LocalHeadquarter.objects.all(),
+        required=False
     )
     regional_headquarter = serializers.PrimaryKeyRelatedField(
         queryset=RegionalHeadquarter.objects.all()
@@ -452,6 +716,15 @@ class DetachmentSerializer(BaseUnitSerializer):
     area = serializers.PrimaryKeyRelatedField(
         queryset=Area.objects.all()
     )
+    applications = UserDetachmentApplicationSerializer(
+        many=True,
+        read_only=True
+    )
+    members = DetachmentPositionSerializer(
+        many=True,
+        read_only=True
+    )
+    users_for_verification = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Detachment
@@ -460,6 +733,9 @@ class DetachmentSerializer(BaseUnitSerializer):
             'local_headquarter',
             'regional_headquarter',
             'area',
+            'applications',
+            'members',
+            'users_for_verification',
         )
 
     def validate(self, data):
@@ -474,16 +750,13 @@ class DetachmentSerializer(BaseUnitSerializer):
             raise serializers.ValidationError(e.message_dict)
         return data
 
+    @staticmethod
+    def get_users_for_verification(obj):
+        users_positions = obj.members.filter(
+            user__is_verified=False).select_related('user')
 
-class DetachmentPositionSerializer(serializers.ModelSerializer):
-    """Сериализаатор для добавления пользователя в отряд."""
-
-    class Meta:
-        model = UserDetachmentPosition
-        fields = (
-            'id',
-            'user',
-            'position',
-            'is_trusted',
-            'headquarter',
-        )
+        return [{
+            'id': position.user.id,
+            'name': f'{position.user.first_name} {position.user.last_name}',
+            'email': position.user.email
+        } for position in users_positions]
