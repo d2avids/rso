@@ -67,12 +67,18 @@ user_nested_urls = [
         name='download-membership-file'
     ),
     path(
-        'users/me/statement/download_consent_to_the_processing_of_personal_data/',
+        (
+            'users/me/statement/'
+            'download_consent_to_the_processing_of_personal_data/'
+        ),
         UserStatementConsentPDDownloadVS,
         name='download-consent-pd'
     ),
     path(
-        'users/me/statement/download_parent_consent_to_the_processing_of_personal_data/',
+        (
+            'users/me/statement/'
+            'download_parent_consent_to_the_processing_of_personal_data/'
+        ),
         UserStatementParentConsentPDDownloadVS,
         name='download-parent-consent-pd'
     ),

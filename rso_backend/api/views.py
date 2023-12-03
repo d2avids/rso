@@ -23,6 +23,7 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserStatementDocumentsSerializer,
                              DetachmentPositionSerializer,
                              UsersParentSerializer)
+from api.utils import download_file
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Region, RegionalHeadquarter,
@@ -192,14 +193,6 @@ class UserMediaViewSet(BaseUserViewSet):
         return get_object_or_404(UserMedia, user=self.request.user)
 
 
-def download_file(filepath, filename):
-    path = open(filepath, 'r')
-    mime_type, _ = mimetypes.guess_type(filepath)
-    response = HttpResponse(path, content_type=mime_type)
-    response['Content-Disposition'] = "attachment; filename=%s" % filename
-    return response
-
-
 class UserStatementDocumentsViewSet(BaseUserViewSet):
     """Представляет заявление на вступление в РСО пользователя."""
 
@@ -218,7 +211,11 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
             permission_classes=(permissions.IsAuthenticated,)
     )
     def download_membership_file(self, request):
-        """Скачивание заявления на вступление в РСО."""
+        """Скачивание бланка заявления на вступление в РСО.
+
+        Эндпоинт для скачивания
+        /users/me/statement/download_membership_statement_file/
+        """
 
         BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         filename = 'rso_membership_statement.docx'
@@ -231,7 +228,11 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
             permission_classes=(permissions.IsAuthenticated,)
     )
     def download_consent_personal_data(self, request):
-        """Скачивание согласия на обработку персональных данных."""
+        """Скачивание бланка согласия на обработку персональных данных.
+
+        Эндпоинт для скачивания
+        /users/me/statement/download_consent_to_the_processing_of_personal_data/
+        """
 
         BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         filename = 'consent_to_the_processing_of_personal_data.docx'
@@ -245,12 +246,16 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
     )
     def download_parent_consent_personal_data(self, request):
         """
-        Скачивание согласия законного представителя
+        Скачивание бланка согласия законного представителя
         на обработку персональных данных несовершеннолетнего.
+        Эндпоинт для скачивания
+        /users/me/statement/download_parent_consent_to_the_processing_of_personal_data/
         """
 
         BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        filename = 'download_parent_consent_to_the_processing_of_personal_data.docx'
+        filename = (
+            'download_parent_consent_to_the_processing_of_personal_data.docx'
+        )
         filepath = BASE_DIR + '/templates/membership/' + filename
         return download_file(filepath, filename)
 
@@ -259,20 +264,33 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         methods=('get',),
         permission_classes=(permissions.IsAuthenticated,)
     )
-    def download_all_forms(self, request):
-        """
-        Скачивание сразу трех бланков для подачи заявления на вступление в РСО.
+    def download_all_forms(self, _):
+        """Скачивание архива с бланками.
+
+        В архиве все три бланка для подачи заявления на вступление в РСО.
+        Архив доступен по эндпоинту /users/me/statement/download_all_forms/
         """
 
         BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        zip_filename = 'entry_forms.zip'
-        filepath = BASE_DIR + '/templates/membership/' + zip_filename
+        filepath = BASE_DIR + '\\templates\\membership\\'
+        zip_filename = os.path.join(
+            BASE_DIR + '\\templates\\',
+            'entry_forms.zip'
+        )
+        file_dir = os.listdir(filepath)
         with zipfile.ZipFile(zip_filename, 'w') as zipf:
-            zipf.write(filepath, 'rso_membership_statement.docx')
-            zipf.write(filepath, 'consent_to_the_processing_of_personal_data.docx')
-            zipf.write(filepath, 'download_parent_consent_to_the_processing_of_personal_data')
-
-        return download_file(filepath, zip_filename)
+            for file in file_dir:
+                zipf.write(os.path.join(filepath, file), file)
+        zipf.close()
+        filepath = BASE_DIR + '\\templates\\' + 'entry_forms.zip'
+        path = open(filepath, 'rb')
+        mime_type, _ = mimetypes.guess_type(filepath)
+        response = HttpResponse(path, content_type=mime_type)
+        response['Content-Disposition'] = (
+            'attachment; filename=%s' % 'entry_forms.zip'
+        )
+        os.remove(filepath)
+        return response
 
 
 class UsersParentViewSet(BaseUserViewSet):
