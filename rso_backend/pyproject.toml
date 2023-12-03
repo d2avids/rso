@@ -16,6 +16,7 @@ flake8 = "^6.1.0"
 pillow = "^10.1.0"
 drf-yasg = "^1.21.7"
 djoser = "^2.2.2"
+gunicorn = "^21.2.0"
 
 
 [build-system]

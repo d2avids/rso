@@ -13,7 +13,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', default='key')
 DEBUG = os.getenv('DEBUG', default=False) == 'True'
 ALLOWED_HOSTS = os.getenv(
     'ALLOWED_HOSTS',
-    default='127.0.0.1,localhost'
+    default='127.0.0.1,localhost,0.0.0.0'
 ).split(',')
 
 AUTH_USER_MODEL = 'users.RSOUser'
@@ -124,11 +124,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ORIGIN_WHITELIST = [
     'http://localhost:3000',
     'https://d2avids.sytes.net',
+    'https://rso.sprint.1t.ru'
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'https://127.0.0.1',
+    'https://rso.sprint.1t.ru'
 ]
 
 REST_FRAMEWORK = {
