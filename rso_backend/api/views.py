@@ -24,7 +24,18 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserPrivacySettingsSerializer,
                              UserRegionSerializer, UsersParentSerializer,
                              UserStatementDocumentsSerializer,
-                             UserVerificationSerializer)
+                             UserVerificationSerializer,
+                             DetachmentPositionSerializer,
+                             UsersParentSerializer,
+                             UserDetachmentApplicationSerializer,
+                             EducationalPositionSerializer,
+                             LocalPositionSerializer,
+                             RegionalPositionSerializer,
+                             DistrictPositionSerializer,
+                             CentralPositionSerializer,
+                             UsersParentSerializer,
+                             UserProfessionalEducationSerializer,
+                             ProfessionalEductionSerializer)
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Region, RegionalHeadquarter,
@@ -37,6 +48,7 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserRegionalHeadquarterPosition)
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserPrivacySettings, UserRegion, UsersParent,
+                          UserStatementDocuments, ProfessionalEduction,
                           UserStatementDocuments, UserVerificationRequest)
 
 
@@ -46,6 +58,7 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
     Пользователь имеет возможность изменять собственные данные
     по id или по эндпоинту /users/me.
     """
+
     queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
 
@@ -71,6 +84,7 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
 
 class RegionViewSet(ListRetrieveViewSet):
     """Представляет регионы. Доступны только операции чтения."""
+
     queryset = Region.objects.all()
     serializer_class = RegionSerializer
 
@@ -116,7 +130,15 @@ class BaseUserViewSet(viewsets.ModelViewSet):
     - Ответ HttpResponse или Response, содержащий данные записи
     (для create, retrieve, update) или пустой ответ (для destroy).
     """
+
     permission_classes = (permissions.IsAuthenticated,)
+
+    def perform_create(self, serializer):
+        user_id = self.kwargs.get('user_pk', None)
+        user = get_object_or_404(
+            RSOUser, id=user_id
+        ) if user_id else self.request.user
+        serializer.save(user=user)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -141,17 +163,9 @@ class BaseUserViewSet(viewsets.ModelViewSet):
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def perform_create(self, serializer):
-        user_id = self.kwargs.get('user_pk', None)
-        user = get_object_or_404(
-            RSOUser, id=user_id
-        ) if user_id else self.request.user
-        serializer.save(user=user)
-
 
 class UserEducationViewSet(BaseUserViewSet):
     """Представляет образовательную информацию пользователя."""
-
     queryset = UserEducation.objects.all()
     serializer_class = UserEducationSerializer
 
@@ -160,9 +174,72 @@ class UserEducationViewSet(BaseUserViewSet):
         return get_object_or_404(UserEducation, user=self.request.user)
 
 
+class UserProfessionalEducationViewSet(BaseUserViewSet):
+    """Представляет профессиональную информацию пользователя.
+
+    Дополнительные профобразования пользователя доступны по ключу
+    'users_prof_educations'.
+    """
+    queryset = ProfessionalEduction.objects.all()
+
+    def get_object(self):
+        return ProfessionalEduction.objects.filter(
+            user_id=self.request.user.id
+        )
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return UserProfessionalEducationSerializer
+        return ProfessionalEductionSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        """Удаляет профессиональное образование пользователя."""
+
+        queryset = self.get_queryset()
+        if not queryset.filter(pk=kwargs['pk']).exists():
+            return Response(
+                status=status.HTTP_404_NOT_FOUND,
+                data={'detail': 'Нет записи с таким ID.'}
+            )
+        instance = self.get_queryset().get(pk=kwargs['pk'])
+        if instance.user_id != self.request.user.id:
+            return Response(
+                status=status.HTTP_403_FORBIDDEN,
+                data={'detail': 'У вас нет прав на удаление этой записи.'}
+            )
+        instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def update(self, request, *args, **kwargs):
+        """Обновляет профессиональное образование пользователя."""
+
+        queryset = self.get_queryset()
+        if not queryset.filter(pk=kwargs['pk']).exists():
+            return Response(
+                status=status.HTTP_404_NOT_FOUND,
+                data={'detail': 'Нет записи с таким ID.'}
+            )
+        instance = self.get_queryset().get(pk=kwargs['pk'])
+        if instance.user_id != self.request.user.id:
+            return Response(
+                status=status.HTTP_403_FORBIDDEN,
+                data={'detail': 'У вас нет прав на изменение этой записи.'}
+            )
+        if self.action == 'partial_update':
+            serializer = self.get_serializer(
+                instance,
+                data=request.data,
+                partial=True
+            )
+        else:
+            serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
 class UserDocumentsViewSet(BaseUserViewSet):
     """Представляет документы пользователя."""
-
     queryset = UserDocuments.objects.all()
     serializer_class = UserDocumentsSerializer
 
@@ -172,7 +249,6 @@ class UserDocumentsViewSet(BaseUserViewSet):
 
 class UserRegionViewSet(BaseUserViewSet):
     """Представляет информацию о проживании пользователя."""
-
     queryset = UserRegion.objects.all()
     serializer_class = UserRegionSerializer
 
@@ -182,7 +258,6 @@ class UserRegionViewSet(BaseUserViewSet):
 
 class UserPrivacySettingsViewSet(BaseUserViewSet):
     """Представляет настройки приватности пользователя."""
-
     queryset = UserPrivacySettings.objects.all()
     serializer_class = UserPrivacySettingsSerializer
 
@@ -192,7 +267,6 @@ class UserPrivacySettingsViewSet(BaseUserViewSet):
 
 class UserMediaViewSet(BaseUserViewSet):
     """Представляет медиа-данные пользователя."""
-
     queryset = UserMedia.objects.all()
     serializer_class = UserMediaSerializer
 
@@ -202,7 +276,6 @@ class UserMediaViewSet(BaseUserViewSet):
 
 class UserStatementDocumentsViewSet(BaseUserViewSet):
     """Представляет заявление на вступление в РСО пользователя."""
-
     queryset = UserStatementDocuments.objects.all()
     serializer_class = UserStatementDocumentsSerializer
 
@@ -215,8 +288,12 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
 
 class UsersParentViewSet(BaseUserViewSet):
     """Представляет законного представителя пользователя."""
+
     queryset = UsersParent.objects.all()
     serializer_class = UsersParentSerializer
+
+    def get_object(self):
+        return get_object_or_404(UsersParent, user=self.request.user)
 
 
 class CentralViewSet(ListRetrieveUpdateViewSet):
@@ -226,6 +303,7 @@ class CentralViewSet(ListRetrieveUpdateViewSet):
     единице по ключу members_count, а также список всех участников по ключу
     members.
     """
+
     queryset = CentralHeadquarter.objects.all()
     serializer_class = CentralHeadquarterSerializer
 
@@ -238,6 +316,7 @@ class DistrictViewSet(viewsets.ModelViewSet):
     единице по ключу members_count, а также список всех участников по ключу
     members.
     """
+
     queryset = DistrictHeadquarter.objects.all()
     serializer_class = DistrictHeadquarterSerializer
 
@@ -254,6 +333,7 @@ class RegionalViewSet(viewsets.ModelViewSet):
     верификацию и относящихся к тому же региону, что и текущий региональный
     штаб, по ключу users_for_verification.
     """
+
     queryset = RegionalHeadquarter.objects.all()
     serializer_class = RegionalHeadquarterSerializer
 
@@ -266,6 +346,7 @@ class LocalViewSet(viewsets.ModelViewSet):
     единице по ключу members_count, а также список всех участников по ключу
     members.
     """
+
     queryset = LocalHeadquarter.objects.all()
     serializer_class = LocalHeadquarterSerializer
 
@@ -283,6 +364,7 @@ class EducationalViewSet(viewsets.ModelViewSet):
     единице по ключу members_count, а также список всех участников по ключу
     members.
     """
+
     queryset = EducationalHeadquarter.objects.all()
     serializer_class = EducationalHeadquarterSerializer
 
@@ -304,6 +386,7 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     верификацию и относящихся к текущему отряду по
     ключу users_for_verification.
     """
+
     queryset = Detachment.objects.all()
     serializer_class = DetachmentSerializer
 
@@ -313,6 +396,7 @@ class BasePositionViewSet(viewsets.ModelViewSet):
 
     Необходимо переопределять метод get_queryset и атрибут serializer_class
     """
+
     serializer_class = None
 
     def get_queryset(self):
@@ -330,6 +414,7 @@ class CentralPositionViewSet(BasePositionViewSet):
 
     Доступно только командиру.
     """
+
     serializer_class = CentralPositionSerializer
 
     def get_queryset(self):
@@ -345,6 +430,7 @@ class DistrictPositionViewSet(BasePositionViewSet):
 
     Доступно только командиру.
     """
+
     serializer_class = DistrictPositionSerializer
 
     def get_queryset(self):
@@ -360,6 +446,7 @@ class RegionalPositionViewSet(BasePositionViewSet):
 
     Доступно только командиру.
     """
+
     serializer_class = RegionalPositionSerializer
 
     def get_queryset(self):
@@ -375,6 +462,7 @@ class LocalPositionViewSet(BasePositionViewSet):
 
     Доступно только командиру.
     """
+
     serializer_class = LocalPositionSerializer
 
     def get_queryset(self):
@@ -390,6 +478,7 @@ class EducationalPositionViewSet(BasePositionViewSet):
 
     Доступно только командиру.
     """
+
     serializer_class = EducationalPositionSerializer
 
     def get_queryset(self):
@@ -405,6 +494,7 @@ class DetachmentPositionViewSet(BasePositionViewSet):
 
     Доступно только командиру.
     """
+
     serializer_class = DetachmentPositionSerializer
 
     def get_queryset(self):
@@ -419,17 +509,12 @@ class DetachmentAcceptViewSet(CreateDeleteViewSet):
     Можно дополнительно установить позицию и статус доверенности.
     Доступно командиру и доверенным лицам.
     """
+
     queryset = UserDetachmentPosition.objects.all()
     serializer_class = DetachmentPositionSerializer
 
-    def create(self, request, *args, **kwargs):
-        """Принимает (добавляет пользователя в отряд) юзера, удаляя заявку."""
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
     def perform_create(self, serializer):
+        """Получает user и detachment для сохранения."""
         headquarter_id = self.kwargs.get('pk')
         application_id = self.kwargs.get('application_pk')
         application = UserDetachmentApplication.objects.get(id=application_id)
@@ -437,6 +522,13 @@ class DetachmentAcceptViewSet(CreateDeleteViewSet):
         headquarter = get_object_or_404(Detachment, id=headquarter_id)
         application.delete()
         serializer.save(user=user, headquarter=headquarter)
+
+    def create(self, request, *args, **kwargs):
+        """Принимает (добавляет пользователя в отряд) юзера, удаляя заявку."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, *args, **kwargs):
         """Отклоняет (удаляет) заявку пользователя."""
@@ -454,6 +546,7 @@ class DetachmentApplicationViewSet(viewsets.ModelViewSet):
 
     Доступно только авторизованному пользователю.
     """
+
     serializer_class = UserDetachmentApplicationSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -462,6 +555,12 @@ class DetachmentApplicationViewSet(viewsets.ModelViewSet):
         detachment = UserDetachmentApplication.objects.get(id=detachment_id)
         return UserDetachmentApplication.objects.filter(detachment=detachment)
 
+    def perform_create(self, serializer):
+        user = self.request.user
+        detachment_id = self.kwargs.get('pk')
+        detachment = Detachment.objects.get(id=detachment_id)
+        serializer.save(user=user, detachment=detachment)
+
     def create(self, request, *args, **kwargs):
         """Подает заявку на вступление в отряд, переданный URL-параметром."""
         serializer = self.get_serializer(data=request.data)
@@ -469,17 +568,9 @@ class DetachmentApplicationViewSet(viewsets.ModelViewSet):
         self.perform_create(serializer)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def perform_create(self, serializer):
-        user = self.request.user
-        detachment_id = self.kwargs.get('pk')
-        detachment = Detachment.objects.get(id=detachment_id)
-        serializer.save(user=user, detachment=detachment)
-
     def destroy(self, request, *args, **kwargs):
         """Отклоняет заявку на вступление в отряд."""
         detachment_id = self.kwargs.get('pk')
-        print(self.request.user.id)
-        print(detachment_id)
         try:
             application = UserDetachmentApplication.objects.get(
                 user=self.request.user,

@@ -3,7 +3,8 @@ from djoser.views import UserViewSet
 from rest_framework.routers import DefaultRouter
 
 from api.constants import (CREATE_DELETE, CREATE_METHOD,
-                           CRUD_METHODS_WITHOUT_LIST, LIST, UPDATE)
+                           CRUD_METHODS_WITHOUT_LIST, LIST, UPDATE,
+                           RETRIEVE_CREATE, DELETE)
 from api.views import (CentralPositionViewSet, CentralViewSet,
                        DetachmentAcceptViewSet, DetachmentApplicationViewSet,
                        DetachmentPositionViewSet, DetachmentViewSet,
@@ -15,7 +16,13 @@ from api.views import (CentralPositionViewSet, CentralViewSet,
                        UserEducationViewSet, UserMediaViewSet,
                        UserPrivacySettingsViewSet, UserRegionViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
-                       apply_for_verification, verify_user)
+                       apply_for_verification, verify_user,
+                       UserStatementDocumentsViewSet,
+                       UsersParentViewSet,
+                       DetachmentPositionViewSet,
+                       UserProfessionalEducationViewSet,
+                       DetachmentPositionViewSet, DetachmentAcceptViewSet,
+                       DetachmentApplicationViewSet, EducationalPositionViewSet, LocalPositionViewSet, RegionalPositionViewSet, DistrictPositionViewSet, CentralPositionViewSet)
 
 app_name = 'api'
 
@@ -31,6 +38,10 @@ router.register(r'detachments', DetachmentViewSet)
 router.register(r'centrals', CentralViewSet)
 
 UserEduVS = UserEducationViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
+UserProfEduRetrieveCreateVS = UserProfessionalEducationViewSet.as_view(
+    RETRIEVE_CREATE
+)
+UserProfEduPUDVS = UserProfessionalEducationViewSet.as_view(UPDATE | DELETE)
 UserDocVS = UserDocumentsViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
 UserRegVS = UserRegionViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
 UserPrivacyVS = UserPrivacySettingsViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
@@ -142,6 +153,16 @@ user_nested_urls = [
         CentralPositionUpdateVS,
         name='central-members-update'
     ),
+    path(
+        'users/me/professional_education/',
+        UserProfEduRetrieveCreateVS,
+        name='user-prof-education_retrieve_create',
+    ),
+    path(
+        'users/me/professional_education/<int:pk>/',
+        UserProfEduPUDVS,
+        name='user-prof-education_post_update_delete',
+    )
 ]
 
 urlpatterns = [

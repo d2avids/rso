@@ -7,7 +7,8 @@ from rest_framework.validators import UniqueTogetherValidator
 
 from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                            MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
-                           REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS)
+                           REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS,
+                           TOO_MANY_EDUCATIONS)
 from api.utils import create_first_or_exception
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
@@ -22,7 +23,8 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserRegionalHeadquarterPosition)
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserPrivacySettings, UserRegion, UsersParent,
-                          UserStatementDocuments, UserVerificationRequest)
+                          UserStatementDocuments, UserVerificationRequest,
+                          UserStatementDocuments, ProfessionalEduction)
 
 
 class RegionSerializer(serializers.ModelSerializer):
@@ -49,6 +51,75 @@ class UserEducationSerializer(serializers.ModelSerializer):
             UserEducation,
             EDUCATION_RAW_EXISTS
         )
+
+
+class ProfessionalEductionSerializer(serializers.ModelSerializer):
+    """Сериализатор дополнительного проф образования всех юзеров.
+
+    Используется в сериализаторе UserProfessionalEducationSerializer,
+    который будет сериализован в поле users_prof_educations одного пользователя
+    по эндпоинту /users/me/prof_education.
+    """
+
+    class Meta:
+        model = ProfessionalEduction
+        fields = (
+            'study_institution',
+            'years_of_study',
+            'exam_score',
+            'qualification'
+        )
+
+
+class ProfessionalEductionSerializerID(ProfessionalEductionSerializer):
+    """Сериализатор дополнительного проф образования всех юзеров c ID."""
+
+    class Meta:
+        model = ProfessionalEduction
+        fields = ('id',) + ProfessionalEductionSerializer.Meta.fields
+
+    def create(self, validated_data):
+        """Сохраенение в БД допрофобразования.
+
+        В методе реализована проверка количества записей.
+        """
+
+        manager = ProfessionalEduction.objects
+        if manager.count() < 5:
+            return manager.create(**validated_data)
+        raise serializers.ValidationError(TOO_MANY_EDUCATIONS)
+
+
+class UserProfessionalEducationSerializer(serializers.ModelSerializer):
+    """Сериализатор дополнительного профобразования."""
+
+    users_prof_educations = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProfessionalEduction
+        fields = (
+            'users_prof_educations',
+        )
+
+    @staticmethod
+    def get_users_prof_educations(obj):
+        """Возвращает список проф образования юзера.
+
+        Декоратор @staticmethod позволяет определить метод как статический
+        без создания экземпляра. Из obj получаем queryset и сериализуем его.
+        При отсутвии проф образования возвращаем исключение с сообщением.
+        """
+        try:
+            users_data = ProfessionalEduction.objects.filter(
+                user_id=obj.first().user_id
+            )
+        except AttributeError:
+            raise serializers.ValidationError(
+                'У данного юзера не введено дополнительное'
+                ' профессиональное образование.',
+            )
+        serializer = ProfessionalEductionSerializerID(users_data, many=True)
+        return serializer.data
 
 
 class UserDocumentsSerializer(serializers.ModelSerializer):
@@ -213,6 +284,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
     Выводит личные данные пользователя, а также все данные из всех
     связанных моделей.
     """
+
     is_adult = serializers.SerializerMethodField(read_only=True)
     user_region = UserRegionSerializer(read_only=True)
     documents = UserDocumentsSerializer(read_only=True)
@@ -226,6 +298,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
     media = UserMediaSerializer(read_only=True)
     privacy = UserPrivacySettingsSerializer(read_only=True)
     parent = UsersParentSerializer(read_only=True)
+    professional_education = serializers.SerializerMethodField()
 
     class Meta:
         model = RSOUser
@@ -257,7 +330,15 @@ class RSOUserSerializer(serializers.ModelSerializer):
             'education',
             'privacy',
             'parent',
+            'professional_education',
         )
+
+    def get_professional_education(self, obj):
+        return UserProfessionalEducationSerializer(
+            ProfessionalEduction.objects.filter(user=obj),
+            many=True,
+            context={'request': self.context.get('request')},
+        ).data
 
     def get_is_adult(self, obj):
         """Метод определения совершеннолетия.
@@ -600,13 +681,13 @@ class UserDetachmentApplicationSerializer(serializers.ModelSerializer):
         detachment = Detachment.objects.get(
             id=self.context['view'].kwargs.get('pk')
         )
-        if detachment.regional_headquarter.region != user.region:
-            raise ValidationError(
-                'Нельзя подать заявку на вступление в отряд вне своего региона'
-            )
         if UserDetachmentApplication.objects.filter(user=user).exists():
             raise ValidationError(
                 'Вы уже подали заявку в один из отрядов'
+            )
+        if detachment.regional_headquarter.region != user.region:
+            raise ValidationError(
+                'Нельзя подать заявку на вступление в отряд вне своего региона'
             )
         return attrs
 

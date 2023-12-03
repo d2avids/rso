@@ -1,5 +1,8 @@
 import os
+import re
 from datetime import datetime as dt
+
+from django.core.exceptions import ValidationError
 
 
 def image_path(instance, filename):
@@ -28,3 +31,14 @@ def document_path(instance, filename):
     filename = dt.today().strftime('%Y%m%d%H%M%S') + '_' + filename
     filepath = 'documents/users'
     return os.path.join(filepath, instance.name, filename)
+
+
+def validate_years(value):
+    """Функция для проверки корректности ввода года обучения."""
+    if not re.match(r'^\d{4}-\d{4}$', value):
+        raise ValidationError(
+            'Ошибка ввода срока обучения. Используйте формат "YYYY-YYYY".'
+        )
+    start, end = value.split('-')
+    if int(start) >= int(end):
+        raise ValidationError('Начальный год должен быть меньше конечного.')
