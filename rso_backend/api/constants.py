@@ -9,6 +9,9 @@ UPDATE = {
         'put': 'update',
         'patch': 'partial_update',
 }
+RETRIEVE = {
+        'get': 'retrieve',
+}
 RETRIEVE_CREATE = {
         'get': 'retrieve',
         'post': 'create',
@@ -46,3 +49,5 @@ REGION_RAW_EXISTS = (
 TOO_MANY_EDUCATIONS = (
         'Уже существует 5 записей о допобразовании.'
 )
+
+STUFF_LIST = ['admin', 'commander', 'trusted_user']

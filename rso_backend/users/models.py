@@ -2,7 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 from users.constants import (Gender, MilitaryDocType, PrivacyOption,
-                             RelationshipType, StudyForm)
+                             RelationshipType, StudyForm, UsersRolesChoices)
 from users.utils import document_path, image_path, validate_years
 
 
@@ -775,4 +775,32 @@ class UserVerificationRequest(models.Model):
         return (
             f'Пользователь {self.user.last_name} {self.user.first_name} '
             f'{self.user.username} подал заявку.'
+        )
+
+
+class UsersRoles(models.Model):
+    """Пользовательские роли."""
+
+    user = models.OneToOneField(
+        verbose_name='Пользователь',
+        to='RSOUser',
+        on_delete=models.PROTECT,
+        related_name='users_role',
+    )
+    role = models.CharField(
+        null=True,
+        blank=True,
+        verbose_name='Роль пользователя',
+        max_length=35,
+        choices=UsersRolesChoices.choices,
+    )
+
+    class Meta:
+        verbose_name_plural = 'Пользовательские роли'
+        verbose_name = 'Пользовательская роль'
+
+    def __str__(self):
+        return (
+            f'Пользователь {self.user.last_name} '
+            f'{self.user.first_name}. Id: {self.user.id}'
         )

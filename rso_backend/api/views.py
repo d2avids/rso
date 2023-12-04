@@ -10,6 +10,7 @@ from rest_framework.response import Response
 
 from api.mixins import (CreateDeleteViewSet, ListRetrieveUpdateViewSet,
                         ListRetrieveViewSet)
+from api.permissions import (IsAdmin, IsAdminOrReadOnly, IsStuffOrAuthor)
 from api.serializers import (CentralHeadquarterSerializer,
                              CentralPositionSerializer,
                              DetachmentPositionSerializer,
@@ -31,7 +32,8 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserProfessionalEducationSerializer,
                              UserRegionSerializer, UsersParentSerializer,
                              UserStatementDocumentsSerializer,
-                             ForeignUserDocumentsSerializer)
+                             ForeignUserDocumentsSerializer,
+                             UsersRolesSerializer)
 from api.utils import download_file
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
@@ -47,7 +49,8 @@ from rso_backend.settings import BASE_DIR
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
                           UserRegion, UsersParent, UserStatementDocuments,
-                          UserVerificationRequest, ForeignUserDocuments)
+                          UserVerificationRequest, ForeignUserDocuments,
+                          UsersRoles)
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -63,7 +66,7 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
     @action(
         detail=False,
         methods=['get', 'patch'],
-        permission_classes=(permissions.IsAuthenticated,),
+        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor),
         serializer_class=RSOUserSerializer,
     )
     def me(self, request, pk=None):
@@ -257,6 +260,7 @@ class ForeignUserDocumentsViewSet(BaseUserViewSet):
 
 class UserRegionViewSet(BaseUserViewSet):
     """Представляет информацию о проживании пользователя."""
+
     queryset = UserRegion.objects.all()
     serializer_class = UserRegionSerializer
 
@@ -266,6 +270,7 @@ class UserRegionViewSet(BaseUserViewSet):
 
 class UserPrivacySettingsViewSet(BaseUserViewSet):
     """Представляет настройки приватности пользователя."""
+
     queryset = UserPrivacySettings.objects.all()
     serializer_class = UserPrivacySettingsSerializer
 
@@ -275,6 +280,7 @@ class UserPrivacySettingsViewSet(BaseUserViewSet):
 
 class UserMediaViewSet(BaseUserViewSet):
     """Представляет медиа-данные пользователя."""
+
     queryset = UserMedia.objects.all()
     serializer_class = UserMediaSerializer
 
@@ -284,6 +290,7 @@ class UserMediaViewSet(BaseUserViewSet):
 
 class UserStatementDocumentsViewSet(BaseUserViewSet):
     """Представляет заявление на вступление в РСО пользователя."""
+
     queryset = UserStatementDocuments.objects.all()
     serializer_class = UserStatementDocumentsSerializer
 
@@ -385,6 +392,16 @@ class UsersParentViewSet(BaseUserViewSet):
 
     def get_object(self):
         return get_object_or_404(UsersParent, user=self.request.user)
+
+
+class UsersRolesViewSet(BaseUserViewSet):
+    """Представляет роли пользователя."""
+
+    queryset = UsersRoles.objects.all()
+    serializer_class = UsersRolesSerializer
+
+    def get_object(self):
+        return get_object_or_404(UsersRoles, user=self.request.user)
 
 
 class CentralViewSet(ListRetrieveUpdateViewSet):

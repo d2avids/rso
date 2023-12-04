@@ -7,7 +7,7 @@ from api.constants import (CREATE_DELETE, CREATE_METHOD,
                            DOWNLOAD_ALL_FORMS, DOWNLOAD_CONSENT_PD,
                            DOWNLOAD_MEMBERSHIP_FILE,
                            DOWNLOAD_PARENT_CONSENT_PD, LIST, RETRIEVE_CREATE,
-                           UPDATE)
+                           UPDATE, RETRIEVE)
 from api.views import (CentralPositionViewSet, CentralViewSet,
                        DetachmentAcceptViewSet, DetachmentApplicationViewSet,
                        DetachmentPositionViewSet, DetachmentViewSet,
@@ -20,8 +20,8 @@ from api.views import (CentralPositionViewSet, CentralViewSet,
                        UserPrivacySettingsViewSet,
                        UserProfessionalEducationViewSet, UserRegionViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
-                       ForeignUserDocumentsViewSet, apply_for_verification,
-                       verify_user)
+                       ForeignUserDocumentsViewSet, UsersRolesViewSet,
+                       apply_for_verification, verify_user)
 
 app_name = 'api'
 
@@ -63,6 +63,10 @@ UserStatementDownloadAllVS = UserStatementDocumentsViewSet.as_view(
     DOWNLOAD_ALL_FORMS
 )
 ForeignUserDocsVS = ForeignUserDocumentsViewSet.as_view(
+    CRUD_METHODS_WITHOUT_LIST
+)
+UsersRolesVS = UsersRolesViewSet.as_view(RETRIEVE)
+UsersRoleForStuffVS = UsersRolesViewSet.as_view(
     CRUD_METHODS_WITHOUT_LIST
 )
 
@@ -120,6 +124,12 @@ user_nested_urls = [
         UserStatementDownloadAllVS,
         name='download-all-forms'
     ),
+    path('users/me/roles/', UsersRolesVS, name='user-roles'),
+    path(
+        'users/<int:pk>/role/',
+        UsersRoleForStuffVS,
+        name='user-role-for-stuff'
+    ),
     path(
         'users/me/apply_for_verification/',
         apply_for_verification,
@@ -137,7 +147,7 @@ user_nested_urls = [
     ),
     path(
         'detachments/<int:pk>/applications/<int:application_pk>/accept/',
-         DetachmentAcceptVS,
+        DetachmentAcceptVS,
         name='user-apply'
     ),
     path(

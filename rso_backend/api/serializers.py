@@ -23,7 +23,8 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
                           UserRegion, UsersParent, UserStatementDocuments,
-                          UserVerificationRequest, ForeignUserDocuments)
+                          UserVerificationRequest, ForeignUserDocuments,
+                          UsersRoles)
 
 
 class RegionSerializer(serializers.ModelSerializer):
@@ -426,6 +427,18 @@ class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
             'email',
             'username',
             'password',
+        )
+
+
+class UsersRolesSerializer(serializers.ModelSerializer):
+    """Для сериализации ролей пользователя."""
+
+    class Meta:
+        model = UsersRoles
+        fields = (
+            'id',
+            'user',
+            'role',
         )
 
 

@@ -3,7 +3,8 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
 
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
-                          UserPrivacySettings, UserRegion, UsersParent)
+                          UserPrivacySettings, UserRegion, UsersParent, 
+                          UsersRoles)
 
 
 class UserRegionInline(admin.StackedInline):
@@ -36,6 +37,11 @@ class UsersParentInline(admin.StackedInline):
     extra = 1
 
 
+class UsersRoleInLine(admin.StackedInline):
+    model = UsersRoles
+    extra = 1
+
+
 @admin.register(RSOUser)
 class UserAdmin(BaseUserAdmin):
     inlines = [
@@ -44,7 +50,8 @@ class UserAdmin(BaseUserAdmin):
         UserEducationInline,
         UserDocumentsInline,
         UserPrivacySettingsInline,
-        UsersParentInline
+        UsersParentInline,
+        UsersRoleInLine
     ]
 
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff')
