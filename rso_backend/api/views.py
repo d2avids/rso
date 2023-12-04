@@ -30,7 +30,8 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserPrivacySettingsSerializer,
                              UserProfessionalEducationSerializer,
                              UserRegionSerializer, UsersParentSerializer,
-                             UserStatementDocumentsSerializer)
+                             UserStatementDocumentsSerializer,
+                             ForeignUserDocumentsSerializer)
 from api.utils import download_file
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
@@ -42,10 +43,11 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
+from rso_backend.settings import BASE_DIR
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
                           UserRegion, UsersParent, UserStatementDocuments,
-                          UserVerificationRequest)
+                          UserVerificationRequest, ForeignUserDocuments)
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -243,6 +245,16 @@ class UserDocumentsViewSet(BaseUserViewSet):
         return get_object_or_404(UserDocuments, user=self.request.user)
 
 
+class ForeignUserDocumentsViewSet(BaseUserViewSet):
+    """Представляет документы иностранного пользователя."""
+
+    queryset = ForeignUserDocuments.objects.all()
+    serializer_class = ForeignUserDocumentsSerializer
+
+    def get_object(self):
+        return get_object_or_404(ForeignUserDocuments, user=self.request.user)
+
+
 class UserRegionViewSet(BaseUserViewSet):
     """Представляет информацию о проживании пользователя."""
     queryset = UserRegion.objects.all()
@@ -293,9 +305,8 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         /users/me/statement/download_membership_statement_file/
         """
 
-        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         filename = 'rso_membership_statement.docx'
-        filepath = BASE_DIR + '/templates/membership/' + filename
+        filepath = str(BASE_DIR) + '/templates/membership/' + filename
         return download_file(filepath, filename)
 
     @action(
@@ -310,9 +321,8 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         /users/me/statement/download_consent_to_the_processing_of_personal_data/
         """
 
-        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         filename = 'consent_to_the_processing_of_personal_data.docx'
-        filepath = BASE_DIR + '/templates/membership/' + filename
+        filepath = str(BASE_DIR) + '/templates/membership/' + filename
         return download_file(filepath, filename)
 
     @action(
@@ -328,11 +338,10 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         /users/me/statement/download_parent_consent_to_the_processing_of_personal_data/
         """
 
-        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         filename = (
             'download_parent_consent_to_the_processing_of_personal_data.docx'
         )
-        filepath = BASE_DIR + '/templates/membership/' + filename
+        filepath = str(BASE_DIR) + '/templates/membership/' + filename
         return download_file(filepath, filename)
 
     @action(
@@ -347,10 +356,9 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         Архив доступен по эндпоинту /users/me/statement/download_all_forms/
         """
 
-        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        filepath = BASE_DIR + '\\templates\\membership\\'
+        filepath = str(BASE_DIR) + '\\templates\\membership\\'
         zip_filename = os.path.join(
-            BASE_DIR + '\\templates\\',
+            str(BASE_DIR) + '\\templates\\',
             'entry_forms.zip'
         )
         file_dir = os.listdir(filepath)
@@ -358,7 +366,7 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
             for file in file_dir:
                 zipf.write(os.path.join(filepath, file), file)
         zipf.close()
-        filepath = BASE_DIR + '\\templates\\' + 'entry_forms.zip'
+        filepath = str(BASE_DIR) + '\\templates\\' + 'entry_forms.zip'
         path = open(filepath, 'rb')
         mime_type, _ = mimetypes.guess_type(filepath)
         response = HttpResponse(path, content_type=mime_type)

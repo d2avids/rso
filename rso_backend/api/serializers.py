@@ -23,7 +23,7 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
                           UserRegion, UsersParent, UserStatementDocuments,
-                          UserVerificationRequest)
+                          UserVerificationRequest, ForeignUserDocuments)
 
 
 class RegionSerializer(serializers.ModelSerializer):
@@ -145,6 +145,22 @@ class UserDocumentsSerializer(serializers.ModelSerializer):
             validated_data,
             UserDocuments,
             DOCUMENTS_RAW_EXISTS
+        )
+
+
+class ForeignUserDocumentsSerializer(serializers.ModelSerializer):
+    """Сериализатор документом иностранного гражданина."""
+
+    class Meta:
+        model = ForeignUserDocuments
+        fields = (
+            'name',
+            'foreign_pass_num',
+            'foreign_pass_whom',
+            'foreign_pass_date',
+            'snils',
+            'inn',
+            'work_book_num',
         )
 
 
