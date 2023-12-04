@@ -311,6 +311,68 @@ class UserDocuments(models.Model):
         )
 
 
+class ForeignUserDocuments(models.Model):
+    """Информация о документах пользователя-инстранца."""
+
+    user = models.OneToOneField(
+        verbose_name='Пользователь',
+        to='RSOUser',
+        on_delete=models.CASCADE,
+        related_name='foreign_documents',
+    )
+    name = models.CharField(
+        max_length=15,
+        verbose_name='Документ, удостоверяющий личность'
+    )
+    snils = models.CharField(
+        max_length=15,
+        blank=True,
+        null=True,
+        verbose_name='СНИЛС'
+    )
+    inn = models.CharField(
+        verbose_name='ИНН',
+        max_length=15,
+        blank=True,
+        null=True,
+    )
+    foreign_pass_num = models.CharField(
+        verbose_name='Серия и номер',
+        max_length=50,
+        blank=True,
+        null=True,
+    )
+    foreign_pass_whom = models.CharField(
+        max_length=15,
+        verbose_name='Кем выдан',
+        blank=True,
+        null=True,
+    )
+    foreign_pass_date = models.DateField(
+        verbose_name='Дата выдачи',
+    )
+    work_book_num = models.CharField(
+        verbose_name='Трудовая книжка: серия, номер',
+        max_length=15,
+        blank=True,
+        null=True,
+    )
+
+    class Meta:
+        verbose_name_plural = 'Документы иностранных пользователей'
+        verbose_name = 'Документы иностранного пользователя'
+        constraints = [
+            models.UniqueConstraint(fields=['user'],
+                                    name='unique_user_foreign_documents')
+        ]
+
+    def __str__(self):
+        return (
+            f'Пользователь {self.user.last_name} '
+            f'{self.user.first_name}. Id: {self.user.id}'
+        )
+
+
 class UserRegion(models.Model):
     """
     Информация о регионе и проживании (фактическом и по прописке) пользователя.

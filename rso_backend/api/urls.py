@@ -20,7 +20,8 @@ from api.views import (CentralPositionViewSet, CentralViewSet,
                        UserPrivacySettingsViewSet,
                        UserProfessionalEducationViewSet, UserRegionViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
-                       apply_for_verification, verify_user)
+                       ForeignUserDocumentsViewSet, apply_for_verification,
+                       verify_user)
 
 app_name = 'api'
 
@@ -61,6 +62,9 @@ UserStatementParentConsentPDDownloadVS = UserStatementDocumentsViewSet.as_view(
 UserStatementDownloadAllVS = UserStatementDocumentsViewSet.as_view(
     DOWNLOAD_ALL_FORMS
 )
+ForeignUserDocsVS = ForeignUserDocumentsViewSet.as_view(
+    CRUD_METHODS_WITHOUT_LIST
+)
 
 DetachmentAcceptVS = DetachmentAcceptViewSet.as_view(CREATE_DELETE)
 DetachmentApplicationVS = DetachmentApplicationViewSet.as_view(CREATE_DELETE)
@@ -80,6 +84,11 @@ CentralPositionUpdateVS = CentralPositionViewSet.as_view(UPDATE)
 user_nested_urls = [
     path('users/me/education/', UserEduVS, name='user-education'),
     path('users/me/documents/', UserDocVS, name='user-documents'),
+    path(
+        'users/me/foreign_documents/',
+        ForeignUserDocsVS,
+        name='foreign-documents'
+    ),
     path('users/me/region/', UserRegVS, name='user-region'),
     path('users/me/privacy/', UserPrivacyVS, name='user-privacy'),
     path('users/me/media/', UserMediaVS, name='user-media'),
