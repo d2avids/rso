@@ -163,6 +163,14 @@ class ForeignUserDocumentsSerializer(serializers.ModelSerializer):
             'work_book_num',
         )
 
+    def create(self, validated_data):
+        return create_first_or_exception(
+            self,
+            validated_data,
+            ForeignUserDocuments,
+            DOCUMENTS_RAW_EXISTS
+        )
+
 
 class UserPrivacySettingsSerializer(serializers.ModelSerializer):
     class Meta:
