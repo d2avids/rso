@@ -26,16 +26,25 @@ services:
       - media:/app/media
     networks:
       - internal
+  frontend:
+    image: d2avids/rso_frontend:latest
+    env_file: .env
+    depends_on:
+      - backend
+    volumes:
+      - ../frontend/:/app/result_build/
+    networks:
+      - internal
   nginx:
     image: nginx:alpine
     depends_on:
-      - backend
+      - frontend
     ports:
       - "8000:80"
     volumes:
       - static:/static/
       - media:/media/
-      - ./rso_frontend:/var/www/html
+      - ../frontend/dist:/usr/src/app/dist
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
     networks:
       - internal
