@@ -73,4 +73,4 @@ class IsRegionalCommander(BasePermission):
             request.method in SAFE_METHODS
             or is_admin_or_central_commander(request)
             or request.user.users_role.role == 'regional_commander'
-        ) and is_users_region
+        ) and is_users_region(request, view)
