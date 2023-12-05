@@ -50,4 +50,13 @@ TOO_MANY_EDUCATIONS = (
         'Уже существует 5 записей о допобразовании.'
 )
 
-STUFF_LIST = ['admin', 'commander', 'trusted_user']
+STUFF_LIST = [
+    'admin',
+    'central_commander',
+    'district_commander',
+    'regional_commander',
+    'local_commander',
+    'edu_commander',
+    'detachment_commander',
+    'trusted_user'
+]

@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from api.mixins import (CreateDeleteViewSet, ListRetrieveUpdateViewSet,
                         ListRetrieveViewSet)
-from api.permissions import (IsAdmin, IsAdminOrReadOnly, IsStuffOrAuthor)
+from api.permissions import (IsAdminOrCentralCommander, IsStuffOrAuthor, IsRegionalCommander)
 from api.serializers import (CentralHeadquarterSerializer,
                              CentralPositionSerializer,
                              DetachmentPositionSerializer,
@@ -444,6 +444,7 @@ class RegionalViewSet(viewsets.ModelViewSet):
 
     queryset = RegionalHeadquarter.objects.all()
     serializer_class = RegionalHeadquarterSerializer
+    permission_classes = [IsRegionalCommander,]
 
 
 class LocalViewSet(viewsets.ModelViewSet):

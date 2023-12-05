@@ -47,18 +47,36 @@ class UsersRolesChoices(models.TextChoices):
     """Пользовательские роли."""
 
     admin = 'admin', 'Администратор'
-    commander = 'commander', 'Коммандир штаба'
+    central_commander = (
+        'central_commander',
+        'Коммандир центрального штаба'
+    )
+    district_commander = 'district_commander', 'Коммандир окружного штаба'
+    regional_commander = 'regional_commander', 'Коммандир регионального штаба'
+    local_commander = 'local_commander', 'Коммандир местного штаба'
+    edu_commander = (
+        'edu_commander',
+        'Коммандир штаба образовательной организации'
+    )
+    detachment_commander = (
+        'detachment_commander',
+        'Коммандир отряда'
+    )
     candidate = 'candidate', 'Кандидат'
     fighter = 'fighter', 'Боец'
     unregistered_user = (
-        'unregistered_user', 'Незарегистрированный пользователь'
+        'unregistered_user',
+        'Незарегистрированный пользователь'
     )
     unverified_user = (
-        'unverified_user', 'Неверифицированный пользователь'
+        'unverified_user',
+        'Неверифицированный пользователь'
     )
     verified_user = (
-        'verified_user', 'Верифицированный пользователь'
+        'verified_user',
+        'Верифицированный пользователь'
     )
     trusted_user = (
-        'trusted_user', 'Доверенный пользователь'
+        'trusted_user',
+        'Доверенный пользователь'
     )
