@@ -124,6 +124,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ORIGIN_WHITELIST = [
     'http://localhost:3000',
     'http://localhost:8080',
+    'http://127.0.0.1:8080',
     'http://localhost',
     'https://d2avids.sytes.net',
     'https://rso.sprint.1t.ru'
@@ -132,10 +133,12 @@ CORS_ORIGIN_WHITELIST = [
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:8080',
+    'http://127.0.0.1:8080',
     'http://localhost'
     'https://127.0.0.1',
     'https://rso.sprint.1t.ru'
 ]
+CORS_ORIGIN_ALLOW_ALL = True
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
