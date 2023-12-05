@@ -123,12 +123,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ORIGIN_WHITELIST = [
     'http://localhost:3000',
+    'http://localhost:8080',
+    'http://localhost',
     'https://d2avids.sytes.net',
     'https://rso.sprint.1t.ru'
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
+    'http://localhost:8080',
+    'http://localhost'
     'https://127.0.0.1',
     'https://rso.sprint.1t.ru'
 ]
