@@ -146,7 +146,7 @@ user_nested_urls = [
         name='detachment-members-list'
     ),
     path(
-        'detachments/<int:pk>/members/<int:member_pk>/',
+        'detachments/<int:pk>/members/<int:membership_pk>/',
         DetachmentPositionUpdateVS,
         name='detachment-members-update'
     ),
@@ -156,7 +156,7 @@ user_nested_urls = [
         name='educational-members-list'
     ),
     path(
-        'educationals/<int:pk>/members/<int:member_pk>/',
+        'educationals/<int:pk>/members/<int:membership_pk>/',
         EducationalPositionUpdateVS,
         name='educational-members-update'
     ),
@@ -166,7 +166,7 @@ user_nested_urls = [
         name='local-members-list'
     ),
     path(
-        'locals/<int:pk>/members/<int:member_pk>/',
+        'locals/<int:pk>/members/<int:membership_pk>/',
         LocalPositionUpdateVS,
         name='local-members-update'
     ),
@@ -176,7 +176,7 @@ user_nested_urls = [
         name='regional-members-list'
     ),
     path(
-        'regionals/<int:pk>/members/<int:member_pk>/',
+        'regionals/<int:pk>/members/<int:membership_pk>/',
         RegionalPositionUpdateVS,
         name='regional-members-update'
     ),
@@ -186,7 +186,7 @@ user_nested_urls = [
         name='district-members-list'
     ),
     path(
-        'districts/<int:pk>/members/<int:member_pk>/',
+        'districts/<int:pk>/members/<int:membership_pk>/',
         DistrictPositionUpdateVS,
         name='district-members-update'
     ),
@@ -196,7 +196,7 @@ user_nested_urls = [
         name='central-members-list'
     ),
     path(
-        'centrals/<int:pk>/members/<int:member_pk>/',
+        'centrals/<int:pk>/members/<int:membership_pk>/',
         CentralPositionUpdateVS,
         name='central-members-update'
     ),

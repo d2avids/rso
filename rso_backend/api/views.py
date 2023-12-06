@@ -2,9 +2,10 @@ import mimetypes
 import os
 import zipfile
 
+from django.db.models import Q
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
-from rest_framework import permissions, status, viewsets
+from rest_framework import permissions, status, viewsets, filters
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
@@ -32,7 +33,7 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserRegionSerializer, UsersParentSerializer,
                              UserStatementDocumentsSerializer,
                              ForeignUserDocumentsSerializer)
-from api.utils import download_file
+from api.utils import download_file, get_headquarter_users_positions_queryset
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Region, RegionalHeadquarter,
@@ -55,10 +56,14 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
     Представляет пользователей. Доступны операции чтения.
     Пользователь имеет возможность изменять собственные данные
     по id или по эндпоинту /users/me.
+    Доступен поиск по username, first_name и last_name при передачи
+    search query-параметра.
     """
 
     queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('username', 'first_name', 'last_name')
 
     @action(
         detail=False,
@@ -294,9 +299,9 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         )
 
     @action(
-            detail=False,
-            methods=('get',),
-            permission_classes=(permissions.IsAuthenticated,)
+        detail=False,
+        methods=('get',),
+        permission_classes=(permissions.IsAuthenticated,)
     )
     def download_membership_file(self, request):
         """Скачивание бланка заявления на вступление в РСО.
@@ -310,9 +315,9 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         return download_file(filepath, filename)
 
     @action(
-            detail=False,
-            methods=('get',),
-            permission_classes=(permissions.IsAuthenticated,)
+        detail=False,
+        methods=('get',),
+        permission_classes=(permissions.IsAuthenticated,)
     )
     def download_consent_personal_data(self, request):
         """Скачивание бланка согласия на обработку персональных данных.
@@ -326,9 +331,9 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         return download_file(filepath, filename)
 
     @action(
-            detail=False,
-            methods=('get',),
-            permission_classes=(permissions.IsAuthenticated,)
+        detail=False,
+        methods=('get',),
+        permission_classes=(permissions.IsAuthenticated,)
     )
     def download_parent_consent_personal_data(self, request):
         """
@@ -371,7 +376,7 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         mime_type, _ = mimetypes.guess_type(filepath)
         response = HttpResponse(path, content_type=mime_type)
         response['Content-Disposition'] = (
-            'attachment; filename=%s' % 'entry_forms.zip'
+                'attachment; filename=%s' % 'entry_forms.zip'
         )
         os.remove(filepath)
         return response
@@ -393,10 +398,13 @@ class CentralViewSet(ListRetrieveUpdateViewSet):
     При операции чтения доступно число количества участников в структурной
     единице по ключу members_count, а также список всех участников по ключу
     members.
+    Доступен поиск по name при передаче ?search=<value> query-параметра.
     """
 
     queryset = CentralHeadquarter.objects.all()
     serializer_class = CentralHeadquarterSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class DistrictViewSet(viewsets.ModelViewSet):
@@ -406,10 +414,13 @@ class DistrictViewSet(viewsets.ModelViewSet):
     При операции чтения доступно число количества участников в структурной
     единице по ключу members_count, а также список всех участников по ключу
     members.
+    Доступен поиск по name при передаче ?search=<value> query-параметра.
     """
 
     queryset = DistrictHeadquarter.objects.all()
     serializer_class = DistrictHeadquarterSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class RegionalViewSet(viewsets.ModelViewSet):
@@ -423,10 +434,13 @@ class RegionalViewSet(viewsets.ModelViewSet):
     При операции чтения доступен список пользователей, подавших заявку на
     верификацию и относящихся к тому же региону, что и текущий региональный
     штаб, по ключу users_for_verification.
+    Доступен поиск по name при передаче ?search=<value> query-параметра.
     """
 
     queryset = RegionalHeadquarter.objects.all()
     serializer_class = RegionalHeadquarterSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class LocalViewSet(viewsets.ModelViewSet):
@@ -436,10 +450,13 @@ class LocalViewSet(viewsets.ModelViewSet):
     При операции чтения доступно число количества участников в структурной
     единице по ключу members_count, а также список всех участников по ключу
     members.
+    Доступен поиск по name при передаче ?search=<value> query-параметра.
     """
 
     queryset = LocalHeadquarter.objects.all()
     serializer_class = LocalHeadquarterSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class EducationalViewSet(viewsets.ModelViewSet):
@@ -454,10 +471,13 @@ class EducationalViewSet(viewsets.ModelViewSet):
     При операции чтения доступно число количества участников в структурной
     единице по ключу members_count, а также список всех участников по ключу
     members.
+    Доступен поиск по name при передаче ?search=<value> query-параметра.
     """
 
     queryset = EducationalHeadquarter.objects.all()
     serializer_class = EducationalHeadquarterSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class DetachmentViewSet(viewsets.ModelViewSet):
@@ -478,10 +498,13 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     ключу users_for_verification.
     При операции чтения доступен список пользователей, подавших заявку на
     вступление в отряд по ключу applications.
+    Доступен поиск по name при передаче ?search=<value> query-параметра.
     """
 
     queryset = Detachment.objects.all()
     serializer_class = DetachmentSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class BasePositionViewSet(viewsets.ModelViewSet):
@@ -491,6 +514,16 @@ class BasePositionViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = None
+
+    def filter_by_name(self, queryset):
+        """Фильтрация участников структурной единицы по имени (first_name)."""
+        search_by_name = self.request.query_params.get('search', None)
+        if search_by_name:
+            queryset = queryset.filter(
+                Q(user__first_name__icontains=search_by_name) |
+                Q(user__last_name__icontains=search_by_name)
+            )
+        return queryset
 
     def get_queryset(self):
         pass
@@ -511,10 +544,10 @@ class CentralPositionViewSet(BasePositionViewSet):
     serializer_class = CentralPositionSerializer
 
     def get_queryset(self):
-        headquarter_id = self.kwargs.get('pk')
-        headquarter = CentralHeadquarter.objects.get(id=headquarter_id)
-        return UserCentralHeadquarterPosition.objects.filter(
-            headquarter=headquarter
+        return get_headquarter_users_positions_queryset(
+            self,
+            CentralHeadquarter,
+            UserCentralHeadquarterPosition
         )
 
 
@@ -527,10 +560,10 @@ class DistrictPositionViewSet(BasePositionViewSet):
     serializer_class = DistrictPositionSerializer
 
     def get_queryset(self):
-        headquarter_id = self.kwargs.get('pk')
-        headquarter = DistrictHeadquarter.objects.get(id=headquarter_id)
-        return UserDistrictHeadquarterPosition.objects.filter(
-            headquarter=headquarter
+        return get_headquarter_users_positions_queryset(
+            self,
+            DistrictHeadquarter,
+            UserDistrictHeadquarterPosition
         )
 
 
@@ -543,10 +576,10 @@ class RegionalPositionViewSet(BasePositionViewSet):
     serializer_class = RegionalPositionSerializer
 
     def get_queryset(self):
-        headquarter_id = self.kwargs.get('pk')
-        headquarter = RegionalHeadquarter.objects.get(id=headquarter_id)
-        return UserRegionalHeadquarterPosition.objects.filter(
-            headquarter=headquarter
+        return get_headquarter_users_positions_queryset(
+            self,
+            RegionalHeadquarter,
+            UserRegionalHeadquarterPosition
         )
 
 
@@ -559,10 +592,10 @@ class LocalPositionViewSet(BasePositionViewSet):
     serializer_class = LocalPositionSerializer
 
     def get_queryset(self):
-        headquarter_id = self.kwargs.get('pk')
-        headquarter = LocalHeadquarter.objects.get(id=headquarter_id)
-        return UserLocalHeadquarterPosition.objects.filter(
-            headquarter=headquarter
+        return get_headquarter_users_positions_queryset(
+            self,
+            LocalHeadquarter,
+            UserLocalHeadquarterPosition
         )
 
 
@@ -575,10 +608,10 @@ class EducationalPositionViewSet(BasePositionViewSet):
     serializer_class = EducationalPositionSerializer
 
     def get_queryset(self):
-        headquarter_id = self.kwargs.get('pk')
-        headquarter = EducationalHeadquarter.objects.get(id=headquarter_id)
-        return UserEducationalHeadquarterPosition.objects.filter(
-            headquarter=headquarter
+        return get_headquarter_users_positions_queryset(
+            self,
+            EducationalHeadquarter,
+            UserEducationalHeadquarterPosition
         )
 
 
@@ -591,9 +624,11 @@ class DetachmentPositionViewSet(BasePositionViewSet):
     serializer_class = DetachmentPositionSerializer
 
     def get_queryset(self):
-        detachment_id = self.kwargs.get('pk')
-        detachment = Detachment.objects.get(id=detachment_id)
-        return UserDetachmentPosition.objects.filter(headquarter=detachment)
+        return get_headquarter_users_positions_queryset(
+            self,
+            Detachment,
+            UserDetachmentPosition
+        )
 
 
 class DetachmentAcceptViewSet(CreateDeleteViewSet):
