@@ -1,8 +1,12 @@
 import mimetypes
+import os
+import shutil
+
 
 from django.db import IntegrityError
 from django.http.response import HttpResponse
 from rest_framework import serializers
+from rest_framework.permissions import SAFE_METHODS
 
 
 def create_first_or_exception(self, validated_data, instance, error_msg: str):
@@ -16,6 +20,18 @@ def create_first_or_exception(self, validated_data, instance, error_msg: str):
         raise serializers.ValidationError({'detail': error_msg})
 
 
+def check_folder_delete(instance):
+    """
+    Функция для проверки существования папки с файлами
+    при удалении объекта модели.
+    """
+    try:
+        folder_path = os.path.dirname(instance.emblem.path)
+        shutil.rmtree(folder_path)
+    except ValueError:
+        return
+
+
 def download_file(filepath, filename):
     """Функция скачивания бланков заявлений.
 
@@ -27,3 +43,28 @@ def download_file(filepath, filename):
     response = HttpResponse(path, content_type=mime_type)
     response['Content-Disposition'] = 'attachment; filename=%s' % filename
     return response
+
+
+def is_safe_method(request):
+    return request.method in SAFE_METHODS
+
+
+def is_admin_or_central_commander(request):
+    return (
+        request.user.is_authenticated
+        and request.user.users_role.role == 'admin'
+        or request.user.users_role.role == 'central_commander'
+        or request.user.is_superuser
+    )
+
+
+def is_users_region(request, view):
+    """Проверка региона пользователя.
+
+    При  запросе пользователя к эндпоинту проверяет регион пользователя.
+    Если регион совпал с регионом штаба/отряда, возвращает True.
+    """
+
+    if request.user.region == view.get_object().region:
+        return True
+    return False

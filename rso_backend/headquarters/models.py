@@ -2,7 +2,6 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from headquarters.utils import image_path
-from users.models import RSOUser
 
 
 class EducationalInstitution(models.Model):
@@ -77,6 +76,7 @@ class Unit(models.Model):
 
     name = models.CharField(
         max_length=100,
+        unique=True,
         verbose_name='Название'
     )
     commander = models.ForeignKey(
@@ -539,9 +539,10 @@ class UserDetachmentPosition(UserUnitPosition):
 
     def get_first_filled_headquarter(self):
         """
-        Возвращает первый связанный с отрядом заполненный штаб по иерархии: 
+        Возвращает первый связанный с отрядом заполненный штаб по иерархии:
         ШОО, МШ или РШ.
         """
+
         educational_headquarter = self.headquarter.educational_headquarter
         if educational_headquarter:
             return educational_headquarter
