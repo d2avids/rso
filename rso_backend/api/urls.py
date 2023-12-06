@@ -21,7 +21,7 @@ from api.views import (CentralPositionViewSet, CentralViewSet,
                        UserProfessionalEducationViewSet, UserRegionViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
                        ForeignUserDocumentsViewSet, apply_for_verification,
-                       verify_user)
+                       verify_user, change_membership_fee_status)
 
 app_name = 'api'
 
@@ -129,6 +129,11 @@ user_nested_urls = [
         'users/<int:pk>/verify/',
         verify_user,
         name='user-verify'
+    ),
+    path(
+        'users/<int:pk>/membership_fee_status/',
+        change_membership_fee_status,
+        name='user-membership-fee'
     ),
     path(
         'detachments/<int:pk>/applications/',
