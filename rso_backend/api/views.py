@@ -3,7 +3,6 @@ import os
 import zipfile
 
 from django.db.models import Q
-from django.db.models.functions import Lower
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets, filters
@@ -34,7 +33,7 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserRegionSerializer, UsersParentSerializer,
                              UserStatementDocumentsSerializer,
                              ForeignUserDocumentsSerializer)
-from api.utils import download_file
+from api.utils import download_file, get_headquarter_users_positions_queryset
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Region, RegionalHeadquarter,
@@ -300,9 +299,9 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         )
 
     @action(
-            detail=False,
-            methods=('get',),
-            permission_classes=(permissions.IsAuthenticated,)
+        detail=False,
+        methods=('get',),
+        permission_classes=(permissions.IsAuthenticated,)
     )
     def download_membership_file(self, request):
         """Скачивание бланка заявления на вступление в РСО.
@@ -316,9 +315,9 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         return download_file(filepath, filename)
 
     @action(
-            detail=False,
-            methods=('get',),
-            permission_classes=(permissions.IsAuthenticated,)
+        detail=False,
+        methods=('get',),
+        permission_classes=(permissions.IsAuthenticated,)
     )
     def download_consent_personal_data(self, request):
         """Скачивание бланка согласия на обработку персональных данных.
@@ -332,9 +331,9 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         return download_file(filepath, filename)
 
     @action(
-            detail=False,
-            methods=('get',),
-            permission_classes=(permissions.IsAuthenticated,)
+        detail=False,
+        methods=('get',),
+        permission_classes=(permissions.IsAuthenticated,)
     )
     def download_parent_consent_personal_data(self, request):
         """
@@ -377,7 +376,7 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         mime_type, _ = mimetypes.guess_type(filepath)
         response = HttpResponse(path, content_type=mime_type)
         response['Content-Disposition'] = (
-            'attachment; filename=%s' % 'entry_forms.zip'
+                'attachment; filename=%s' % 'entry_forms.zip'
         )
         os.remove(filepath)
         return response
@@ -517,15 +516,13 @@ class BasePositionViewSet(viewsets.ModelViewSet):
     serializer_class = None
 
     def filter_by_name(self, queryset):
-        """Фильтрация участников стуктурной единицы по имени (first_name)."""
-        search_by_name = self.request.query_params.get('search_by_name', None)
-        search_by_name = search_by_name.capitalize()
+        """Фильтрация участников структурной единицы по имени (first_name)."""
+        search_by_name = self.request.query_params.get('search', None)
         if search_by_name:
             queryset = queryset.filter(
                 Q(user__first_name__icontains=search_by_name) |
                 Q(user__last_name__icontains=search_by_name)
             )
-            print(queryset.query)
         return queryset
 
     def get_queryset(self):
@@ -547,12 +544,11 @@ class CentralPositionViewSet(BasePositionViewSet):
     serializer_class = CentralPositionSerializer
 
     def get_queryset(self):
-        headquarter_id = self.kwargs.get('pk')
-        headquarter = get_object_or_404(CentralHeadquarter, id=headquarter_id)
-        queryset = UserCentralHeadquarterPosition.objects.filter(
-            headquarter=headquarter
+        return get_headquarter_users_positions_queryset(
+            self,
+            CentralHeadquarter,
+            UserCentralHeadquarterPosition
         )
-        return self.filter_by_name(queryset)
 
 
 class DistrictPositionViewSet(BasePositionViewSet):
@@ -564,12 +560,11 @@ class DistrictPositionViewSet(BasePositionViewSet):
     serializer_class = DistrictPositionSerializer
 
     def get_queryset(self):
-        headquarter_id = self.kwargs.get('pk')
-        headquarter = get_object_or_404(DistrictHeadquarter, id=headquarter_id)
-        queryset = UserDistrictHeadquarterPosition.objects.filter(
-            headquarter=headquarter
+        return get_headquarter_users_positions_queryset(
+            self,
+            DistrictHeadquarter,
+            UserDistrictHeadquarterPosition
         )
-        return self.filter_by_name(queryset)
 
 
 class RegionalPositionViewSet(BasePositionViewSet):
@@ -581,12 +576,11 @@ class RegionalPositionViewSet(BasePositionViewSet):
     serializer_class = RegionalPositionSerializer
 
     def get_queryset(self):
-        headquarter_id = self.kwargs.get('pk')
-        headquarter = get_object_or_404(RegionalHeadquarter, id=headquarter_id)
-        queryset = UserRegionalHeadquarterPosition.objects.filter(
-            headquarter=headquarter
+        return get_headquarter_users_positions_queryset(
+            self,
+            RegionalHeadquarter,
+            UserRegionalHeadquarterPosition
         )
-        return self.filter_by_name(queryset)
 
 
 class LocalPositionViewSet(BasePositionViewSet):
@@ -598,12 +592,11 @@ class LocalPositionViewSet(BasePositionViewSet):
     serializer_class = LocalPositionSerializer
 
     def get_queryset(self):
-        headquarter_id = self.kwargs.get('pk')
-        headquarter = get_object_or_404(LocalHeadquarter, id=headquarter_id)
-        queryset = UserLocalHeadquarterPosition.objects.filter(
-            headquarter=headquarter
+        return get_headquarter_users_positions_queryset(
+            self,
+            LocalHeadquarter,
+            UserLocalHeadquarterPosition
         )
-        return self.filter_by_name(queryset)
 
 
 class EducationalPositionViewSet(BasePositionViewSet):
@@ -615,12 +608,11 @@ class EducationalPositionViewSet(BasePositionViewSet):
     serializer_class = EducationalPositionSerializer
 
     def get_queryset(self):
-        headquarter_id = self.kwargs.get('pk')
-        headquarter = get_object_or_404(EducationalHeadquarter, id=headquarter_id)
-        queryset = UserEducationalHeadquarterPosition.objects.filter(
-            headquarter=headquarter
+        return get_headquarter_users_positions_queryset(
+            self,
+            EducationalHeadquarter,
+            UserEducationalHeadquarterPosition
         )
-        return self.filter_by_name(queryset)
 
 
 class DetachmentPositionViewSet(BasePositionViewSet):
@@ -632,12 +624,11 @@ class DetachmentPositionViewSet(BasePositionViewSet):
     serializer_class = DetachmentPositionSerializer
 
     def get_queryset(self):
-        detachment_id = self.kwargs.get('pk')
-        detachment = get_object_or_404(Detachment, id=detachment_id)
-        queryset = UserDetachmentPosition.objects.filter(
-            headquarter=detachment
+        return get_headquarter_users_positions_queryset(
+            self,
+            Detachment,
+            UserDetachmentPosition
         )
-        return self.filter_by_name(queryset)
 
 
 class DetachmentAcceptViewSet(CreateDeleteViewSet):

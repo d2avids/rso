@@ -381,6 +381,8 @@ class RSOUserSerializer(serializers.ModelSerializer):
 
 
 class UserAvatarSerializer(serializers.ModelSerializer):
+    """Сериализатор для вывода аватарки из модели с Медиа юзера."""
+
     class Meta:
         model = UserMedia
         fields = ('photo',)
