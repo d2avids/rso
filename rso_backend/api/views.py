@@ -2,9 +2,11 @@ import mimetypes
 import os
 import zipfile
 
+from django.db.models import Q
+from django.db.models.functions import Lower
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
-from rest_framework import permissions, status, viewsets
+from rest_framework import permissions, status, viewsets, filters
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
@@ -55,10 +57,14 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
     Представляет пользователей. Доступны операции чтения.
     Пользователь имеет возможность изменять собственные данные
     по id или по эндпоинту /users/me.
+    Доступен поиск по username, first_name и last_name при передачи
+    search query-параметра.
     """
 
     queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('username', 'first_name', 'last_name')
 
     @action(
         detail=False,
@@ -393,10 +399,13 @@ class CentralViewSet(ListRetrieveUpdateViewSet):
     При операции чтения доступно число количества участников в структурной
     единице по ключу members_count, а также список всех участников по ключу
     members.
+    Доступен поиск по name при передаче ?search=<value> query-параметра.
     """
 
     queryset = CentralHeadquarter.objects.all()
     serializer_class = CentralHeadquarterSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class DistrictViewSet(viewsets.ModelViewSet):
@@ -406,10 +415,13 @@ class DistrictViewSet(viewsets.ModelViewSet):
     При операции чтения доступно число количества участников в структурной
     единице по ключу members_count, а также список всех участников по ключу
     members.
+    Доступен поиск по name при передаче ?search=<value> query-параметра.
     """
 
     queryset = DistrictHeadquarter.objects.all()
     serializer_class = DistrictHeadquarterSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class RegionalViewSet(viewsets.ModelViewSet):
@@ -423,10 +435,13 @@ class RegionalViewSet(viewsets.ModelViewSet):
     При операции чтения доступен список пользователей, подавших заявку на
     верификацию и относящихся к тому же региону, что и текущий региональный
     штаб, по ключу users_for_verification.
+    Доступен поиск по name при передаче ?search=<value> query-параметра.
     """
 
     queryset = RegionalHeadquarter.objects.all()
     serializer_class = RegionalHeadquarterSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class LocalViewSet(viewsets.ModelViewSet):
@@ -436,10 +451,13 @@ class LocalViewSet(viewsets.ModelViewSet):
     При операции чтения доступно число количества участников в структурной
     единице по ключу members_count, а также список всех участников по ключу
     members.
+    Доступен поиск по name при передаче ?search=<value> query-параметра.
     """
 
     queryset = LocalHeadquarter.objects.all()
     serializer_class = LocalHeadquarterSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class EducationalViewSet(viewsets.ModelViewSet):
@@ -454,10 +472,13 @@ class EducationalViewSet(viewsets.ModelViewSet):
     При операции чтения доступно число количества участников в структурной
     единице по ключу members_count, а также список всех участников по ключу
     members.
+    Доступен поиск по name при передаче ?search=<value> query-параметра.
     """
 
     queryset = EducationalHeadquarter.objects.all()
     serializer_class = EducationalHeadquarterSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class DetachmentViewSet(viewsets.ModelViewSet):
@@ -478,10 +499,13 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     ключу users_for_verification.
     При операции чтения доступен список пользователей, подавших заявку на
     вступление в отряд по ключу applications.
+    Доступен поиск по name при передаче ?search=<value> query-параметра.
     """
 
     queryset = Detachment.objects.all()
     serializer_class = DetachmentSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
 
 class BasePositionViewSet(viewsets.ModelViewSet):
@@ -491,6 +515,18 @@ class BasePositionViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = None
+
+    def filter_by_name(self, queryset):
+        """Фильтрация участников стуктурной единицы по имени (first_name)."""
+        search_by_name = self.request.query_params.get('search_by_name', None)
+        search_by_name = search_by_name.capitalize()
+        if search_by_name:
+            queryset = queryset.filter(
+                Q(user__first_name__icontains=search_by_name) |
+                Q(user__last_name__icontains=search_by_name)
+            )
+            print(queryset.query)
+        return queryset
 
     def get_queryset(self):
         pass
@@ -512,10 +548,11 @@ class CentralPositionViewSet(BasePositionViewSet):
 
     def get_queryset(self):
         headquarter_id = self.kwargs.get('pk')
-        headquarter = CentralHeadquarter.objects.get(id=headquarter_id)
-        return UserCentralHeadquarterPosition.objects.filter(
+        headquarter = get_object_or_404(CentralHeadquarter, id=headquarter_id)
+        queryset = UserCentralHeadquarterPosition.objects.filter(
             headquarter=headquarter
         )
+        return self.filter_by_name(queryset)
 
 
 class DistrictPositionViewSet(BasePositionViewSet):
@@ -528,10 +565,11 @@ class DistrictPositionViewSet(BasePositionViewSet):
 
     def get_queryset(self):
         headquarter_id = self.kwargs.get('pk')
-        headquarter = DistrictHeadquarter.objects.get(id=headquarter_id)
-        return UserDistrictHeadquarterPosition.objects.filter(
+        headquarter = get_object_or_404(DistrictHeadquarter, id=headquarter_id)
+        queryset = UserDistrictHeadquarterPosition.objects.filter(
             headquarter=headquarter
         )
+        return self.filter_by_name(queryset)
 
 
 class RegionalPositionViewSet(BasePositionViewSet):
@@ -544,10 +582,11 @@ class RegionalPositionViewSet(BasePositionViewSet):
 
     def get_queryset(self):
         headquarter_id = self.kwargs.get('pk')
-        headquarter = RegionalHeadquarter.objects.get(id=headquarter_id)
-        return UserRegionalHeadquarterPosition.objects.filter(
+        headquarter = get_object_or_404(RegionalHeadquarter, id=headquarter_id)
+        queryset = UserRegionalHeadquarterPosition.objects.filter(
             headquarter=headquarter
         )
+        return self.filter_by_name(queryset)
 
 
 class LocalPositionViewSet(BasePositionViewSet):
@@ -560,10 +599,11 @@ class LocalPositionViewSet(BasePositionViewSet):
 
     def get_queryset(self):
         headquarter_id = self.kwargs.get('pk')
-        headquarter = LocalHeadquarter.objects.get(id=headquarter_id)
-        return UserLocalHeadquarterPosition.objects.filter(
+        headquarter = get_object_or_404(LocalHeadquarter, id=headquarter_id)
+        queryset = UserLocalHeadquarterPosition.objects.filter(
             headquarter=headquarter
         )
+        return self.filter_by_name(queryset)
 
 
 class EducationalPositionViewSet(BasePositionViewSet):
@@ -576,10 +616,11 @@ class EducationalPositionViewSet(BasePositionViewSet):
 
     def get_queryset(self):
         headquarter_id = self.kwargs.get('pk')
-        headquarter = EducationalHeadquarter.objects.get(id=headquarter_id)
-        return UserEducationalHeadquarterPosition.objects.filter(
+        headquarter = get_object_or_404(EducationalHeadquarter, id=headquarter_id)
+        queryset = UserEducationalHeadquarterPosition.objects.filter(
             headquarter=headquarter
         )
+        return self.filter_by_name(queryset)
 
 
 class DetachmentPositionViewSet(BasePositionViewSet):
@@ -592,8 +633,11 @@ class DetachmentPositionViewSet(BasePositionViewSet):
 
     def get_queryset(self):
         detachment_id = self.kwargs.get('pk')
-        detachment = Detachment.objects.get(id=detachment_id)
-        return UserDetachmentPosition.objects.filter(headquarter=detachment)
+        detachment = get_object_or_404(Detachment, id=detachment_id)
+        queryset = UserDetachmentPosition.objects.filter(
+            headquarter=detachment
+        )
+        return self.filter_by_name(queryset)
 
 
 class DetachmentAcceptViewSet(CreateDeleteViewSet):

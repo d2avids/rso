@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'djoser',
     'corsheaders',
+    'django_filters',
 ]
 
 INSTALLED_APPS += [
