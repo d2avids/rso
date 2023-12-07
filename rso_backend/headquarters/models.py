@@ -259,7 +259,7 @@ class Detachment(Unit):
         verbose_name='Привязка к РШ',
     )
     area = models.ForeignKey(
-        Area,
+        'Area',
         null=False,
         blank=False,
         on_delete=models.PROTECT,
