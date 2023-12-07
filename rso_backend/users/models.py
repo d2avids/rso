@@ -119,6 +119,7 @@ class RSOUser(AbstractUser):
 
 class UserEducation(models.Model):
     """Информация об образовательной организации пользователя."""
+
     user = models.OneToOneField(
         verbose_name='Пользователь',
         to='RSOUser',
@@ -173,7 +174,8 @@ class UserEducation(models.Model):
 
 
 class ProfessionalEduction(models.Model):
-    "Дополнительное профессиональное образование."
+    """Дополнительное профессиональное образование."""
+
     user = models.ForeignKey(
         verbose_name='Пользователь',
         to='RSOUser',
@@ -219,6 +221,7 @@ class ProfessionalEduction(models.Model):
 
 class UserDocuments(models.Model):
     """Информация о документах пользователя."""
+
     user = models.OneToOneField(
         verbose_name='Пользователь',
         to='RSOUser',
@@ -377,6 +380,7 @@ class UserRegion(models.Model):
     """
     Информация о регионе и проживании (фактическом и по прописке) пользователя.
     """
+
     user = models.OneToOneField(
         verbose_name='Пользователь',
         to='RSOUser',
@@ -445,6 +449,7 @@ class UserRegion(models.Model):
 
 class UserPrivacySettings(models.Model):
     """Настройки приватности пользователя."""
+
     user = models.OneToOneField(
         verbose_name='Пользователь',
         to='RSOUser',

@@ -252,11 +252,24 @@ class Detachment(Unit):
         blank=True,
         null=True,
     )
+
     regional_headquarter = models.ForeignKey(
         'RegionalHeadquarter',
         related_name='detachments',
         on_delete=models.PROTECT,
         verbose_name='Привязка к РШ',
+    )
+    region = models.ForeignKey(
+        'Region',
+        related_name='detachments',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к региону'
+    )
+    educational_institution = models.ForeignKey(
+        'EducationalInstitution',
+        related_name='detachments',
+        on_delete=models.PROTECT,
+        verbose_name='Привязка к учебному заведению'
     )
     area = models.ForeignKey(
         'Area',
@@ -264,6 +277,26 @@ class Detachment(Unit):
         blank=False,
         on_delete=models.PROTECT,
         verbose_name='Направление'
+    )
+    photo1 = models.ImageField(
+        upload_to=image_path,
+        blank=True,
+        verbose_name='Фото 1'
+    )
+    photo2 = models.ImageField(
+        upload_to=image_path,
+        blank=True,
+        verbose_name='Фото 2'
+    )
+    photo3 = models.ImageField(
+        upload_to=image_path,
+        blank=True,
+        verbose_name='Фото 3'
+    )
+    photo4 = models.ImageField(
+        upload_to=image_path,
+        blank=True,
+        verbose_name='Фото 4'
     )
 
     def clean(self):
@@ -305,6 +338,23 @@ class Detachment(Unit):
                     'educational_headquarter': 'Этот образовательный штаб '
                                                'связан с другим региональным '
                                                'штабом.'
+                })
+        if self.regional_headquarter:
+            if self.region != self.regional_headquarter.region:
+                raise ValidationError({
+                    'region': 'Этот регион не совпадает с регионом '
+                              'выбранного регионального штаба.'
+                })
+        if self.educational_headquarter:
+            if (
+                    self.educational_headquarter.educational_institution !=
+                    self.educational_institution
+            ):
+                raise ValidationError({
+                    'educational_institution': 'Это учебное заведение '
+                                               'не совпадает с учебным '
+                                               'заведением выбранного '
+                                               'образовательного штаба.'
                 })
 
     def __str__(self):
