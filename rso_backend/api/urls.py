@@ -214,5 +214,6 @@ user_nested_urls = [
 
 urlpatterns = [
     path('register/', UserViewSet.as_view(CREATE_METHOD), name='user-create'),
+    path('', include('djoser.urls')),
     path('', include(router.urls)),
 ] + user_nested_urls
