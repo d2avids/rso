@@ -752,8 +752,8 @@ def verify_user(request, pk):
     (относящихся к тому же региону, что и юзер) и отрядов (в котором
     состоит юзер).
     """
+    user = get_object_or_404(RSOUser, id=pk)
     if request.method == 'POST':
-        user = RSOUser.objects.get(id=pk)
         application_for_verification = get_object_or_404(
             UserVerificationRequest, user=user
         )
@@ -761,10 +761,21 @@ def verify_user(request, pk):
         user.save()
         application_for_verification.delete()
         return Response(status=status.HTTP_202_ACCEPTED)
-    if request.method == 'DELETE':
-        user = RSOUser.objects.get(id=id)
-        application_for_verification = get_object_or_404(
-            UserVerificationRequest, user=user
-        )
-        application_for_verification.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    application_for_verification = get_object_or_404(
+        UserVerificationRequest, user=user
+    )
+    application_for_verification.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['POST', 'DELETE'])
+def change_membership_fee_status(request, pk):
+    """Изменить статус оплаты членского взноса пользователю."""
+    user = get_object_or_404(RSOUser, id=pk)
+    if request.method == 'POST':
+        user.membership_fee = True
+        user.save()
+        return Response(status=status.HTTP_202_ACCEPTED)
+    user.membership_fee = False
+    user.save()
+    return Response(status=status.HTTP_204_NO_CONTENT)
