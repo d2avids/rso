@@ -21,7 +21,7 @@ from api.views import (CentralPositionViewSet, CentralViewSet,
                        UserProfessionalEducationViewSet, UserRegionViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
                        ForeignUserDocumentsViewSet, apply_for_verification,
-                       verify_user, change_membership_fee_status)
+                       verify_user, AreaViewSet, change_membership_fee_status)
 
 app_name = 'api'
 
@@ -29,6 +29,7 @@ router = DefaultRouter()
 
 router.register(r'users', RSOUserViewSet)
 router.register(r'regions', RegionViewSet)
+router.register(r'areas', AreaViewSet)
 router.register(r'districts', DistrictViewSet)
 router.register(r'regionals', RegionalViewSet)
 router.register(r'educationals', EducationalViewSet)

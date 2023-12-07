@@ -19,11 +19,17 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition)
+                                 UserRegionalHeadquarterPosition, Area)
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
                           UserRegion, UsersParent, UserStatementDocuments,
                           UserVerificationRequest, ForeignUserDocuments)
+
+
+class AreaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Area
+        fields = ('id', 'name', )
 
 
 class RegionSerializer(serializers.ModelSerializer):
@@ -789,7 +795,13 @@ class DetachmentSerializer(BaseUnitSerializer):
             'educational_headquarter',
             'local_headquarter',
             'regional_headquarter',
+            'region',
+            'educational_institution',
             'area',
+            'photo1',
+            'photo2',
+            'photo3',
+            'photo4',
             'applications',
             'members',
             'users_for_verification',
