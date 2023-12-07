@@ -750,12 +750,11 @@ def verify_user(request, pk):
         user.save()
         application_for_verification.delete()
         return Response(status=status.HTTP_202_ACCEPTED)
-    if request.method == 'DELETE':
-        application_for_verification = get_object_or_404(
-            UserVerificationRequest, user=user
-        )
-        application_for_verification.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    application_for_verification = get_object_or_404(
+        UserVerificationRequest, user=user
+    )
+    application_for_verification.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(['POST', 'DELETE'])
@@ -766,7 +765,6 @@ def change_membership_fee_status(request, pk):
         user.membership_fee = True
         user.save()
         return Response(status=status.HTTP_202_ACCEPTED)
-    if request.method == 'DELETE':
-        user.membership_fee = False
-        user.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    user.membership_fee = False
+    user.save()
+    return Response(status=status.HTTP_204_NO_CONTENT)
