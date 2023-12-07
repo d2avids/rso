@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from api.mixins import (CreateDeleteViewSet, ListRetrieveUpdateViewSet,
                         ListRetrieveViewSet)
-from api.permissions import (IsStuffOrAuthor, IsDistrictCommander)
+from api.permissions import (IsAdminOrCentralCommander, IsStuffOrAuthor, IsDistrictCommander)
 from api.serializers import (CentralHeadquarterSerializer,
                              CentralPositionSerializer,
                              DetachmentPositionSerializer,
@@ -414,6 +414,25 @@ class CentralViewSet(ListRetrieveUpdateViewSet):
 
     queryset = CentralHeadquarter.objects.all()
     serializer_class = CentralHeadquarterSerializer
+    permission_classes = (IsAdminOrCentralCommander,)
+
+    def perform_create(self, serializer):
+        """Проверяет права пользователя на создание центрального штаба."""
+
+        role = self.request.user.users_role.role
+        roles_with_rights = [
+            'central_commander',
+            'admin'
+        ]
+        check_roles_save(role, roles_with_rights, serializer)
+
+    def create(self, request, *args, **kwargs):
+        """Создает центральный штаб."""
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class DistrictViewSet(viewsets.ModelViewSet):
@@ -427,10 +446,10 @@ class DistrictViewSet(viewsets.ModelViewSet):
 
     queryset = DistrictHeadquarter.objects.all()
     serializer_class = DistrictHeadquarterSerializer
-    permission_classes = (IsDistrictCommander,)
+    permission_classes = (IsAdminOrCentralCommander,)
 
     def perform_create(self, serializer):
-        """Проверяет права пользователя на создание регионального штаба."""
+        """Проверяет права пользователя на создание окружного штаба."""
 
         role = self.request.user.users_role.role
         roles_with_rights = [
@@ -440,7 +459,7 @@ class DistrictViewSet(viewsets.ModelViewSet):
         check_roles_save(role, roles_with_rights, serializer)
 
     def create(self, request, *args, **kwargs):
-        """Создает региональный штаб."""
+        """Создает окружной штаб."""
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
