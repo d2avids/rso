@@ -100,7 +100,6 @@ class RSOUser(AbstractUser):
         verbose_name='Статус верификации',
         default=False,
     )
-    # ---Для несовершеннолетних---
     membership_fee = models.BooleanField(
         default=False,
         verbose_name='Членский взнос оплачен'
@@ -109,6 +108,18 @@ class RSOUser(AbstractUser):
     class Meta:
         verbose_name_plural = 'Пользователи'
         verbose_name = 'Пользователь'
+
+    def save(self, *args, **kwargs):
+        """Дополнение метода save.
+
+        При регистрации пользователя добавляет запись в таблицу UsersRoles
+        с должностью "Кандидат".
+        """
+        super().save(*args, **kwargs)
+        UsersRoles.objects.get_or_create(
+            user_id=self.id,
+            role=UsersRolesChoices.candidate
+        )
 
     def __str__(self):
         return (
@@ -788,11 +799,12 @@ class UsersRoles(models.Model):
         related_name='users_role',
     )
     role = models.CharField(
-        null=True,
-        blank=True,
         verbose_name='Роль пользователя',
         max_length=35,
         choices=UsersRolesChoices.choices,
+        default=UsersRolesChoices.candidate,
+        blank=True,
+        null=True
     )
 
     class Meta:

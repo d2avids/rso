@@ -64,19 +64,3 @@ class UsersRolesChoices(models.TextChoices):
     )
     candidate = 'candidate', 'Кандидат'
     fighter = 'fighter', 'Боец'
-    unregistered_user = (
-        'unregistered_user',
-        'Незарегистрированный пользователь'
-    )
-    unverified_user = (
-        'unverified_user',
-        'Неверифицированный пользователь'
-    )
-    verified_user = (
-        'verified_user',
-        'Верифицированный пользователь'
-    )
-    trusted_user = (
-        'trusted_user',
-        'Доверенный пользователь'
-    )

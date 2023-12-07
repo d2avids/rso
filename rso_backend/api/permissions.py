@@ -1,8 +1,7 @@
 from rest_framework.permissions import BasePermission
 
 from api.constants import STUFF_LIST
-from api.utils import (is_admin_or_central_commander, is_safe_method,
-                       is_users_region)
+from api.utils import is_admin_or_central_commander, is_safe_method
 
 
 class IsAdminOrCentralCommander(BasePermission):
@@ -51,8 +50,6 @@ class IsDistrictCommander(BasePermission):
         """Метод, для проверки доступа к эндпоинтам ОШ.
 
         check_roles - проверяет http-методы пользователя или роли.
-        is_users_region - проверяет совпадение региона пользователя
-        с регионом ОШ.
         """
 
         check_roles = (
@@ -60,8 +57,6 @@ class IsDistrictCommander(BasePermission):
                 or is_admin_or_central_commander(request)
                 or request.user.users_role.role == 'district_commander'
         )
-        if view.action == 'retrieve':
-            return check_roles and is_users_region(request, view)
         return check_roles
 
 
@@ -88,6 +83,4 @@ class IsRegionalCommander(BasePermission):
                 or is_admin_or_central_commander(request)
                 or request.user.users_role.role == 'regional_commander'
             )
-        if view.action == 'retrieve':
-            return check_roles and is_users_region(request, view)
         return check_roles

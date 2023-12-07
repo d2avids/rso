@@ -2,7 +2,7 @@ import mimetypes
 import os
 import shutil
 
-
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.http.response import HttpResponse
 from rest_framework import serializers
@@ -68,3 +68,11 @@ def is_users_region(request, view):
     if request.user.region == view.get_object().region:
         return True
     return False
+
+
+def check_roles_save(role, roles_with_rights, serializer):
+    if role in roles_with_rights:
+        return serializer.save()
+    raise ValidationError(
+            'У Вас нет прав для создания этой структурной единицы.'
+        )

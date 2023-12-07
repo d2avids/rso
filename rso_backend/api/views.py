@@ -2,7 +2,6 @@ import mimetypes
 import os
 import zipfile
 
-from django.core.exceptions import ValidationError
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets
@@ -11,7 +10,7 @@ from rest_framework.response import Response
 
 from api.mixins import (CreateDeleteViewSet, ListRetrieveUpdateViewSet,
                         ListRetrieveViewSet)
-from api.permissions import (IsStuffOrAuthor, IsRegionalCommander, IsDistrictCommander)
+from api.permissions import (IsStuffOrAuthor, IsDistrictCommander)
 from api.serializers import (CentralHeadquarterSerializer,
                              CentralPositionSerializer,
                              DetachmentPositionSerializer,
@@ -35,7 +34,7 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserStatementDocumentsSerializer,
                              ForeignUserDocumentsSerializer,
                              UsersRolesSerializer)
-from api.utils import download_file
+from api.utils import download_file, check_roles_save
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Region, RegionalHeadquarter,
@@ -425,7 +424,7 @@ class DistrictViewSet(viewsets.ModelViewSet):
     единице по ключу members_count, а также список всех участников по ключу
     members.
     """
-    #TODO: опеределить зону ответственности штаба
+
     queryset = DistrictHeadquarter.objects.all()
     serializer_class = DistrictHeadquarterSerializer
     permission_classes = (IsDistrictCommander,)
@@ -434,23 +433,11 @@ class DistrictViewSet(viewsets.ModelViewSet):
         """Проверяет права пользователя на создание регионального штаба."""
 
         role = self.request.user.users_role.role
-        region = self.request.user.region
-
-        if (role == 'district_commander'
-           and region == serializer.validated_data['region']):
-            return serializer.save(commander=self.request.user)
-        if (
-            role == 'admin'
-            or role == 'central_commander'
-        ):
-            return serializer.save()
-        if (
-            role != 'district_commander'
-            or region != serializer.validated_data['region']
-        ):
-            raise ValidationError(
-                'У Вас нет прав для создания штаба в этом регионе.'
-            )
+        roles_with_rights = [
+            'central_commander',
+            'admin'
+        ]
+        check_roles_save(role, roles_with_rights, serializer)
 
     def create(self, request, *args, **kwargs):
         """Создает региональный штаб."""
@@ -473,33 +460,21 @@ class RegionalViewSet(viewsets.ModelViewSet):
     верификацию и относящихся к тому же региону, что и текущий региональный
     штаб, по ключу users_for_verification.
     """
-    #TODO: командир регионального сам не может создать региональный. Исправить.
+
     queryset = RegionalHeadquarter.objects.all()
     serializer_class = RegionalHeadquarterSerializer
-    permission_classes = (IsRegionalCommander,)
+    permission_classes = (IsDistrictCommander,)
 
     def perform_create(self, serializer):
         """Проверяет права пользователя на создание регионального штаба."""
 
         role = self.request.user.users_role.role
-        region = self.request.user.region
-
-        if (role == 'regional_commander'
-           and region == serializer.validated_data['region']):
-            return serializer.save(commander=self.request.user)
-        if (
-            role == 'admin'
-            or role == 'central_commander'
-            or role == 'district_commander'
-        ):
-            return serializer.save()
-        if (
-            role != 'regional_commander'
-            or region != serializer.validated_data['region']
-        ):
-            raise ValidationError(
-                'У Вас нет прав для создания штаба в этом регионе.'
-            )
+        roles_with_rights = [
+            'district_commander',
+            'central_commander',
+            'admin'
+        ]
+        check_roles_save(role, roles_with_rights, serializer)
 
     def create(self, request, *args, **kwargs):
         """Создает региональный штаб."""
