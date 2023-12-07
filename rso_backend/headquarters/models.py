@@ -265,6 +265,10 @@ class Detachment(Unit):
         on_delete=models.PROTECT,
         verbose_name='Привязка к региону'
     )
+    city = models.CharField(
+        max_length=100,
+        verbose_name='Город (нас. пункт)'
+    )
     educational_institution = models.ForeignKey(
         'EducationalInstitution',
         related_name='detachments',
