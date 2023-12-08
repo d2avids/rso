@@ -74,8 +74,6 @@ class IsRegionalCommander(BasePermission):
         """Метод, для проверки доступа к эндпоинтам РШ.
 
         check_roles - проверяет http-методы пользователя или роли.
-        is_users_region - проверяет совпадение региона пользователя
-        с регионом РШ.
         """
 
         check_roles = (
