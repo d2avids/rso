@@ -88,7 +88,7 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
 
 
 class EducationalInstitutionViewSet(ListRetrieveViewSet):
-    """Представляет регионы. Доступны только операции чтения."""
+    """Представляет учебные заведения. Доступны только операции чтения."""
 
     queryset = EducationalInstitution.objects.all()
     serializer_class = EducationalInstitutionSerializer
