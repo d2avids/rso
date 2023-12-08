@@ -33,7 +33,7 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserRegionSerializer, UsersParentSerializer,
                              UserStatementDocumentsSerializer,
                              ForeignUserDocumentsSerializer,
-                             AreaSerializer)
+                             AreaSerializer, EducationalInstitutionSerializer)
 from api.utils import download_file, get_headquarter_users_positions_queryset
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
@@ -44,7 +44,8 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition, Area)
+                                 UserRegionalHeadquarterPosition, Area,
+                                 EducationalInstitution)
 from rso_backend.settings import BASE_DIR
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
@@ -84,6 +85,13 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
             serializer.save()
 
         return Response(self.get_serializer(request.user).data)
+
+
+class EducationalInstitutionViewSet(ListRetrieveViewSet):
+    """Представляет учебные заведения. Доступны только операции чтения."""
+
+    queryset = EducationalInstitution.objects.all()
+    serializer_class = EducationalInstitutionSerializer
 
 
 class RegionViewSet(ListRetrieveViewSet):
