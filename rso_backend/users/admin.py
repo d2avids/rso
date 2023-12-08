@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
+from django_celery_beat.models import (PeriodicTask, IntervalSchedule,
+                                       CrontabSchedule, ClockedSchedule,
+                                       SolarSchedule)
 
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserPrivacySettings, UserRegion, UsersParent)
@@ -57,3 +60,8 @@ class UserAdmin(BaseUserAdmin):
 
 
 admin.site.unregister(Group)
+admin.site.unregister(PeriodicTask)
+admin.site.unregister(IntervalSchedule)
+admin.site.unregister(CrontabSchedule)
+admin.site.unregister(ClockedSchedule)
+admin.site.unregister(SolarSchedule)
