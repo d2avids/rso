@@ -215,11 +215,11 @@ user_nested_urls = [
         'users/me/professional_education/<int:pk>/',
         UserProfEduPUDVS,
         name='user-prof-education_post_update_delete',
-    ),
-    path('', include('djoser.urls')),
+    )
 ]
 
 urlpatterns = [
     path('register/', UserViewSet.as_view(CREATE_METHOD), name='user-create'),
+    path('', include('djoser.urls')),
     path('', include(router.urls)),
 ] + user_nested_urls
