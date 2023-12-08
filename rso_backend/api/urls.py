@@ -20,8 +20,9 @@ from api.views import (CentralPositionViewSet, CentralViewSet,
                        UserPrivacySettingsViewSet,
                        UserProfessionalEducationViewSet, UserRegionViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
-                       ForeignUserDocumentsViewSet, UsersRolesViewSet,
-                       apply_for_verification, verify_user)
+                       ForeignUserDocumentsViewSet, apply_for_verification,
+                       verify_user, AreaViewSet, change_membership_fee_status,
+                       UsersRolesViewSet,)
 
 app_name = 'api'
 
@@ -29,6 +30,7 @@ router = DefaultRouter()
 
 router.register(r'users', RSOUserViewSet)
 router.register(r'regions', RegionViewSet)
+router.register(r'areas', AreaViewSet)
 router.register(r'districts', DistrictViewSet)
 router.register(r'regionals', RegionalViewSet)
 router.register(r'educationals', EducationalViewSet)
@@ -141,6 +143,11 @@ user_nested_urls = [
         name='user-verify'
     ),
     path(
+        'users/<int:pk>/membership_fee_status/',
+        change_membership_fee_status,
+        name='user-membership-fee'
+    ),
+    path(
         'detachments/<int:pk>/applications/',
         DetachmentApplicationVS,
         name='detachment-application'
@@ -156,7 +163,7 @@ user_nested_urls = [
         name='detachment-members-list'
     ),
     path(
-        'detachments/<int:pk>/members/<int:member_pk>/',
+        'detachments/<int:pk>/members/<int:membership_pk>/',
         DetachmentPositionUpdateVS,
         name='detachment-members-update'
     ),
@@ -166,7 +173,7 @@ user_nested_urls = [
         name='educational-members-list'
     ),
     path(
-        'educationals/<int:pk>/members/<int:member_pk>/',
+        'educationals/<int:pk>/members/<int:membership_pk>/',
         EducationalPositionUpdateVS,
         name='educational-members-update'
     ),
@@ -176,7 +183,7 @@ user_nested_urls = [
         name='local-members-list'
     ),
     path(
-        'locals/<int:pk>/members/<int:member_pk>/',
+        'locals/<int:pk>/members/<int:membership_pk>/',
         LocalPositionUpdateVS,
         name='local-members-update'
     ),
@@ -186,7 +193,7 @@ user_nested_urls = [
         name='regional-members-list'
     ),
     path(
-        'regionals/<int:pk>/members/<int:member_pk>/',
+        'regionals/<int:pk>/members/<int:membership_pk>/',
         RegionalPositionUpdateVS,
         name='regional-members-update'
     ),
@@ -196,7 +203,7 @@ user_nested_urls = [
         name='district-members-list'
     ),
     path(
-        'districts/<int:pk>/members/<int:member_pk>/',
+        'districts/<int:pk>/members/<int:membership_pk>/',
         DistrictPositionUpdateVS,
         name='district-members-update'
     ),
@@ -206,7 +213,7 @@ user_nested_urls = [
         name='central-members-list'
     ),
     path(
-        'centrals/<int:pk>/members/<int:member_pk>/',
+        'centrals/<int:pk>/members/<int:membership_pk>/',
         CentralPositionUpdateVS,
         name='central-members-update'
     ),
@@ -219,7 +226,8 @@ user_nested_urls = [
         'users/me/professional_education/<int:pk>/',
         UserProfEduPUDVS,
         name='user-prof-education_post_update_delete',
-    )
+    ),
+    path('', include('djoser.urls')),
 ]
 
 urlpatterns = [

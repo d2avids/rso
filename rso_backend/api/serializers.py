@@ -19,12 +19,18 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition)
+                                 UserRegionalHeadquarterPosition,)
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
                           UserRegion, UsersParent, UserStatementDocuments,
                           UserVerificationRequest, ForeignUserDocuments,
                           UsersRoles)
+
+
+class AreaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Area
+        fields = ('id', 'name', )
 
 
 class RegionSerializer(serializers.ModelSerializer):
@@ -381,21 +387,36 @@ class RSOUserSerializer(serializers.ModelSerializer):
             return age >= 18
 
 
+class UserAvatarSerializer(serializers.ModelSerializer):
+    """Сериализатор для вывода аватарки из модели с Медиа юзера."""
+
+    class Meta:
+        model = UserMedia
+        fields = ('photo',)
+
+
 class ShortUserSerializer(serializers.ModelSerializer):
     """Для сериализации небольшой части данных пользователя."""
+
+    avatar = UserAvatarSerializer(source='media', read_only=True)
+
     class Meta:
         model = RSOUser
         fields = (
             'id',
             'username',
+            'avatar',
             'email',
             'first_name',
             'last_name',
+            'date_of_birth',
+            'membership_fee',
         )
 
 
 class UserVerificationSerializer(serializers.ModelSerializer):
     """Для сериализации заявок на верификацию."""
+
     user = ShortUserSerializer()
 
     class Meta:
@@ -414,6 +435,24 @@ class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
         allow_null=True,
         required=False,
     )
+
+    def create(self, validated_data):
+        """Приводим ФИО к корректному формату: с большой буквы."""
+
+        if 'last_name' in validated_data:
+            validated_data['last_name'] = (
+                validated_data['last_name'].capitalize()
+            )
+        if 'first_name' in validated_data:
+            validated_data['first_name'] = (
+                validated_data['first_name'].capitalize()
+            )
+        if 'patronymic_name' in validated_data:
+            validated_data['patronymic_name'] = (
+                validated_data['patronymic_name'].capitalize()
+            )
+
+        return super().create(validated_data)
 
     class Meta:
         model = RSOUser
@@ -449,6 +488,7 @@ class BasePositionSerializer(serializers.ModelSerializer):
         queryset=Position.objects.all(),
         required=False,
     )
+    user = ShortUserSerializer(read_only=True)
 
     class Meta:
         model = UserCentralHeadquarterPosition
@@ -506,7 +546,7 @@ class EducationalPositionSerializer(BasePositionSerializer):
         read_only_fields = BasePositionSerializer.Meta.read_only_fields
 
 
-class DetachmentPositionSerializer(serializers.ModelSerializer):
+class DetachmentPositionSerializer(BasePositionSerializer):
     """Сериализаатор для добавления пользователя в отряд."""
 
     class Meta:
@@ -768,7 +808,13 @@ class DetachmentSerializer(BaseUnitSerializer):
             'educational_headquarter',
             'local_headquarter',
             'regional_headquarter',
+            'region',
+            'educational_institution',
             'area',
+            'photo1',
+            'photo2',
+            'photo3',
+            'photo4',
             'applications',
             'members',
             'users_for_verification',
