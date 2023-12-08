@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from api.mixins import (CreateDeleteViewSet, ListRetrieveUpdateViewSet,
                         ListRetrieveViewSet)
 from api.permissions import (IsAdminOrCentralCommander, IsStuffOrAuthor,
-                             IsDistrictCommander)
+                             IsDistrictCommander, IsRegionalCommander)
 from api.serializers import (CentralHeadquarterSerializer,
                              CentralPositionSerializer,
                              DetachmentPositionSerializer,
@@ -468,6 +468,8 @@ class DistrictViewSet(viewsets.ModelViewSet):
     queryset = DistrictHeadquarter.objects.all()
     serializer_class = DistrictHeadquarterSerializer
     permission_classes = (IsAdminOrCentralCommander,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
     def perform_create(self, serializer):
         """Проверяет права пользователя на создание окружного штаба."""
@@ -486,8 +488,6 @@ class DistrictViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
 
 
 class RegionalViewSet(viewsets.ModelViewSet):
@@ -507,6 +507,8 @@ class RegionalViewSet(viewsets.ModelViewSet):
     queryset = RegionalHeadquarter.objects.all()
     serializer_class = RegionalHeadquarterSerializer
     permission_classes = (IsDistrictCommander,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
 
     def perform_create(self, serializer):
         """Проверяет права пользователя на создание регионального штаба."""
@@ -526,8 +528,6 @@ class RegionalViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
 
 
 class LocalViewSet(viewsets.ModelViewSet):
@@ -544,6 +544,27 @@ class LocalViewSet(viewsets.ModelViewSet):
     serializer_class = LocalHeadquarterSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+    permission_classes = (IsRegionalCommander,)
+
+    def perform_create(self, serializer):
+        """Проверяет права пользователя на создание местного штаба."""
+
+        role = self.request.user.users_role.role
+        roles_with_rights = [
+            'regional_commander',
+            'district_commander',
+            'central_commander',
+            'admin'
+        ]
+        check_roles_save(role, roles_with_rights, serializer)
+
+    def create(self, request, *args, **kwargs):
+        """Создает региональный штаб."""
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class EducationalViewSet(viewsets.ModelViewSet):
