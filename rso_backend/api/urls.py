@@ -21,7 +21,8 @@ from api.views import (CentralPositionViewSet, CentralViewSet,
                        UserProfessionalEducationViewSet, UserRegionViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
                        ForeignUserDocumentsViewSet, apply_for_verification,
-                       verify_user, AreaViewSet, change_membership_fee_status)
+                       verify_user, AreaViewSet, change_membership_fee_status,
+                       EducationalInstitutionViewSet)
 
 app_name = 'api'
 
@@ -36,6 +37,8 @@ router.register(r'educationals', EducationalViewSet)
 router.register(r'locals', LocalViewSet)
 router.register(r'detachments', DetachmentViewSet)
 router.register(r'centrals', CentralViewSet)
+router.register('eduicational_institutions', EducationalInstitutionViewSet)
+
 
 UserEduVS = UserEducationViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
 UserProfEduRetrieveCreateVS = UserProfessionalEducationViewSet.as_view(

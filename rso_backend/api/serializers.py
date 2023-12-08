@@ -19,11 +19,19 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition, Area)
+                                 UserRegionalHeadquarterPosition, Area,)
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
                           UserRegion, UsersParent, UserStatementDocuments,
                           UserVerificationRequest, ForeignUserDocuments)
+
+
+class EducationalInstitutionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EducationalInstitution
+        fields = (
+            'id', 'short_name', 'name', 'rector', 'rector_email', 'region'
+        )
 
 
 class AreaSerializer(serializers.ModelSerializer):
