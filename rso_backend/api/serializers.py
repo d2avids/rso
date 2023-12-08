@@ -805,6 +805,7 @@ class DetachmentSerializer(BaseUnitSerializer):
             'regional_headquarter',
             'region',
             'educational_institution',
+            'city',
             'area',
             'photo1',
             'photo2',
