@@ -64,3 +64,6 @@ class UsersRolesChoices(models.TextChoices):
     )
     candidate = 'candidate', 'Кандидат'
     fighter = 'fighter', 'Боец'
+    comissar = 'comissar', 'Комиссар'
+    medic = 'medic', 'Медик'
+    master_methodologist = 'master_methodologist', 'Мастер-методист'

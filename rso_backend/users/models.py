@@ -116,10 +116,12 @@ class RSOUser(AbstractUser):
         с должностью "Кандидат".
         """
         super().save(*args, **kwargs)
-        UsersRoles.objects.get_or_create(
-            user_id=self.id,
-            role=UsersRolesChoices.candidate
-        )
+        if UsersRoles.objects.filter(user_id=self.id).exists():
+            UsersRoles.objects.filter(user_id=self.id).delete()
+        UsersRoles.objects.create(
+                user_id=self.id,
+                role=UsersRolesChoices.candidate
+            )
 
     def __str__(self):
         return (
