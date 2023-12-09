@@ -90,7 +90,9 @@ class Unit(models.Model):
     )
     emblem = models.ImageField(
         upload_to=image_path,
-        verbose_name='Эмблема'
+        verbose_name='Эмблема',
+        blank=True,
+        null=True
     )
     social_vk = models.CharField(
         max_length=50,
