@@ -416,6 +416,7 @@ class ShortUserSerializer(serializers.ModelSerializer):
             'email',
             'first_name',
             'last_name',
+            'patronymic_name',
             'date_of_birth',
             'membership_fee',
         )
