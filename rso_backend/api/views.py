@@ -8,10 +8,9 @@ from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets, filters
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from api.mixins import (CreateDeleteViewSet, ListRetrieveUpdateViewSet,
-                        ListRetrieveViewSet, ListAPIViewMixin)
+                        ListRetrieveViewSet)
 from api.serializers import (CentralHeadquarterSerializer,
                              CentralPositionSerializer,
                              DetachmentPositionSerializer,
