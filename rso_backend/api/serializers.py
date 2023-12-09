@@ -582,22 +582,6 @@ class BaseUnitSerializer(serializers.ModelSerializer):
         return self.Meta.model.objects.get(id=obj.id).members.count()
 
 
-class CentralHeadquarterSerializer(BaseUnitSerializer):
-    """Сериализатор для центрального штаба.
-
-    Наследует общую логику и поля от BaseUnitSerializer и связывает
-    с моделью CentralHeadquarter.
-    """
-    members = CentralPositionSerializer(
-        many=True,
-        read_only=True
-    )
-
-    class Meta:
-        model = CentralHeadquarter
-        fields = BaseUnitSerializer.Meta.fields + ('members',)
-
-
 class DistrictHeadquarterSerializer(BaseUnitSerializer):
     """Сериализатор для окружного штаба.
 
@@ -838,3 +822,19 @@ class DetachmentSerializer(BaseUnitSerializer):
             'name': f'{position.user.first_name} {position.user.last_name}',
             'email': position.user.email
         } for position in users_positions]
+
+
+class CentralHeadquarterSerializer(BaseUnitSerializer):
+    """Сериализатор для центрального штаба.
+
+    Наследует общую логику и поля от BaseUnitSerializer и связывает
+    с моделью CentralHeadquarter.
+    """
+    members = CentralPositionSerializer(
+        many=True,
+        read_only=True
+    )
+
+    class Meta:
+        model = CentralHeadquarter
+        fields = BaseUnitSerializer.Meta.fields + ('members',)
