@@ -8,9 +8,10 @@ from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets, filters
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from api.mixins import (CreateDeleteViewSet, ListRetrieveUpdateViewSet,
-                        ListRetrieveViewSet)
+                        ListRetrieveViewSet, ListAPIViewMixin)
 from api.serializers import (CentralHeadquarterSerializer,
                              CentralPositionSerializer,
                              DetachmentPositionSerializer,
@@ -750,6 +751,47 @@ def apply_for_verification(request):
                 status=status.HTTP_403_FORBIDDEN
             )
         return Response(status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+def get_structural_units(request):
+    """
+    Представление для агрегации и возврата списка всех
+    структурных подразделений.
+
+    Объединяет данные из различных типов штабов и отрядов,
+    включая центральные, региональные, окружные, местные и
+    образовательные штабы, а также отряды. Каждый тип подразделения
+    сериализуется с использованием соответствующего сериализатора и
+    возвращается в едином совокупном JSON-ответе.
+    """
+    central_headquarters = CentralHeadquarter.objects.all()
+    regional_headquarters = RegionalHeadquarter.objects.all()
+    district_headquarters = DistrictHeadquarter.objects.all()
+    local_headquarters = LocalHeadquarter.objects.all()
+    educational_headquarters = EducationalHeadquarter.objects.all()
+    detachments = Detachment.objects.all()
+
+    response = {
+        'central_headquarters': CentralHeadquarterSerializer(
+            central_headquarters, many=True
+        ).data,
+        'regional_headquarters': RegionalHeadquarterSerializer(
+            regional_headquarters, many=True
+        ).data,
+        'district_headquarters': DistrictHeadquarterSerializer(
+            district_headquarters, many=True
+        ).data,
+        'local_headquarters': LocalHeadquarterSerializer(
+            local_headquarters, many=True
+        ).data,
+        'educational_headquarters': EducationalHeadquarterSerializer(
+            educational_headquarters, many=True
+        ).data,
+        'detachments': DetachmentSerializer(detachments, many=True).data
+    }
+
+    return Response(response)
 
 
 @api_view(['POST', 'DELETE'])
