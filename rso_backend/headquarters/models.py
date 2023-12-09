@@ -118,7 +118,6 @@ class Unit(models.Model):
     )
     founding_date = models.DateField(
         verbose_name='Дата основания',
-        auto_now_add=True,
     )
 
     def clean(self):
