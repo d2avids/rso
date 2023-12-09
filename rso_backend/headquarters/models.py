@@ -86,29 +86,25 @@ class Unit(models.Model):
     )
     about = models.CharField(
         max_length=500,
-        blank=True,
-        null=True,
         verbose_name='Описание',
     )
     emblem = models.ImageField(
         upload_to=image_path,
-        blank=True,
-        null=True,
         verbose_name='Эмблема'
     )
     social_vk = models.CharField(
         max_length=50,
-        blank=True,
-        null=True,
         verbose_name='Ссылка ВК',
-        default='https://vk.com/'
     )
     social_tg = models.CharField(
         max_length=50,
+        verbose_name='Ссылка Телеграм',
+    )
+    city = models.CharField(
+        max_length=100,
+        verbose_name='Город (нас. пункт)',
         blank=True,
         null=True,
-        verbose_name='Ссылка Телеграм',
-        default='https://'
     )
     banner = models.ImageField(
         upload_to=image_path,
@@ -118,14 +114,11 @@ class Unit(models.Model):
     )
     slogan = models.CharField(
         max_length=100,
-        blank=True,
-        null=True,
         verbose_name='Девиз'
     )
     founding_date = models.DateField(
-        blank=True,
-        null=True,
-        verbose_name='Дата основания'
+        verbose_name='Дата основания',
+        auto_now_add=True,
     )
 
     def clean(self):
@@ -252,22 +245,19 @@ class Detachment(Unit):
         blank=True,
         null=True,
     )
-
     regional_headquarter = models.ForeignKey(
         'RegionalHeadquarter',
         related_name='detachments',
         on_delete=models.PROTECT,
         verbose_name='Привязка к РШ',
+        blank=True,
+        null=True,
     )
     region = models.ForeignKey(
         'Region',
         related_name='detachments',
         on_delete=models.PROTECT,
         verbose_name='Привязка к региону'
-    )
-    city = models.CharField(
-        max_length=100,
-        verbose_name='Город (нас. пункт)'
     )
     educational_institution = models.ForeignKey(
         'EducationalInstitution',
@@ -360,6 +350,12 @@ class Detachment(Unit):
                                                'заведением выбранного '
                                                'образовательного штаба.'
                 })
+
+    def save(self, *args, **kwargs):
+        """Автоматически заполняет региональный штаб по региону."""
+        if not self.regional_headquarter:
+            self.regional_headquarter = self.region.headquarters.first()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name

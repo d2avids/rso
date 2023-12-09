@@ -574,6 +574,7 @@ class BaseUnitSerializer(serializers.ModelSerializer):
             'social_tg',
             'banner',
             'slogan',
+            'city',
             'founding_date',
             'members_count',
         )
@@ -782,7 +783,8 @@ class DetachmentSerializer(BaseUnitSerializer):
         required=False
     )
     regional_headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=RegionalHeadquarter.objects.all()
+        queryset=RegionalHeadquarter.objects.all(),
+        required=False
     )
     area = serializers.PrimaryKeyRelatedField(
         queryset=Area.objects.all()
