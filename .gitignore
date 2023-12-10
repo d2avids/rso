@@ -215,3 +215,6 @@ GitHub.sublime-settings
 
 /media
 media/
+
+/logs
+logs/
