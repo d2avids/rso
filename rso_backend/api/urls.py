@@ -7,7 +7,7 @@ from api.constants import (CREATE_DELETE, CREATE_METHOD,
                            DOWNLOAD_ALL_FORMS, DOWNLOAD_CONSENT_PD,
                            DOWNLOAD_MEMBERSHIP_FILE,
                            DOWNLOAD_PARENT_CONSENT_PD, LIST, RETRIEVE_CREATE,
-                           UPDATE, RETRIEVE)
+                           UPDATE)
 from api.views import (CentralPositionViewSet, CentralViewSet,
                        DetachmentAcceptViewSet, DetachmentApplicationViewSet,
                        DetachmentPositionViewSet, DetachmentViewSet,
@@ -21,8 +21,7 @@ from api.views import (CentralPositionViewSet, CentralViewSet,
                        UserProfessionalEducationViewSet, UserRegionViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
                        ForeignUserDocumentsViewSet, apply_for_verification,
-                       verify_user, AreaViewSet, change_membership_fee_status,
-                       UsersRolesViewSet,)
+                       verify_user, AreaViewSet, change_membership_fee_status,)
 
 app_name = 'api'
 
@@ -65,10 +64,6 @@ UserStatementDownloadAllVS = UserStatementDocumentsViewSet.as_view(
     DOWNLOAD_ALL_FORMS
 )
 ForeignUserDocsVS = ForeignUserDocumentsViewSet.as_view(
-    CRUD_METHODS_WITHOUT_LIST
-)
-UsersRolesVS = UsersRolesViewSet.as_view(RETRIEVE)
-UsersRoleForStuffVS = UsersRolesViewSet.as_view(
     CRUD_METHODS_WITHOUT_LIST
 )
 
@@ -125,12 +120,6 @@ user_nested_urls = [
         'users/me/statement/download_all_forms/',
         UserStatementDownloadAllVS,
         name='download-all-forms'
-    ),
-    path('users/me/roles/', UsersRolesVS, name='user-roles'),
-    path(
-        'users/<int:pk>/role/',
-        UsersRoleForStuffVS,
-        name='user-role-for-stuff'
     ),
     path(
         'users/me/apply_for_verification/',

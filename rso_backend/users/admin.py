@@ -3,8 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
 
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
-                          UserPrivacySettings, UserRegion, UsersParent, 
-                          UsersRoles)
+                          UserPrivacySettings, UserRegion, UsersParent)
 
 
 class UserRegionInline(admin.StackedInline):

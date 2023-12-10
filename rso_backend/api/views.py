@@ -37,7 +37,7 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserRegionSerializer, UsersParentSerializer,
                              UserStatementDocumentsSerializer,
                              ForeignUserDocumentsSerializer,
-                             AreaSerializer, UsersRolesSerializer)
+                             AreaSerializer)
 from api.utils import (check_roles_save, download_file,
                        get_headquarter_users_positions_queryset)
 from headquarters.models import (CentralHeadquarter, Detachment,
@@ -54,8 +54,7 @@ from rso_backend.settings import BASE_DIR
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
                           UserRegion, UsersParent, UserStatementDocuments,
-                          UserVerificationRequest, ForeignUserDocuments,
-                          UsersRoles)
+                          UserVerificationRequest, ForeignUserDocuments)
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -424,16 +423,6 @@ class UsersParentViewSet(BaseUserViewSet):
 
     def get_object(self):
         return get_object_or_404(UsersParent, user=self.request.user)
-
-
-class UsersRolesViewSet(BaseUserViewSet):
-    """Представляет роли пользователя."""
-
-    queryset = UsersRoles.objects.all()
-    serializer_class = UsersRolesSerializer
-
-    def get_object(self):
-        return get_object_or_404(UsersRoles, user=self.request.user)
 
 
 class CentralViewSet(ListRetrieveUpdateViewSet):
