@@ -33,7 +33,7 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserRegionSerializer, UsersParentSerializer,
                              UserStatementDocumentsSerializer,
                              ForeignUserDocumentsSerializer,
-                             AreaSerializer)
+                             AreaSerializer, EducationalInstitutionSerializer)
 from api.utils import download_file, get_headquarter_users_positions_queryset
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
@@ -44,7 +44,8 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition, Area)
+                                 UserRegionalHeadquarterPosition, Area,
+                                 EducationalInstitution)
 from rso_backend.settings import BASE_DIR
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
@@ -85,6 +86,13 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
             serializer.save()
 
         return Response(self.get_serializer(request.user).data)
+
+
+class EducationalInstitutionViewSet(ListRetrieveViewSet):
+    """Представляет учебные заведения. Доступны только операции чтения."""
+
+    queryset = EducationalInstitution.objects.all()
+    serializer_class = EducationalInstitutionSerializer
 
 
 class RegionViewSet(ListRetrieveViewSet):
@@ -743,6 +751,47 @@ def apply_for_verification(request):
                 status=status.HTTP_403_FORBIDDEN
             )
         return Response(status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+def get_structural_units(request):
+    """
+    Представление для агрегации и возврата списка всех
+    структурных подразделений.
+
+    Объединяет данные из различных типов штабов и отрядов,
+    включая центральные, региональные, окружные, местные и
+    образовательные штабы, а также отряды. Каждый тип подразделения
+    сериализуется с использованием соответствующего сериализатора и
+    возвращается в едином совокупном JSON-ответе.
+    """
+    central_headquarters = CentralHeadquarter.objects.all()
+    regional_headquarters = RegionalHeadquarter.objects.all()
+    district_headquarters = DistrictHeadquarter.objects.all()
+    local_headquarters = LocalHeadquarter.objects.all()
+    educational_headquarters = EducationalHeadquarter.objects.all()
+    detachments = Detachment.objects.all()
+
+    response = {
+        'central_headquarters': CentralHeadquarterSerializer(
+            central_headquarters, many=True
+        ).data,
+        'regional_headquarters': RegionalHeadquarterSerializer(
+            regional_headquarters, many=True
+        ).data,
+        'district_headquarters': DistrictHeadquarterSerializer(
+            district_headquarters, many=True
+        ).data,
+        'local_headquarters': LocalHeadquarterSerializer(
+            local_headquarters, many=True
+        ).data,
+        'educational_headquarters': EducationalHeadquarterSerializer(
+            educational_headquarters, many=True
+        ).data,
+        'detachments': DetachmentSerializer(detachments, many=True).data
+    }
+
+    return Response(response)
 
 
 @api_view(['POST', 'DELETE'])

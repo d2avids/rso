@@ -19,11 +19,19 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition, Area)
+                                 UserRegionalHeadquarterPosition, Area,)
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
                           UserRegion, UsersParent, UserStatementDocuments,
                           UserVerificationRequest, ForeignUserDocuments)
+
+
+class EducationalInstitutionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EducationalInstitution
+        fields = (
+            'id', 'short_name', 'name', 'rector', 'rector_email', 'region'
+        )
 
 
 class AreaSerializer(serializers.ModelSerializer):
@@ -408,6 +416,7 @@ class ShortUserSerializer(serializers.ModelSerializer):
             'email',
             'first_name',
             'last_name',
+            'patronymic_name',
             'date_of_birth',
             'membership_fee',
         )
@@ -566,28 +575,13 @@ class BaseUnitSerializer(serializers.ModelSerializer):
             'social_tg',
             'banner',
             'slogan',
+            'city',
             'founding_date',
             'members_count',
         )
 
     def get_members_count(self, obj):
         return self.Meta.model.objects.get(id=obj.id).members.count()
-
-
-class CentralHeadquarterSerializer(BaseUnitSerializer):
-    """Сериализатор для центрального штаба.
-
-    Наследует общую логику и поля от BaseUnitSerializer и связывает
-    с моделью CentralHeadquarter.
-    """
-    members = CentralPositionSerializer(
-        many=True,
-        read_only=True
-    )
-
-    class Meta:
-        model = CentralHeadquarter
-        fields = BaseUnitSerializer.Meta.fields + ('members',)
 
 
 class DistrictHeadquarterSerializer(BaseUnitSerializer):
@@ -774,7 +768,8 @@ class DetachmentSerializer(BaseUnitSerializer):
         required=False
     )
     regional_headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=RegionalHeadquarter.objects.all()
+        queryset=RegionalHeadquarter.objects.all(),
+        required=False
     )
     area = serializers.PrimaryKeyRelatedField(
         queryset=Area.objects.all()
@@ -797,6 +792,7 @@ class DetachmentSerializer(BaseUnitSerializer):
             'regional_headquarter',
             'region',
             'educational_institution',
+            'city',
             'area',
             'photo1',
             'photo2',
@@ -829,3 +825,19 @@ class DetachmentSerializer(BaseUnitSerializer):
             'name': f'{position.user.first_name} {position.user.last_name}',
             'email': position.user.email
         } for position in users_positions]
+
+
+class CentralHeadquarterSerializer(BaseUnitSerializer):
+    """Сериализатор для центрального штаба.
+
+    Наследует общую логику и поля от BaseUnitSerializer и связывает
+    с моделью CentralHeadquarter.
+    """
+    members = CentralPositionSerializer(
+        many=True,
+        read_only=True
+    )
+
+    class Meta:
+        model = CentralHeadquarter
+        fields = BaseUnitSerializer.Meta.fields + ('members',)

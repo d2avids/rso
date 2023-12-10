@@ -4,7 +4,7 @@ from django.db import models
 
 from users.constants import (Gender, MilitaryDocType, PrivacyOption,
                              RelationshipType, StudyForm)
-from users.utils import document_path, image_path, validate_years
+from users.utils import document_path, validate_years, image_path
 
 
 class RSOUser(AbstractUser):

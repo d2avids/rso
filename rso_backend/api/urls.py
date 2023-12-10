@@ -21,7 +21,8 @@ from api.views import (CentralPositionViewSet, CentralViewSet,
                        UserProfessionalEducationViewSet, UserRegionViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
                        ForeignUserDocumentsViewSet, apply_for_verification,
-                       verify_user, AreaViewSet, change_membership_fee_status)
+                       verify_user, AreaViewSet, change_membership_fee_status,
+                       EducationalInstitutionViewSet, get_structural_units)
 
 app_name = 'api'
 
@@ -36,6 +37,8 @@ router.register(r'educationals', EducationalViewSet)
 router.register(r'locals', LocalViewSet)
 router.register(r'detachments', DetachmentViewSet)
 router.register(r'centrals', CentralViewSet)
+router.register('eduicational_institutions', EducationalInstitutionViewSet)
+
 
 UserEduVS = UserEducationViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
 UserProfEduRetrieveCreateVS = UserProfessionalEducationViewSet.as_view(
@@ -66,7 +69,6 @@ UserStatementDownloadAllVS = UserStatementDocumentsViewSet.as_view(
 ForeignUserDocsVS = ForeignUserDocumentsViewSet.as_view(
     CRUD_METHODS_WITHOUT_LIST
 )
-
 DetachmentAcceptVS = DetachmentAcceptViewSet.as_view(CREATE_DELETE)
 DetachmentApplicationVS = DetachmentApplicationViewSet.as_view(CREATE_DELETE)
 DetachmentPositionListVS = DetachmentPositionViewSet.as_view(LIST)
@@ -143,7 +145,7 @@ user_nested_urls = [
     ),
     path(
         'detachments/<int:pk>/applications/<int:application_pk>/accept/',
-         DetachmentAcceptVS,
+        DetachmentAcceptVS,
         name='user-apply'
     ),
     path(
@@ -215,6 +217,11 @@ user_nested_urls = [
         'users/me/professional_education/<int:pk>/',
         UserProfEduPUDVS,
         name='user-prof-education_post_update_delete',
+    ),
+    path(
+        'structural_units/',
+        get_structural_units,
+        name='structural-units'
     ),
     path('', include('djoser.urls')),
 ]
