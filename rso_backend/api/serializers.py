@@ -802,6 +802,7 @@ class DetachmentSerializer(BaseUnitSerializer):
             'photo2',
             'photo3',
             'photo4',
+            'city',
             'applications',
             'members',
             'users_for_verification',
