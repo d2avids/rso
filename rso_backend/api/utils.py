@@ -9,6 +9,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.permissions import SAFE_METHODS
 
+from headquarters.models import UserCentralHeadquarterPosition
+
 
 def create_first_or_exception(self, validated_data, instance, error_msg: str):
     """
@@ -50,25 +52,81 @@ def is_safe_method(request):
     return request.method in SAFE_METHODS
 
 
-def is_admin_or_central_commander(request):
+def is_stuff_or_central_commander(request):
+    """Проверка роли пользователя.
+
+    При  запросе пользователя к эндпоинту проверяет роль пользователя.
+    Если роль совпал с ролью админа или цомандира ЦШ, возвращает True.
+    """
+
+    user_id = request.user.id
+    position_name = ''
+    try:
+        user = UserCentralHeadquarterPosition.objects.get(user_id=user_id)
+        position_name = user.position.name if user.position else None
+    except UserCentralHeadquarterPosition.DoesNotExist:
+        return False
+    return (request.user.is_authenticated
+            and (
+                position_name == 'central_commander'
+                or request.user.is_superuser
+                or request.user.is_staff
+            ))
+
+
+def check_role_get(request, model, position_in_quarter):
+    """Проверка роли пользователя.
+
+    model - модель штаба/отряда, в котором проверяется должность пользователя.
+    requst - запрос к эндпоинту
+    position_in_quarter - требуемая должность для получения True.
+    """
+
+    user_id = request.user.id
+    position_name = ''
+    try:
+        user = model.objects.get(user_id=user_id)
+        position_name = user.position.name if user.position else None
+    except model.DoesNotExist:
+        return False
     return (
-        request.user.is_authenticated
-        and request.user.users_role.role == 'admin'
-        or request.user.users_role.role == 'central_commander'
-        or request.user.is_superuser
+        request.user.is_authenticated and position_name == position_in_quarter
     )
 
 
-def is_users_region(request, view):
-    """Проверка региона пользователя.
+def check_trusted_user(request, model):
+    """Проверка доверенного пользователя.
 
-    При  запросе пользователя к эндпоинту проверяет регион пользователя.
-    Если регион совпал с регионом штаба/отряда, возвращает True.
+    model - модель штаба/отряда, в котором проверяется статус доверенности.
+    requst - запрос к эндпоинту
     """
 
-    if request.user.region == view.get_object().region:
-        return True
+    user_id = request.user.id
+    try:
+        user = model.objects.get(user_id=user_id)
+        is_trusted = user.is_trusted
+    except model.DoesNotExist:
+        return False
+    return (
+        request.user.is_authenticated and is_trusted
+    )
+
+
+def check_roles_with_rights(request, roles_with_rights, models):
+
+    for counter in range(len(roles_with_rights)):
+        role = roles_with_rights[counter]
+        model = models[counter]
+        if check_role_get(request, model, role):
+            return True
     return False
+
+
+def check_trusted_in_headquarters(request, headquarters):
+
+    for headquarter in headquarters:
+        if check_trusted_user(request, headquarter):
+            return True
 
 
 def check_roles_save(role, roles_with_rights, serializer):

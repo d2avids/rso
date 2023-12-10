@@ -37,11 +37,6 @@ class UsersParentInline(admin.StackedInline):
     extra = 1
 
 
-class UsersRoleInLine(admin.StackedInline):
-    model = UsersRoles
-    extra = 1
-
-
 @admin.register(RSOUser)
 class UserAdmin(BaseUserAdmin):
     inlines = [
@@ -51,7 +46,6 @@ class UserAdmin(BaseUserAdmin):
         UserDocumentsInline,
         UserPrivacySettingsInline,
         UsersParentInline,
-        UsersRoleInLine
     ]
 
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff')

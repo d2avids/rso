@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from headquarters.constants import PositionsOption
 from headquarters.utils import image_path
 
 
@@ -372,7 +373,14 @@ class Detachment(Unit):
 class Position(models.Model):
     """Хранение наименований должностей для членов отрядов и штабов."""
 
-    name = models.CharField(max_length=150, verbose_name='Должность')
+    name = models.CharField(
+        verbose_name='Должность',
+        max_length=43,
+        choices=PositionsOption.choices,
+        default=PositionsOption.candidate,
+        blank=True,
+        null=True
+    )
 
     def __str__(self):
         return self.name
@@ -539,7 +547,7 @@ class UserLocalHeadquarterPosition(UserUnitPosition):
     headquarter = models.ForeignKey(
         'LocalHeadquarter',
         on_delete=models.CASCADE,
-        verbose_name='Локальный штаб',
+        verbose_name='Местный штаб',
         related_name='members'
     )
 
@@ -550,8 +558,8 @@ class UserLocalHeadquarterPosition(UserUnitPosition):
         super().save(*args, **kwargs)
 
     class Meta:
-        verbose_name_plural = 'Члены локальных штабов'
-        verbose_name = 'Член локального штаба'
+        verbose_name_plural = 'Члены местных штабов'
+        verbose_name = 'Член местного штаба'
 
 
 class UserEducationalHeadquarterPosition(UserUnitPosition):

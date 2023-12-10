@@ -109,20 +109,6 @@ class RSOUser(AbstractUser):
         verbose_name_plural = 'Пользователи'
         verbose_name = 'Пользователь'
 
-    def save(self, *args, **kwargs):
-        """Дополнение метода save.
-
-        При регистрации пользователя добавляет запись в таблицу UsersRoles
-        с должностью "Кандидат".
-        """
-        super().save(*args, **kwargs)
-        if UsersRoles.objects.filter(user_id=self.id).exists():
-            UsersRoles.objects.filter(user_id=self.id).delete()
-        UsersRoles.objects.create(
-                user_id=self.id,
-                role=UsersRolesChoices.candidate
-            )
-
     def __str__(self):
         return (
             f'Пользователь {self.last_name} '
