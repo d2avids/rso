@@ -145,7 +145,7 @@ user_nested_urls = [
     ),
     path(
         'detachments/<int:pk>/applications/<int:application_pk>/accept/',
-         DetachmentAcceptVS,
+        DetachmentAcceptVS,
         name='user-apply'
     ),
     path(

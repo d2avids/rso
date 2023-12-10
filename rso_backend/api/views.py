@@ -50,7 +50,8 @@ from rso_backend.settings import BASE_DIR
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
                           UserRegion, UsersParent, UserStatementDocuments,
-                          UserVerificationRequest, ForeignUserDocuments)
+                          UserVerificationRequest, ForeignUserDocuments,
+                          UserMembershipLogs)
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -818,13 +819,24 @@ def verify_user(request, pk):
 
 
 @api_view(['POST', 'DELETE'])
+@permission_classes([permissions.IsAuthenticated])
 def change_membership_fee_status(request, pk):
     """Изменить статус оплаты членского взноса пользователю."""
     user = get_object_or_404(RSOUser, id=pk)
     if request.method == 'POST':
         user.membership_fee = True
         user.save()
+        UserMembershipLogs.objects.create(
+            user=user,
+            status_changed_by=request.user,
+            status='Изменен на "оплачен"'
+        )
         return Response(status=status.HTTP_202_ACCEPTED)
     user.membership_fee = False
     user.save()
+    UserMembershipLogs.objects.create(
+        user=user,
+        status_changed_by=request.user,
+        status='Изменен на "не оплачен"'
+    )
     return Response(status=status.HTTP_204_NO_CONTENT)

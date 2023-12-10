@@ -1,9 +1,13 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
+from django_celery_beat.models import (PeriodicTask, IntervalSchedule,
+                                       CrontabSchedule, ClockedSchedule,
+                                       SolarSchedule)
 
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
-                          UserPrivacySettings, UserRegion, UsersParent)
+                          UserPrivacySettings, UserRegion, UsersParent,
+                          UserMembershipLogs)
 
 
 class UserRegionInline(admin.StackedInline):
@@ -56,4 +60,17 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = ()
 
 
+@admin.register(UserMembershipLogs)
+class UserMembershipLogsAdmin(admin.ModelAdmin):
+    list_display = ('user', 'status_changed_by', 'date', 'period', 'status')
+    readonly_fields = ('user', 'status_changed_by', 'date', 'period', 'status')
+    search_fields = ('user', 'status_changed_by',)
+    list_filter = ('date', 'period', 'status')
+
+
 admin.site.unregister(Group)
+admin.site.unregister(PeriodicTask)
+admin.site.unregister(IntervalSchedule)
+admin.site.unregister(CrontabSchedule)
+admin.site.unregister(ClockedSchedule)
+admin.site.unregister(SolarSchedule)
