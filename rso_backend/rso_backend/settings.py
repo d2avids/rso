@@ -19,6 +19,8 @@ ALLOWED_HOSTS = os.getenv(
     default='127.0.0.1,localhost,0.0.0.0'
 ).split(',')
 
+DATABASE = os.getenv('DATABASE', default='sqlite')
+
 # RUN TYPES:
 
 # DOCKER - для запуска проекта через docker compose.
@@ -83,7 +85,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'rso_backend.wsgi.application'
 
-if DEBUG:
+if DATABASE == 'sqlite':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

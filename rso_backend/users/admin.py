@@ -6,7 +6,8 @@ from django_celery_beat.models import (PeriodicTask, IntervalSchedule,
                                        SolarSchedule)
 
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
-                          UserPrivacySettings, UserRegion, UsersParent)
+                          UserPrivacySettings, UserRegion, UsersParent,
+                          UserMembershipLogs)
 
 
 class UserRegionInline(admin.StackedInline):
@@ -57,6 +58,14 @@ class UserAdmin(BaseUserAdmin):
     filter_horizontal = ()
     list_filter = ()
     fieldsets = ()
+
+
+@admin.register(UserMembershipLogs)
+class UserMembershipLogsAdmin(admin.ModelAdmin):
+    list_display = ('user', 'status_changed_by', 'date', 'period', 'status')
+    readonly_fields = ('user', 'status_changed_by', 'date', 'period', 'status')
+    search_fields = ('user', 'status_changed_by',)
+    list_filter = ('date', 'period', 'status')
 
 
 admin.site.unregister(Group)
