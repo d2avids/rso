@@ -313,7 +313,7 @@ class UserMediaViewSet(BaseUserViewSet):
 
     queryset = UserMedia.objects.all()
     serializer_class = UserMediaSerializer
-    permission_classes = [IsStuffOrAuthor,]
+    permission_classes = (IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(UserMedia, user=self.request.user)
@@ -510,7 +510,7 @@ class RegionalViewSet(viewsets.ModelViewSet):
 
     queryset = RegionalHeadquarter.objects.all()
     serializer_class = RegionalHeadquarterSerializer
-    permission_classes = (IsDistrictCommander,)
+    permission_classes = (IsRegionalCommander,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
 
@@ -548,7 +548,7 @@ class LocalViewSet(viewsets.ModelViewSet):
     serializer_class = LocalHeadquarterSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
-    permission_classes = (IsRegionalCommander,)
+    permission_classes = (IsLocalCommander,)
 
 
 class EducationalViewSet(viewsets.ModelViewSet):
@@ -570,7 +570,7 @@ class EducationalViewSet(viewsets.ModelViewSet):
     serializer_class = EducationalHeadquarterSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
-    permission_classes = (IsLocalCommander,)
+    permission_classes = (IsEducationalCommander,)
 
 
 class DetachmentViewSet(viewsets.ModelViewSet):
@@ -598,7 +598,7 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     serializer_class = DetachmentSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
-    permission_classes = (IsEducationalCommander,)
+    permission_classes = (IsDetachmentCommander,)
 
 
 class BasePositionViewSet(viewsets.ModelViewSet):
@@ -636,7 +636,7 @@ class CentralPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = CentralPositionSerializer
-    permission_classes = [IsStuffOrCentralCommander,]
+    permission_classes = (IsStuffOrCentralCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -653,7 +653,7 @@ class DistrictPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = DistrictPositionSerializer
-    permission_classes = [IsDistrictCommander,]
+    permission_classes = (IsDistrictCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -670,7 +670,7 @@ class RegionalPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = RegionalPositionSerializer
-    permission_classes = [IsRegionalCommander,]
+    permission_classes = (IsRegionalCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -687,7 +687,7 @@ class LocalPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = LocalPositionSerializer
-    permission_classes = [IsLocalCommander,]
+    permission_classes = (IsLocalCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -704,7 +704,7 @@ class EducationalPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = EducationalPositionSerializer
-    permission_classes = [IsEducationalCommander,]
+    permission_classes = (IsEducationalCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -721,7 +721,7 @@ class DetachmentPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = DetachmentPositionSerializer
-    permission_classes = [IsDetachmentCommander,]
+    permission_classes = (IsDetachmentCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -740,7 +740,7 @@ class DetachmentAcceptViewSet(CreateDeleteViewSet):
 
     queryset = UserDetachmentPosition.objects.all()
     serializer_class = DetachmentPositionSerializer
-    permission_classes = [IsDetachmentCommander,]
+    permission_classes = (IsDetachmentCommander,)
 
     def perform_create(self, serializer):
         """Получает user и detachment для сохранения."""
@@ -777,7 +777,7 @@ class DetachmentApplicationViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = UserDetachmentApplicationSerializer
-    permission_classes = [permissions.IsAuthenticated,]
+    permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
         detachment_id = self.kwargs.get('pk')

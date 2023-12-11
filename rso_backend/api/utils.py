@@ -100,13 +100,11 @@ def check_role_get(request, model, position_in_quarter):
     )
 
 
-def check_users_headqurter(request, model, obj):
+def check_users_headquarter(request, model, obj):
     user_id = request.user.id
     try:
         user_headquarter_object = model.objects.get(user_id=user_id)
         users_headquarter_id = user_headquarter_object.headquarter_id
-        print(users_headquarter_id, obj.id)
-        print(request.user.is_authenticated and users_headquarter_id == obj.id)
     except model.DoesNotExist:
         return False
     return (
@@ -140,10 +138,10 @@ def check_roles_for_edit(request, roles_models: dict):
     models - список моделей 'Члены отряда/штаба',
     в которых проверяем должность пользователя из списка выше.
     """
-    for role, model in roles_models:
+    for role, model in roles_models.items():
         if check_role_get(request, model, role):
             return True
-        return False
+    return False
 
 
 def check_trusted_in_headquarters(request, roles_models: dict):
@@ -152,7 +150,7 @@ def check_trusted_in_headquarters(request, roles_models: dict):
     Проверка производится по моделям, указанным в словаре 'roles_models'
     """
 
-    for _, model in roles_models:
+    for _, model in roles_models.items():
         if check_trusted_user(request, model):
             return True
 

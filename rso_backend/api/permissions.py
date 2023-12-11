@@ -3,13 +3,17 @@ from rest_framework.permissions import BasePermission
 
 from api.utils import (is_stuff_or_central_commander, is_safe_method,
                        check_role_get, check_trusted_user,
-                       check_trusted_in_headquarters, check_roles_for_edit, check_users_headqurter)
+                       check_trusted_in_headquarters, check_roles_for_edit,
+                       check_users_headquarter)
 from headquarters.models import (UserCentralHeadquarterPosition,
                                  UserDistrictHeadquarterPosition,
                                  UserRegionalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
-                                 UserDetachmentPosition)
+                                 UserDetachmentPosition, CentralHeadquarter,
+                                 DistrictHeadquarter, RegionalHeadquarter,
+                                 LocalHeadquarter, EducationalHeadquarter,
+                                 Detachment)
 
 
 class IsStuffOrCentralCommander(BasePermission):
@@ -41,27 +45,6 @@ class IsDistrictCommander(BasePermission):
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
 
-    # def has_permission(self, request, view):
-    #     """Метод, для проверки доступа к эндпоинтам ОШ.
-
-    #     check_roles - проверяет http-методы пользователя или роли.
-    #     """
-
-    #     check_roles = (
-    #             is_safe_method(request)
-    #             or is_stuff_or_central_commander(request)
-    #             or check_role_get(
-    #                 request=request,
-    #                 model=UserDistrictHeadquarterPosition,
-    #                 position_in_quarter='district_commander'
-    #             )
-    #             or check_trusted_user(
-    #                 request=request,
-    #                 model=UserDistrictHeadquarterPosition
-    #             )
-    #     )
-    #     return check_roles
-
     def has_object_permission(self, request, view, obj):
         check_roles = (
                 is_safe_method(request)
@@ -76,14 +59,12 @@ class IsDistrictCommander(BasePermission):
                     model=UserDistrictHeadquarterPosition
                 )
         )
-        return is_safe_method(request) or (
-            request.user.is_superuser
-            or check_users_headqurter(
-                request,
-                UserDistrictHeadquarterPosition,
-                obj
-            )
-            or check_roles
+        return (
+            check_users_headquarter(
+                request=request,
+                model=UserDistrictHeadquarterPosition,
+                obj=obj
+            ) and check_roles
         )
 
 
@@ -97,7 +78,7 @@ class IsRegionalCommander(BasePermission):
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
 
-    def has_permission(self, request, view):
+    def has_object_permission(self, request, view, obj):
         """Метод, для проверки доступа к эндпоинтам РШ.
 
         check_roles - проверяет http-методы пользователя или роли.
@@ -119,7 +100,13 @@ class IsRegionalCommander(BasePermission):
                     roles_models=roles_models
                 )
         )
-        return check_roles
+        return (
+            check_users_headquarter(
+                request=request,
+                model=UserRegionalHeadquarterPosition,
+                obj=obj
+            ) and check_roles
+        )
 
 
 class IsLocalCommander(BasePermission):
@@ -132,7 +119,7 @@ class IsLocalCommander(BasePermission):
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
 
-    def has_permission(self, request, view):
+    def has_object_permission(self, request, view, obj):
         """Метод, для проверки доступа к эндпоинтам МШ.
 
         check_roles - проверяет http-методы пользователя или роли.
@@ -155,7 +142,13 @@ class IsLocalCommander(BasePermission):
                     roles_models=roles_models
                 )
         )
-        return check_roles
+        return (
+            check_users_headquarter(
+                request=request,
+                model=UserLocalHeadquarterPosition,
+                obj=obj
+            ) and check_roles
+        )
 
 
 class IsEducationalCommander(BasePermission):
@@ -168,11 +161,18 @@ class IsEducationalCommander(BasePermission):
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
 
-    def has_permission(self, request, view):
+    def has_object_permission(self, request, view, obj):
         """Метод, для проверки доступа к эндпоинтам ШОО.
 
         check_roles - проверяет http-методы пользователя или роли.
         """
+
+        # check_model_instance = False
+        # user_id = request.user.id
+        # if isinstance(obj, Detachment):
+        #     print(obj.name)
+        #     if obj.commander_id == user_id:
+        #         check_model_instance = True
 
         roles_models = {
             'district_commander': UserDistrictHeadquarterPosition,
@@ -192,7 +192,15 @@ class IsEducationalCommander(BasePermission):
                     roles_models=roles_models
                 )
         )
-        return check_roles
+        print(obj.educational_headquarter_id.commander_id)
+        return (
+            check_users_headquarter(
+                request=request,
+                model=UserEducationalHeadquarterPosition,
+                obj=obj
+            ) and check_roles
+            # and check_model_instance
+        )
 
 
 class IsDetachmentCommander(BasePermission):
@@ -205,7 +213,7 @@ class IsDetachmentCommander(BasePermission):
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
 
-    def has_permission(self, request, view):
+    def has_object_permission(self, request, view, obj):
         """Метод, для проверки доступа к эндпоинтам отряда.
 
         check_roles - проверяет http-методы пользователя или роли.
@@ -230,7 +238,13 @@ class IsDetachmentCommander(BasePermission):
                     roles_models=roles_models
                 )
         )
-        return check_roles
+        return (
+            check_users_headquarter(
+                request=request,
+                model=UserDetachmentPosition,
+                obj=obj
+            ) and check_roles
+        )
 
 
 class IsStuffOrAuthor(BasePermission):

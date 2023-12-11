@@ -11,6 +11,8 @@ class RSOUser(AbstractUser):
         verbose_name='Email',
         max_length=254,
         unique=True,
+        null=True,
+        blank=True
     )
     username = models.CharField(
         verbose_name='Ник',
