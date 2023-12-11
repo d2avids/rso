@@ -9,7 +9,7 @@ from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                            REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS,
                            TOO_MANY_EDUCATIONS)
 from api.utils import create_first_or_exception
-from headquarters.models import (Area, CentralHeadquarter, Detachment,
+from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
                                  Position, Region, RegionalHeadquarter,
@@ -23,7 +23,13 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
                           UserRegion, UsersParent, UserStatementDocuments,
-                          UserVerificationRequest, ForeignUserDocuments)
+                          UserVerificationRequest, ForeignUserDocuments,)
+
+
+class PositionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Area
+        fields = ('id', 'name', )
 
 
 class EducationalInstitutionSerializer(serializers.ModelSerializer):

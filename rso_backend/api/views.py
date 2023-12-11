@@ -33,7 +33,8 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserRegionSerializer, UsersParentSerializer,
                              UserStatementDocumentsSerializer,
                              ForeignUserDocumentsSerializer,
-                             AreaSerializer, EducationalInstitutionSerializer)
+                             AreaSerializer, EducationalInstitutionSerializer,
+                             PositionSerializer)
 from api.utils import download_file, get_headquarter_users_positions_queryset
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
@@ -45,7 +46,7 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition, Area,
-                                 EducationalInstitution)
+                                 EducationalInstitution, Position)
 from rso_backend.settings import BASE_DIR
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
@@ -110,6 +111,16 @@ class AreaViewSet(ListRetrieveViewSet):
 
     queryset = Area.objects.all()
     serializer_class = AreaSerializer
+
+
+class PositionViewSet(ListRetrieveViewSet):
+    """Представляет должности для юзеров.
+
+    Доступны только операции чтения.
+    """
+
+    queryset = Position.objects.all()
+    serializer_class = PositionSerializer
 
 
 class BaseUserViewSet(viewsets.ModelViewSet):

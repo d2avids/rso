@@ -22,7 +22,8 @@ from api.views import (CentralPositionViewSet, CentralViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
                        ForeignUserDocumentsViewSet, apply_for_verification,
                        verify_user, AreaViewSet, change_membership_fee_status,
-                       EducationalInstitutionViewSet, get_structural_units)
+                       EducationalInstitutionViewSet, get_structural_units,
+                       PositionViewSet)
 
 app_name = 'api'
 
@@ -37,6 +38,7 @@ router.register(r'educationals', EducationalViewSet)
 router.register(r'locals', LocalViewSet)
 router.register(r'detachments', DetachmentViewSet)
 router.register(r'centrals', CentralViewSet)
+router.register(r'positions', PositionViewSet)
 router.register('eduicational_institutions', EducationalInstitutionViewSet)
 
 
