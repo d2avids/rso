@@ -3,8 +3,9 @@ from rest_framework.permissions import BasePermission
 
 from api.utils import (is_stuff_or_central_commander, is_safe_method,
                        check_role_get, check_trusted_user,
-                       check_roles_with_rights, check_trusted_in_headquarters)
-from headquarters.models import (UserDistrictHeadquarterPosition,
+                       check_trusted_in_headquarters, check_roles_for_edit)
+from headquarters.models import (UserCentralHeadquarterPosition,
+                                 UserDistrictHeadquarterPosition,
                                  UserRegionalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
@@ -23,15 +24,19 @@ class IsStuffOrCentralCommander(BasePermission):
         return (
             is_safe_method(request)
             or is_stuff_or_central_commander(request)
+            or check_trusted_user(
+                request=request,
+                model=UserCentralHeadquarterPosition
+            )
         )
 
 
 class IsDistrictCommander(BasePermission):
     """Пермишен для командира окружного штаба.
 
-    Для ролей 'is stuff' и 'superuser возвращается True.
+    Для ролей 'is stuff' и 'superuser' возвращается True.
     Роль 'командир окружного штаба' и 'доверенный пользователь'
-    возвращают True,если редактируют штабы ниже своего.
+    возвращают True, если редактируют свой штаб и штабы ниже своего.
     Остальные пользователи получают True, если обращаются к эндпоинту
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
@@ -61,9 +66,9 @@ class IsDistrictCommander(BasePermission):
 class IsRegionalCommander(BasePermission):
     """Пермишен для командира регионального штаба.
 
-    Для ролей 'is stuff' и 'superuser возвращается True.
+    Для ролей 'is stuff' и 'superuser' возвращается True.
     Роль 'командир регионального штаба' и 'доверенный пользователь'
-    возвращают True,если редактируют штабы ниже своего.
+    возвращают True, если редактируют свой штаб и штабы ниже своего.
     Остальные пользователи получают True, если обращаются к эндпоинту
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
@@ -74,25 +79,20 @@ class IsRegionalCommander(BasePermission):
         check_roles - проверяет http-методы пользователя или роли.
         """
 
-        roles_with_rights = [
-            'district_commander',
-            'regional_commander',
-        ]
-        models = [
-            UserDistrictHeadquarterPosition,
-            UserRegionalHeadquarterPosition,
-        ]
+        roles_models = {
+            'district_commander': UserDistrictHeadquarterPosition,
+            'regional_commander': UserRegionalHeadquarterPosition,
+        }
         check_roles = (
                 is_safe_method(request)
                 or is_stuff_or_central_commander(request)
-                or check_roles_with_rights(
+                or check_roles_for_edit(
                     request=request,
-                    roles_with_rights=roles_with_rights,
-                    models=models
+                    roles_models=roles_models,
                 )
                 or check_trusted_in_headquarters(
                     request=request,
-                    headquarters=models
+                    roles_models=roles_models
                 )
         )
         return check_roles
@@ -103,7 +103,7 @@ class IsLocalCommander(BasePermission):
 
     Для ролей 'is stuff' и 'superuser возвращается True.
     Роль 'командир местного штаба' и 'доверенный пользователь'
-    возвращают True,если редактируют штабы ниже своего.
+    возвращают True, если редактируют свой штаб и штабы ниже своего.
     Остальные пользователи получают True, если обращаются к эндпоинту
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
@@ -114,27 +114,21 @@ class IsLocalCommander(BasePermission):
         check_roles - проверяет http-методы пользователя или роли.
         """
 
-        roles_with_rights = [
-            'district_commander',
-            'regional_commander',
-            'local_commander',
-        ]
-        models = [
-            UserDistrictHeadquarterPosition,
-            UserRegionalHeadquarterPosition,
-            UserLocalHeadquarterPosition,
-        ]
+        roles_models = {
+            'district_commander': UserDistrictHeadquarterPosition,
+            'regional_commander': UserRegionalHeadquarterPosition,
+            'local_commander': UserLocalHeadquarterPosition,
+        }
         check_roles = (
                 is_safe_method(request)
                 or is_stuff_or_central_commander(request)
-                or check_roles_with_rights(
+                or check_roles_for_edit(
                     request=request,
-                    roles_with_rights=roles_with_rights,
-                    models=models
+                    roles_models=roles_models,
                 )
                 or check_trusted_in_headquarters(
                     request=request,
-                    headquarters=models
+                    roles_models=roles_models
                 )
         )
         return check_roles
@@ -143,9 +137,9 @@ class IsLocalCommander(BasePermission):
 class IsEducationalCommander(BasePermission):
     """Пермишен для командира образовательного штаба.
 
-    Для ролей 'is stuff' и 'superuser возвращается True.
+    Для ролей 'is stuff' и 'superuser' возвращается True.
     Роль 'командир образовательного штаба' и 'доверенный пользователь'
-    возвращают True,если редактируют штабы ниже своего.
+    возвращают True, если редактируют свой штаб и штабы ниже своего.
     Остальные пользователи получают True, если обращаются к эндпоинту
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
@@ -156,29 +150,22 @@ class IsEducationalCommander(BasePermission):
         check_roles - проверяет http-методы пользователя или роли.
         """
 
-        roles_with_rights = [
-            'district_commander',
-            'regional_commander',
-            'local_commander',
-            'edu_commander',
-        ]
-        models = [
-            UserDistrictHeadquarterPosition,
-            UserRegionalHeadquarterPosition,
-            UserLocalHeadquarterPosition,
-            UserEducationalHeadquarterPosition,
-        ]
+        roles_models = {
+            'district_commander': UserDistrictHeadquarterPosition,
+            'regional_commander': UserRegionalHeadquarterPosition,
+            'local_commander': UserLocalHeadquarterPosition,
+            'edu_commander': UserEducationalHeadquarterPosition,
+        }
         check_roles = (
                 is_safe_method(request)
                 or is_stuff_or_central_commander(request)
-                or check_roles_with_rights(
+                or check_roles_for_edit(
                     request=request,
-                    roles_with_rights=roles_with_rights,
-                    models=models
+                    roles_models=roles_models,
                 )
                 or check_trusted_in_headquarters(
                     request=request,
-                    headquarters=models
+                    roles_models=roles_models
                 )
         )
         return check_roles
@@ -187,9 +174,9 @@ class IsEducationalCommander(BasePermission):
 class IsDetachmentCommander(BasePermission):
     """Пермишен для командира отряда.
 
-    Для ролей 'is stuff' и 'superuser возвращается True.
+    Для ролей 'is stuff' и 'superuser' возвращается True.
     Роль 'командир отряда' и 'доверенный пользователь'
-    возвращают True,если редактируют штабы ниже своего.
+    возвращают True, если редактируют свой штаб и штабы ниже своего.
     Остальные пользователи получают True, если обращаются к эндпоинту
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
@@ -200,31 +187,23 @@ class IsDetachmentCommander(BasePermission):
         check_roles - проверяет http-методы пользователя или роли.
         """
 
-        roles_with_rights = [
-            'district_commander',
-            'regional_commander',
-            'local_commander',
-            'edu_commander',
-            'detachment_commander'
-        ]
-        models = [
-            UserDistrictHeadquarterPosition,
-            UserRegionalHeadquarterPosition,
-            UserLocalHeadquarterPosition,
-            UserEducationalHeadquarterPosition,
-            UserDetachmentPosition
-        ]
+        roles_models = {
+            'district_commander': UserDistrictHeadquarterPosition,
+            'regional_commander': UserRegionalHeadquarterPosition,
+            'local_commander': UserLocalHeadquarterPosition,
+            'edu_commander': UserEducationalHeadquarterPosition,
+            'detachment_commander': UserDetachmentPosition,
+        }
         check_roles = (
                 is_safe_method(request)
                 or is_stuff_or_central_commander(request)
-                or check_roles_with_rights(
+                or check_roles_for_edit(
                     request=request,
-                    roles_with_rights=roles_with_rights,
-                    models=models
+                    roles_models=roles_models,
                 )
                 or check_trusted_in_headquarters(
                     request=request,
-                    headquarters=models
+                    roles_models=roles_models
                 )
         )
         return check_roles
@@ -239,34 +218,25 @@ class IsStuffOrAuthor(BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
-        roles_with_rights = [
-            'district_commander',
-            'regional_commander',
-            'local_commander',
-            'edu_commander',
-            'detachment_commander'
-        ]
-        models = [
-            UserDistrictHeadquarterPosition,
-            UserRegionalHeadquarterPosition,
-            UserLocalHeadquarterPosition,
-            UserEducationalHeadquarterPosition,
-            UserDetachmentPosition
-        ]
+        roles_models = {
+            'district_commander': UserDistrictHeadquarterPosition,
+            'regional_commander': UserRegionalHeadquarterPosition,
+            'local_commander': UserLocalHeadquarterPosition,
+            'edu_commander': UserEducationalHeadquarterPosition,
+            'detachment_commander': UserDetachmentPosition,
+        }
         check_roles = (
                 is_safe_method(request)
                 or is_stuff_or_central_commander(request)
-                or check_roles_with_rights(
+                or check_roles_for_edit(
                     request=request,
-                    roles_with_rights=roles_with_rights,
-                    models=models
+                    roles_models=roles_models,
                 )
                 or check_trusted_in_headquarters(
                     request=request,
-                    headquarters=models
+                    roles_models=roles_models
                 )
         )
-        print(request.user == obj.user, request.user, obj.user)
         return is_safe_method(request) or (
             request.user.is_superuser
             or request.user == obj.user

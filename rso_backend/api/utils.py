@@ -49,6 +49,11 @@ def download_file(filepath, filename):
 
 
 def is_safe_method(request):
+    """Проверка методов пользователя при запросе к эндпоинту.
+
+    Безопасные возвращают True.
+    """
+
     return request.method in SAFE_METHODS
 
 
@@ -60,7 +65,6 @@ def is_stuff_or_central_commander(request):
     """
 
     user_id = request.user.id
-    position_name = ''
     try:
         user = UserCentralHeadquarterPosition.objects.get(user_id=user_id)
         position_name = user.position.name if user.position else None
@@ -78,7 +82,7 @@ def check_role_get(request, model, position_in_quarter):
     """Проверка роли пользователя.
 
     model - модель штаба/отряда, в котором проверяется должность пользователя.
-    requst - запрос к эндпоинту
+    request - запрос к эндпоинту
     position_in_quarter - требуемая должность для получения True.
     """
 
@@ -98,7 +102,7 @@ def check_trusted_user(request, model):
     """Проверка доверенного пользователя.
 
     model - модель штаба/отряда, в котором проверяется статус доверенности.
-    requst - запрос к эндпоинту
+    request - запрос к эндпоинту
     """
 
     user_id = request.user.id
@@ -112,24 +116,39 @@ def check_trusted_user(request, model):
     )
 
 
-def check_roles_with_rights(request, roles_with_rights, models):
+def check_roles_for_edit(request, roles_models: dict):
+    """Проверка нескольких ролей.
 
-    for counter in range(len(roles_with_rights)):
-        role = roles_with_rights[counter]
-        model = models[counter]
+    Аргумент  'roles_models' - словарь.
+    Ключ - должность пользователя, для которой функция вернет True.
+    models - список моделей 'Члены отряда/штаба',
+    в которых проверяем должность пользователя из списка выше.
+    """
+    for role, model in roles_models:
         if check_role_get(request, model, role):
             return True
-    return False
+        return False
 
 
-def check_trusted_in_headquarters(request, headquarters):
+def check_trusted_in_headquarters(request, roles_models: dict):
+    """Проверка на наличие флага 'доверенный пользователь'.
 
-    for headquarter in headquarters:
-        if check_trusted_user(request, headquarter):
+    Проверка производится по моделям, указанным в словаре 'roles_models'
+    """
+
+    for _, model in roles_models:
+        if check_trusted_user(request, model):
             return True
 
 
 def check_roles_save(role, roles_with_rights, serializer):
+    """Проверка роли пользователя.
+
+    role - Должность юзера
+    roles_with_rights - Юзеры с правами на создание записи.
+    serializer - сериализатор для создания записи в БД.
+    """
+
     if role in roles_with_rights:
         return serializer.save()
     raise ValidationError(
@@ -169,6 +188,7 @@ def get_headquarter_users_positions_queryset(self,
     return self.filter_by_name(queryset)
     ```
     """
+
     headquarter_id = self.kwargs.get('pk')
     headquarter = get_object_or_404(headquarter_instance, id=headquarter_id)
     queryset = headquarter_position_instance.objects.filter(
