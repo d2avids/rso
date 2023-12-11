@@ -471,7 +471,7 @@ class DistrictViewSet(viewsets.ModelViewSet):
 
     queryset = DistrictHeadquarter.objects.all()
     serializer_class = DistrictHeadquarterSerializer
-    permission_classes = (IsStuffOrCentralCommander,)
+    permission_classes = (IsDistrictCommander,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
 

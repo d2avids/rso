@@ -3,7 +3,7 @@ from rest_framework.permissions import BasePermission
 
 from api.utils import (is_stuff_or_central_commander, is_safe_method,
                        check_role_get, check_trusted_user,
-                       check_trusted_in_headquarters, check_roles_for_edit)
+                       check_trusted_in_headquarters, check_roles_for_edit, check_users_headqurter)
 from headquarters.models import (UserCentralHeadquarterPosition,
                                  UserDistrictHeadquarterPosition,
                                  UserRegionalHeadquarterPosition,
@@ -41,12 +41,28 @@ class IsDistrictCommander(BasePermission):
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
 
-    def has_permission(self, request, view):
-        """Метод, для проверки доступа к эндпоинтам ОШ.
+    # def has_permission(self, request, view):
+    #     """Метод, для проверки доступа к эндпоинтам ОШ.
 
-        check_roles - проверяет http-методы пользователя или роли.
-        """
+    #     check_roles - проверяет http-методы пользователя или роли.
+    #     """
 
+    #     check_roles = (
+    #             is_safe_method(request)
+    #             or is_stuff_or_central_commander(request)
+    #             or check_role_get(
+    #                 request=request,
+    #                 model=UserDistrictHeadquarterPosition,
+    #                 position_in_quarter='district_commander'
+    #             )
+    #             or check_trusted_user(
+    #                 request=request,
+    #                 model=UserDistrictHeadquarterPosition
+    #             )
+    #     )
+    #     return check_roles
+
+    def has_object_permission(self, request, view, obj):
         check_roles = (
                 is_safe_method(request)
                 or is_stuff_or_central_commander(request)
@@ -60,7 +76,15 @@ class IsDistrictCommander(BasePermission):
                     model=UserDistrictHeadquarterPosition
                 )
         )
-        return check_roles
+        return is_safe_method(request) or (
+            request.user.is_superuser
+            or check_users_headqurter(
+                request,
+                UserDistrictHeadquarterPosition,
+                obj
+            )
+            or check_roles
+        )
 
 
 class IsRegionalCommander(BasePermission):

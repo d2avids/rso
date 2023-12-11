@@ -87,14 +87,30 @@ def check_role_get(request, model, position_in_quarter):
     """
 
     user_id = request.user.id
-    position_name = ''
     try:
-        user = model.objects.get(user_id=user_id)
-        position_name = user.position.name if user.position else None
+        user_headquarter_object = model.objects.get(user_id=user_id)
+        position_name = (
+            user_headquarter_object.position.name
+            if user_headquarter_object.position else None
+        )
     except model.DoesNotExist:
         return False
     return (
         request.user.is_authenticated and position_name == position_in_quarter
+    )
+
+
+def check_users_headqurter(request, model, obj):
+    user_id = request.user.id
+    try:
+        user_headquarter_object = model.objects.get(user_id=user_id)
+        users_headquarter_id = user_headquarter_object.headquarter_id
+        print(users_headquarter_id, obj.id)
+        print(request.user.is_authenticated and users_headquarter_id == obj.id)
+    except model.DoesNotExist:
+        return False
+    return (
+        request.user.is_authenticated and users_headquarter_id == obj.id
     )
 
 
