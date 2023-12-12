@@ -471,27 +471,15 @@ class DistrictViewSet(viewsets.ModelViewSet):
 
     queryset = DistrictHeadquarter.objects.all()
     serializer_class = DistrictHeadquarterSerializer
-    permission_classes = (IsDistrictCommander,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
 
-    def perform_create(self, serializer):
-        """Проверяет права пользователя на создание окружного штаба."""
-
-        role = self.request.user.users_role.role
-        roles_with_rights = [
-            'central_commander',
-            'admin'
-        ]
-        check_roles_save(role, roles_with_rights, serializer)
-
-    def create(self, request, *args, **kwargs):
-        """Создает окружной штаб."""
-
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def get_permissions(self):
+        if self.action == 'create':
+            permission_classes = (IsStuffOrCentralCommander,)
+        else:
+            permission_classes = (IsDistrictCommander,)
+        return [permission() for permission in permission_classes]
 
 
 class RegionalViewSet(viewsets.ModelViewSet):
@@ -510,28 +498,15 @@ class RegionalViewSet(viewsets.ModelViewSet):
 
     queryset = RegionalHeadquarter.objects.all()
     serializer_class = RegionalHeadquarterSerializer
-    permission_classes = (IsRegionalCommander,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
 
-    def perform_create(self, serializer):
-        """Проверяет права пользователя на создание регионального штаба."""
-
-        role = self.request.user.users_role.role
-        roles_with_rights = [
-            'district_commander',
-            'central_commander',
-            'admin'
-        ]
-        check_roles_save(role, roles_with_rights, serializer)
-
-    def create(self, request, *args, **kwargs):
-        """Создает региональный штаб."""
-
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def get_permissions(self):
+        if self.action == 'create':
+            permission_classes = (IsDistrictCommander,)
+        else:
+            permission_classes = (IsRegionalCommander,)
+        return [permission() for permission in permission_classes]
 
 
 class LocalViewSet(viewsets.ModelViewSet):
@@ -548,7 +523,13 @@ class LocalViewSet(viewsets.ModelViewSet):
     serializer_class = LocalHeadquarterSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
-    permission_classes = (IsLocalCommander,)
+
+    def get_permissions(self):
+        if self.action == 'create':
+            permission_classes = (IsRegionalCommander,)
+        else:
+            permission_classes = (IsLocalCommander,)
+        return [permission() for permission in permission_classes]
 
 
 class EducationalViewSet(viewsets.ModelViewSet):
@@ -570,7 +551,13 @@ class EducationalViewSet(viewsets.ModelViewSet):
     serializer_class = EducationalHeadquarterSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
-    permission_classes = (IsEducationalCommander,)
+
+    def get_permissions(self):
+        if self.action == 'create':
+            permission_classes = (IsLocalCommander,)
+        else:
+            permission_classes = (IsEducationalCommander,)
+        return [permission() for permission in permission_classes]
 
 
 class DetachmentViewSet(viewsets.ModelViewSet):
@@ -598,7 +585,13 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     serializer_class = DetachmentSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
-    permission_classes = (IsDetachmentCommander,)
+
+    def get_permissions(self):
+        if self.action == 'create':
+            permission_classes = (IsEducationalCommander,)
+        else:
+            permission_classes = (IsDetachmentCommander, )
+        return [permission() for permission in permission_classes]
 
 
 class BasePositionViewSet(viewsets.ModelViewSet):

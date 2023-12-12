@@ -81,7 +81,8 @@ def is_stuff_or_central_commander(request):
 def check_role_get(request, model, position_in_quarter):
     """Проверка роли пользователя.
 
-    model - модель штаба/отряда, в котором проверяется должность пользователя.
+    model - модель 'Члены штаба'/'Члены отряда',
+    в котором проверяется должность пользователя.
     request - запрос к эндпоинту
     position_in_quarter - требуемая должность для получения True.
     """
@@ -97,18 +98,6 @@ def check_role_get(request, model, position_in_quarter):
         return False
     return (
         request.user.is_authenticated and position_name == position_in_quarter
-    )
-
-
-def check_users_headquarter(request, model, obj):
-    user_id = request.user.id
-    try:
-        user_headquarter_object = model.objects.get(user_id=user_id)
-        users_headquarter_id = user_headquarter_object.headquarter_id
-    except model.DoesNotExist:
-        return False
-    return (
-        request.user.is_authenticated and users_headquarter_id == obj.id
     )
 
 
@@ -151,6 +140,17 @@ def check_trusted_in_headquarters(request, roles_models: dict):
     """
 
     for _, model in roles_models.items():
+        if check_trusted_user(request, model):
+            return True
+
+
+def check_trusted_in_headquarters_list(request, models: list):
+    """Проверка на наличие флага 'доверенный пользователь'.
+
+    Проверка производится по моделям, указанным в списке 'models'
+    """
+
+    for model in models:
         if check_trusted_user(request, model):
             return True
 
