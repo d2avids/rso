@@ -321,7 +321,8 @@ DJOSER = {
     'USERNAME_FIELD': 'username',
     'USER_CREATE_PASSWORD_RETYPE': True,
     'SEND_ACTIVATION_EMAIL': False,
-    'PASSWORD_CHANGE_EMAIL_CONFIRMATION': False,
+    'PASSWORD_CHANGE_EMAIL_CONFIRMATION': True,
+    'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
     'SERIALIZERS': {
         'user_create_password_retype': 'api.serializers.UserCreateSerializer',
     },

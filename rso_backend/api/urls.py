@@ -29,7 +29,7 @@ app_name = 'api'
 
 router = DefaultRouter()
 
-router.register(r'users', RSOUserViewSet)
+router.register(r'rsousers', RSOUserViewSet)
 router.register(r'regions', RegionViewSet)
 router.register(r'areas', AreaViewSet)
 router.register(r'districts', DistrictViewSet)
@@ -87,26 +87,26 @@ CentralPositionListVS = CentralPositionViewSet.as_view(LIST)
 CentralPositionUpdateVS = CentralPositionViewSet.as_view(UPDATE)
 
 user_nested_urls = [
-    path('users/me/education/', UserEduVS, name='user-education'),
-    path('users/me/documents/', UserDocVS, name='user-documents'),
+    path('rsousers/me/education/', UserEduVS, name='user-education'),
+    path('rsousers/me/documents/', UserDocVS, name='user-documents'),
     path(
-        'users/me/foreign_documents/',
+        'rsousers/me/foreign_documents/',
         ForeignUserDocsVS,
         name='foreign-documents'
     ),
-    path('users/me/region/', UserRegVS, name='user-region'),
-    path('users/me/privacy/', UserPrivacyVS, name='user-privacy'),
-    path('users/me/media/', UserMediaVS, name='user-media'),
-    path('users/me/statement/', UserStatementVS, name='user-statement'),
-    path('users/me/parent/', UsersParentVS, name='user-parent'),
+    path('rsousers/me/region/', UserRegVS, name='user-region'),
+    path('rsousers/me/privacy/', UserPrivacyVS, name='user-privacy'),
+    path('rsousers/me/media/', UserMediaVS, name='user-media'),
+    path('rsousers/me/statement/', UserStatementVS, name='user-statement'),
+    path('rsousers/me/parent/', UsersParentVS, name='user-parent'),
     path(
-        'users/me/statement/download_membership_statement_file/',
+        'rsousers/me/statement/download_membership_statement_file/',
         UserStatementMembershipDownloadVS,
         name='download-membership-file'
     ),
     path(
         (
-            'users/me/statement/'
+            'rsousers/me/statement/'
             'download_consent_to_the_processing_of_personal_data/'
         ),
         UserStatementConsentPDDownloadVS,
@@ -114,29 +114,29 @@ user_nested_urls = [
     ),
     path(
         (
-            'users/me/statement/'
+            'rsousers/me/statement/'
             'download_parent_consent_to_the_processing_of_personal_data/'
         ),
         UserStatementParentConsentPDDownloadVS,
         name='download-parent-consent-pd'
     ),
     path(
-        'users/me/statement/download_all_forms/',
+        'rsousers/me/statement/download_all_forms/',
         UserStatementDownloadAllVS,
         name='download-all-forms'
     ),
     path(
-        'users/me/apply_for_verification/',
+        'rsousers/me/apply_for_verification/',
         apply_for_verification,
         name='user-verification'
     ),
     path(
-        'users/<int:pk>/verify/',
+        'rsousers/<int:pk>/verify/',
         verify_user,
         name='user-verify'
     ),
     path(
-        'users/<int:pk>/membership_fee_status/',
+        'rsousers/<int:pk>/membership_fee_status/',
         change_membership_fee_status,
         name='user-membership-fee'
     ),
@@ -211,12 +211,12 @@ user_nested_urls = [
         name='central-members-update'
     ),
     path(
-        'users/me/professional_education/',
+        'rsousers/me/professional_education/',
         UserProfEduRetrieveCreateVS,
         name='user-prof-education_retrieve_create',
     ),
     path(
-        'users/me/professional_education/<int:pk>/',
+        'rsousers/me/professional_education/<int:pk>/',
         UserProfEduPUDVS,
         name='user-prof-education_post_update_delete',
     ),
