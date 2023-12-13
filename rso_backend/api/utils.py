@@ -101,7 +101,7 @@ def check_role_get(request, model, position_in_quarter):
     )
 
 
-def check_trusted_user(request, model):
+def check_trusted_user(request, model, obj):
     """Проверка доверенного пользователя.
 
     model - модель штаба/отряда, в котором проверяется статус доверенности.
@@ -110,7 +110,7 @@ def check_trusted_user(request, model):
 
     user_id = request.user.id
     try:
-        user = model.objects.get(user_id=user_id)
+        user = model.objects.get(user_id=user_id, id=obj.id)
         is_trusted = user.is_trusted
     except model.DoesNotExist:
         return False
@@ -133,25 +133,25 @@ def check_roles_for_edit(request, roles_models: dict):
     return False
 
 
-def check_trusted_in_headquarters(request, roles_models: dict):
+def check_trusted_in_headquarters(request, roles_models: dict, obj):
     """Проверка на наличие флага 'доверенный пользователь'.
 
     Проверка производится по моделям, указанным в словаре 'roles_models'
     """
 
     for _, model in roles_models.items():
-        if check_trusted_user(request, model):
+        if check_trusted_user(request, model, obj):
             return True
 
 
-def check_trusted_in_headquarters_list(request, models: list):
+def check_trusted_in_headquarters_list(request, models: list, obj):
     """Проверка на наличие флага 'доверенный пользователь'.
 
     Проверка производится по моделям, указанным в списке 'models'
     """
 
     for model in models:
-        if check_trusted_user(request, model):
+        if check_trusted_user(request, model, obj):
             return True
 
 

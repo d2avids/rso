@@ -61,7 +61,8 @@ class IsDistrictCommander(BasePermission):
             is_stuff_or_central_commander(request),
             check_trusted_in_headquarters_list(
                 request=request,
-                models=trust_models
+                models=trust_models,
+                obj=obj
             )
         ])
         return check_roles or check_model_instance
@@ -102,7 +103,8 @@ class IsRegionalCommander(BasePermission):
             is_stuff_or_central_commander(request),
             check_trusted_in_headquarters_list(
                 request=request,
-                models=trust_models
+                models=trust_models,
+                obj=obj
             )
         ])
         return check_roles or check_model_instance
@@ -147,7 +149,8 @@ class IsLocalCommander(BasePermission):
             is_stuff_or_central_commander(request),
             check_trusted_in_headquarters_list(
                 request=request,
-                models=trust_models
+                models=trust_models,
+                obj=obj
             )
         ])
         return check_roles or check_model_instance
@@ -195,7 +198,8 @@ class IsEducationalCommander(BasePermission):
             is_stuff_or_central_commander(request),
             check_trusted_in_headquarters_list(
                 request=request,
-                models=trust_models
+                models=trust_models,
+                obj=obj
             )
         ])
         return check_roles or check_model_instance
@@ -244,7 +248,8 @@ class IsDetachmentCommander(BasePermission):
             is_stuff_or_central_commander(request),
             check_trusted_in_headquarters_list(
                 request=request,
-                models=trust_models
+                models=trust_models,
+                obj=obj
             )
         ])
         return check_model_instance or check_roles

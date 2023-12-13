@@ -3,6 +3,7 @@ import re
 from datetime import datetime as dt
 
 from django.core.exceptions import ValidationError
+from django.conf import settings
 
 
 def image_path(instance, filename):
@@ -42,3 +43,13 @@ def validate_years(value):
     start, end = value.split('-')
     if int(start) >= int(end):
         raise ValidationError('Начальный год должен быть меньше конечного.')
+
+
+def unique_email_validator(value):
+    """Валидация Email - уникальный, либо None."""
+
+    if value is not None:
+        if settings.AUTH_USER_MODEL.objects.filter(
+            email=value.lower()
+        ).exists():
+            raise ValidationError('Данный Email уже зарегистрирован.')

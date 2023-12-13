@@ -1,18 +1,20 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+
 from users.constants import (Gender, MilitaryDocType, PrivacyOption,
                              RelationshipType, StudyForm)
-from users.utils import document_path, image_path, validate_years
+from users.utils import (document_path, image_path, validate_years,
+                         unique_email_validator)
 
 
 class RSOUser(AbstractUser):
     email = models.EmailField(
         verbose_name='Email',
         max_length=254,
-        unique=True,
         null=True,
-        blank=True
+        blank=True,
+        validators=[unique_email_validator,]
     )
     username = models.CharField(
         verbose_name='Ник',
