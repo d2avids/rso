@@ -2,7 +2,6 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from headquarters.utils import image_path
-from users.models import RSOUser
 
 
 class EducationalInstitution(models.Model):
@@ -164,6 +163,37 @@ class RegionalHeadquarter(Unit):
         related_name='regional_headquarters',
         on_delete=models.PROTECT,
         verbose_name='Привязка к ОШ'
+    )
+    name_for_certificates = models.CharField(
+        max_length=250,
+        verbose_name='Наименование штаба (для справок)',
+    )
+    conference_date = models.DateField(
+        verbose_name='Дата учр. конференции регионального штаба',
+        null=True,
+        blank=True,
+    )
+    registry_date = models.DateField(
+        verbose_name='Дата регистрации в реестре молодежных и детских '
+                     'общественных объединений...',
+        null=True,
+        blank=True,
+    )
+    registry_number = models.CharField(
+        max_length=250,
+        verbose_name='Наименование штаба в Предложном падеже',
+    )
+    case_name = models.CharField(
+        max_length=250,
+        verbose_name='Наименование штаба в Предложном падеже (для справок)',
+    )
+    legal_address = models.CharField(
+        max_length=250,
+        verbose_name='Юридический адрес (для справок)',
+    )
+    requisites = models.CharField(
+        max_length=250,
+        verbose_name='Реквизиты (для справок)',
     )
 
     class Meta:
