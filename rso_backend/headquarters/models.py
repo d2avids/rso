@@ -166,7 +166,7 @@ class RegionalHeadquarter(Unit):
     )
     name_for_certificates = models.CharField(
         max_length=250,
-        verbose_name='Наименование штаба (для справок)',
+        verbose_name='Наименование штаба в Им. падеже (для справок)',
     )
     conference_date = models.DateField(
         verbose_name='Дата учр. конференции регионального штаба',
@@ -181,19 +181,33 @@ class RegionalHeadquarter(Unit):
     )
     registry_number = models.CharField(
         max_length=250,
-        verbose_name='Наименование штаба в Предложном падеже',
+        verbose_name='Регистрационный номер в реестре молодежных и детских '
+                     'общественных объединений...',
     )
     case_name = models.CharField(
         max_length=250,
         verbose_name='Наименование штаба в Предложном падеже (для справок)',
+        blank=True,
+        null=True,
     )
     legal_address = models.CharField(
         max_length=250,
         verbose_name='Юридический адрес (для справок)',
+        blank=True,
+        null=True,
     )
     requisites = models.CharField(
         max_length=250,
         verbose_name='Реквизиты (для справок)',
+        blank=True,
+        null=True,
+    )
+    first_detachment_date = models.CharField(
+        max_length=4,
+        verbose_name='Официальная дата (год) появления студенческих '
+                     'отрядов в регионе',
+        blank=True,
+        null=True,
     )
 
     class Meta:
