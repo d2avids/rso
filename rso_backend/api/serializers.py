@@ -643,6 +643,13 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
             'district_headquarter',
             'members',
             'users_for_verification',
+            'name_for_certificates',
+            'conference_date',
+            'registry_date',
+            'registry_number',
+            'case_name',
+            'legal_address',
+            'requisites',
         )
 
     @staticmethod
