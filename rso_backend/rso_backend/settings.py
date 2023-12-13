@@ -32,6 +32,19 @@ RUN_TYPE = os.getenv('RUN_TYPE', default='LOCAL')
 
 AUTH_USER_MODEL = 'users.RSOUser'
 
+# EMAIL BACKEND
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = "smtp.yandex.ru"
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+
+EMAIL_SERVER = EMAIL_HOST_USER
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_ADMIN = EMAIL_HOST_USER
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -308,7 +321,8 @@ DJOSER = {
     'USERNAME_FIELD': 'username',
     'USER_CREATE_PASSWORD_RETYPE': True,
     'SEND_ACTIVATION_EMAIL': False,
-    'PASSWORD_CHANGE_EMAIL_CONFIRMATION': False,
+    'PASSWORD_CHANGE_EMAIL_CONFIRMATION': True,
+    'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
     'SERIALIZERS': {
         'user_create_password_retype': 'api.serializers.UserCreateSerializer',
     },
