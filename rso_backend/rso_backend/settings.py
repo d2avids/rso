@@ -32,6 +32,16 @@ RUN_TYPE = os.getenv('RUN_TYPE', default='LOCAL')
 
 AUTH_USER_MODEL = 'users.RSOUser'
 
+# EMAIL BACKEND
+EMAIL_BACKEND ='django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = "smtp-relay.gmail.com"
+EMAIL_HOST_USER = ''
+EMAIL_HOST_PASSWORD = ''
+
+EMAIL_SERVER = EMAIL_HOST_USER
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_ADMIN = EMAIL_HOST_USER
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
