@@ -64,9 +64,10 @@ def is_stuff_or_central_commander(request):
     Если роль совпал с ролью админа или цомандира ЦШ, возвращает True.
     """
 
-    user_id = request.user.id
     try:
-        user = UserCentralHeadquarterPosition.objects.get(user_id=user_id)
+        user = UserCentralHeadquarterPosition.objects.get(
+            user_id=request.user.id
+        )
         position_name = user.position.name if user.position else None
     except UserCentralHeadquarterPosition.DoesNotExist:
         return False
@@ -87,9 +88,8 @@ def check_role_get(request, model, position_in_quarter):
     position_in_quarter - требуемая должность для получения True.
     """
 
-    user_id = request.user.id
     try:
-        user_headquarter_object = model.objects.get(user_id=user_id)
+        user_headquarter_object = model.objects.get(user_id=request.user.id)
         position_name = (
             user_headquarter_object.position.name
             if user_headquarter_object.position else None
@@ -108,11 +108,13 @@ def check_trusted_user(request, model, obj):
     request - запрос к эндпоинту
     """
 
-    user_id = request.user.id
     try:
-        user = model.objects.get(user_id=user_id, id=obj.id)
-        is_trusted = user.is_trusted
-    except model.DoesNotExist:
+        queryset = model.objects.filter(
+            user_id=request.user.id,
+            headquarter_id=obj.id
+        ).first()
+        is_trusted = queryset.is_trusted
+    except AttributeError:
         return False
     return (
         request.user.is_authenticated and is_trusted
