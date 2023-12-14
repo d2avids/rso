@@ -589,8 +589,7 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action == 'create':
             permission_classes = (IsEducationalCommander,)
-        else:
-            permission_classes = (IsDetachmentCommander, )
+        permission_classes = (IsDetachmentCommander, )
         return [permission() for permission in permission_classes]
 
 

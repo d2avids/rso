@@ -152,9 +152,12 @@ def check_trusted_in_headquarters_list(request, models: list, obj):
     Проверка производится по моделям, указанным в списке 'models'
     """
 
+    any_model_successful = False
     for model in models:
         if check_trusted_user(request, model, obj):
-            return True
+            any_model_successful = True
+            break
+    return any_model_successful
 
 
 def check_roles_save(role, roles_with_rights, serializer):
