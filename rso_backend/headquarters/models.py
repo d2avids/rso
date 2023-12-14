@@ -53,7 +53,7 @@ class Region(models.Model):
         verbose_name = 'Регион'
 
     def __str__(self):
-        return self.name
+        return self.name or "unknown region"
 
 
 class Area(models.Model):

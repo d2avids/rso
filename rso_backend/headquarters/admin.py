@@ -1,4 +1,6 @@
 from django.contrib import admin
+from import_export.admin import ImportExportModelAdmin
+
 
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
@@ -10,6 +12,7 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
+from headquarters.resources import RegionResource
 
 
 @admin.register(CentralHeadquarter)
@@ -108,8 +111,8 @@ class EducationalInstAdmin(admin.ModelAdmin):
 
 
 @admin.register(Region)
-class RegionAdmin(admin.ModelAdmin):
-    pass
+class RegionAdmin(ImportExportModelAdmin):
+    resource_class = RegionResource
 
 
 @admin.register(Area)
