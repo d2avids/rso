@@ -86,6 +86,8 @@ class Unit(models.Model):
     about = models.CharField(
         max_length=500,
         verbose_name='Описание',
+        null=True,
+        blank=True,
     )
     emblem = models.ImageField(
         upload_to=image_path,
@@ -96,10 +98,14 @@ class Unit(models.Model):
     social_vk = models.CharField(
         max_length=50,
         verbose_name='Ссылка ВК',
+        null=True,
+        blank=True,
     )
     social_tg = models.CharField(
         max_length=50,
         verbose_name='Ссылка Телеграм',
+        null=True,
+        blank=True,
     )
     city = models.CharField(
         max_length=100,
@@ -115,7 +121,9 @@ class Unit(models.Model):
     )
     slogan = models.CharField(
         max_length=100,
-        verbose_name='Девиз'
+        verbose_name='Девиз',
+        null=True,
+        blank=True,
     )
     founding_date = models.DateField(
         verbose_name='Дата основания',
@@ -167,11 +175,11 @@ class RegionalHeadquarter(Unit):
     name_for_certificates = models.CharField(
         max_length=250,
         verbose_name='Наименование штаба в Им. падеже (для справок)',
+        blank=True,
+        null=True,
     )
     conference_date = models.DateField(
         verbose_name='Дата учр. конференции регионального штаба',
-        null=True,
-        blank=True,
     )
     registry_date = models.DateField(
         verbose_name='Дата регистрации в реестре молодежных и детских '
@@ -183,6 +191,8 @@ class RegionalHeadquarter(Unit):
         max_length=250,
         verbose_name='Регистрационный номер в реестре молодежных и детских '
                      'общественных объединений...',
+        null=True,
+        blank=True,
     )
     case_name = models.CharField(
         max_length=250,
@@ -202,12 +212,9 @@ class RegionalHeadquarter(Unit):
         blank=True,
         null=True,
     )
-    first_detachment_date = models.CharField(
+    founding_date = models.CharField(
         max_length=4,
-        verbose_name='Официальная дата (год) появления студенческих '
-                     'отрядов в регионе',
-        blank=True,
-        null=True,
+        verbose_name='Год основания',
     )
 
     class Meta:

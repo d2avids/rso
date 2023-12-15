@@ -650,7 +650,6 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
             'case_name',
             'legal_address',
             'requisites',
-            'first_detachment_date',
         )
 
     @staticmethod
