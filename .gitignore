@@ -218,3 +218,4 @@ media/
 
 /logs
 logs/
+collected_static/
