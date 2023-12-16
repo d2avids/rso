@@ -327,21 +327,25 @@ class Detachment(Unit):
     photo1 = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Фото 1'
     )
     photo2 = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Фото 2'
     )
     photo3 = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Фото 3'
     )
     photo4 = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Фото 4'
     )
 

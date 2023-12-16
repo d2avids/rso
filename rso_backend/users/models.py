@@ -1,4 +1,6 @@
 from datetime import date
+
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -11,7 +13,8 @@ class RSOUser(AbstractUser):
     email = models.EmailField(
         verbose_name='Email',
         max_length=254,
-        unique=True,
+        null=True,
+        blank=True
     )
     username = models.CharField(
         verbose_name='Ник',
@@ -110,6 +113,13 @@ class RSOUser(AbstractUser):
     class Meta:
         verbose_name_plural = 'Пользователи'
         verbose_name = 'Пользователь'
+
+    def clean(self):
+        super().clean()
+        if self.email and RSOUser.objects.exclude(pk=self.pk).filter(
+            email__iexact=self.email
+        ).exists():
+            raise ValidationError('Данный Email уже зарегистрирован.')
 
     def __str__(self):
         return (
@@ -515,31 +525,37 @@ class UserMedia(models.Model):
     banner = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Баннер личной страницы'
     )
     photo = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Аватарка'
     )
     photo1 = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Фото 1'
     )
     photo2 = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Фото 2'
     )
     photo3 = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Фото 3'
     )
     photo4 = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Фото 4'
     )
 
@@ -829,9 +845,13 @@ class UserMembershipLogs(models.Model):
         """
         current_date = date.today()
         current_year = current_date.year
-        if date(current_year, 1, 1) <= current_date < date(current_year, 10, 1):
+        if date(current_year, 1, 1) <= current_date < date(
+            current_year, 10, 1
+        ):
             self.period = f"{current_year-1}-{current_year}"
-        elif date(current_year, 10, 1) <= current_date <= date(current_year, 12, 31):
+        elif date(current_year, 10, 1) <= current_date <= date(
+            current_year, 12, 31
+        ):
             self.period = f"{current_year}-{current_year+1}"
         else:
             self.period = "Неопределенный"
