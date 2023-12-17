@@ -1,11 +1,11 @@
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 
 from users.constants import (Gender, MilitaryDocType, PrivacyOption,
                              RelationshipType, StudyForm)
-from users.utils import (document_path, image_path, validate_years,
-                         unique_email_validator)
+from users.utils import (document_path, image_path, validate_years)
 
 
 class RSOUser(AbstractUser):
@@ -14,7 +14,6 @@ class RSOUser(AbstractUser):
         max_length=254,
         null=True,
         blank=True,
-        validators=[unique_email_validator,]
     )
     username = models.CharField(
         verbose_name='Ник',
@@ -112,6 +111,13 @@ class RSOUser(AbstractUser):
     class Meta:
         verbose_name_plural = 'Пользователи'
         verbose_name = 'Пользователь'
+
+    def clean(self):
+        super().clean()
+        if self.email and RSOUser.objects.exclude(pk=self.pk).filter(
+            email__iexact=self.email
+        ).exists():
+            raise ValidationError('Данный Email уже зарегистрирован.')
 
     def __str__(self):
         return (
@@ -517,6 +523,7 @@ class UserMedia(models.Model):
     banner = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Баннер личной страницы'
     )
     photo = models.ImageField(

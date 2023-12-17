@@ -3,7 +3,6 @@ import re
 from datetime import datetime as dt
 
 from django.core.exceptions import ValidationError
-from django.conf import settings
 
 
 def image_path(instance, filename):
@@ -12,12 +11,12 @@ def image_path(instance, filename):
     :param instance: Экземпляр модели.
     :param filename: Имя файла. Добавляем к имени текущую дату и время.
     :return: Путь к изображению.
-    Сохраняем в filepath/{instance.name}/filename
+    Сохраняем в filepath/{instance.user.name}/filename
     """
 
     filename = dt.today().strftime('%Y%m%d%H%M%S') + '_' + filename
     filepath = 'images/users'
-    return os.path.join(filepath, instance.name, filename)
+    return os.path.join(filepath, instance.user.username, filename)
 
 
 def document_path(instance, filename):
@@ -43,13 +42,3 @@ def validate_years(value):
     start, end = value.split('-')
     if int(start) >= int(end):
         raise ValidationError('Начальный год должен быть меньше конечного.')
-
-
-def unique_email_validator(value):
-    """Валидация Email - уникальный, либо None."""
-
-    if value is not None:
-        if settings.AUTH_USER_MODEL.objects.filter(
-            email=value.lower()
-        ).exists():
-            raise ValidationError('Данный Email уже зарегистрирован.')

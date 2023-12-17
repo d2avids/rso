@@ -2,14 +2,19 @@ import mimetypes
 import os
 import shutil
 
-from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.permissions import SAFE_METHODS
 
-from headquarters.models import UserCentralHeadquarterPosition
+from headquarters.models import (UserCentralHeadquarterPosition,
+                                 UserDistrictHeadquarterPosition,
+                                 UserEducationalHeadquarterPosition,
+                                 UserLocalHeadquarterPosition,
+                                 UserRegionalHeadquarterPosition,
+                                 UserDetachmentPosition,
+                                 CentralHeadquarter)
 
 
 def create_first_or_exception(self, validated_data, instance, error_msg: str):
@@ -26,11 +31,21 @@ def create_first_or_exception(self, validated_data, instance, error_msg: str):
 def check_folder_delete(instance):
     """
     Функция для проверки существования папки с файлами
-    при удалении объекта модели.
+    при удалении объекта модели штаба/оттряда.
     """
     try:
-        folder_path = os.path.dirname(instance.emblem.path)
-        shutil.rmtree(folder_path)
+        shutil.rmtree(os.path.dirname(instance.emblem.path))
+    except ValueError:
+        return
+
+
+def check_folder_delete_usermedia(instance):
+    """
+    Функция для проверки существования папки с файлами
+    при удалении объекта модели юзера.
+    """
+    try:
+        shutil.rmtree(os.path.dirname(instance.banner.path))
     except ValueError:
         return
 
@@ -64,19 +79,18 @@ def is_stuff_or_central_commander(request):
     Если роль совпал с ролью админа или цомандира ЦШ, возвращает True.
     """
 
-    try:
-        user = UserCentralHeadquarterPosition.objects.get(
-            user_id=request.user.id
-        )
-        position_name = user.position.name if user.position else None
-    except UserCentralHeadquarterPosition.DoesNotExist:
-        return False
+    check_central_commander = False
+    commander_id = CentralHeadquarter.objects.get(
+        commander_id=request.user.id
+    ).commander_id
+    if request.user.id == commander_id:
+        check_central_commander = True
     return (request.user.is_authenticated
-            and (
-                position_name == 'central_commander'
-                or request.user.is_superuser
-                or request.user.is_staff
-            ))
+            and any([
+                check_central_commander,
+                request.user.is_superuser,
+                request.user.is_staff
+            ]))
 
 
 def check_role_get(request, model, position_in_quarter):
@@ -105,20 +119,204 @@ def check_trusted_user(request, model, obj):
     """Проверка доверенного пользователя.
 
     model - модель штаба/отряда, в котором проверяется статус доверенности.
-    request - запрос к эндпоинту
+    request - запрос к эндпоинту.
+    Функция проверяет является ли пользователь доверенным
+    в той структурной единице, к которой пользователь сделал запрос.
     """
 
     try:
-        queryset = model.objects.filter(
+        member = model.objects.filter(
             user_id=request.user.id,
             headquarter_id=obj.id
         ).first()
-        is_trusted = queryset.is_trusted
+        is_trusted = member.is_trusted
     except AttributeError:
         return False
     return (
         request.user.is_authenticated and is_trusted
     )
+
+
+def check_trusted_for_detachments(request, obj):
+    """Проверка доверенного пользователя для отряда.
+
+    request - запрос к эндпоинту.
+    obj - отряд, к которому пользователь сделал запрос.
+    Управлять отрядом может любой доверенный пользователь из отряда
+    или из штабов. Функция проверяет существует ли запись о юзере
+    в штабах выше и если существует, то возвращает статус доверенности.
+    """
+
+    detachment_trusted = edu_trusted = local_trusted = False
+    regional_trusted = district_trusted = False
+    user_id = request.user.id
+    detachment_position = UserDetachmentPosition.objects.filter(
+        headquarter_id=obj.id,
+        user_id=user_id
+    )
+    edu_position = UserEducationalHeadquarterPosition.objects.filter(
+        headquarter_id=obj.educational_headquarter.id,
+        user_id=user_id
+    )
+    local_position = UserLocalHeadquarterPosition.objects.filter(
+        headquarter_id=obj.local_headquarter.id,
+        user_id=user_id
+    )
+    regional_position = UserRegionalHeadquarterPosition.objects.filter(
+        headquarter_id=obj.regional_headquarter.id,
+        user_id=user_id
+    )
+    district_position = UserDistrictHeadquarterPosition.objects.filter(
+        headquarter_id=obj.regional_headquarter.district_headquarter.id,
+    )
+    if detachment_position.exists():
+        detachment_trusted = detachment_position.first().is_trusted
+    if edu_position.exists():
+        edu_trusted = edu_position.first().is_trusted
+    if local_position.exists():
+        local_trusted = local_position.first().is_trusted
+    if regional_position.exists():
+        regional_trusted = regional_position.first().is_trusted
+    if district_position.exists():
+        district_trusted = district_position.first().is_trusted
+
+    return any([
+        detachment_trusted,
+        edu_trusted,
+        local_trusted,
+        regional_trusted,
+        district_trusted
+    ])
+
+
+def check_trusted_for_eduhead(request, obj):
+    """Проверка доверенного пользователя для Образовательного Штаба.
+
+    request - запрос к эндпоинту.
+    obj - штаб, к которому пользователь сделал запрос.
+    Управлять Обр. штабом может любой доверенный пользователь из штабов выше.
+    Функция проверяет существует ли запись о юзере
+    в штабах выше и если существует, то возвращает статус доверенности.
+    """
+
+    edu_trusted = local_trusted = False
+    regional_trusted = district_trusted = False
+    user_id = request.user.id
+    user_id = request.user.id
+    edu_position = UserEducationalHeadquarterPosition.objects.filter(
+        headquarter_id=obj.id,
+        user_id=user_id
+    )
+    local_position = UserLocalHeadquarterPosition.objects.filter(
+        headquarter_id=obj.local_headquarter.id,
+        user_id=user_id
+    )
+    regional_position = UserRegionalHeadquarterPosition.objects.filter(
+        headquarter_id=obj.regional_headquarter.id,
+        user_id=user_id
+    )
+    district_position = UserDistrictHeadquarterPosition.objects.filter(
+        headquarter_id=obj.regional_headquarter.district_headquarter.id,
+    )
+    if edu_position.exists():
+        edu_trusted = edu_position.first().is_trusted
+    if local_position.exists():
+        local_trusted = local_position.first().is_trusted
+    if regional_position.exists():
+        regional_trusted = regional_position.first().is_trusted
+    if district_position.exists():
+        district_trusted = district_position.first().is_trusted
+    return any([
+        edu_trusted,
+        local_trusted,
+        regional_trusted,
+        district_trusted
+    ])
+
+
+def check_trusted_for_localhead(request, obj):
+    """Проверка доверенного пользователя для Местного Штаба.
+
+    request - запрос к эндпоинту.
+    obj - штаб, к которому пользователь сделал запрос.
+    Управлять МШ может любой доверенный пользователь из штабов выше.
+    Функция проверяет существует ли запись о юзере
+    в штабах выше и если существует, то возвращает статус доверенности.
+    """
+
+    local_trusted = regional_trusted = district_trusted = False
+    user_id = request.user.id
+    local_position = UserLocalHeadquarterPosition.objects.filter(
+        headquarter_id=obj.id,
+        user_id=user_id
+    )
+    regional_position = UserRegionalHeadquarterPosition.objects.filter(
+        headquarter_id=obj.regional_headquarter.id,
+        user_id=user_id
+    )
+    district_position = UserDistrictHeadquarterPosition.objects.filter(
+        headquarter_id=obj.regional_headquarter.district_headquarter.id,
+    )
+    if local_position.exists():
+        local_trusted = local_position.first().is_trusted
+    if regional_position.exists():
+        regional_trusted = regional_position.first().is_trusted
+    if district_position.exists():
+        district_trusted = district_position.first().is_trusted
+    return any([
+        local_trusted,
+        regional_trusted,
+        district_trusted
+    ])
+
+
+def check_trusted_for_regionalhead(request, obj):
+    """Проверка доверенного пользователя для Регионального Штаба.
+
+    request - запрос к эндпоинту.
+    obj - штаб, к которому пользователь сделал запрос.
+    Управлять РШ может любой доверенный пользователь из Окружного Штаба.
+    Функция проверяет существует ли запись о юзере
+    в Окружном штабе и если существует, то возвращает статус доверенности.
+    """
+
+    regional_trusted = district_trusted = False
+    user_id = request.user.id
+    regional_position = UserRegionalHeadquarterPosition.objects.filter(
+        headquarter_id=obj.id,
+        user_id=user_id
+    )
+    district_position = UserDistrictHeadquarterPosition.objects.filter(
+        headquarter_id=obj.district_headquarter.id,
+    )
+    if regional_position.exists():
+        regional_trusted = regional_position.first().is_trusted
+    if district_position.exists():
+        district_trusted = district_position.first().is_trusted
+    return any([
+        regional_trusted,
+        district_trusted
+    ])
+
+
+def check_trusted_for_districthead(request, obj):
+    """Проверка доверенного пользователя для Окружного Штаба.
+
+    request - запрос к эндпоинту.
+    obj - штаб, к которому пользователь сделал запрос.
+    Функция проверяет существует ли запись о юзере
+    в Окружном штабе и если существует, то возвращает статус доверенности.
+    """
+
+    district_trusted = False
+    user_id = request.user.id
+    district_position = UserDistrictHeadquarterPosition.objects.filter(
+        headquarter_id=obj.id,
+        user_id=user_id
+    )
+    if district_position.exists():
+        district_trusted = district_position.first().is_trusted
+    return district_trusted
 
 
 def check_roles_for_edit(request, roles_models: dict):
@@ -144,35 +342,6 @@ def check_trusted_in_headquarters(request, roles_models: dict, obj):
     for _, model in roles_models.items():
         if check_trusted_user(request, model, obj):
             return True
-
-
-def check_trusted_in_headquarters_list(request, models: list, obj):
-    """Проверка на наличие флага 'доверенный пользователь'.
-
-    Проверка производится по моделям, указанным в списке 'models'
-    """
-
-    any_model_successful = False
-    for model in models:
-        if check_trusted_user(request, model, obj):
-            any_model_successful = True
-            break
-    return any_model_successful
-
-
-def check_roles_save(role, roles_with_rights, serializer):
-    """Проверка роли пользователя.
-
-    role - Должность юзера
-    roles_with_rights - Юзеры с правами на создание записи.
-    serializer - сериализатор для создания записи в БД.
-    """
-
-    if role in roles_with_rights:
-        return serializer.save()
-    raise ValidationError(
-            'У Вас нет прав для создания этой структурной единицы.'
-        )
 
 
 def get_headquarter_users_positions_queryset(self,

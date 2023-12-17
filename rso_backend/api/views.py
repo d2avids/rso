@@ -38,7 +38,7 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserStatementDocumentsSerializer,
                              ForeignUserDocumentsSerializer,
                              AreaSerializer)
-from api.utils import (check_roles_save, download_file,
+from api.utils import (download_file,
                        get_headquarter_users_positions_queryset)
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
@@ -270,7 +270,7 @@ class UserDocumentsViewSet(BaseUserViewSet):
 
     queryset = UserDocuments.objects.all()
     serializer_class = UserDocumentsSerializer
-    permission_classes = [IsStuffOrAuthor,]
+    permission_classes = (IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(UserDocuments, user=self.request.user)
@@ -281,7 +281,7 @@ class ForeignUserDocumentsViewSet(BaseUserViewSet):
 
     queryset = ForeignUserDocuments.objects.all()
     serializer_class = ForeignUserDocumentsSerializer
-    permission_classes = [IsStuffOrAuthor,]
+    permission_classes = (IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(ForeignUserDocuments, user=self.request.user)
@@ -292,6 +292,7 @@ class UserRegionViewSet(BaseUserViewSet):
 
     queryset = UserRegion.objects.all()
     serializer_class = UserRegionSerializer
+    permission_classes = (IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(UserRegion, user=self.request.user)
@@ -302,7 +303,7 @@ class UserPrivacySettingsViewSet(BaseUserViewSet):
 
     queryset = UserPrivacySettings.objects.all()
     serializer_class = UserPrivacySettingsSerializer
-    permission_classes = [IsStuffOrAuthor,]
+    permission_classes = (IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(UserPrivacySettings, user=self.request.user)
@@ -420,6 +421,7 @@ class UsersParentViewSet(BaseUserViewSet):
 
     queryset = UsersParent.objects.all()
     serializer_class = UsersParentSerializer
+    permission_classes = (IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(UsersParent, user=self.request.user)
@@ -438,25 +440,12 @@ class CentralViewSet(ListRetrieveUpdateViewSet):
     serializer_class = CentralHeadquarterSerializer
     permission_classes = (IsStuffOrCentralCommander,)
 
-    def perform_create(self, serializer):
-        """Проверяет права пользователя на создание центрального штаба."""
-
-        role = self.request.user.users_role.role
-        roles_with_rights = [
-            'central_commander',
-            'admin'
-        ]
-        check_roles_save(role, roles_with_rights, serializer)
-
-    def create(self, request, *args, **kwargs):
-        """Создает центральный штаб."""
-
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
+    def get_permissions(self):
+        if self.action == 'create':
+            permission_classes = (permissions.IsAdminUser,)
+        else:
+            permission_classes = (IsStuffOrCentralCommander,)
+        return [permission() for permission in permission_classes]
 
 
 class DistrictViewSet(viewsets.ModelViewSet):

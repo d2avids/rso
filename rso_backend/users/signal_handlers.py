@@ -1,7 +1,7 @@
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 
-from api.utils import check_folder_delete
+from api.utils import check_folder_delete, check_folder_delete_usermedia
 from users.models import UserMedia, UserStatementDocuments
 
 
@@ -12,7 +12,7 @@ def delete_image_with_object_user_media(sender, instance, **kwargs):
     объектом модели UserMedia.
     """
 
-    check_folder_delete(instance)
+    check_folder_delete_usermedia(instance)
 
 
 @receiver(pre_delete, sender=UserStatementDocuments)

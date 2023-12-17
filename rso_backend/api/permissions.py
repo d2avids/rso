@@ -4,7 +4,11 @@ from rest_framework.permissions import BasePermission
 from api.utils import (is_stuff_or_central_commander, is_safe_method,
                        check_trusted_user, check_trusted_in_headquarters,
                        check_roles_for_edit,
-                       check_trusted_in_headquarters_list)
+                       check_trusted_for_detachments,
+                       check_trusted_for_eduhead,
+                       check_trusted_for_localhead,
+                       check_trusted_for_regionalhead,
+                       check_trusted_for_districthead)
 from headquarters.models import (UserCentralHeadquarterPosition,
                                  UserDistrictHeadquarterPosition,
                                  UserRegionalHeadquarterPosition,
@@ -23,13 +27,14 @@ class IsStuffOrCentralCommander(BasePermission):
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
 
-    def has_permission(self, request, view):
+    def has_object_permission(self, request, view, obj):
         return any([
             is_safe_method(request),
             is_stuff_or_central_commander(request),
             check_trusted_user(
                 request=request,
-                model=UserCentralHeadquarterPosition
+                model=UserCentralHeadquarterPosition,
+                obj=obj
             )
         ])
 
@@ -52,18 +57,10 @@ class IsDistrictCommander(BasePermission):
             and user_id == obj.commander_id
         ):
             check_model_instance = True
-
-        trust_models = [
-            UserDistrictHeadquarterPosition,
-        ]
         check_roles = any([
             is_safe_method(request),
             is_stuff_or_central_commander(request),
-            check_trusted_in_headquarters_list(
-                request=request,
-                models=trust_models,
-                obj=obj
-            )
+            check_trusted_for_districthead(request, obj)
         ])
         return check_roles or check_model_instance
 
@@ -93,19 +90,10 @@ class IsRegionalCommander(BasePermission):
             )
         ):
             check_model_instance = True
-
-        trust_models = [
-            UserDistrictHeadquarterPosition,
-            UserRegionalHeadquarterPosition,
-        ]
         check_roles = any([
             is_safe_method(request),
             is_stuff_or_central_commander(request),
-            check_trusted_in_headquarters_list(
-                request=request,
-                models=trust_models,
-                obj=obj
-            )
+            check_trusted_for_regionalhead(request, obj)
         ])
         return check_roles or check_model_instance
 
@@ -138,20 +126,10 @@ class IsLocalCommander(BasePermission):
             ]
         ):
             check_model_instance = True
-
-        trust_models = [
-            UserDistrictHeadquarterPosition,
-            UserRegionalHeadquarterPosition,
-            UserLocalHeadquarterPosition,
-        ]
         check_roles = any([
             is_safe_method(request),
             is_stuff_or_central_commander(request),
-            check_trusted_in_headquarters_list(
-                request=request,
-                models=trust_models,
-                obj=obj
-            )
+            check_trusted_for_localhead(request, obj),
         ])
         return check_roles or check_model_instance
 
@@ -186,21 +164,10 @@ class IsEducationalCommander(BasePermission):
             ]
         ):
             check_model_instance = True
-
-        trust_models = [
-            UserDistrictHeadquarterPosition,
-            UserRegionalHeadquarterPosition,
-            UserLocalHeadquarterPosition,
-            UserEducationalHeadquarterPosition,
-        ]
         check_roles = any([
             is_safe_method(request),
             is_stuff_or_central_commander(request),
-            check_trusted_in_headquarters_list(
-                request=request,
-                models=trust_models,
-                obj=obj
-            )
+            check_trusted_for_eduhead(request, obj)
         ])
         return check_roles or check_model_instance
 
@@ -236,22 +203,12 @@ class IsDetachmentCommander(BasePermission):
             ]
         ):
             check_model_instance = True
-        trust_models = [
-            UserDistrictHeadquarterPosition,
-            UserRegionalHeadquarterPosition,
-            UserLocalHeadquarterPosition,
-            UserEducationalHeadquarterPosition,
-            UserDetachmentPosition
-        ]
         check_roles = any([
             is_safe_method(request),
             is_stuff_or_central_commander(request),
-            check_trusted_in_headquarters_list(
-                request=request,
-                models=trust_models,
-                obj=obj
-            )
+            check_trusted_for_detachments(request, obj)
         ])
+        print(is_stuff_or_central_commander(request))
         return check_model_instance or check_roles
 
 
