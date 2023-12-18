@@ -216,6 +216,5 @@ GitHub.sublime-settings
 /media
 media/
 
-/logs
-logs/
+
 collected_static/
