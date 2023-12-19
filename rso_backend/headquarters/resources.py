@@ -1,5 +1,7 @@
 from import_export import resources
 from headquarters.models import Region, EducationalInstitution
+from users.models import RSOUser
+from django.contrib.auth.hashers import make_password
 
 
 class RegionResource(resources.ModelResource):
@@ -35,5 +37,3 @@ class EducationalInstitutionResource(resources.ModelResource):
         skip_unchanged = True
         report_skipped = False
         verbose_name = True
-
-
