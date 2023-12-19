@@ -8,6 +8,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+MIN_FOUNDING_DATE = 1000
+MAX_FOUNDING_DATE = 9999
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
