@@ -615,8 +615,14 @@ class UserDetachmentPosition(UserUnitPosition):
 
     def save(self, *args, **kwargs):
         if self._state.adding:
-            kwargs['headquarter'] = self.get_first_filled_headquarter()
-            kwargs['class_above'] = UserEducationalHeadquarterPosition
+            headquarter = self.get_first_filled_headquarter()
+            kwargs['headquarter'] = headquarter
+            if isinstance(headquarter, EducationalHeadquarter):
+                kwargs['class_above'] = UserEducationalHeadquarterPosition
+            elif isinstance(headquarter, LocalHeadquarter):
+                kwargs['class_above'] = UserLocalHeadquarterPosition
+            elif isinstance(headquarter, RegionalHeadquarter):
+                kwargs['class_above'] = UserRegionalHeadquarterPosition
         super().save(*args, **kwargs)
 
     class Meta:

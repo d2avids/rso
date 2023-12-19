@@ -727,7 +727,9 @@ class DetachmentAcceptViewSet(CreateDeleteViewSet):
         """Получает user и detachment для сохранения."""
         headquarter_id = self.kwargs.get('pk')
         application_id = self.kwargs.get('application_pk')
-        application = UserDetachmentApplication.objects.get(id=application_id)
+        application = get_object_or_404(
+            UserDetachmentApplication, id=application_id
+        )
         user = application.user
         headquarter = get_object_or_404(Detachment, id=headquarter_id)
         application.delete()
@@ -743,7 +745,9 @@ class DetachmentAcceptViewSet(CreateDeleteViewSet):
     def destroy(self, request, *args, **kwargs):
         """Отклоняет (удаляет) заявку пользователя."""
         application_id = self.kwargs.get('application_pk')
-        application = UserDetachmentApplication.objects.get(id=application_id)
+        application = get_object_or_404(
+            UserDetachmentApplication, id=application_id
+        )
         application.delete()
         return Response(
             {'success': 'Заявка отклонена'},
@@ -768,7 +772,7 @@ class DetachmentApplicationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         detachment_id = self.kwargs.get('pk')
-        detachment = Detachment.objects.get(id=detachment_id)
+        detachment = get_object_or_404(Detachment, id=detachment_id)
         serializer.save(user=user, detachment=detachment)
 
     def create(self, request, *args, **kwargs):
