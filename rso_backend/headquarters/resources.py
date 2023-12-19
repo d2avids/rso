@@ -1,5 +1,5 @@
 from import_export import resources
-from headquarters.models import Region
+from headquarters.models import Region, EducationalInstitution
 
 
 class RegionResource(resources.ModelResource):
@@ -15,3 +15,25 @@ class RegionResource(resources.ModelResource):
 
     class Meta:
         model = Region
+
+
+class EducationalInstitutionResource(resources.ModelResource):
+    def skip_row(self, instance, original, row, import_validation_errors=None):
+        """
+        Пропускает строки без "region".
+        """
+        if 'region' not in row or not row['region']:
+            return True
+        elif 'short_name' not in row or not row['short_name']:
+            return True
+
+        return super().skip_row(instance, original, row, import_validation_errors)
+
+
+    class Meta:
+        model = EducationalInstitution
+        skip_unchanged = True
+        report_skipped = False
+        verbose_name = True
+
+

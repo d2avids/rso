@@ -12,7 +12,8 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
-from headquarters.resources import RegionResource
+from headquarters.resources import (RegionResource,
+                                    EducationalInstitutionResource)
 
 
 @admin.register(CentralHeadquarter)
@@ -106,8 +107,8 @@ class UserDetachmentPositionAdmin(admin.ModelAdmin):
 
 
 @admin.register(EducationalInstitution)
-class EducationalInstAdmin(admin.ModelAdmin):
-    pass
+class EducationalInstAdmin(ImportExportModelAdmin):
+    resource_class = EducationalInstitutionResource
 
 
 @admin.register(Region)
