@@ -1,7 +1,8 @@
 from django.core.exceptions import ValidationError
 from django.db import models
-
+from django.core.validators import MinValueValidator, MaxValueValidator
 from headquarters.utils import image_path
+from django.conf import settings
 
 
 class EducationalInstitution(models.Model):
@@ -86,6 +87,8 @@ class Unit(models.Model):
     about = models.CharField(
         max_length=500,
         verbose_name='Описание',
+        null=True,
+        blank=True,
     )
     emblem = models.ImageField(
         upload_to=image_path,
@@ -96,10 +99,14 @@ class Unit(models.Model):
     social_vk = models.CharField(
         max_length=50,
         verbose_name='Ссылка ВК',
+        null=True,
+        blank=True,
     )
     social_tg = models.CharField(
         max_length=50,
         verbose_name='Ссылка Телеграм',
+        null=True,
+        blank=True,
     )
     city = models.CharField(
         max_length=100,
@@ -115,10 +122,9 @@ class Unit(models.Model):
     )
     slogan = models.CharField(
         max_length=100,
-        verbose_name='Девиз'
-    )
-    founding_date = models.DateField(
-        verbose_name='Дата основания',
+        verbose_name='Девиз',
+        null=True,
+        blank=True,
     )
 
     def clean(self):
@@ -133,6 +139,17 @@ class Unit(models.Model):
 
 
 class CentralHeadquarter(Unit):
+    detachments_appearance_year = models.SmallIntegerField(
+        verbose_name='Дата появления студенческих отрядов в России (год)',
+        validators=[
+            MinValueValidator(settings.MIN_FOUNDING_DATE),
+            MaxValueValidator(settings.MAX_FOUNDING_DATE)
+        ]
+    )
+    rso_founding_congress_date = models.DateField(
+        verbose_name='Дата первого учредительного съезда РСО'
+    )
+
     class Meta:
         verbose_name_plural = 'Центральные штабы'
         verbose_name = 'Центральный штаб'
@@ -144,6 +161,9 @@ class DistrictHeadquarter(Unit):
         related_name='district_headquarters',
         on_delete=models.PROTECT,
         verbose_name='Привязка к ЦШ'
+    )
+    founding_date = models.DateField(
+        verbose_name='Дата начала функционирования ОШ',
     )
 
     class Meta:
@@ -167,11 +187,11 @@ class RegionalHeadquarter(Unit):
     name_for_certificates = models.CharField(
         max_length=250,
         verbose_name='Наименование штаба в Им. падеже (для справок)',
+        blank=True,
+        null=True,
     )
     conference_date = models.DateField(
         verbose_name='Дата учр. конференции регионального штаба',
-        null=True,
-        blank=True,
     )
     registry_date = models.DateField(
         verbose_name='Дата регистрации в реестре молодежных и детских '
@@ -183,6 +203,8 @@ class RegionalHeadquarter(Unit):
         max_length=250,
         verbose_name='Регистрационный номер в реестре молодежных и детских '
                      'общественных объединений...',
+        null=True,
+        blank=True,
     )
     case_name = models.CharField(
         max_length=250,
@@ -202,12 +224,12 @@ class RegionalHeadquarter(Unit):
         blank=True,
         null=True,
     )
-    first_detachment_date = models.CharField(
-        max_length=4,
-        verbose_name='Официальная дата (год) появления студенческих '
-                     'отрядов в регионе',
-        blank=True,
-        null=True,
+    founding_date = models.SmallIntegerField(
+        verbose_name='Год основания',
+        validators=[
+            MinValueValidator(settings.MIN_FOUNDING_DATE),
+            MaxValueValidator(settings.MAX_FOUNDING_DATE)
+        ]
     )
 
     class Meta:
@@ -221,6 +243,9 @@ class LocalHeadquarter(Unit):
         related_name='local_headquarters',
         on_delete=models.PROTECT,
         verbose_name='Привязка к РШ'
+    )
+    founding_date = models.DateField(
+        verbose_name='Дата начала функционирования ОШ'
     )
 
     class Meta:
@@ -248,6 +273,9 @@ class EducationalHeadquarter(Unit):
         related_name='headquarters',
         on_delete=models.PROTECT,
         verbose_name='Образовательная организация',
+    )
+    founding_date = models.DateField(
+        verbose_name='Дата основания',
     )
 
     def clean(self):
@@ -320,22 +348,29 @@ class Detachment(Unit):
     photo1 = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Фото 1'
     )
     photo2 = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Фото 2'
     )
     photo3 = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Фото 3'
     )
     photo4 = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Фото 4'
+    )
+    founding_date = models.DateField(
+        verbose_name='Дата основания',
     )
 
     def clean(self):

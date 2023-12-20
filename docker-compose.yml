@@ -1,3 +1,4 @@
+version: '3'
 
 volumes:
   static:
@@ -26,8 +27,6 @@ services:
   backend:
     build: ./rso_backend
     env_file: .env
-    ports:
-      - "8000:8000"
     depends_on:
       - db
       - redis
@@ -63,7 +62,7 @@ services:
     depends_on:
       - backend
     volumes:
-      - frontend_dist:/usr/src/app/src/app/dist
+      - frontend_dist:/app/src/app/dist
     networks:
       - internal
   nginx:
