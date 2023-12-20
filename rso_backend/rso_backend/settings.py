@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
     'django_celery_beat',
+    'import_export',
 ]
 
 INSTALLED_APPS += [

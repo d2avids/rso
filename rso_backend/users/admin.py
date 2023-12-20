@@ -4,10 +4,12 @@ from django.contrib.auth.models import Group
 from django_celery_beat.models import (PeriodicTask, IntervalSchedule,
                                        CrontabSchedule, ClockedSchedule,
                                        SolarSchedule)
+from import_export.admin import ImportExportModelAdmin
 
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserPrivacySettings, UserRegion, UsersParent,
                           UserMembershipLogs)
+from users.resources import RSOUserResource
 
 
 class UserRegionInline(admin.StackedInline):
@@ -41,7 +43,8 @@ class UsersParentInline(admin.StackedInline):
 
 
 @admin.register(RSOUser)
-class UserAdmin(BaseUserAdmin):
+class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
+    resource_class = RSOUserResource
     inlines = [
         UserRegionInline,
         UserMediaInline,
