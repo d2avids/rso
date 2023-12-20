@@ -8,8 +8,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.permissions import SAFE_METHODS
 
-from headquarters.models import (UserCentralHeadquarterPosition,
-                                 UserDistrictHeadquarterPosition,
+from headquarters.models import (UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition,
@@ -80,17 +79,20 @@ def is_stuff_or_central_commander(request):
     """
 
     check_central_commander = False
-    commander_id = CentralHeadquarter.objects.get(
-        commander_id=request.user.id
-    ).commander_id
-    if request.user.id == commander_id:
-        check_central_commander = True
-    return (request.user.is_authenticated
-            and any([
-                check_central_commander,
-                request.user.is_superuser,
-                request.user.is_staff
-            ]))
+    try:
+        commander_id = CentralHeadquarter.objects.get(
+            commander_id=request.user.id
+        ).commander_id
+        if request.user.id == commander_id:
+            check_central_commander = True
+        return (request.user.is_authenticated
+                and any([
+                    check_central_commander,
+                    request.user.is_superuser,
+                    request.user.is_staff
+                ]))
+    except CentralHeadquarter.DoesNotExist:
+        return False
 
 
 def check_role_get(request, model, position_in_quarter):
@@ -147,21 +149,31 @@ def check_trusted_for_detachments(request, obj):
     в штабах выше и если существует, то возвращает статус доверенности.
     """
 
-    detachment_trusted = edu_trusted = local_trusted = False
+    detachment_trusted = False
     regional_trusted = district_trusted = False
     user_id = request.user.id
     detachment_position = UserDetachmentPosition.objects.filter(
         headquarter_id=obj.id,
         user_id=user_id
     )
-    edu_position = UserEducationalHeadquarterPosition.objects.filter(
-        headquarter_id=obj.educational_headquarter.id,
-        user_id=user_id
-    )
-    local_position = UserLocalHeadquarterPosition.objects.filter(
-        headquarter_id=obj.local_headquarter.id,
-        user_id=user_id
-    )
+    try:
+        headquarter_id = obj.educational_headquarter.id
+        edu_position = UserEducationalHeadquarterPosition.objects.get(
+            headquarter_id=headquarter_id,
+            user_id=user_id
+        )
+        edu_trusted = edu_position.first().is_trusted
+    except (UserEducationalHeadquarterPosition.DoesNotExist, AttributeError):
+        edu_trusted = False
+    try:
+        headquarter_id = obj.local_headquarter.id
+        local_position = UserLocalHeadquarterPosition.objects.get(
+            headquarter_id=headquarter_id,
+            user_id=user_id
+        )
+        local_trusted = local_position.first().is_trusted
+    except (UserLocalHeadquarterPosition.DoesNotExist, AttributeError):
+        local_trusted = False
     regional_position = UserRegionalHeadquarterPosition.objects.filter(
         headquarter_id=obj.regional_headquarter.id,
         user_id=user_id
@@ -171,10 +183,6 @@ def check_trusted_for_detachments(request, obj):
     )
     if detachment_position.exists():
         detachment_trusted = detachment_position.first().is_trusted
-    if edu_position.exists():
-        edu_trusted = edu_position.first().is_trusted
-    if local_position.exists():
-        local_trusted = local_position.first().is_trusted
     if regional_position.exists():
         regional_trusted = regional_position.first().is_trusted
     if district_position.exists():
@@ -199,7 +207,7 @@ def check_trusted_for_eduhead(request, obj):
     в штабах выше и если существует, то возвращает статус доверенности.
     """
 
-    edu_trusted = local_trusted = False
+    edu_trusted = False
     regional_trusted = district_trusted = False
     user_id = request.user.id
     user_id = request.user.id
@@ -207,10 +215,15 @@ def check_trusted_for_eduhead(request, obj):
         headquarter_id=obj.id,
         user_id=user_id
     )
-    local_position = UserLocalHeadquarterPosition.objects.filter(
-        headquarter_id=obj.local_headquarter.id,
-        user_id=user_id
-    )
+    try:
+        headquarter_id = obj.local_headquarter.id
+        local_position = UserLocalHeadquarterPosition.objects.get(
+            headquarter_id=headquarter_id,
+            user_id=user_id
+        )
+        local_trusted = local_position.first().is_trusted
+    except (UserLocalHeadquarterPosition.DoesNotExist, AttributeError):
+        local_trusted = False
     regional_position = UserRegionalHeadquarterPosition.objects.filter(
         headquarter_id=obj.regional_headquarter.id,
         user_id=user_id
@@ -220,8 +233,6 @@ def check_trusted_for_eduhead(request, obj):
     )
     if edu_position.exists():
         edu_trusted = edu_position.first().is_trusted
-    if local_position.exists():
-        local_trusted = local_position.first().is_trusted
     if regional_position.exists():
         regional_trusted = regional_position.first().is_trusted
     if district_position.exists():

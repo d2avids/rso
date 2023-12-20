@@ -151,25 +151,33 @@ class IsEducationalCommander(BasePermission):
         """
 
         check_model_instance = False
+        check_local_head = False
         user_id = request.user.id
-        local_head = obj.local_headquarter
-        regional_head = local_head.regional_headquarter
+        regional_head = obj.regional_headquarter
         if isinstance(obj, EducationalHeadquarter) and any(
             user_id == commander.commander_id
             for commander in [
                 obj,
-                local_head,
                 regional_head,
                 regional_head.district_headquarter
             ]
         ):
             check_model_instance = True
+        if local_head := obj.local_headquarter:
+            if isinstance(obj, Detachment) and (
+                user_id == local_head.commander_id
+            ):
+                check_local_head = True
         check_roles = any([
             is_safe_method(request),
             is_stuff_or_central_commander(request),
             check_trusted_for_eduhead(request, obj)
         ])
-        return check_roles or check_model_instance
+        return any([
+            check_roles,
+            check_model_instance,
+            check_local_head
+        ])
 
 
 class IsDetachmentCommander(BasePermission):
@@ -190,26 +198,39 @@ class IsDetachmentCommander(BasePermission):
 
         user_id = request.user.id
         check_model_instance = False
-        local_head = obj.local_headquarter
-        regional_head = local_head.regional_headquarter
+        check_local_head = False
+        check_edu_head = False
+        regional_head = obj.regional_headquarter
         if isinstance(obj, Detachment) and any(
             user_id == commander.commander_id
             for commander in [
                 obj,
-                obj.educational_headquarter,
-                local_head,
                 regional_head,
                 regional_head.district_headquarter
             ]
         ):
             check_model_instance = True
+        if local_head := obj.local_headquarter:
+            if isinstance(obj, Detachment) and (
+                user_id == local_head.commander_id
+            ):
+                check_local_head = True
+        if edu_head := obj.educational_headquarter:
+            if isinstance(obj, Detachment) and (
+                user_id == edu_head.commander_id
+            ):
+                check_edu_head = True
         check_roles = any([
             is_safe_method(request),
             is_stuff_or_central_commander(request),
             check_trusted_for_detachments(request, obj)
         ])
-        print(is_stuff_or_central_commander(request))
-        return check_model_instance or check_roles
+        return any([
+            check_roles,
+            check_model_instance,
+            check_local_head,
+            check_edu_head
+        ])
 
 
 class IsStuffOrAuthor(BasePermission):
