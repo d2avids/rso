@@ -135,7 +135,7 @@ class Unit(models.Model):
         abstract = True
 
     def __str__(self):
-        return self.name
+        return self.name or 'Структурная единица'
 
 
 class CentralHeadquarter(Unit):
