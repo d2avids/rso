@@ -1,7 +1,8 @@
 from django.core.exceptions import ValidationError
 from django.db import models
-
+from django.core.validators import MinValueValidator, MaxValueValidator
 from headquarters.utils import image_path
+from django.conf import settings
 
 
 class EducationalInstitution(models.Model):
@@ -53,7 +54,7 @@ class Region(models.Model):
         verbose_name = 'Регион'
 
     def __str__(self):
-        return self.name
+        return self.name or "unknown region"
 
 
 class Area(models.Model):
@@ -125,9 +126,6 @@ class Unit(models.Model):
         null=True,
         blank=True,
     )
-    founding_date = models.DateField(
-        verbose_name='Дата основания',
-    )
 
     def clean(self):
         if not self.commander:
@@ -137,10 +135,21 @@ class Unit(models.Model):
         abstract = True
 
     def __str__(self):
-        return self.name
+        return self.name or 'Структурная единица'
 
 
 class CentralHeadquarter(Unit):
+    detachments_appearance_year = models.SmallIntegerField(
+        verbose_name='Дата появления студенческих отрядов в России (год)',
+        validators=[
+            MinValueValidator(settings.MIN_FOUNDING_DATE),
+            MaxValueValidator(settings.MAX_FOUNDING_DATE)
+        ]
+    )
+    rso_founding_congress_date = models.DateField(
+        verbose_name='Дата первого учредительного съезда РСО'
+    )
+
     class Meta:
         verbose_name_plural = 'Центральные штабы'
         verbose_name = 'Центральный штаб'
@@ -152,6 +161,9 @@ class DistrictHeadquarter(Unit):
         related_name='district_headquarters',
         on_delete=models.PROTECT,
         verbose_name='Привязка к ЦШ'
+    )
+    founding_date = models.DateField(
+        verbose_name='Дата начала функционирования ОШ',
     )
 
     class Meta:
@@ -212,9 +224,12 @@ class RegionalHeadquarter(Unit):
         blank=True,
         null=True,
     )
-    founding_date = models.CharField(
-        max_length=4,
+    founding_date = models.SmallIntegerField(
         verbose_name='Год основания',
+        validators=[
+            MinValueValidator(settings.MIN_FOUNDING_DATE),
+            MaxValueValidator(settings.MAX_FOUNDING_DATE)
+        ]
     )
 
     class Meta:
@@ -228,6 +243,9 @@ class LocalHeadquarter(Unit):
         related_name='local_headquarters',
         on_delete=models.PROTECT,
         verbose_name='Привязка к РШ'
+    )
+    founding_date = models.DateField(
+        verbose_name='Дата начала функционирования ОШ'
     )
 
     class Meta:
@@ -255,6 +273,9 @@ class EducationalHeadquarter(Unit):
         related_name='headquarters',
         on_delete=models.PROTECT,
         verbose_name='Образовательная организация',
+    )
+    founding_date = models.DateField(
+        verbose_name='Дата основания',
     )
 
     def clean(self):
@@ -347,6 +368,9 @@ class Detachment(Unit):
         blank=True,
         null=True,
         verbose_name='Фото 4'
+    )
+    founding_date = models.DateField(
+        verbose_name='Дата основания',
     )
 
     def clean(self):
