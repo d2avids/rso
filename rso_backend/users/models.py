@@ -856,3 +856,77 @@ class UserMembershipLogs(models.Model):
         else:
             self.period = "Неопределенный"
         super(UserMembershipLogs, self).save(*args, **kwargs)
+
+
+class UserCertInternal(models.Model):
+    """Таблица для хранения информации о выданных справках.
+
+    Используется для справок внутреннего использования.
+    """
+
+    user = models.ForeignKey(
+        to='RSOUser',
+        on_delete=models.CASCADE,
+        related_name='cert_info',
+        verbose_name='Пользователь',
+    )
+    cert_start_date = models.DateField(
+        verbose_name='Дата начала действия справки',
+        auto_now_add=True,
+        null=False,
+        blank=False,
+    )
+    cert_end_date = models.DateField(
+        verbose_name='Дата окончания действия справки',
+        null=False,
+        blank=False,
+    )
+    recipient = models.CharField(
+        verbose_name='Справка выдана для предоставления',
+        null=False,
+        blank=False,
+        max_length=250
+    )
+    issue_date = models.DateField(
+        verbose_name='Дата выдачи справки',
+        auto_now_add=True,
+    )
+    number = models.CharField(
+        verbose_name='Номер справки',
+        default='б/н',
+        max_length=40
+    )
+
+    class Meta:
+        verbose_name_plural = 'Выданные внутренние справки.'
+        verbose_name = 'Выданная внутренняя справка.'
+
+    def __str__(self):
+        return (
+            f'Пользователь {self.user.last_name} {self.user.first_name} '
+            f'{self.user.username} выдал справку.'
+        )
+
+
+class UserCertExternal(UserCertInternal):
+    """Таблица для хранения информации о выданных справках.
+
+    Используется для справок для других организаций.
+    """
+
+    signatory = models.CharField(
+        verbose_name='ФИО подписывающего лица',
+        null=False,
+        blank=False,
+        max_length=250
+    )
+    position_procuration = models.CharField(
+        verbose_name='Должность подписывающего лица, доверенность',
+        null=False,
+        blank=False,
+        max_length=250
+    )
+
+    class Meta:
+        verbose_name_plural = 'Выданные справки о членстве в РСО.'
+        verbose_name = 'Выданная справка о членстве в РСО.'

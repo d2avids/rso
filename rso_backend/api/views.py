@@ -1,6 +1,16 @@
 import mimetypes
+import io
 import os
 import zipfile
+
+from pdfrw.buildxobj import pagexobj
+from pdfrw.toreportlab import makerl
+
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
+import pdfrw
 
 from django.db.models import Q
 from django.http.response import HttpResponse
@@ -27,15 +37,16 @@ from api.serializers import (CentralHeadquarterSerializer,
                              RSOUserSerializer,
                              UserDetachmentApplicationSerializer,
                              UserDocumentsSerializer, UserEducationSerializer,
-                             UserMediaSerializer,
+                             UserMediaSerializer, PositionSerializer,
                              UserPrivacySettingsSerializer,
                              UserProfessionalEducationSerializer,
                              UserRegionSerializer, UsersParentSerializer,
                              UserStatementDocumentsSerializer,
                              ForeignUserDocumentsSerializer,
                              AreaSerializer, EducationalInstitutionSerializer,
-                             PositionSerializer)
-from api.utils import download_file, get_headquarter_users_positions_queryset
+                             InternalCertSerializer, ExternalCertSerializer)
+from api.utils import (download_file, get_headquarter_users_positions_queryset,
+                       get_user)
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Region, RegionalHeadquarter,
@@ -52,7 +63,8 @@ from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
                           UserRegion, UsersParent, UserStatementDocuments,
                           UserVerificationRequest, ForeignUserDocuments,
-                          UserMembershipLogs)
+                          UserMembershipLogs, UserCertInternal,
+                          UserCertExternal)
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -168,10 +180,7 @@ class BaseUserViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.IsAuthenticated,)
 
     def perform_create(self, serializer):
-        user_id = self.kwargs.get('user_pk', None)
-        user = get_object_or_404(
-            RSOUser, id=user_id
-        ) if user_id else self.request.user
+        user = get_user(self)
         serializer.save(user=user)
 
     def create(self, request, *args, **kwargs):
@@ -851,3 +860,71 @@ def change_membership_fee_status(request, pk):
         status='Изменен на "не оплачен"'
     )
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class InternalCertIssueViewSet(viewsets.ModelViewSet):
+    """Выдача справок для внутреннего использования."""
+    queryset = UserCertInternal.objects.all()
+    serializer_class = InternalCertSerializer
+
+    def perform_create(self, serializer):
+        user = get_user(self)
+        serializer.save(user=user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        data = request.data
+        user = get_user(self)
+        first_name = user.first_name
+        last_name = user.last_name
+        patronymic_name = user.patronymic_name
+        date_of_birth = user.date_of_birth
+
+        template_path = os.path.join(
+            str(BASE_DIR),
+            'templates',
+            'samples',
+            'internal_cert.pdf'
+        )
+        template = pdfrw.PdfReader(template_path, decompress=False).pages[0]
+        template_obj = pagexobj(template)
+        buf = io.BytesIO()
+        c = canvas.Canvas(buf, pagesize=A4, bottomup=1)
+        xobj_name = makerl(c, template_obj)
+        c.doForm(xobj_name)
+        pdfmetrics.registerFont(
+            TTFont(
+                'Times_New_Roman',
+                os.path.join(
+                    str(BASE_DIR),
+                    'templates',
+                    'samples',
+                    'times.ttf'
+                )
+            )
+        )
+        c.setFont('Times_New_Roman', 14)
+        if last_name and first_name and patronymic_name:
+            c.drawString(
+                120, 528, last_name + ' ' + first_name + ' ' + patronymic_name
+            )
+        if last_name and first_name and not patronymic_name:
+            c.drawString(120, 528, last_name + ' ' + first_name)
+        if not last_name and not first_name and not patronymic_name:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={'detail': 'Профиль пользователя не заполнен.'}
+            )
+        c.drawString(125, 500, date_of_birth.strftime('%d.%m.%Y'))
+        c.showPage()
+        c.save()
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = (
+            'attachment; filename="internal_cert.pdf"'
+        )
+        buf.seek(0)
+        response.write(buf.read())
+        return response

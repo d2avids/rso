@@ -23,7 +23,8 @@ from headquarters.models import (CentralHeadquarter, Detachment,
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
                           UserRegion, UsersParent, UserStatementDocuments,
-                          UserVerificationRequest, ForeignUserDocuments,)
+                          UserVerificationRequest, ForeignUserDocuments,
+                          UserCertInternal, UserCertExternal)
 
 
 class PositionSerializer(serializers.ModelSerializer):
@@ -854,3 +855,35 @@ class CentralHeadquarterSerializer(BaseUnitSerializer):
     class Meta:
         model = CentralHeadquarter
         fields = BaseUnitSerializer.Meta.fields + ('members',)
+
+
+class InternalCertSerializer(serializers.ModelSerializer):
+    """Сериализатор выдачи внутренних справок о членстве в РСО."""
+
+    users = ShortUserSerializer(
+        many=True,
+        read_only=True
+    )
+
+    class Meta:
+        model = UserCertInternal
+        fields = (
+            'id',
+            'users',
+            'cert_start_date',
+            'cert_end_date',
+            'recipient',
+            'issue_date',
+            'number',
+        )
+
+
+class ExternalCertSerializer(InternalCertSerializer):
+    """Сериализатор выдачи справки о членстве в РСО работодателям."""
+
+    class Meta:
+        model = UserCertExternal
+        fields = InternalCertSerializer.Meta.fields + (
+            'signatory',
+            'position_procuration'
+        )

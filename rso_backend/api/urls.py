@@ -23,7 +23,7 @@ from api.views import (CentralPositionViewSet, CentralViewSet,
                        ForeignUserDocumentsViewSet, apply_for_verification,
                        verify_user, AreaViewSet, change_membership_fee_status,
                        EducationalInstitutionViewSet, get_structural_units,
-                       PositionViewSet)
+                       PositionViewSet, InternalCertIssueViewSet)
 
 app_name = 'api'
 
@@ -85,6 +85,7 @@ DistrictPositionListVS = DistrictPositionViewSet.as_view(LIST)
 DistrictPositionUpdateVS = DistrictPositionViewSet.as_view(UPDATE)
 CentralPositionListVS = CentralPositionViewSet.as_view(LIST)
 CentralPositionUpdateVS = CentralPositionViewSet.as_view(UPDATE)
+InternalCertsVS = InternalCertIssueViewSet.as_view(CREATE_DELETE)
 
 user_nested_urls = [
     path('rsousers/me/education/', UserEduVS, name='user-education'),
@@ -139,6 +140,11 @@ user_nested_urls = [
         'rsousers/<int:pk>/membership_fee_status/',
         change_membership_fee_status,
         name='user-membership-fee'
+    ),
+    path(
+        'rsousers/<int:pk>/mebership_internal_certs/',
+        InternalCertsVS,
+        name='user-membership-internal-certs'
     ),
     path(
         'detachments/<int:pk>/applications/',

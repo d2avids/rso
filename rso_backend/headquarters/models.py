@@ -645,7 +645,7 @@ class UserDetachmentPosition(UserUnitPosition):
 
     def get_first_filled_headquarter(self):
         """
-        Возвращает первый связанный с отрядом заполненный штаб по иерархии: 
+        Возвращает первый связанный с отрядом заполненный штаб по иерархии:
         ШОО, МШ или РШ.
         """
         educational_headquarter = self.headquarter.educational_headquarter

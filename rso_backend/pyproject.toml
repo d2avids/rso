@@ -23,6 +23,8 @@ django-redis = "^5.4.0"
 celery = "^5.3.6"
 django-celery-beat = "^2.5.0"
 python-json-logger = "^2.0.7"
+pdfrw = "^0.4"
+reportlab = "^4.0.8"
 
 
 [build-system]

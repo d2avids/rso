@@ -1,3 +1,4 @@
+import os
 import mimetypes
 
 from django.db import IntegrityError
@@ -5,6 +6,17 @@ from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
+from pdfrw.buildxobj import pagexobj
+from pdfrw.toreportlab import makerl
+import io
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
+import pdfrw
+import reportlab
+
+from users.models import RSOUser
 
 def create_first_or_exception(self, validated_data, instance, error_msg: str):
     """
@@ -68,3 +80,11 @@ def get_headquarter_users_positions_queryset(self,
         headquarter=headquarter
     )
     return self.filter_by_name(queryset)
+
+
+def get_user(self):
+    user_id = self.kwargs.get('pk', None)
+    user = get_object_or_404(
+        RSOUser, id=user_id
+    ) if user_id else self.request.user
+    return user
