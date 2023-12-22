@@ -215,3 +215,5 @@ GitHub.sublime-settings
 
 /media
 media/
+/collect_static
+collect_static/
