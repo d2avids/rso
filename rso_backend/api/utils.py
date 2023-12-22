@@ -1,4 +1,3 @@
-import os
 import mimetypes
 
 from django.db import IntegrityError
@@ -6,17 +5,8 @@ from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
-from pdfrw.buildxobj import pagexobj
-from pdfrw.toreportlab import makerl
-import io
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfbase import pdfmetrics
-import pdfrw
-import reportlab
-
 from users.models import RSOUser
+
 
 def create_first_or_exception(self, validated_data, instance, error_msg: str):
     """
@@ -88,3 +78,20 @@ def get_user(self):
         RSOUser, id=user_id
     ) if user_id else self.request.user
     return user
+
+
+def text_to_lines(text, proportion):
+    """Функция разбивает текст на строки по заданной доле ширины."""
+
+    text_length = len(text)
+    text_list = text.split()
+    lines = []
+    line = ''
+    for word in text_list:
+        if len(line) + len(word) > text_length * proportion:
+            lines.append(line)
+            line = word + ' '
+        else:
+            line += word + ' '
+    lines.append(line)
+    return lines

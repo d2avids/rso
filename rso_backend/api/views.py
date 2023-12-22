@@ -2,6 +2,7 @@ import mimetypes
 import io
 import os
 import zipfile
+from datetime import datetime
 
 from pdfrw.buildxobj import pagexobj
 from pdfrw.toreportlab import makerl
@@ -46,7 +47,7 @@ from api.serializers import (CentralHeadquarterSerializer,
                              AreaSerializer, EducationalInstitutionSerializer,
                              InternalCertSerializer, ExternalCertSerializer)
 from api.utils import (download_file, get_headquarter_users_positions_queryset,
-                       get_user)
+                       get_user, text_to_lines)
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Region, RegionalHeadquarter,
@@ -864,6 +865,7 @@ def change_membership_fee_status(request, pk):
 
 class InternalCertIssueViewSet(viewsets.ModelViewSet):
     """Выдача справок для внутреннего использования."""
+
     queryset = UserCertInternal.objects.all()
     serializer_class = InternalCertSerializer
 
@@ -872,17 +874,61 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
         serializer.save(user=user)
 
     def create(self, request, *args, **kwargs):
+        """Создание справки для внутреннего использования.
+
+        Метод сохраняет в БД информацию, введенную на странице выдачи справки,
+        переносит ее на PDF-лист справки вместе с данными пользователя и его
+        регионального штаба.
+        """
+
+        """Сохранение данных в БД."""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
 
+        """Сбор данных о пользователе и его региональном штабе."""
         data = request.data
         user = get_user(self)
         first_name = user.first_name
         last_name = user.last_name
         patronymic_name = user.patronymic_name
         date_of_birth = user.date_of_birth
+        recipient = data.get('recipient')
+        cert_start_date = datetime.strptime(
+            data.get('cert_start_date'),
+            '%Y-%m-%d'
+        )
+        cert_end_date = datetime.strptime(
+            data.get('cert_end_date'),
+            '%Y-%m-%d'
+        )
+        try:
+            reg_headquarter_id = UserRegionalHeadquarterPosition.objects.get(
+                user=user
+            ).headquarter_id
+            regional_headquarter = get_object_or_404(
+                RegionalHeadquarter, id=reg_headquarter_id
+            )
+            reg_case_name = regional_headquarter.case_name
+            legal_address = str(regional_headquarter.legal_address)
+            requisites = str(regional_headquarter.requisites)
+            registry_number = str(regional_headquarter.registry_number)
+            registry_date = regional_headquarter.registry_date
+            commander_first_name = regional_headquarter.commander.first_name
+            commander_last_name = regional_headquarter.commander.last_name
+            commander_patronymic_name = (
+                regional_headquarter.commander.patronymic_name
+            )
+        except (
+            UserRegionalHeadquarterPosition.DoesNotExist,
+            RegionalHeadquarter.DoesNotExist
+        ):
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={'detail': 'Не удалось определить региональный штаб.'}
+            )
 
+        """Подготовка шаблона и шрифтов к выводу информации на лист."""
         template_path = os.path.join(
             str(BASE_DIR),
             'templates',
@@ -902,10 +948,66 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
                     str(BASE_DIR),
                     'templates',
                     'samples',
+                    'fonts',
                     'times.ttf'
                 )
             )
         )
+        pdfmetrics.registerFont(
+            TTFont(
+                'Arial_Narrow',
+                os.path.join(
+                    str(BASE_DIR),
+                    'templates',
+                    'samples',
+                    'fonts',
+                    'arialnarrow.ttf'
+                )
+            )
+        )
+
+        """Блок вывода названия РШ в заголовок листа."""
+        c.setFont('Times_New_Roman', 15)
+        page_width = c._pagesize[0]
+        string_width = c.stringWidth(
+            str(regional_headquarter),
+            'Times_New_Roman',
+            14
+        )
+        center_x = (page_width - string_width) / 2 + 150
+        c.drawCentredString(center_x, 797, str(regional_headquarter))
+
+        """Блок вывода юр.адреса и реквизитов РШ под заголовком.
+
+        В блоке опеределяется ширина поля на листе, куда будет выведен текст.
+        Функция text_to_lines разбивает длину текста на строки. Длина строки
+        определяется переменной proportion. Затем с помощью цикла
+        производится перенос строк. Переменная line_break работает как ширина,
+        на которую необходимо перенести строку.
+        """
+        c.setFont('Arial_Narrow', 9)
+        string_width = c.stringWidth(
+            legal_address + ' ' + requisites, 'Arial_Narrow', 9
+        )
+        line_width = (page_width - 150)
+        proportion = line_width / string_width
+        text = legal_address + '.  ' + requisites
+        lines = text_to_lines(
+            text=text,
+            proportion=proportion
+        )
+        line_break = 11
+        for line in lines:
+            c.drawString(135, 730 - line_break, line)
+            line_break += 11
+
+        c.drawString(
+            50,
+            600,
+            'б/н от ' + str(datetime.now().strftime('%d.%m.%Y'))
+        )
+
+        """Блок вывода информации о пользователе и РШ в тексте справки."""
         c.setFont('Times_New_Roman', 14)
         if last_name and first_name and patronymic_name:
             c.drawString(
@@ -913,17 +1015,358 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
             )
         if last_name and first_name and not patronymic_name:
             c.drawString(120, 528, last_name + ' ' + first_name)
-        if not last_name and not first_name and not patronymic_name:
+        if date_of_birth:
+            c.drawString(
+                125, 494, str(date_of_birth.strftime('%d.%m.%Y')) + ' г.'
+            )
+        if (
+            (not last_name and not first_name and not patronymic_name)
+            or (not date_of_birth)
+        ):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
                 data={'detail': 'Профиль пользователя не заполнен.'}
             )
-        c.drawString(125, 500, date_of_birth.strftime('%d.%m.%Y'))
+        c.drawString(
+            160,
+            430,
+            (
+                'c '
+                + str(cert_start_date.strftime('%d.%m.%Y'))
+                + ' г. по '
+                + str(cert_end_date.strftime('%d.%m.%Y') + ' г.')
+            )
+        )
+        c.drawString(33, 383, reg_case_name)
+        if registry_date:
+            c.drawString(
+                170,
+                357,
+                (
+                    registry_number
+                    + ' от '
+                    + registry_date.strftime('%d.%m.%Y')
+                    + ' г.'
+                )
+            )
+        else:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={'detail': 'Данные РШ не заполнены.'}
+            )
+
+        string_width = c.stringWidth(recipient, 'Times_New_Roman', 14)
+        line_width = (page_width - 150)
+        proportion = line_width / string_width
+        if proportion >= 1.0:
+            c.drawString(33, 310, recipient)
+        else:
+            lines = text_to_lines(
+                text=recipient,
+                proportion=proportion
+            )
+            line_break = 11
+            for line in lines:
+                c.drawString(33, 330 - line_break, line)
+                line_break += 12
+        if (
+            commander_first_name
+            and commander_last_name
+            and commander_patronymic_name
+        ):
+            c.drawString(
+                470,
+                248,
+                str(commander_first_name)[0].upper()
+                + '.'
+                + str(commander_patronymic_name)[0].upper()
+                + '. '
+                + str(commander_last_name).capitalize()
+            )
+        elif (
+            commander_first_name
+            and commander_last_name
+            and not commander_patronymic_name
+        ):
+            c.drawString(
+                470,
+                248,
+                str(commander_first_name)[0].upper()
+                + '. '
+                + str(commander_last_name).capitalize()
+            )
         c.showPage()
         c.save()
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = (
             'attachment; filename="internal_cert.pdf"'
+        )
+        buf.seek(0)
+        response.write(buf.read())
+        return response
+
+
+class ExternalCertIssueViewSet(viewsets.ModelViewSet):
+    """Вьюсет для выдачи справки работодателю."""
+
+    queryset = UserCertExternal.objects.all()
+    serializer_class = ExternalCertSerializer
+
+    def perform_create(self, serializer):
+        user = get_user(self)
+        serializer.save(user=user)
+
+    def create(self, request, *args, **kwargs):
+        """Создание справки для предоставления работодателю.
+
+        Метод сохраняет в БД информацию, введенную на странице выдачи справки,
+        переносит ее на PDF-лист справки вместе с данными пользователя и его
+        регионального штаба.
+        """
+
+        """Сохранение данных в БД."""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        """Сбор данных о пользователе и его региональном штабе."""
+        data = request.data
+        user = get_user(self)
+        first_name = user.first_name
+        last_name = user.last_name
+        patronymic_name = user.patronymic_name
+        date_of_birth = user.date_of_birth
+        try:
+            user_docs = UserDocuments.objects.get(
+                user=user
+            )
+            inn = user_docs.inn
+            snils = user_docs.snils
+        except UserDocuments.DoesNotExist:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={'detail': 'Документы пользователя не заполнены.'}
+            )
+        recipient = data.get('recipient')
+        cert_start_date = datetime.strptime(
+            data.get('cert_start_date'),
+            '%Y-%m-%d'
+        )
+        cert_end_date = datetime.strptime(
+            data.get('cert_end_date'),
+            '%Y-%m-%d'
+        )
+        signatory = data.get('signatory')
+        position_procuration = data.get('position_procuration')
+        try:
+            reg_headquarter_id = UserRegionalHeadquarterPosition.objects.get(
+                user=user
+            ).headquarter_id
+            regional_headquarter = get_object_or_404(
+                RegionalHeadquarter, id=reg_headquarter_id
+            )
+            reg_case_name = regional_headquarter.case_name
+            legal_address = str(regional_headquarter.legal_address)
+            requisites = str(regional_headquarter.requisites)
+            registry_number = str(regional_headquarter.registry_number)
+            registry_date = regional_headquarter.registry_date
+        except (
+            UserRegionalHeadquarterPosition.DoesNotExist,
+            RegionalHeadquarter.DoesNotExist
+        ):
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={'detail': 'Не удалось определить региональный штаб.'}
+            )
+
+        """Подготовка шаблона и шрифтов к выводу информации на лист."""
+        template_path = os.path.join(
+            str(BASE_DIR),
+            'templates',
+            'samples',
+            'external_cert.pdf'
+        )
+        template = pdfrw.PdfReader(template_path, decompress=False).pages[0]
+        template_obj = pagexobj(template)
+        buf = io.BytesIO()
+        c = canvas.Canvas(buf, pagesize=A4, bottomup=1)
+        xobj_name = makerl(c, template_obj)
+        c.doForm(xobj_name)
+        pdfmetrics.registerFont(
+            TTFont(
+                'Times_New_Roman',
+                os.path.join(
+                    str(BASE_DIR),
+                    'templates',
+                    'samples',
+                    'fonts',
+                    'times.ttf'
+                )
+            )
+        )
+        pdfmetrics.registerFont(
+            TTFont(
+                'Arial_Narrow',
+                os.path.join(
+                    str(BASE_DIR),
+                    'templates',
+                    'samples',
+                    'fonts',
+                    'arialnarrow.ttf'
+                )
+            )
+        )
+
+        """Блок вывода названия РШ в заголовок листа."""
+        c.setFont('Times_New_Roman', 15)
+        page_width = c._pagesize[0]
+        string_width = c.stringWidth(
+            str(regional_headquarter),
+            'Times_New_Roman',
+            14
+        )
+        center_x = (page_width - string_width) / 2 + 155
+        c.drawCentredString(center_x, 780, str(regional_headquarter))
+
+        """Блок вывода юр.адреса и реквизитов РШ под заголовком.
+
+        В блоке опеределяется ширина поля на листе, куда будет выведен текст.
+        Функция text_to_lines разбивает длину текста на строки. Длина строки
+        определяется переменной proportion. Затем с помощью цикла
+        производится перенос строк. Переменная line_break работает как ширина,
+        на которую необходимо перенести строку.
+        """
+        c.setFont('Arial_Narrow', 9)
+        string_width = c.stringWidth(
+            legal_address + ' ' + requisites, 'Arial_Narrow', 9
+        )
+        line_width = (page_width - 160)
+        proportion = line_width / string_width
+        text = legal_address + '.  ' + requisites
+        lines = text_to_lines(
+            text=text,
+            proportion=proportion
+        )
+        line_break = 11
+        for line in lines:
+            c.drawString(140, 715 - line_break, line)
+            line_break += 11
+        c.drawString(
+            50,
+            600,
+            'б/н от ' + str(datetime.now().strftime('%d.%m.%Y'))
+        )
+
+        """Блок вывода информации о пользователе и РШ в тексте справки."""
+        c.setFont('Times_New_Roman', 14)
+        if last_name and first_name and patronymic_name:
+            c.drawString(
+                135, 515, last_name + ' ' + first_name + ' ' + patronymic_name
+            )
+        if last_name and first_name and not patronymic_name:
+            c.drawString(135, 515, last_name + ' ' + first_name)
+        if date_of_birth:
+            c.drawString(
+                126, 482, str(date_of_birth.strftime('%d.%m.%Y')) + ' г.'
+            )
+        if (
+            (not last_name and not first_name and not patronymic_name)
+            or (not date_of_birth)
+        ):
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={'detail': 'Профиль пользователя не заполнен.'}
+            )
+        c.drawString(
+            160,
+            418,
+            (
+                'c '
+                + str(cert_start_date.strftime('%d.%m.%Y'))
+                + ' г. по '
+                + str(cert_end_date.strftime('%d.%m.%Y') + ' г.')
+            )
+        )
+        c.drawString(29, 371, reg_case_name)
+        if registry_date:
+            c.drawString(
+                140,
+                346,
+                (
+                    registry_number
+                    + ' от '
+                    + registry_date.strftime('%d.%m.%Y')
+                    + ' г.'
+                )
+            )
+        else:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={'detail': 'Данные РШ не заполнены.'}
+            )
+        c.drawString(380, 297, inn)
+        c.drawString(380, 277, snils)
+        string_width = c.stringWidth(recipient, 'Times_New_Roman', 14)
+        line_width = page_width
+        start_line = line_width/2 - string_width/2
+        proportion = line_width / string_width
+        if proportion >= 1.0:
+            c.drawString(start_line, 218, recipient)
+        else:
+            lines = text_to_lines(
+                text=recipient,
+                proportion=proportion
+            )
+            line_break = 11
+            for line in lines:
+                c.drawString(25, 240 - line_break, line)
+                line_break += 12
+
+        string_width = c.stringWidth(
+            position_procuration,
+            'Times_New_Roman',
+            14
+        )
+        line_width = page_width
+        proportion = 0.3
+        if proportion >= 1.0:
+            c.drawString(25, 99, position_procuration)
+        else:
+            lines = text_to_lines(
+                text=position_procuration,
+                proportion=proportion
+            )
+            line_break = 11
+            for line in lines:
+                c.drawString(25, 110 - line_break, line)
+                line_break += 12
+        signatory_list = signatory.split()
+        if len(signatory_list) == 3:
+            c.drawString(
+                450,
+                85,
+                (
+                    signatory_list[0]
+                    + ' '
+                    + signatory_list[1][0]
+                    + '.' + signatory_list[2][0]
+                    + '.'
+                )
+            )
+        elif len(signatory_list) == 2:
+            c.drawString(
+                450,
+                85,
+                signatory_list[0]
+                + ' '
+                + signatory_list[1][0]
+                + '.'
+            )
+
+        c.save()
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = (
+            'attachment; filename="external_cert.pdf"'
         )
         buf.seek(0)
         response.write(buf.read())
