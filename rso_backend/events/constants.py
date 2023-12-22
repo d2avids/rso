@@ -1,0 +1,17 @@
+PERSONAL_TYPE = 'Персональная'
+GROUP_TYPE = 'Групповая'
+MULTI_STAGE_TYPE = 'Мультиэтапная'
+
+APPLICATION_TYPES = (
+    PERSONAL_TYPE,
+    GROUP_TYPE,
+    MULTI_STAGE_TYPE
+)
+
+ONLINE_FORMAT = 'Онлайн'
+OFFLINE_FORMAT = 'Оффлайн'
+
+FORMAT_CHOICES = (
+    ONLINE_FORMAT,
+    OFFLINE_FORMAT,
+)
