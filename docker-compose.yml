@@ -27,6 +27,8 @@ services:
   backend:
     build: ./rso_backend
     env_file: .env
+    ports:
+      - "8000:8000"
     depends_on:
       - db
       - redis
