@@ -28,7 +28,7 @@ services:
     build: ./rso_backend
     env_file: .env
     ports:
-      - "8000:8000"
+      - "8080:8080"
     depends_on:
       - db
       - redis
@@ -72,7 +72,7 @@ services:
     depends_on:
       - frontend
     ports:
-      - "80:80"
+      - "8000:80"
     volumes:
       - static:/static/
       - media:/media/
