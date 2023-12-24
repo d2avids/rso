@@ -47,7 +47,8 @@ from api.serializers import (CentralHeadquarterSerializer,
                              AreaSerializer, EducationalInstitutionSerializer,
                              InternalCertSerializer, ExternalCertSerializer)
 from api.utils import (download_file, get_headquarter_users_positions_queryset,
-                       get_user, text_to_lines)
+                       get_user, text_to_lines, get_user_by_id,
+                       create_and_return_archive)
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Region, RegionalHeadquarter,
@@ -866,6 +867,32 @@ def change_membership_fee_status(request, pk):
 class InternalCertIssueViewSet(viewsets.ModelViewSet):
     """Выдача справок для внутреннего использования."""
 
+    TIMES_HEAD_SIZE = 15
+    TIMES_TEXT_SIZE = 14
+    ARIAL_TEXT_SIZE = 9
+    HEAD_Y = 797
+    VERTICAL_DISP = 150
+    HORIZONTAL_DISP = 11
+    HORIZONTAL_DISP_RECIPIENT = 12
+    REQUISITES_X = 135
+    REQUISITES_Y = 730
+    LETTER_NUMBER_X = 50
+    LETTER_NUMBER_Y = 600
+    NAME_X = 120
+    NAME_Y = 528
+    BIRTHDAY_X = 125
+    BIRTHDAY_Y = 494
+    CERT_DATE_X = 160
+    CERT_DATE_Y = 430
+    REG_CASE_NAME_X = 33
+    REG_CASE_NAME_Y = 383
+    REG_NUMBER_X = 170
+    REG_NUMBER_Y = 357
+    RECIPIENT_X = 33
+    RECIPIENT_Y = 310
+    COMMANDER_X = 470
+    COMMANDER_Y = 248
+
     queryset = UserCertInternal.objects.all()
     serializer_class = InternalCertSerializer
 
@@ -967,15 +994,15 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
         )
 
         """Блок вывода названия РШ в заголовок листа."""
-        c.setFont('Times_New_Roman', 15)
+        c.setFont('Times_New_Roman', self.TIMES_HEAD_SIZE)
         page_width = c._pagesize[0]
         string_width = c.stringWidth(
             str(regional_headquarter),
             'Times_New_Roman',
-            14
+            self.TIMES_TEXT_SIZE
         )
-        center_x = (page_width - string_width) / 2 + 150
-        c.drawCentredString(center_x, 797, str(regional_headquarter))
+        center_x = (page_width - string_width) / 2 + self.VERTICAL_DISP
+        c.drawCentredString(center_x, self.HEAD_Y, str(regional_headquarter))
 
         """Блок вывода юр.адреса и реквизитов РШ под заголовком.
 
@@ -987,37 +1014,47 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
         """
         c.setFont('Arial_Narrow', 9)
         string_width = c.stringWidth(
-            legal_address + ' ' + requisites, 'Arial_Narrow', 9
+            legal_address + ' ' + requisites,
+            'Arial_Narrow',
+            self.ARIAL_TEXT_SIZE
         )
-        line_width = (page_width - 150)
+        line_width = (page_width - self.VERTICAL_DISP)
         proportion = line_width / string_width
         text = legal_address + '.  ' + requisites
         lines = text_to_lines(
             text=text,
             proportion=proportion
         )
-        line_break = 11
+        line_break = self.HORIZONTAL_DISP
         for line in lines:
-            c.drawString(135, 730 - line_break, line)
-            line_break += 11
+            c.drawString(
+                self.REQUISITES_X, self.REQUISITES_Y - line_break, line
+            )
+            line_break += self.HORIZONTAL_DISP
 
         c.drawString(
-            50,
-            600,
+            self.LETTER_NUMBER_X,
+            self.LETTER_NUMBER_Y,
             'б/н от ' + str(datetime.now().strftime('%d.%m.%Y'))
         )
 
         """Блок вывода информации о пользователе и РШ в тексте справки."""
-        c.setFont('Times_New_Roman', 14)
+        c.setFont('Times_New_Roman', self.TIMES_TEXT_SIZE)
         if last_name and first_name and patronymic_name:
             c.drawString(
-                120, 528, last_name + ' ' + first_name + ' ' + patronymic_name
+                self.NAME_X,
+                self.NAME_Y,
+                last_name + ' ' + first_name + ' ' + patronymic_name
             )
         if last_name and first_name and not patronymic_name:
-            c.drawString(120, 528, last_name + ' ' + first_name)
+            c.drawString(
+                self.NAME_X, self.NAME_Y, last_name + ' ' + first_name
+            )
         if date_of_birth:
             c.drawString(
-                125, 494, str(date_of_birth.strftime('%d.%m.%Y')) + ' г.'
+                self.BIRTHDAY_X,
+                self.BIRTHDAY_Y,
+                str(date_of_birth.strftime('%d.%m.%Y')) + ' г.'
             )
         if (
             (not last_name and not first_name and not patronymic_name)
@@ -1028,8 +1065,8 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
                 data={'detail': 'Профиль пользователя не заполнен.'}
             )
         c.drawString(
-            160,
-            430,
+            self.CERT_DATE_X,
+            self.CERT_DATE_Y,
             (
                 'c '
                 + str(cert_start_date.strftime('%d.%m.%Y'))
@@ -1040,8 +1077,8 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
         c.drawString(33, 383, reg_case_name)
         if registry_date:
             c.drawString(
-                170,
-                357,
+                self.REG_NUMBER_X,
+                self.REG_NUMBER_Y,
                 (
                     registry_number
                     + ' от '
@@ -1055,28 +1092,33 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
                 data={'detail': 'Данные РШ не заполнены.'}
             )
 
-        string_width = c.stringWidth(recipient, 'Times_New_Roman', 14)
-        line_width = (page_width - 150)
+        string_width = c.stringWidth(
+            recipient, 'Times_New_Roman', self.TIMES_TEXT_SIZE
+        )
+        line_width = (page_width - self.VERTICAL_DISP)
+        start_line = line_width/2 - string_width/2
         proportion = line_width / string_width
         if proportion >= 1.0:
-            c.drawString(33, 310, recipient)
+            c.drawString(start_line, self.RECIPIENT_Y, recipient)
         else:
             lines = text_to_lines(
                 text=recipient,
                 proportion=proportion
             )
-            line_break = 11
+            line_break = self.HORIZONTAL_DISP
             for line in lines:
-                c.drawString(33, 330 - line_break, line)
-                line_break += 12
+                c.drawString(
+                    self.RECIPIENT_X, self.RECIPIENT_Y - line_break, line
+                )
+                line_break += self.HORIZONTAL_DISP_RECIPIENT
         if (
             commander_first_name
             and commander_last_name
             and commander_patronymic_name
         ):
             c.drawString(
-                470,
-                248,
+                self.COMMANDER_X,
+                self.COMMANDER_Y,
                 str(commander_first_name)[0].upper()
                 + '.'
                 + str(commander_patronymic_name)[0].upper()
@@ -1089,8 +1131,8 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
             and not commander_patronymic_name
         ):
             c.drawString(
-                470,
-                248,
+                self.COMMANDER_X,
+                self.COMMANDER_Y,
                 str(commander_first_name)[0].upper()
                 + '. '
                 + str(commander_last_name).capitalize()
@@ -1109,29 +1151,51 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
 class ExternalCertIssueViewSet(viewsets.ModelViewSet):
     """Вьюсет для выдачи справки работодателю."""
 
+    TIMES_HEAD_SIZE = 15
+    TIMES_TEXT_SIZE = 14
+    ARIAL_TEXT_SIZE = 9
+    HEAD_Y = 780
+    VERTICAL_DISP = 155
+    VERTICAL_DISP_REQ = 160
+    HORIZONTAL_DISP = 11
+    HORIZONTAL_DISP_RECIPIENT = 12
+    REQUISITES_X = 140
+    REQUISITES_Y = 715
+    LETTER_NUMBER_X = 50
+    LETTER_NUMBER_Y = 600
+    NAME_X = 135
+    NAME_Y = 515
+    BIRTHDAY_X = 126
+    BIRTHDAY_Y = 482
+    CERT_DATE_X = 160
+    CERT_DATE_Y = 418
+    REG_CASE_NAME_X = 29
+    REG_CASE_NAME_Y = 371
+    REG_NUMBER_X = 140
+    REG_NUMBER_Y = 346
+    INN_X = 380
+    INN_Y = 297
+    SNILS_X = 380
+    SNILS_Y = 277
+    RECIPIENT_X = 33
+    RECIPIENT_Y = 218
+    RECIPIENT_LINE_X = 25
+    RECIPIENT_LINE_Y = 240
+    POSITION_PROC_PROP = 0.3
+    POSITION_PROC_X = 25
+    POSITION_PROC_Y = 99
+    POSITION_PROC_LINE_Y = 110
+    FIO = 3
+    FI = 2
+    SIGNATORY_X = 450
+    SIGNATORY_Y = 85
+
     queryset = UserCertExternal.objects.all()
     serializer_class = ExternalCertSerializer
 
-    def perform_create(self, serializer):
-        user = get_user(self)
-        serializer.save(user=user)
-
-    def create(self, request, *args, **kwargs):
-        """Создание справки для предоставления работодателю.
-
-        Метод сохраняет в БД информацию, введенную на странице выдачи справки,
-        переносит ее на PDF-лист справки вместе с данными пользователя и его
-        регионального штаба.
-        """
-
-        """Сохранение данных в БД."""
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-
-        """Сбор данных о пользователе и его региональном штабе."""
+    @classmethod
+    def get_certificate(cls, user, request):
         data = request.data
-        user = get_user(self)
         first_name = user.first_name
         last_name = user.last_name
         patronymic_name = user.patronymic_name
@@ -1218,15 +1282,15 @@ class ExternalCertIssueViewSet(viewsets.ModelViewSet):
         )
 
         """Блок вывода названия РШ в заголовок листа."""
-        c.setFont('Times_New_Roman', 15)
+        c.setFont('Times_New_Roman', cls.TIMES_HEAD_SIZE)
         page_width = c._pagesize[0]
         string_width = c.stringWidth(
             str(regional_headquarter),
             'Times_New_Roman',
-            14
+            cls.TIMES_HEAD_SIZE
         )
-        center_x = (page_width - string_width) / 2 + 155
-        c.drawCentredString(center_x, 780, str(regional_headquarter))
+        center_x = (page_width - string_width) / 2 + cls.VERTICAL_DISP
+        c.drawCentredString(center_x, cls.HEAD_Y, str(regional_headquarter))
 
         """Блок вывода юр.адреса и реквизитов РШ под заголовком.
 
@@ -1236,38 +1300,48 @@ class ExternalCertIssueViewSet(viewsets.ModelViewSet):
         производится перенос строк. Переменная line_break работает как ширина,
         на которую необходимо перенести строку.
         """
-        c.setFont('Arial_Narrow', 9)
-        string_width = c.stringWidth(
-            legal_address + ' ' + requisites, 'Arial_Narrow', 9
-        )
-        line_width = (page_width - 160)
-        proportion = line_width / string_width
+        c.setFont('Arial_Narrow', cls.ARIAL_TEXT_SIZE)
         text = legal_address + '.  ' + requisites
+        string_width = c.stringWidth(
+            text,
+            'Arial_Narrow',
+            cls.ARIAL_TEXT_SIZE
+        )
+        line_width = (page_width - cls.VERTICAL_DISP_REQ)
+        proportion = line_width / string_width
         lines = text_to_lines(
             text=text,
             proportion=proportion
         )
-        line_break = 11
+        line_break = cls.HORIZONTAL_DISP
         for line in lines:
-            c.drawString(140, 715 - line_break, line)
-            line_break += 11
+            c.drawString(
+                cls.REQUISITES_X, cls.REQUISITES_Y - line_break, line
+            )
+            line_break += cls.HORIZONTAL_DISP
         c.drawString(
-            50,
-            600,
+            cls.LETTER_NUMBER_X,
+            cls. LETTER_NUMBER_Y,
             'б/н от ' + str(datetime.now().strftime('%d.%m.%Y'))
         )
 
         """Блок вывода информации о пользователе и РШ в тексте справки."""
-        c.setFont('Times_New_Roman', 14)
+        c.setFont('Times_New_Roman', cls.TIMES_TEXT_SIZE)
         if last_name and first_name and patronymic_name:
             c.drawString(
-                135, 515, last_name + ' ' + first_name + ' ' + patronymic_name
+                cls.NAME_X,
+                cls.NAME_Y,
+                last_name + ' ' + first_name + ' ' + patronymic_name
             )
         if last_name and first_name and not patronymic_name:
-            c.drawString(135, 515, last_name + ' ' + first_name)
+            c.drawString(
+                cls.NAME_X, cls.NAME_Y, last_name + ' ' + first_name
+            )
         if date_of_birth:
             c.drawString(
-                126, 482, str(date_of_birth.strftime('%d.%m.%Y')) + ' г.'
+                cls.BIRTHDAY_X,
+                cls.BIRTHDAY_Y,
+                str(date_of_birth.strftime('%d.%m.%Y')) + ' г.'
             )
         if (
             (not last_name and not first_name and not patronymic_name)
@@ -1278,8 +1352,8 @@ class ExternalCertIssueViewSet(viewsets.ModelViewSet):
                 data={'detail': 'Профиль пользователя не заполнен.'}
             )
         c.drawString(
-            160,
-            418,
+            cls.CERT_DATE_X,
+            cls.CERT_DATE_Y,
             (
                 'c '
                 + str(cert_start_date.strftime('%d.%m.%Y'))
@@ -1287,11 +1361,11 @@ class ExternalCertIssueViewSet(viewsets.ModelViewSet):
                 + str(cert_end_date.strftime('%d.%m.%Y') + ' г.')
             )
         )
-        c.drawString(29, 371, reg_case_name)
+        c.drawString(cls.REG_CASE_NAME_X, cls.REG_CASE_NAME_Y, reg_case_name)
         if registry_date:
             c.drawString(
-                140,
-                346,
+                cls.REG_NUMBER_X,
+                cls.REG_NUMBER_Y,
                 (
                     registry_number
                     + ' от '
@@ -1304,47 +1378,61 @@ class ExternalCertIssueViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
                 data={'detail': 'Данные РШ не заполнены.'}
             )
-        c.drawString(380, 297, inn)
-        c.drawString(380, 277, snils)
-        string_width = c.stringWidth(recipient, 'Times_New_Roman', 14)
+        c.drawString(cls.INN_X, cls.INN_Y, inn)
+        c.drawString(cls.SNILS_X, cls.SNILS_Y, snils)
+        string_width = c.stringWidth(
+            recipient, 'Times_New_Roman', cls.TIMES_TEXT_SIZE
+        )
         line_width = page_width
         start_line = line_width/2 - string_width/2
         proportion = line_width / string_width
         if proportion >= 1.0:
-            c.drawString(start_line, 218, recipient)
+            c.drawString(start_line, cls.RECIPIENT_Y, recipient)
         else:
             lines = text_to_lines(
                 text=recipient,
                 proportion=proportion
             )
-            line_break = 11
+            line_break = cls.HORIZONTAL_DISP
             for line in lines:
-                c.drawString(25, 240 - line_break, line)
-                line_break += 12
+                c.drawString(
+                    cls.RECIPIENT_LINE_X,
+                    cls.RECIPIENT_LINE_Y - line_break,
+                    line
+                )
+                line_break += cls.HORIZONTAL_DISP_RECIPIENT
 
         string_width = c.stringWidth(
             position_procuration,
             'Times_New_Roman',
-            14
+            cls.TIMES_TEXT_SIZE
         )
         line_width = page_width
-        proportion = 0.3
+        proportion = cls.POSITION_PROC_PROP
         if proportion >= 1.0:
-            c.drawString(25, 99, position_procuration)
+            c.drawString(
+                cls.POSITION_PROC_X,
+                cls.POSITION_PROC_Y,
+                position_procuration
+            )
         else:
             lines = text_to_lines(
                 text=position_procuration,
                 proportion=proportion
             )
-            line_break = 11
+            line_break = cls.HORIZONTAL_DISP
             for line in lines:
-                c.drawString(25, 110 - line_break, line)
-                line_break += 12
+                c.drawString(
+                    cls.POSITION_PROC_X,
+                    cls.POSITION_PROC_LINE_Y - line_break,
+                    line
+                )
+                line_break += cls.HORIZONTAL_DISP_RECIPIENT
         signatory_list = signatory.split()
-        if len(signatory_list) == 3:
+        if len(signatory_list) == cls.FIO:
             c.drawString(
-                450,
-                85,
+                cls.SIGNATORY_X,
+                cls.SIGNATORY_Y,
                 (
                     signatory_list[0]
                     + ' '
@@ -1353,10 +1441,10 @@ class ExternalCertIssueViewSet(viewsets.ModelViewSet):
                     + '.'
                 )
             )
-        elif len(signatory_list) == 2:
+        elif len(signatory_list) == cls.FI:
             c.drawString(
-                450,
-                85,
+                cls.SIGNATORY_X,
+                cls.SIGNATORY_Y,
                 signatory_list[0]
                 + ' '
                 + signatory_list[1][0]
@@ -1364,10 +1452,41 @@ class ExternalCertIssueViewSet(viewsets.ModelViewSet):
             )
 
         c.save()
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = (
-            'attachment; filename="external_cert.pdf"'
-        )
-        buf.seek(0)
-        response.write(buf.read())
+
+        return buf.getvalue()
+        # response = HttpResponse(content_type='application/pdf')
+        # response['Content-Disposition'] = (
+        #     'attachment; filename="external_cert.pdf"'
+        # )
+        # buf.seek(0)
+        # response.write(buf.read())
+        # return response.write(buf.getvalue())
+
+    def perform_create(self, serializer):
+        user = get_user(self)
+        serializer.save(user=user)
+
+    def create(self, request, *args, **kwargs):
+        """Создание справки для предоставления работодателю.
+
+        Метод сохраняет в БД информацию, введенную на странице выдачи справки,
+        переносит ее на PDF-лист справки вместе с данными пользователя и его
+        регионального штаба.
+        """
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        ids = request.data.get('ids')
+        external_certs = {}
+        for user_id in ids:
+            user = get_user_by_id(user_id)
+            pdf_cert = self.get_certificate(user, request)
+            filename = (
+                f'{user.username}.pdf'
+            )
+            print(pdf_cert)
+            external_certs[filename] = pdf_cert
+        filepath = str(BASE_DIR) + '/templates/temporary/'
+        response = create_and_return_archive(external_certs, filepath)
         return response

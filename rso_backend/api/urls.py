@@ -41,7 +41,7 @@ router.register(r'detachments', DetachmentViewSet)
 router.register(r'centrals', CentralViewSet)
 router.register(r'positions', PositionViewSet)
 router.register('eduicational_institutions', EducationalInstitutionViewSet)
-
+router.register('external_membership_certificates', ExternalCertIssueViewSet)
 
 UserEduVS = UserEducationViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
 UserProfEduRetrieveCreateVS = UserProfessionalEducationViewSet.as_view(
@@ -87,7 +87,7 @@ DistrictPositionUpdateVS = DistrictPositionViewSet.as_view(UPDATE)
 CentralPositionListVS = CentralPositionViewSet.as_view(LIST)
 CentralPositionUpdateVS = CentralPositionViewSet.as_view(UPDATE)
 InternalCertsVS = InternalCertIssueViewSet.as_view(CREATE_DELETE)
-ExternalCertsVS = ExternalCertIssueViewSet.as_view(CREATE_DELETE)
+# ExternalCertsVS = ExternalCertIssueViewSet.as_view(CREATE_DELETE)
 
 user_nested_urls = [
     path('rsousers/me/education/', UserEduVS, name='user-education'),
@@ -148,11 +148,11 @@ user_nested_urls = [
         InternalCertsVS,
         name='user-membership-internal-certs'
     ),
-    path(
-        'rsousers/<int:pk>/mebership_external_certs/',
-        ExternalCertsVS,
-        name='user-membership-external-certs'
-    ),
+    # path(
+    #     'rsousers/mebership_external_certs/',
+    #     ExternalCertsVS,
+    #     name='user-membership-external-certs'
+    # ),
     path(
         'detachments/<int:pk>/applications/',
         DetachmentApplicationVS,

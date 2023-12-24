@@ -864,6 +864,9 @@ class InternalCertSerializer(serializers.ModelSerializer):
         many=True,
         read_only=True
     )
+    ids = serializers.ListField(
+        child=serializers.IntegerField(), read_only=True
+    )
 
     class Meta:
         model = UserCertInternal
@@ -875,6 +878,7 @@ class InternalCertSerializer(serializers.ModelSerializer):
             'recipient',
             'issue_date',
             'number',
+            'ids'
         )
 
 

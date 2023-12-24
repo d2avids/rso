@@ -1,4 +1,7 @@
+import io
+import os
 import mimetypes
+import zipfile
 
 from django.db import IntegrityError
 from django.http.response import HttpResponse
@@ -80,6 +83,13 @@ def get_user(self):
     return user
 
 
+def get_user_by_id(id):
+    user = get_object_or_404(
+        RSOUser, id=id
+    )
+    return user
+
+
 def text_to_lines(text, proportion):
     """Функция разбивает текст на строки по заданной доле ширины."""
 
@@ -95,3 +105,23 @@ def text_to_lines(text, proportion):
             line += word + ' '
     lines.append(line)
     return lines
+
+
+def create_and_return_archive(files: dict, filepath: str):
+    """Создание архива с указанными файлами."""
+    archive_buffer = io.BytesIO()
+
+    with zipfile.ZipFile(archive_buffer, 'w') as archive:
+        for file_name, file_content in files.items():
+            archive.writestr(file_name, file_content)
+    archive.close()
+    path = open(filepath, 'rb')
+    mime_type, _ = mimetypes.guess_type(filepath)
+    # response = HttpResponse(content_type='application/zip')
+    response = HttpResponse(path, content_type=mime_type)
+    response['Content-Disposition'] = 'attachment; filename="external_certs.zip"'
+    archive_buffer.seek(0)
+    response.write(archive_buffer.getvalue())
+    # archive_buffer.close()
+    # os.remove(archive_buffer.name)
+    return response
