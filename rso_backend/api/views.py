@@ -896,26 +896,16 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
     queryset = UserCertInternal.objects.all()
     serializer_class = InternalCertSerializer
 
-    def perform_create(self, serializer):
-        user = get_user(self)
-        serializer.save(user=user)
+    @classmethod
+    def get_certificate(cls, user, request):
+        """Метод собирает информацию о пользователе и его РШ.
 
-    def create(self, request, *args, **kwargs):
-        """Создание справки для внутреннего использования.
-
-        Метод сохраняет в БД информацию, введенную на странице выдачи справки,
-        переносит ее на PDF-лист справки вместе с данными пользователя и его
-        регионального штаба.
+        Работа метода представлена в комментариях к коду.
         """
 
-        """Сохранение данных в БД."""
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-
-        """Сбор данных о пользователе и его региональном штабе."""
+        """Сбор данных из БД и запроса к эндпоинту."""
         data = request.data
-        user = get_user(self)
+        username = user.username
         first_name = user.first_name
         last_name = user.last_name
         patronymic_name = user.patronymic_name
@@ -952,7 +942,10 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
         ):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
-                data={'detail': 'Не удалось определить региональный штаб.'}
+                data={
+                    'detail': 'Не удалось определить региональный штаб'
+                    f'пользователя {username}.'
+                }
             )
 
         """Подготовка шаблона и шрифтов к выводу информации на лист."""
@@ -994,15 +987,15 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
         )
 
         """Блок вывода названия РШ в заголовок листа."""
-        c.setFont('Times_New_Roman', self.TIMES_HEAD_SIZE)
+        c.setFont('Times_New_Roman', cls.TIMES_HEAD_SIZE)
         page_width = c._pagesize[0]
         string_width = c.stringWidth(
             str(regional_headquarter),
             'Times_New_Roman',
-            self.TIMES_TEXT_SIZE
+            cls.TIMES_TEXT_SIZE
         )
-        center_x = (page_width - string_width) / 2 + self.VERTICAL_DISP
-        c.drawCentredString(center_x, self.HEAD_Y, str(regional_headquarter))
+        center_x = (page_width - string_width) / 2 + cls.VERTICAL_DISP
+        c.drawCentredString(center_x, cls.HEAD_Y, str(regional_headquarter))
 
         """Блок вывода юр.адреса и реквизитов РШ под заголовком.
 
@@ -1016,44 +1009,44 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
         string_width = c.stringWidth(
             legal_address + ' ' + requisites,
             'Arial_Narrow',
-            self.ARIAL_TEXT_SIZE
+            cls.ARIAL_TEXT_SIZE
         )
-        line_width = (page_width - self.VERTICAL_DISP)
+        line_width = (page_width - cls.VERTICAL_DISP)
         proportion = line_width / string_width
         text = legal_address + '.  ' + requisites
         lines = text_to_lines(
             text=text,
             proportion=proportion
         )
-        line_break = self.HORIZONTAL_DISP
+        line_break = cls.HORIZONTAL_DISP
         for line in lines:
             c.drawString(
-                self.REQUISITES_X, self.REQUISITES_Y - line_break, line
+                cls.REQUISITES_X, cls.REQUISITES_Y - line_break, line
             )
-            line_break += self.HORIZONTAL_DISP
+            line_break += cls.HORIZONTAL_DISP
 
         c.drawString(
-            self.LETTER_NUMBER_X,
-            self.LETTER_NUMBER_Y,
+            cls.LETTER_NUMBER_X,
+            cls.LETTER_NUMBER_Y,
             'б/н от ' + str(datetime.now().strftime('%d.%m.%Y'))
         )
 
         """Блок вывода информации о пользователе и РШ в тексте справки."""
-        c.setFont('Times_New_Roman', self.TIMES_TEXT_SIZE)
+        c.setFont('Times_New_Roman', cls.TIMES_TEXT_SIZE)
         if last_name and first_name and patronymic_name:
             c.drawString(
-                self.NAME_X,
-                self.NAME_Y,
+                cls.NAME_X,
+                cls.NAME_Y,
                 last_name + ' ' + first_name + ' ' + patronymic_name
             )
         if last_name and first_name and not patronymic_name:
             c.drawString(
-                self.NAME_X, self.NAME_Y, last_name + ' ' + first_name
+                cls.NAME_X, cls.NAME_Y, last_name + ' ' + first_name
             )
         if date_of_birth:
             c.drawString(
-                self.BIRTHDAY_X,
-                self.BIRTHDAY_Y,
+                cls.BIRTHDAY_X,
+                cls.BIRTHDAY_Y,
                 str(date_of_birth.strftime('%d.%m.%Y')) + ' г.'
             )
         if (
@@ -1062,11 +1055,11 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
         ):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
-                data={'detail': 'Профиль пользователя не заполнен.'}
+                data={'detail': 'Профиль пользователя {username} не заполнен.'}
             )
         c.drawString(
-            self.CERT_DATE_X,
-            self.CERT_DATE_Y,
+            cls.CERT_DATE_X,
+            cls.CERT_DATE_Y,
             (
                 'c '
                 + str(cert_start_date.strftime('%d.%m.%Y'))
@@ -1077,8 +1070,8 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
         c.drawString(33, 383, reg_case_name)
         if registry_date:
             c.drawString(
-                self.REG_NUMBER_X,
-                self.REG_NUMBER_Y,
+                cls.REG_NUMBER_X,
+                cls.REG_NUMBER_Y,
                 (
                     registry_number
                     + ' от '
@@ -1089,36 +1082,38 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
         else:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
-                data={'detail': 'Данные РШ не заполнены.'}
+                data={
+                    'detail': 'Данные РШ {regional_headquarter} не заполнены.'
+                }
             )
 
         string_width = c.stringWidth(
-            recipient, 'Times_New_Roman', self.TIMES_TEXT_SIZE
+            recipient, 'Times_New_Roman', cls.TIMES_TEXT_SIZE
         )
-        line_width = (page_width - self.VERTICAL_DISP)
+        line_width = (page_width - cls.VERTICAL_DISP)
         start_line = line_width/2 - string_width/2
         proportion = line_width / string_width
         if proportion >= 1.0:
-            c.drawString(start_line, self.RECIPIENT_Y, recipient)
+            c.drawString(start_line, cls.RECIPIENT_Y, recipient)
         else:
             lines = text_to_lines(
                 text=recipient,
                 proportion=proportion
             )
-            line_break = self.HORIZONTAL_DISP
+            line_break = cls.HORIZONTAL_DISP
             for line in lines:
                 c.drawString(
-                    self.RECIPIENT_X, self.RECIPIENT_Y - line_break, line
+                    cls.RECIPIENT_X, cls.RECIPIENT_Y - line_break, line
                 )
-                line_break += self.HORIZONTAL_DISP_RECIPIENT
+                line_break += cls.HORIZONTAL_DISP_RECIPIENT
         if (
             commander_first_name
             and commander_last_name
             and commander_patronymic_name
         ):
             c.drawString(
-                self.COMMANDER_X,
-                self.COMMANDER_Y,
+                cls.COMMANDER_X,
+                cls.COMMANDER_Y,
                 str(commander_first_name)[0].upper()
                 + '.'
                 + str(commander_patronymic_name)[0].upper()
@@ -1131,20 +1126,43 @@ class InternalCertIssueViewSet(viewsets.ModelViewSet):
             and not commander_patronymic_name
         ):
             c.drawString(
-                self.COMMANDER_X,
-                self.COMMANDER_Y,
+                cls.COMMANDER_X,
+                cls.COMMANDER_Y,
                 str(commander_first_name)[0].upper()
                 + '. '
                 + str(commander_last_name).capitalize()
             )
         c.showPage()
         c.save()
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = (
-            'attachment; filename="internal_cert.pdf"'
-        )
-        buf.seek(0)
-        response.write(buf.read())
+        return buf.getvalue()
+
+    def perform_create(self, serializer):
+        user = get_user(self)
+        serializer.save(user=user)
+
+    def create(self, request, *args, **kwargs):
+        """Создание справки для предоставления работодателю.
+
+        Метод сохраняет в БД информацию, введенную на странице выдачи справки.
+        get_certificate - переносит данные на PDF-лист.
+        create_and_return_archive - формирует архив со справками."""
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        ids = request.data.get('ids')
+        external_certs = {}
+        for user_id in ids:
+            user = get_user_by_id(user_id)
+            pdf_cert = self.get_certificate(user, request)
+            if isinstance(pdf_cert, Response):
+                return pdf_cert
+
+            filename = (
+                f'{user.username}.pdf'
+            )
+            external_certs[filename] = pdf_cert
+        response = create_and_return_archive(external_certs)
         return response
 
 
@@ -1195,7 +1213,14 @@ class ExternalCertIssueViewSet(viewsets.ModelViewSet):
 
     @classmethod
     def get_certificate(cls, user, request):
+        """Метод собирает информацию о пользователе и его РШ.
+
+        Работа метода представлена в комментариях к коду.
+        """
+
+        """Сбор данных из БД и запроса к эндпоинту."""
         data = request.data
+        username = user.username
         first_name = user.first_name
         last_name = user.last_name
         patronymic_name = user.patronymic_name
@@ -1209,7 +1234,10 @@ class ExternalCertIssueViewSet(viewsets.ModelViewSet):
         except UserDocuments.DoesNotExist:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
-                data={'detail': 'Документы пользователя не заполнены.'}
+                data={
+                    'detail': 'Документы пользователя '
+                    f'{username} не заполнены.'
+                }
             )
         recipient = data.get('recipient')
         cert_start_date = datetime.strptime(
@@ -1240,7 +1268,10 @@ class ExternalCertIssueViewSet(viewsets.ModelViewSet):
         ):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
-                data={'detail': 'Не удалось определить региональный штаб.'}
+                data={
+                    'detail': 'Не удалось определить региональный штаб '
+                    f'пользователя {username}.'
+                }
             )
 
         """Подготовка шаблона и шрифтов к выводу информации на лист."""
@@ -1349,7 +1380,9 @@ class ExternalCertIssueViewSet(viewsets.ModelViewSet):
         ):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
-                data={'detail': 'Профиль пользователя не заполнен.'}
+                data={
+                    'detail': f'Профиль пользователя {username} не заполнен.'
+                }
             )
         c.drawString(
             cls.CERT_DATE_X,
@@ -1376,7 +1409,9 @@ class ExternalCertIssueViewSet(viewsets.ModelViewSet):
         else:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
-                data={'detail': 'Данные РШ не заполнены.'}
+                data={
+                    'detail': f'Данные РШ {regional_headquarter} не заполнены.'
+                }
             )
         c.drawString(cls.INN_X, cls.INN_Y, inn)
         c.drawString(cls.SNILS_X, cls.SNILS_Y, snils)
@@ -1450,17 +1485,8 @@ class ExternalCertIssueViewSet(viewsets.ModelViewSet):
                 + signatory_list[1][0]
                 + '.'
             )
-
         c.save()
-
         return buf.getvalue()
-        # response = HttpResponse(content_type='application/pdf')
-        # response['Content-Disposition'] = (
-        #     'attachment; filename="external_cert.pdf"'
-        # )
-        # buf.seek(0)
-        # response.write(buf.read())
-        # return response.write(buf.getvalue())
 
     def perform_create(self, serializer):
         user = get_user(self)
@@ -1469,9 +1495,9 @@ class ExternalCertIssueViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Создание справки для предоставления работодателю.
 
-        Метод сохраняет в БД информацию, введенную на странице выдачи справки,
-        переносит ее на PDF-лист справки вместе с данными пользователя и его
-        регионального штаба.
+        Метод сохраняет в БД информацию, введенную на странице выдачи справки.
+        get_certificate - переносит данные на PDF-лист.
+        create_and_return_archive - формирует архив со справками.
         """
 
         serializer = self.get_serializer(data=request.data)
@@ -1481,12 +1507,12 @@ class ExternalCertIssueViewSet(viewsets.ModelViewSet):
         external_certs = {}
         for user_id in ids:
             user = get_user_by_id(user_id)
-            pdf_cert = self.get_certificate(user, request)
+            pdf_cert_or_response = self.get_certificate(user, request)
+            if isinstance(pdf_cert_or_response, Response):
+                return pdf_cert_or_response
             filename = (
                 f'{user.username}.pdf'
             )
-            print(pdf_cert)
-            external_certs[filename] = pdf_cert
-        filepath = str(BASE_DIR) + '/templates/temporary/'
-        response = create_and_return_archive(external_certs, filepath)
+            external_certs[filename] = pdf_cert_or_response
+        response = create_and_return_archive(external_certs)
         return response
