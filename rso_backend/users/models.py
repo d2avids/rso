@@ -858,16 +858,11 @@ class UserMembershipLogs(models.Model):
         super(UserMembershipLogs, self).save(*args, **kwargs)
 
 
-class UserCertInternal(models.Model):
-    """Таблица для хранения информации о выданных справках.
-
-    Используется для справок внутреннего использования.
-    """
-
+class MemberCert(models.Model):
     user = models.ForeignKey(
         to='RSOUser',
         on_delete=models.CASCADE,
-        related_name='cert_info',
+        related_name='member_cert',
         verbose_name='Пользователь',
     )
     cert_start_date = models.DateField(
@@ -896,37 +891,21 @@ class UserCertInternal(models.Model):
         default='б/н',
         max_length=40
     )
-
-    class Meta:
-        verbose_name_plural = 'Выданные внутренние справки.'
-        verbose_name = 'Выданная внутренняя справка.'
-
-    def __str__(self):
-        return (
-            f'Пользователь {self.user.last_name} {self.user.first_name} '
-            f'{self.user.username} выдал справку.'
-        )
-
-
-class UserCertExternal(UserCertInternal):
-    """Таблица для хранения информации о выданных справках.
-
-    Используется для справок для других организаций.
-    """
-
     signatory = models.CharField(
         verbose_name='ФИО подписывающего лица',
-        null=False,
-        blank=False,
         max_length=250
     )
     position_procuration = models.CharField(
         verbose_name='Должность подписывающего лица, доверенность',
-        null=False,
-        blank=False,
         max_length=250
     )
 
     class Meta:
         verbose_name_plural = 'Выданные справки о членстве в РСО.'
         verbose_name = 'Выданная справка о членстве в РСО.'
+
+    def __str__(self):
+        return (
+            f'Пользователь {self.signatory} выдал справку'
+            f' пользователю {self.user.username}.'
+        )

@@ -7,7 +7,7 @@ from django_celery_beat.models import (PeriodicTask, IntervalSchedule,
 
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserPrivacySettings, UserRegion, UsersParent,
-                          UserMembershipLogs)
+                          UserMembershipLogs, UserStatementDocuments)
 
 
 class UserRegionInline(admin.StackedInline):
@@ -40,6 +40,11 @@ class UsersParentInline(admin.StackedInline):
     extra = 1
 
 
+class UserStatementDocumentsInLine(admin.StackedInline):
+    model = UserStatementDocuments
+    extra = 1
+
+
 @admin.register(RSOUser)
 class UserAdmin(BaseUserAdmin):
     inlines = [
@@ -48,7 +53,8 @@ class UserAdmin(BaseUserAdmin):
         UserEducationInline,
         UserDocumentsInline,
         UserPrivacySettingsInline,
-        UsersParentInline
+        UsersParentInline,
+        UserStatementDocumentsInLine
     ]
 
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff')
