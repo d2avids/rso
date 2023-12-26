@@ -893,11 +893,15 @@ class MemberCert(models.Model):
     )
     signatory = models.CharField(
         verbose_name='ФИО подписывающего лица',
-        max_length=250
+        max_length=250,
+        blank=True,
+        null=True
     )
     position_procuration = models.CharField(
         verbose_name='Должность подписывающего лица, доверенность',
-        max_length=250
+        max_length=250,
+        blank=True,
+        null=True
     )
 
     class Meta:

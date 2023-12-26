@@ -1,14 +1,12 @@
 from rest_framework.permissions import BasePermission
 
 
-from api.utils import (is_stuff_or_central_commander, is_safe_method,
-                       check_trusted_for_regionalhead)
+from api.utils import (is_stuff_or_central_commander, is_safe_method)
 from headquarters.models import (RegionalHeadquarter,
                                  UserRegionalHeadquarterPosition)
-from users.models import UserCertInternal, UserCertExternal
 
 
-class IsRegionalCommanderCert(BasePermission):
+class IsRegionalCommanderForCert(BasePermission):
     """Пермишен для командира регионального штаба.
 
     Для ролей 'is stuff' и 'superuser' возвращается True.
@@ -18,24 +16,27 @@ class IsRegionalCommanderCert(BasePermission):
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
 
-    def has_object_permission(self, request, view, obj):
-        """Метод, для проверки доступа к эндпоинтам РШ.
+    def has_permission(self, request, view):
+        """Проверка прав пользователя для выдачи справки."""
 
-        check_roles - проверяет http-методы пользователя или роли.
-        """
-
-        check_model_instance = False
-        user_id = request.user.id
-        if isinstance(obj, RegionalHeadquarter) and (
-            user_id == obj.commander_id
-            or (
-                user_id == obj.district_headquarter.commander_id
-            )
-        ):
-            check_model_instance = True
-        check_roles = any([
+        check_model_instance = True
+        request_user_id = request.user.id
+        ids = request.data.get('ids')
+        try:
+            commander_regheadquarter_id = RegionalHeadquarter.objects.filter(
+                commander_id=request_user_id
+            ).first().id
+            for id in ids:
+                user_reghead_id = UserRegionalHeadquarterPosition.objects.get(
+                    user_id=id
+                ).headquarter_id
+                if user_reghead_id != commander_regheadquarter_id:
+                    check_model_instance = False
+                    break
+        except (RegionalHeadquarter.DoesNotExist, AttributeError):
+            check_model_instance = False
+        return any([
             is_safe_method(request),
-            is_stuff_or_central_commander(request),
-            check_trusted_for_regionalhead(request, obj)
+            # is_stuff_or_central_commander(request),
+            check_model_instance
         ])
-        return check_roles or check_model_instance

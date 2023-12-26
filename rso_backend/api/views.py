@@ -22,6 +22,7 @@ from rest_framework.response import Response
 
 from api.mixins import (CreateDeleteViewSet, ListRetrieveUpdateViewSet,
                         ListRetrieveViewSet)
+from api.permissions import IsRegionalCommanderForCert
 from api.serializers import (CentralHeadquarterSerializer,
                              CentralPositionSerializer,
                              DetachmentPositionSerializer,
@@ -863,13 +864,14 @@ def change_membership_fee_status(request, pk):
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class MemberCertViewSet(viewsets.ModelViewSet):
+class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
 
     TIMES_HEAD_SIZE = 15
     TIMES_TEXT_SIZE = 14
     ARIAL_TEXT_SIZE = 9
     HEAD_Y = 800
     VERTICAL_DISP = 155
+    VERTICAL_RECIPIENT_DISP = 10
     VERTICAL_DISP_REQ = 160
     HORIZONTAL_DISP = 11
     HORIZONTAL_DISP_RECIPIENT = 12
@@ -893,6 +895,8 @@ class MemberCertViewSet(viewsets.ModelViewSet):
     SNILS_Y = 291
     RECIPIENT_X = 33
     RECIPIENT_Y = 230
+    RECIPIENT_INTERNAL_X = 33
+    RECIPIENT_INTERNAL_Y = 282
     RECIPIENT_LINE_X = 25
     RECIPIENT_LINE_Y = 240
     POSITION_PROC_PROP = 0.3
@@ -906,6 +910,7 @@ class MemberCertViewSet(viewsets.ModelViewSet):
 
     queryset = MemberCert.objects.all()
     serializer_class = MemberCertSerializer
+    permission_classes = (IsRegionalCommanderForCert,)
 
     @classmethod
     def get_certificate(cls, user, request, cert_template='internal_cert.pdf'):
@@ -935,7 +940,7 @@ class MemberCertViewSet(viewsets.ModelViewSet):
                     f'{username} не заполнены.'
                 }
             )
-        recipient = data.get('recipient')
+        recipient = data.get('recipient', 'по месту требования')
         cert_start_date = datetime.strptime(
             data.get('cert_start_date'),
             '%Y-%m-%d'
@@ -944,8 +949,10 @@ class MemberCertViewSet(viewsets.ModelViewSet):
             data.get('cert_end_date'),
             '%Y-%m-%d'
         )
-        signatory = data.get('signatory')
-        position_procuration = data.get('position_procuration')
+        signatory = data.get('signatory', 'Фамилия Имя Отчество')
+        position_procuration = data.get(
+            'position_procuration', 'Руководитель регионального отделения'
+        )
         try:
             reg_headquarter_id = UserRegionalHeadquarterPosition.objects.get(
                 user=user
@@ -1114,32 +1121,54 @@ class MemberCertViewSet(viewsets.ModelViewSet):
                     'detail': f'Данные РШ {regional_headquarter} не заполнены.'
                 }
             )
+
+        string_width = c.stringWidth(
+            position_procuration,
+            'Times_New_Roman',
+            cls.TIMES_TEXT_SIZE
+        )
+        line_width = page_width
+        proportion = cls.POSITION_PROC_PROP
+        if proportion >= 1.0:
+            c.drawString(
+                cls.POSITION_PROC_X,
+                cls.POSITION_PROC_Y,
+                position_procuration
+            )
+        else:
+            lines = text_to_lines(
+                text=position_procuration,
+                proportion=proportion
+            )
+            line_break = cls.HORIZONTAL_DISP
+            for line in lines:
+                c.drawString(
+                    cls.POSITION_PROC_X,
+                    cls.POSITION_PROC_LINE_Y - line_break,
+                    line
+                )
+                line_break += cls.HORIZONTAL_DISP_RECIPIENT
         if cert_template == 'external_cert.pdf':
             c.drawString(cls.INN_X, cls.INN_Y, inn)
             c.drawString(cls.SNILS_X, cls.SNILS_Y, snils)
             string_width = c.stringWidth(
-                position_procuration,
-                'Times_New_Roman',
-                cls.TIMES_TEXT_SIZE
+                recipient, 'Times_New_Roman', cls.TIMES_TEXT_SIZE
             )
-            line_width = page_width
-            proportion = cls.POSITION_PROC_PROP
+            line_width = (page_width - cls.VERTICAL_RECIPIENT_DISP)
+            start_line = line_width/2 - string_width/2
+            proportion = line_width / string_width
             if proportion >= 1.0:
-                c.drawString(
-                    cls.POSITION_PROC_X,
-                    cls.POSITION_PROC_Y,
-                    position_procuration
-                )
+                c.drawString(start_line, cls.RECIPIENT_Y, recipient)
             else:
                 lines = text_to_lines(
-                    text=position_procuration,
+                    text=recipient,
                     proportion=proportion
                 )
                 line_break = cls.HORIZONTAL_DISP
                 for line in lines:
                     c.drawString(
-                        cls.POSITION_PROC_X,
-                        cls.POSITION_PROC_LINE_Y - line_break,
+                        cls.RECIPIENT_X,
+                        cls.RECIPIENT_Y - line_break,
                         line
                     )
                     line_break += cls.HORIZONTAL_DISP_RECIPIENT
@@ -1169,11 +1198,11 @@ class MemberCertViewSet(viewsets.ModelViewSet):
             string_width = c.stringWidth(
                 recipient, 'Times_New_Roman', cls.TIMES_TEXT_SIZE
             )
-            line_width = (page_width - cls.VERTICAL_DISP)
+            line_width = (page_width - cls.VERTICAL_RECIPIENT_DISP)
             start_line = line_width/2 - string_width/2
             proportion = line_width / string_width
             if proportion >= 1.0:
-                c.drawString(start_line, cls.RECIPIENT_Y, recipient)
+                c.drawString(start_line, cls.RECIPIENT_INTERNAL_Y, recipient)
             else:
                 lines = text_to_lines(
                     text=recipient,
@@ -1182,7 +1211,9 @@ class MemberCertViewSet(viewsets.ModelViewSet):
                 line_break = cls.HORIZONTAL_DISP
                 for line in lines:
                     c.drawString(
-                        cls.RECIPIENT_X, cls.RECIPIENT_Y - line_break, line
+                        cls.RECIPIENT_INTERNAL_X,
+                        cls.RECIPIENT_INTERNAL_Y - line_break,
+                        line
                     )
                     line_break += cls.HORIZONTAL_DISP_RECIPIENT
             if (
@@ -1218,7 +1249,7 @@ class MemberCertViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=['get', 'post'],
-        permission_classes=(permissions.IsAuthenticated,),
+        permission_classes=(IsRegionalCommanderForCert,),
         serializer_class=MemberCertSerializer,
     )
     def external(self, request):
@@ -1251,7 +1282,7 @@ class MemberCertViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=['get', 'post'],
-        permission_classes=(permissions.IsAuthenticated,),
+        permission_classes=(IsRegionalCommanderForCert,),
         serializer_class=MemberCertSerializer,
     )
     def internal(self, request):
