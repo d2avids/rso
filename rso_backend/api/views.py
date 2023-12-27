@@ -39,9 +39,9 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserRegionSerializer, UsersParentSerializer,
                              UserStatementDocumentsSerializer,
                              ForeignUserDocumentsSerializer,
-                             AreaSerializer)
-from api.utils import (download_file,
-                       get_headquarter_users_positions_queryset)
+                             AreaSerializer, EducationalInstitutionSerializer,
+                             PositionSerializer)
+from api.utils import download_file, get_headquarter_users_positions_queryset
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Region, RegionalHeadquarter,
@@ -51,12 +51,14 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition, Area)
+                                 UserRegionalHeadquarterPosition, Area,
+                                 EducationalInstitution, Position)
 from rso_backend.settings import BASE_DIR
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
                           UserRegion, UsersParent, UserStatementDocuments,
-                          UserVerificationRequest, ForeignUserDocuments)
+                          UserVerificationRequest, ForeignUserDocuments,
+                          UserMembershipLogs)
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -95,6 +97,13 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
         return Response(self.get_serializer(request.user).data)
 
 
+class EducationalInstitutionViewSet(ListRetrieveViewSet):
+    """Представляет учебные заведения. Доступны только операции чтения."""
+
+    queryset = EducationalInstitution.objects.all()
+    serializer_class = EducationalInstitutionSerializer
+
+
 class RegionViewSet(ListRetrieveViewSet):
     """Представляет регионы. Доступны только операции чтения."""
 
@@ -112,6 +121,26 @@ class AreaViewSet(ListRetrieveViewSet):
     queryset = Area.objects.all()
     serializer_class = AreaSerializer
     permission_classes = [IsStuffOrCentralCommander,]
+
+
+class PositionViewSet(ListRetrieveViewSet):
+    """Представляет должности для юзеров.
+
+    Доступны только операции чтения.
+    """
+
+    queryset = Position.objects.all()
+    serializer_class = PositionSerializer
+
+
+class PositionViewSet(ListRetrieveViewSet):
+    """Представляет должности для юзеров.
+
+    Доступны только операции чтения.
+    """
+
+    queryset = Position.objects.all()
+    serializer_class = PositionSerializer
 
 
 class BaseUserViewSet(viewsets.ModelViewSet):
@@ -822,7 +851,7 @@ def apply_for_verification(request):
     if request.method == 'POST':
         user = request.user
         try:
-            application = UserVerificationRequest.objects.get(user=user)
+            UserVerificationRequest.objects.get(user=user)
             return Response(
                 {'error': 'Вы уже подали заявку на верификацию'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -838,6 +867,47 @@ def apply_for_verification(request):
             user=user
         )
         return Response(status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+def get_structural_units(request):
+    """
+    Представление для агрегации и возврата списка всех
+    структурных подразделений.
+
+    Объединяет данные из различных типов штабов и отрядов,
+    включая центральные, региональные, окружные, местные и
+    образовательные штабы, а также отряды. Каждый тип подразделения
+    сериализуется с использованием соответствующего сериализатора и
+    возвращается в едином совокупном JSON-ответе.
+    """
+    central_headquarters = CentralHeadquarter.objects.all()
+    regional_headquarters = RegionalHeadquarter.objects.all()
+    district_headquarters = DistrictHeadquarter.objects.all()
+    local_headquarters = LocalHeadquarter.objects.all()
+    educational_headquarters = EducationalHeadquarter.objects.all()
+    detachments = Detachment.objects.all()
+
+    response = {
+        'central_headquarters': CentralHeadquarterSerializer(
+            central_headquarters, many=True
+        ).data,
+        'regional_headquarters': RegionalHeadquarterSerializer(
+            regional_headquarters, many=True
+        ).data,
+        'district_headquarters': DistrictHeadquarterSerializer(
+            district_headquarters, many=True
+        ).data,
+        'local_headquarters': LocalHeadquarterSerializer(
+            local_headquarters, many=True
+        ).data,
+        'educational_headquarters': EducationalHeadquarterSerializer(
+            educational_headquarters, many=True
+        ).data,
+        'detachments': DetachmentSerializer(detachments, many=True).data
+    }
+
+    return Response(response)
 
 
 @api_view(['POST', 'DELETE'])
@@ -877,7 +947,17 @@ def change_membership_fee_status(request, pk):
     if request.method == 'POST':
         user.membership_fee = True
         user.save()
+        UserMembershipLogs.objects.create(
+            user=user,
+            status_changed_by=request.user,
+            status='Изменен на "оплачен"'
+        )
         return Response(status=status.HTTP_202_ACCEPTED)
     user.membership_fee = False
     user.save()
+    UserMembershipLogs.objects.create(
+        user=user,
+        status_changed_by=request.user,
+        status='Изменен на "не оплачен"'
+    )
     return Response(status=status.HTTP_204_NO_CONTENT)

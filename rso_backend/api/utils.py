@@ -1,6 +1,4 @@
 import mimetypes
-import os
-import shutil
 
 from django.db import IntegrityError
 from django.http.response import HttpResponse
@@ -25,28 +23,6 @@ def create_first_or_exception(self, validated_data, instance, error_msg: str):
         return instance.objects.create(**validated_data)
     except IntegrityError:
         raise serializers.ValidationError({'detail': error_msg})
-
-
-def check_folder_delete(instance):
-    """
-    Функция для проверки существования папки с файлами
-    при удалении объекта модели штаба/оттряда.
-    """
-    try:
-        shutil.rmtree(os.path.dirname(instance.emblem.path))
-    except ValueError:
-        return
-
-
-def check_folder_delete_usermedia(instance):
-    """
-    Функция для проверки существования папки с файлами
-    при удалении объекта модели юзера.
-    """
-    try:
-        shutil.rmtree(os.path.dirname(instance.banner.path))
-    except ValueError:
-        return
 
 
 def download_file(filepath, filename):

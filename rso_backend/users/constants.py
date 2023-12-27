@@ -41,4 +41,3 @@ class RelationshipType(models.TextChoices):
     father = 'father', 'Отец'
     mother = 'mother', 'Мать'
     guardian = 'guardian', 'Опекун'
-

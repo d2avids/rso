@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -5,7 +7,7 @@ from django.db import models
 
 from users.constants import (Gender, MilitaryDocType, PrivacyOption,
                              RelationshipType, StudyForm)
-from users.utils import (document_path, image_path, validate_years)
+from users.utils import document_path, validate_years, image_path
 
 
 class RSOUser(AbstractUser):
@@ -13,7 +15,7 @@ class RSOUser(AbstractUser):
         verbose_name='Email',
         max_length=254,
         null=True,
-        blank=True,
+        blank=True
     )
     username = models.CharField(
         verbose_name='Ник',
@@ -529,26 +531,31 @@ class UserMedia(models.Model):
     photo = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Аватарка'
     )
     photo1 = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Фото 1'
     )
     photo2 = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Фото 2'
     )
     photo3 = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Фото 3'
     )
     photo4 = models.ImageField(
         upload_to=image_path,
         blank=True,
+        null=True,
         verbose_name='Фото 4'
     )
 
@@ -791,3 +798,61 @@ class UserVerificationRequest(models.Model):
             f'Пользователь {self.user.last_name} {self.user.first_name} '
             f'{self.user.username} подал заявку.'
         )
+
+
+class UserMembershipLogs(models.Model):
+    """Таблица для хранения логов об оплате членского взноса."""
+    user = models.ForeignKey(
+        to='RSOUser',
+        on_delete=models.CASCADE,
+        related_name='membership_logs',
+        verbose_name='Пользователь',
+    )
+    status_changed_by = models.ForeignKey(
+        to='RSOUser',
+        on_delete=models.CASCADE,
+        related_name='changed_membership_logs',
+        verbose_name='Пользователь, изменивший статус оплаты другому'
+    )
+    date = models.DateField(
+        verbose_name='Дата действия',
+        auto_now_add=True,
+    )
+    period = models.CharField(
+        verbose_name='Период',
+        max_length=30,
+        editable=False,
+    )
+    status = models.CharField(
+        verbose_name='Статус',
+        max_length=50
+    )
+    description = models.TextField(
+        verbose_name='Сообщение лога',
+        blank=True,
+        null=True
+    )
+
+    class Meta:
+        verbose_name_plural = 'Логи оплаты членских взносов'
+        verbose_name = 'Лог оплаты членского взноса'
+
+    def save(self, *args, **kwargs):
+        """Устанавливает поле period в зависимости от текущей даты.
+
+        Если дата до 1 января, то период - текущий год-текущий год + 1.
+        Если дата после 1 января, то период - предыдущий год-текущий год.
+        """
+        current_date = date.today()
+        current_year = current_date.year
+        if date(current_year, 1, 1) <= current_date < date(
+            current_year, 10, 1
+        ):
+            self.period = f"{current_year-1}-{current_year}"
+        elif date(current_year, 10, 1) <= current_date <= date(
+            current_year, 12, 31
+        ):
+            self.period = f"{current_year}-{current_year+1}"
+        else:
+            self.period = "Неопределенный"
+        super(UserMembershipLogs, self).save(*args, **kwargs)

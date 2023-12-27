@@ -5,6 +5,7 @@ volumes:
   media:
   pg_data:
   frontend_dist:
+  logs:
 
 networks:
   internal:
@@ -28,7 +29,7 @@ services:
     build: ./rso_backend
     env_file: .env
     ports:
-      - "8080:8080"
+      - "8000:8000"
     depends_on:
       - db
       - redis
@@ -56,27 +57,5 @@ services:
       - ./logs:/app/logs
     depends_on:
       - celery_worker
-    networks:
-      - internal
-  frontend:
-    image: d2avids/rso_frontend:latest
-    env_file: .env
-    depends_on:
-      - backend
-    volumes:
-      - frontend_dist:/app/src/app/dist
-    networks:
-      - internal
-  nginx:
-    image: nginx:alpine
-    depends_on:
-      - frontend
-    ports:
-      - "8000:80"
-    volumes:
-      - static:/static/
-      - media:/media/
-      - frontend_dist:/usr/src/app/src/app/dist
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
     networks:
       - internal
