@@ -375,6 +375,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
             'parent',
             'professional_education',
         )
+        read_only_fields = ('membership_fee', 'is_verified')
 
     def get_professional_education(self, obj):
         return UserProfessionalEducationSerializer(
@@ -814,6 +815,7 @@ class DetachmentSerializer(BaseUnitSerializer):
             'photo2',
             'photo3',
             'photo4',
+            'city',
             'applications',
             'members',
             'users_for_verification',
@@ -842,6 +844,22 @@ class DetachmentSerializer(BaseUnitSerializer):
             'name': f'{position.user.first_name} {position.user.last_name}',
             'email': position.user.email
         } for position in users_positions]
+
+
+class CentralHeadquarterSerializer(BaseUnitSerializer):
+    """Сериализатор для центрального штаба.
+
+    Наследует общую логику и поля от BaseUnitSerializer и связывает
+    с моделью CentralHeadquarter.
+    """
+    members = CentralPositionSerializer(
+        many=True,
+        read_only=True
+    )
+
+    class Meta:
+        model = CentralHeadquarter
+        fields = BaseUnitSerializer.Meta.fields + ('members',)
 
 
 class CentralHeadquarterSerializer(BaseUnitSerializer):

@@ -51,7 +51,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         UserEducationInline,
         UserDocumentsInline,
         UserPrivacySettingsInline,
-        UsersParentInline
+        UsersParentInline,
     ]
 
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff')
