@@ -1,5 +1,5 @@
+from django.shortcuts import get_object_or_404
 from rest_framework.permissions import BasePermission
-
 
 from api.utils import (is_stuff_or_central_commander, is_safe_method,
                        check_trusted_user, check_trusted_in_headquarters,
@@ -17,6 +17,7 @@ from headquarters.models import (UserCentralHeadquarterPosition,
                                  UserDetachmentPosition, DistrictHeadquarter,
                                  RegionalHeadquarter, LocalHeadquarter,
                                  EducationalHeadquarter, Detachment)
+from users.models import RSOUser
 
 
 class IsStuffOrCentralCommander(BasePermission):
@@ -53,8 +54,8 @@ class IsDistrictCommander(BasePermission):
         check_model_instance = False
         user_id = request.user.id
         if (
-            isinstance(obj, DistrictHeadquarter)
-            and user_id == obj.commander_id
+                isinstance(obj, DistrictHeadquarter)
+                and user_id == obj.commander_id
         ):
             check_model_instance = True
         check_roles = any([
@@ -84,10 +85,10 @@ class IsRegionalCommander(BasePermission):
         check_model_instance = False
         user_id = request.user.id
         if isinstance(obj, RegionalHeadquarter) and (
-            user_id == obj.commander_id
-            or (
-                user_id == obj.district_headquarter.commander_id
-            )
+                user_id == obj.commander_id
+                or (
+                        user_id == obj.district_headquarter.commander_id
+                )
         ):
             check_model_instance = True
         check_roles = any([
@@ -118,12 +119,12 @@ class IsLocalCommander(BasePermission):
         user_id = request.user.id
         regional_head = obj.regional_headquarter
         if isinstance(obj, LocalHeadquarter) and any(
-            user_id == commander.commander_id
-            for commander in [
-                obj,
-                regional_head,
-                regional_head.district_headquarter
-            ]
+                user_id == commander.commander_id
+                for commander in [
+                    obj,
+                    regional_head,
+                    regional_head.district_headquarter
+                ]
         ):
             check_model_instance = True
         check_roles = any([
@@ -155,17 +156,17 @@ class IsEducationalCommander(BasePermission):
         user_id = request.user.id
         regional_head = obj.regional_headquarter
         if isinstance(obj, EducationalHeadquarter) and any(
-            user_id == commander.commander_id
-            for commander in [
-                obj,
-                regional_head,
-                regional_head.district_headquarter
-            ]
+                user_id == commander.commander_id
+                for commander in [
+                    obj,
+                    regional_head,
+                    regional_head.district_headquarter
+                ]
         ):
             check_model_instance = True
         if local_head := obj.local_headquarter:
             if isinstance(obj, Detachment) and (
-                user_id == local_head.commander_id
+                    user_id == local_head.commander_id
             ):
                 check_local_head = True
         check_roles = any([
@@ -202,22 +203,22 @@ class IsDetachmentCommander(BasePermission):
         check_edu_head = False
         regional_head = obj.regional_headquarter
         if isinstance(obj, Detachment) and any(
-            user_id == commander.commander_id
-            for commander in [
-                obj,
-                regional_head,
-                regional_head.district_headquarter
-            ]
+                user_id == commander.commander_id
+                for commander in [
+                    obj,
+                    regional_head,
+                    regional_head.district_headquarter
+                ]
         ):
             check_model_instance = True
         if local_head := obj.local_headquarter:
             if isinstance(obj, Detachment) and (
-                user_id == local_head.commander_id
+                    user_id == local_head.commander_id
             ):
                 check_local_head = True
         if edu_head := obj.educational_headquarter:
             if isinstance(obj, Detachment) and (
-                user_id == edu_head.commander_id
+                    user_id == edu_head.commander_id
             ):
                 check_edu_head = True
         check_roles = any([
@@ -263,3 +264,91 @@ class IsStuffOrAuthor(BasePermission):
             request.user == obj.user,
             check_roles
         ])
+
+
+class IsRegStuffOrDetCommander(BasePermission):
+    """Пермишен для верификации пользователя.
+
+    Верифицировать пользователя может лишь командир или доверенные лица
+    регионального отделения по региону пользователя, либо же командир
+    соответствующего отряда, если пользователь вступил в отряд.
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+        print('Нашли юзера:')
+        print(user)
+        user_to_verify = get_object_or_404(RSOUser, id=view.kwargs.get('pk'))
+        print('Нашли юзера для верификации:')
+        print(user_to_verify)
+        user_to_verify_region = user_to_verify.region
+        print('Регион юзера для верификации:')
+        print(user_to_verify_region)
+        reg_headquarter = get_object_or_404(
+            RegionalHeadquarter, region=user_to_verify_region
+        )
+        print('Региональный штаб с регионом юзера найден:')
+        print(reg_headquarter)
+
+        if reg_headquarter.commander == user:
+            return True
+
+        try:
+            reg_headquarter_member = (
+                UserRegionalHeadquarterPosition.
+                objects.get(user=user, headquarter=reg_headquarter)
+            )
+        except UserRegionalHeadquarterPosition.DoesNotExist:
+            reg_headquarter_member = None
+        print('Нашли ли юзера осуществляющего действие в членах регионального объединения?')
+        print(reg_headquarter_member)
+
+        if reg_headquarter_member:
+            if reg_headquarter_member.is_trusted:
+                return True
+
+        try:
+            user_in_detachment = UserDetachmentPosition.objects.get(
+                user=user_to_verify
+            )
+        except UserDetachmentPosition.DoesNotExist:
+            return False
+
+        if user_in_detachment.headquarter.commander == user:
+            return True
+        return False
+
+
+class MembershipFeePermission(BasePermission):
+    """Пермишен для смены статуса оплаты членского взноса пользователю.
+
+    Только для командира или дов. членов РШ.
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+        user_to_change = get_object_or_404(RSOUser, id=view.kwargs.get('pk'))
+        try:
+            reg_headquarter = (
+                UserRegionalHeadquarterPosition.
+                objects.get(user=user_to_change)
+            ).headquarter
+        except UserRegionalHeadquarterPosition.DoesNotExist:
+            return False
+
+        if reg_headquarter.commander == user:
+            return True
+
+        try:
+            reg_headquarter_member = (
+                UserRegionalHeadquarterPosition.
+                objects.get(user=user, headquarter=reg_headquarter)
+            )
+        except UserRegionalHeadquarterPosition.DoesNotExist:
+            return False
+
+        if reg_headquarter_member:
+            if reg_headquarter_member.is_trusted:
+                return True
+
+        return False

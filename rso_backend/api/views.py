@@ -2,6 +2,7 @@ import mimetypes
 import os
 import zipfile
 
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -14,7 +15,8 @@ from api.mixins import (CreateDeleteViewSet, ListRetrieveUpdateViewSet,
 from api.permissions import (IsStuffOrCentralCommander, IsStuffOrAuthor,
                              IsDistrictCommander, IsRegionalCommander,
                              IsLocalCommander, IsEducationalCommander,
-                             IsDetachmentCommander)
+                             IsDetachmentCommander, IsRegStuffOrDetCommander,
+                             MembershipFeePermission)
 from api.serializers import (CentralHeadquarterSerializer,
                              CentralPositionSerializer,
                              DetachmentPositionSerializer,
@@ -737,10 +739,16 @@ class DetachmentAcceptViewSet(CreateDeleteViewSet):
 
     def create(self, request, *args, **kwargs):
         """Принимает (добавляет пользователя в отряд) юзера, удаляя заявку."""
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except ValidationError as e:
+            return Response(
+                {'detail': e},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     def destroy(self, request, *args, **kwargs):
         """Отклоняет (удаляет) заявку пользователя."""
@@ -777,6 +785,11 @@ class DetachmentApplicationViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """Подает заявку на вступление в отряд, переданный URL-параметром."""
+        if UserDetachmentPosition.objects.filter(user=request.user).exists():
+            return Response(
+                {'error': 'Вы уже являетесь членом одного из отрядов'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -808,18 +821,27 @@ def apply_for_verification(request):
     """Подать заявку на верификацию."""
     if request.method == 'POST':
         user = request.user
+        try:
+            application = UserVerificationRequest.objects.get(user=user)
+            return Response(
+                {'error': 'Вы уже подали заявку на верификацию'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except UserVerificationRequest.DoesNotExist:
+            pass
+        if user.is_verified:
+            return Response(
+                {'error': 'Пользователь уже верифицирован'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         UserVerificationRequest.objects.create(
             user=user
         )
-        if request.user.is_verified:
-            return Response(
-                {'error': 'Пользователь не авторизован'},
-                status=status.HTTP_403_FORBIDDEN
-            )
         return Response(status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST', 'DELETE'])
+@permission_classes([IsRegStuffOrDetCommander])
 def verify_user(request, pk):
     """Принять/отклонить заявку пользователя на верификацию.
 
@@ -844,8 +866,13 @@ def verify_user(request, pk):
 
 
 @api_view(['POST', 'DELETE'])
+@permission_classes([MembershipFeePermission])
 def change_membership_fee_status(request, pk):
-    """Изменить статус оплаты членского взноса пользователю."""
+    """Изменить статус оплаты членского взноса пользователю.
+
+    Доступно командирам и доверенным лицам РШ, в котором состоит
+    пользователь.
+    """
     user = get_object_or_404(RSOUser, id=pk)
     if request.method == 'POST':
         user.membership_fee = True
