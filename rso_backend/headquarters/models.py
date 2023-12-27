@@ -1,6 +1,9 @@
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.conf import settings
 from django.db import models
 
+from headquarters.constants import PositionsOption
 from headquarters.utils import image_path
 
 
@@ -53,7 +56,7 @@ class Region(models.Model):
         verbose_name = 'Регион'
 
     def __str__(self):
-        return self.name
+        return self.name or "unknown region"
 
 
 class Area(models.Model):
@@ -76,6 +79,7 @@ class Unit(models.Model):
 
     name = models.CharField(
         max_length=100,
+        unique=True,
         verbose_name='Название'
     )
     commander = models.ForeignKey(
@@ -125,9 +129,6 @@ class Unit(models.Model):
         null=True,
         blank=True,
     )
-    founding_date = models.DateField(
-        verbose_name='Дата основания',
-    )
 
     def clean(self):
         if not self.commander:
@@ -137,10 +138,21 @@ class Unit(models.Model):
         abstract = True
 
     def __str__(self):
-        return self.name
+        return self.name or 'Структурная единица'
 
 
 class CentralHeadquarter(Unit):
+    detachments_appearance_year = models.SmallIntegerField(
+        verbose_name='Дата появления студенческих отрядов в России (год)',
+        validators=[
+            MinValueValidator(settings.MIN_FOUNDING_DATE),
+            MaxValueValidator(settings.MAX_FOUNDING_DATE)
+        ]
+    )
+    rso_founding_congress_date = models.DateField(
+        verbose_name='Дата первого учредительного съезда РСО'
+    )
+
     class Meta:
         verbose_name_plural = 'Центральные штабы'
         verbose_name = 'Центральный штаб'
@@ -152,6 +164,9 @@ class DistrictHeadquarter(Unit):
         related_name='district_headquarters',
         on_delete=models.PROTECT,
         verbose_name='Привязка к ЦШ'
+    )
+    founding_date = models.DateField(
+        verbose_name='Дата начала функционирования ОШ',
     )
 
     class Meta:
@@ -212,9 +227,12 @@ class RegionalHeadquarter(Unit):
         blank=True,
         null=True,
     )
-    founding_date = models.CharField(
-        max_length=4,
+    founding_date = models.SmallIntegerField(
         verbose_name='Год основания',
+        validators=[
+            MinValueValidator(settings.MIN_FOUNDING_DATE),
+            MaxValueValidator(settings.MAX_FOUNDING_DATE)
+        ]
     )
 
     class Meta:
@@ -228,6 +246,9 @@ class LocalHeadquarter(Unit):
         related_name='local_headquarters',
         on_delete=models.PROTECT,
         verbose_name='Привязка к РШ'
+    )
+    founding_date = models.DateField(
+        verbose_name='Дата начала функционирования ОШ'
     )
 
     class Meta:
@@ -255,6 +276,9 @@ class EducationalHeadquarter(Unit):
         related_name='headquarters',
         on_delete=models.PROTECT,
         verbose_name='Образовательная организация',
+    )
+    founding_date = models.DateField(
+        verbose_name='Дата основания',
     )
 
     def clean(self):
@@ -348,6 +372,9 @@ class Detachment(Unit):
         null=True,
         verbose_name='Фото 4'
     )
+    founding_date = models.DateField(
+        verbose_name='Дата основания',
+    )
 
     def clean(self):
         """
@@ -424,7 +451,14 @@ class Detachment(Unit):
 class Position(models.Model):
     """Хранение наименований должностей для членов отрядов и штабов."""
 
-    name = models.CharField(max_length=150, verbose_name='Должность')
+    name = models.CharField(
+        verbose_name='Должность',
+        max_length=43,
+        choices=PositionsOption.choices,
+        default=PositionsOption.candidate,
+        blank=True,
+        null=True
+    )
 
     def __str__(self):
         return self.name
@@ -591,7 +625,7 @@ class UserLocalHeadquarterPosition(UserUnitPosition):
     headquarter = models.ForeignKey(
         'LocalHeadquarter',
         on_delete=models.CASCADE,
-        verbose_name='Локальный штаб',
+        verbose_name='Местный штаб',
         related_name='members'
     )
 
@@ -602,8 +636,8 @@ class UserLocalHeadquarterPosition(UserUnitPosition):
         super().save(*args, **kwargs)
 
     class Meta:
-        verbose_name_plural = 'Члены локальных штабов'
-        verbose_name = 'Член локального штаба'
+        verbose_name_plural = 'Члены местных штабов'
+        verbose_name = 'Член местного штаба'
 
 
 class UserEducationalHeadquarterPosition(UserUnitPosition):
@@ -648,6 +682,7 @@ class UserDetachmentPosition(UserUnitPosition):
         Возвращает первый связанный с отрядом заполненный штаб по иерархии:
         ШОО, МШ или РШ.
         """
+
         educational_headquarter = self.headquarter.educational_headquarter
         if educational_headquarter:
             return educational_headquarter
@@ -658,8 +693,14 @@ class UserDetachmentPosition(UserUnitPosition):
 
     def save(self, *args, **kwargs):
         if self._state.adding:
-            kwargs['headquarter'] = self.get_first_filled_headquarter()
-            kwargs['class_above'] = UserEducationalHeadquarterPosition
+            headquarter = self.get_first_filled_headquarter()
+            kwargs['headquarter'] = headquarter
+            if isinstance(headquarter, EducationalHeadquarter):
+                kwargs['class_above'] = UserEducationalHeadquarterPosition
+            elif isinstance(headquarter, LocalHeadquarter):
+                kwargs['class_above'] = UserLocalHeadquarterPosition
+            elif isinstance(headquarter, RegionalHeadquarter):
+                kwargs['class_above'] = UserRegionalHeadquarterPosition
         super().save(*args, **kwargs)
 
     class Meta:

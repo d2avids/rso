@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+
 from users.constants import (Gender, MilitaryDocType, PrivacyOption,
                              RelationshipType, StudyForm)
 from users.utils import document_path, validate_years, image_path
@@ -104,7 +105,6 @@ class RSOUser(AbstractUser):
         verbose_name='Статус верификации',
         default=False,
     )
-    # ---Для несовершеннолетних---
     membership_fee = models.BooleanField(
         default=False,
         verbose_name='Членский взнос оплачен'

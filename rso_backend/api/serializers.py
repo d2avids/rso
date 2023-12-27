@@ -376,6 +376,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
             'parent',
             'professional_education',
         )
+        read_only_fields = ('membership_fee', 'is_verified')
 
     def get_professional_education(self, obj):
         return UserProfessionalEducationSerializer(
@@ -583,7 +584,6 @@ class BaseUnitSerializer(serializers.ModelSerializer):
             'banner',
             'slogan',
             'city',
-            'founding_date',
             'members_count',
         )
 
@@ -613,6 +613,7 @@ class DistrictHeadquarterSerializer(BaseUnitSerializer):
         model = DistrictHeadquarter
         fields = BaseUnitSerializer.Meta.fields + (
             'central_headquarter',
+            'founding_date',
             'members',
         )
 
@@ -651,6 +652,7 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
             'case_name',
             'legal_address',
             'requisites',
+            'founding_date',
         )
 
     @staticmethod
@@ -686,6 +688,7 @@ class LocalHeadquarterSerializer(BaseUnitSerializer):
         fields = BaseUnitSerializer.Meta.fields + (
             'regional_headquarter',
             'members',
+            'founding_date',
         )
 
 
@@ -719,6 +722,7 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
             'local_headquarter',
             'regional_headquarter',
             'members',
+            'founding_date',
         )
 
     def validate(self, data):
@@ -812,9 +816,11 @@ class DetachmentSerializer(BaseUnitSerializer):
             'photo2',
             'photo3',
             'photo4',
+            'city',
             'applications',
             'members',
             'users_for_verification',
+            'founding_date',
         )
 
     def validate(self, data):

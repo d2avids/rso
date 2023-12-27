@@ -1,4 +1,6 @@
 from django.contrib import admin
+from import_export.admin import ImportExportModelAdmin
+
 
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
@@ -10,6 +12,10 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
+from headquarters.resources import (RegionResource,
+                                    EducationalInstitutionResource,
+                                    DistrictHeadquarterResource,
+                                    RegionalHeadquarterResource)
 
 
 @admin.register(CentralHeadquarter)
@@ -18,13 +24,13 @@ class CentralHeadquarterAdmin(admin.ModelAdmin):
 
 
 @admin.register(DistrictHeadquarter)
-class DistrictHeadquarterAdmin(admin.ModelAdmin):
-    pass
+class DistrictHeadquarterAdmin(ImportExportModelAdmin):
+    resource_class = DistrictHeadquarterResource
 
 
 @admin.register(RegionalHeadquarter)
-class RegionalHeadquarterAdmin(admin.ModelAdmin):
-    pass
+class RegionalHeadquarterAdmin(ImportExportModelAdmin):
+    resource_class = RegionalHeadquarterResource
 
 
 @admin.register(LocalHeadquarter)
@@ -42,74 +48,59 @@ class DetachmentAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(UserCentralHeadquarterPosition)
-class UserCentralHeadquarterPositionAdmin(admin.ModelAdmin):
+class BaseCentralPositionAdmin(admin.ModelAdmin):
     def delete_queryset(self, request, queryset):
         """
         Переопределяет метод для удаления набора объектов через админ-панель.
         """
         for obj in queryset:
             obj.delete()
+
+    def has_add_permission(self, request, obj=None):
+        """Запрещаем добавление участника в отряд через админку."""
+        return False
+
+
+@admin.register(UserCentralHeadquarterPosition)
+class UserCentralHeadquarterPositionAdmin(BaseCentralPositionAdmin):
+    pass
 
 
 @admin.register(UserDistrictHeadquarterPosition)
-class UserDistrictHeadquarterPositionAdmin(admin.ModelAdmin):
-    def delete_queryset(self, request, queryset):
-        """
-        Переопределяет метод для удаления набора объектов через админ-панель.
-        """
-        for obj in queryset:
-            obj.delete()
+class UserDistrictHeadquarterPositionAdmin(BaseCentralPositionAdmin):
+    pass
 
 
 @admin.register(UserRegionalHeadquarterPosition)
-class UserRegionalHeadquarterPositionAdmin(admin.ModelAdmin):
-    def delete_queryset(self, request, queryset):
-        """
-        Переопределяет метод для удаления набора объектов через админ-панель.
-        """
-        for obj in queryset:
-            obj.delete()
+class UserRegionalHeadquarterPositionAdmin(BaseCentralPositionAdmin):
+    pass
 
 
 @admin.register(UserLocalHeadquarterPosition)
-class UserLocalHeadquarterPositionAdmin(admin.ModelAdmin):
-    def delete_queryset(self, request, queryset):
-        """
-        Переопределяет метод для удаления набора объектов через админ-панель.
-        """
-        for obj in queryset:
-            obj.delete()
+class UserLocalHeadquarterPositionAdmin(BaseCentralPositionAdmin):
+    pass
 
 
 @admin.register(UserEducationalHeadquarterPosition)
-class UserEducationalHeadquarterPositionAdmin(admin.ModelAdmin):
-    def delete_queryset(self, request, queryset):
-        """
-        Переопределяет метод для удаления набора объектов через админ-панель.
-        """
-        for obj in queryset:
-            obj.delete()
+class UserEducationalHeadquarterPositionAdmin(BaseCentralPositionAdmin):
+    pass
 
 
 @admin.register(UserDetachmentPosition)
-class UserDetachmentPositionAdmin(admin.ModelAdmin):
-    def delete_queryset(self, request, queryset):
-        """
-        Переопределяет метод для удаления набора объектов через админ-панель.
-        """
-        for obj in queryset:
-            obj.delete()
+class UserDetachmentPositionAdmin(BaseCentralPositionAdmin):
+    def has_add_permission(self, request, obj=None):
+        """Разрешаем добавление участника в отряд через админку."""
+        return True
 
 
 @admin.register(EducationalInstitution)
-class EducationalInstAdmin(admin.ModelAdmin):
-    pass
+class EducationalInstAdmin(ImportExportModelAdmin):
+    resource_class = EducationalInstitutionResource
 
 
 @admin.register(Region)
-class RegionAdmin(admin.ModelAdmin):
-    pass
+class RegionAdmin(ImportExportModelAdmin):
+    resource_class = RegionResource
 
 
 @admin.register(Area)

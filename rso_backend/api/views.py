@@ -13,6 +13,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
 import pdfrw
 
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -22,7 +23,12 @@ from rest_framework.response import Response
 
 from api.mixins import (CreateDeleteViewSet, ListRetrieveUpdateViewSet,
                         ListRetrieveViewSet)
-from api.permissions import IsRegionalCommanderForCert
+from api.permissions import (IsStuffOrCentralCommander, IsStuffOrAuthor,
+                             IsDistrictCommander, IsRegionalCommander,
+                             IsLocalCommander, IsEducationalCommander,
+                             IsDetachmentCommander, IsRegStuffOrDetCommander,
+                             MembershipFeePermission,
+                             IsRegionalCommanderForCert)
 from api.serializers import (CentralHeadquarterSerializer,
                              CentralPositionSerializer,
                              DetachmentPositionSerializer,
@@ -82,15 +88,17 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
     serializer_class = RSOUserSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username', 'first_name', 'last_name')
+    permission_classes = [permissions.AllowAny,]
 
     @action(
         detail=False,
         methods=['get', 'patch'],
-        permission_classes=(permissions.IsAuthenticated,),
+        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor),
         serializer_class=RSOUserSerializer,
     )
     def me(self, request, pk=None):
         """Представляет текущего авторизованного пользователя."""
+
         if request.method == 'PATCH':
             serializer = self.get_serializer(
                 request.user,
@@ -115,6 +123,7 @@ class RegionViewSet(ListRetrieveViewSet):
 
     queryset = Region.objects.all()
     serializer_class = RegionSerializer
+    permission_classes = [IsStuffOrCentralCommander,]
 
 
 class AreaViewSet(ListRetrieveViewSet):
@@ -125,6 +134,17 @@ class AreaViewSet(ListRetrieveViewSet):
 
     queryset = Area.objects.all()
     serializer_class = AreaSerializer
+    permission_classes = [IsStuffOrCentralCommander,]
+
+
+class PositionViewSet(ListRetrieveViewSet):
+    """Представляет должности для юзеров.
+
+    Доступны только операции чтения.
+    """
+
+    queryset = Position.objects.all()
+    serializer_class = PositionSerializer
 
 
 class PositionViewSet(ListRetrieveViewSet):
@@ -179,7 +199,7 @@ class BaseUserViewSet(viewsets.ModelViewSet):
     (для create, retrieve, update) или пустой ответ (для destroy).
     """
 
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = [permissions.IsAuthenticated,]
 
     def perform_create(self, serializer):
         user = get_user(self)
@@ -211,8 +231,10 @@ class BaseUserViewSet(viewsets.ModelViewSet):
 
 class UserEducationViewSet(BaseUserViewSet):
     """Представляет образовательную информацию пользователя."""
+
     queryset = UserEducation.objects.all()
     serializer_class = UserEducationSerializer
+    permission_classes = [IsStuffOrAuthor,]
 
     def get_object(self):
         """Определяет instance для операций с объектом (get, upd, del)."""
@@ -225,7 +247,9 @@ class UserProfessionalEducationViewSet(BaseUserViewSet):
     Дополнительные профобразования пользователя доступны по ключу
     'users_prof_educations'.
     """
+
     queryset = ProfessionalEduction.objects.all()
+    permission_classes = [IsStuffOrAuthor,]
 
     def get_object(self):
         return ProfessionalEduction.objects.filter(
@@ -285,8 +309,10 @@ class UserProfessionalEducationViewSet(BaseUserViewSet):
 
 class UserDocumentsViewSet(BaseUserViewSet):
     """Представляет документы пользователя."""
+
     queryset = UserDocuments.objects.all()
     serializer_class = UserDocumentsSerializer
+    permission_classes = (IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(UserDocuments, user=self.request.user)
@@ -297,6 +323,7 @@ class ForeignUserDocumentsViewSet(BaseUserViewSet):
 
     queryset = ForeignUserDocuments.objects.all()
     serializer_class = ForeignUserDocumentsSerializer
+    permission_classes = (IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(ForeignUserDocuments, user=self.request.user)
@@ -304,8 +331,10 @@ class ForeignUserDocumentsViewSet(BaseUserViewSet):
 
 class UserRegionViewSet(BaseUserViewSet):
     """Представляет информацию о проживании пользователя."""
+
     queryset = UserRegion.objects.all()
     serializer_class = UserRegionSerializer
+    permission_classes = (IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(UserRegion, user=self.request.user)
@@ -313,8 +342,10 @@ class UserRegionViewSet(BaseUserViewSet):
 
 class UserPrivacySettingsViewSet(BaseUserViewSet):
     """Представляет настройки приватности пользователя."""
+
     queryset = UserPrivacySettings.objects.all()
     serializer_class = UserPrivacySettingsSerializer
+    permission_classes = (IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(UserPrivacySettings, user=self.request.user)
@@ -322,8 +353,10 @@ class UserPrivacySettingsViewSet(BaseUserViewSet):
 
 class UserMediaViewSet(BaseUserViewSet):
     """Представляет медиа-данные пользователя."""
+
     queryset = UserMedia.objects.all()
     serializer_class = UserMediaSerializer
+    permission_classes = (IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(UserMedia, user=self.request.user)
@@ -331,6 +364,7 @@ class UserMediaViewSet(BaseUserViewSet):
 
 class UserStatementDocumentsViewSet(BaseUserViewSet):
     """Представляет заявление на вступление в РСО пользователя."""
+
     queryset = UserStatementDocuments.objects.all()
     serializer_class = UserStatementDocumentsSerializer
 
@@ -429,6 +463,7 @@ class UsersParentViewSet(BaseUserViewSet):
 
     queryset = UsersParent.objects.all()
     serializer_class = UsersParentSerializer
+    permission_classes = (IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(UsersParent, user=self.request.user)
@@ -445,8 +480,14 @@ class CentralViewSet(ListRetrieveUpdateViewSet):
 
     queryset = CentralHeadquarter.objects.all()
     serializer_class = CentralHeadquarterSerializer
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
+    permission_classes = (IsStuffOrCentralCommander,)
+
+    def get_permissions(self):
+        if self.action == 'create':
+            permission_classes = (permissions.IsAdminUser,)
+        else:
+            permission_classes = (IsStuffOrCentralCommander,)
+        return [permission() for permission in permission_classes]
 
 
 class DistrictViewSet(viewsets.ModelViewSet):
@@ -463,6 +504,13 @@ class DistrictViewSet(viewsets.ModelViewSet):
     serializer_class = DistrictHeadquarterSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+
+    def get_permissions(self):
+        if self.action == 'create':
+            permission_classes = (IsStuffOrCentralCommander,)
+        else:
+            permission_classes = (IsDistrictCommander,)
+        return [permission() for permission in permission_classes]
 
 
 class RegionalViewSet(viewsets.ModelViewSet):
@@ -484,9 +532,16 @@ class RegionalViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
 
+    def get_permissions(self):
+        if self.action == 'create':
+            permission_classes = (IsDistrictCommander,)
+        else:
+            permission_classes = (IsRegionalCommander,)
+        return [permission() for permission in permission_classes]
+
 
 class LocalViewSet(viewsets.ModelViewSet):
-    """Представляет локальные штабы.
+    """Представляет местные штабы.
 
     Привязывается к региональному штабу по ключу regional_headquarter (id).
     При операции чтения доступно число количества участников в структурной
@@ -499,6 +554,13 @@ class LocalViewSet(viewsets.ModelViewSet):
     serializer_class = LocalHeadquarterSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+
+    def get_permissions(self):
+        if self.action == 'create':
+            permission_classes = (IsRegionalCommander,)
+        else:
+            permission_classes = (IsLocalCommander,)
+        return [permission() for permission in permission_classes]
 
 
 class EducationalViewSet(viewsets.ModelViewSet):
@@ -520,6 +582,13 @@ class EducationalViewSet(viewsets.ModelViewSet):
     serializer_class = EducationalHeadquarterSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+
+    def get_permissions(self):
+        if self.action == 'create':
+            permission_classes = (IsLocalCommander,)
+        else:
+            permission_classes = (IsEducationalCommander,)
+        return [permission() for permission in permission_classes]
 
 
 class DetachmentViewSet(viewsets.ModelViewSet):
@@ -547,6 +616,12 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     serializer_class = DetachmentSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+
+    def get_permissions(self):
+        if self.action == 'create':
+            permission_classes = (IsEducationalCommander,)
+        permission_classes = (IsDetachmentCommander, )
+        return [permission() for permission in permission_classes]
 
 
 class BasePositionViewSet(viewsets.ModelViewSet):
@@ -584,6 +659,7 @@ class CentralPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = CentralPositionSerializer
+    permission_classes = (IsStuffOrCentralCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -600,6 +676,7 @@ class DistrictPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = DistrictPositionSerializer
+    permission_classes = (IsDistrictCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -616,6 +693,7 @@ class RegionalPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = RegionalPositionSerializer
+    permission_classes = (IsRegionalCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -632,6 +710,7 @@ class LocalPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = LocalPositionSerializer
+    permission_classes = (IsLocalCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -648,6 +727,7 @@ class EducationalPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = EducationalPositionSerializer
+    permission_classes = (IsEducationalCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -664,6 +744,7 @@ class DetachmentPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = DetachmentPositionSerializer
+    permission_classes = (IsDetachmentCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -682,12 +763,15 @@ class DetachmentAcceptViewSet(CreateDeleteViewSet):
 
     queryset = UserDetachmentPosition.objects.all()
     serializer_class = DetachmentPositionSerializer
+    permission_classes = (IsDetachmentCommander,)
 
     def perform_create(self, serializer):
         """Получает user и detachment для сохранения."""
         headquarter_id = self.kwargs.get('pk')
         application_id = self.kwargs.get('application_pk')
-        application = UserDetachmentApplication.objects.get(id=application_id)
+        application = get_object_or_404(
+            UserDetachmentApplication, id=application_id
+        )
         user = application.user
         headquarter = get_object_or_404(Detachment, id=headquarter_id)
         application.delete()
@@ -695,15 +779,23 @@ class DetachmentAcceptViewSet(CreateDeleteViewSet):
 
     def create(self, request, *args, **kwargs):
         """Принимает (добавляет пользователя в отряд) юзера, удаляя заявку."""
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except ValidationError as e:
+            return Response(
+                {'detail': e},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     def destroy(self, request, *args, **kwargs):
         """Отклоняет (удаляет) заявку пользователя."""
         application_id = self.kwargs.get('application_pk')
-        application = UserDetachmentApplication.objects.get(id=application_id)
+        application = get_object_or_404(
+            UserDetachmentApplication, id=application_id
+        )
         application.delete()
         return Response(
             {'success': 'Заявка отклонена'},
@@ -728,11 +820,16 @@ class DetachmentApplicationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         detachment_id = self.kwargs.get('pk')
-        detachment = Detachment.objects.get(id=detachment_id)
+        detachment = get_object_or_404(Detachment, id=detachment_id)
         serializer.save(user=user, detachment=detachment)
 
     def create(self, request, *args, **kwargs):
         """Подает заявку на вступление в отряд, переданный URL-параметром."""
+        if UserDetachmentPosition.objects.filter(user=request.user).exists():
+            return Response(
+                {'error': 'Вы уже являетесь членом одного из отрядов'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -764,14 +861,22 @@ def apply_for_verification(request):
     """Подать заявку на верификацию."""
     if request.method == 'POST':
         user = request.user
+        try:
+            UserVerificationRequest.objects.get(user=user)
+            return Response(
+                {'error': 'Вы уже подали заявку на верификацию'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except UserVerificationRequest.DoesNotExist:
+            pass
+        if user.is_verified:
+            return Response(
+                {'error': 'Пользователь уже верифицирован'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         UserVerificationRequest.objects.create(
             user=user
         )
-        if request.user.is_verified:
-            return Response(
-                {'error': 'Пользователь не авторизован'},
-                status=status.HTTP_403_FORBIDDEN
-            )
         return Response(status=status.HTTP_201_CREATED)
 
 
@@ -817,6 +922,7 @@ def get_structural_units(request):
 
 
 @api_view(['POST', 'DELETE'])
+@permission_classes([IsRegStuffOrDetCommander])
 def verify_user(request, pk):
     """Принять/отклонить заявку пользователя на верификацию.
 
@@ -841,9 +947,13 @@ def verify_user(request, pk):
 
 
 @api_view(['POST', 'DELETE'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([MembershipFeePermission])
 def change_membership_fee_status(request, pk):
-    """Изменить статус оплаты членского взноса пользователю."""
+    """Изменить статус оплаты членского взноса пользователю.
+
+    Доступно командирам и доверенным лицам РШ, в котором состоит
+    пользователь.
+    """
     user = get_object_or_404(RSOUser, id=pk)
     if request.method == 'POST':
         user.membership_fee = True
