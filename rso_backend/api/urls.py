@@ -23,7 +23,7 @@ from api.views import (CentralPositionViewSet, CentralViewSet,
                        ForeignUserDocumentsViewSet, apply_for_verification,
                        verify_user, AreaViewSet, change_membership_fee_status,
                        EducationalInstitutionViewSet, get_structural_units,
-                       PositionViewSet)
+                       PositionViewSet, MemberCertViewSet)
 
 app_name = 'api'
 
@@ -40,6 +40,7 @@ router.register(r'detachments', DetachmentViewSet)
 router.register(r'centrals', CentralViewSet)
 router.register(r'positions', PositionViewSet)
 router.register('eduicational_institutions', EducationalInstitutionViewSet)
+router.register('membership_certificates', MemberCertViewSet)
 
 
 UserEduVS = UserEducationViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
@@ -85,6 +86,7 @@ DistrictPositionListVS = DistrictPositionViewSet.as_view(LIST)
 DistrictPositionUpdateVS = DistrictPositionViewSet.as_view(UPDATE)
 CentralPositionListVS = CentralPositionViewSet.as_view(LIST)
 CentralPositionUpdateVS = CentralPositionViewSet.as_view(UPDATE)
+
 
 user_nested_urls = [
     path('rsousers/me/education/', UserEduVS, name='user-education'),

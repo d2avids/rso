@@ -856,3 +856,60 @@ class UserMembershipLogs(models.Model):
         else:
             self.period = "Неопределенный"
         super(UserMembershipLogs, self).save(*args, **kwargs)
+
+
+class MemberCert(models.Model):
+    user = models.ForeignKey(
+        to='RSOUser',
+        on_delete=models.CASCADE,
+        related_name='member_cert',
+        verbose_name='Пользователь',
+    )
+    cert_start_date = models.DateField(
+        verbose_name='Дата начала действия справки',
+        auto_now_add=True,
+        null=False,
+        blank=False,
+    )
+    cert_end_date = models.DateField(
+        verbose_name='Дата окончания действия справки',
+        null=False,
+        blank=False,
+    )
+    recipient = models.CharField(
+        verbose_name='Справка выдана для предоставления',
+        null=False,
+        blank=False,
+        max_length=250
+    )
+    issue_date = models.DateField(
+        verbose_name='Дата выдачи справки',
+        auto_now_add=True,
+    )
+    number = models.CharField(
+        verbose_name='Номер справки',
+        default='б/н',
+        max_length=40
+    )
+    signatory = models.CharField(
+        verbose_name='ФИО подписывающего лица',
+        max_length=250,
+        blank=True,
+        null=True
+    )
+    position_procuration = models.CharField(
+        verbose_name='Должность подписывающего лица, доверенность',
+        max_length=250,
+        blank=True,
+        null=True
+    )
+
+    class Meta:
+        verbose_name_plural = 'Выданные справки о членстве в РСО.'
+        verbose_name = 'Выданная справка о членстве в РСО.'
+
+    def __str__(self):
+        return (
+            f'Пользователь {self.signatory} выдал справку'
+            f' пользователю {self.user.username}.'
+        )

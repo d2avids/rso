@@ -1,4 +1,7 @@
+import io
 import mimetypes
+import zipfile
+from datetime import datetime
 
 from django.db import IntegrityError
 from django.http.response import HttpResponse
@@ -12,6 +15,7 @@ from headquarters.models import (UserDistrictHeadquarterPosition,
                                  UserRegionalHeadquarterPosition,
                                  UserDetachmentPosition,
                                  CentralHeadquarter)
+from users.models import RSOUser
 
 
 def create_first_or_exception(self, validated_data, instance, error_msg: str):
@@ -370,3 +374,55 @@ def get_headquarter_users_positions_queryset(self,
         headquarter=headquarter
     )
     return self.filter_by_name(queryset)
+
+
+def get_user(self):
+    user_id = self.kwargs.get('pk', None)
+    user = get_object_or_404(
+        RSOUser, id=user_id
+    ) if user_id else self.request.user
+    return user
+
+
+def get_user_by_id(id):
+    user = get_object_or_404(
+        RSOUser, id=id
+    )
+    return user
+
+
+def text_to_lines(text, proportion):
+    """Функция разбивает текст на строки по заданной доле ширины."""
+
+    text_length = len(text)
+    text_list = text.split()
+    lines = []
+    line = ''
+    for word in text_list:
+        if len(line) + len(word) > text_length * proportion:
+            lines.append(line)
+            line = word + ' '
+        else:
+            line += word + ' '
+    lines.append(line)
+    return lines
+
+
+def create_and_return_archive(files: dict):
+    """Функция создает архив и возвращает его с указанными файлами."""
+
+    archive_buffer = io.BytesIO()
+    with zipfile.ZipFile(archive_buffer, 'w') as archive:
+        for file_name, file_content in files.items():
+            archive.writestr(file_name, file_content)
+
+    archive_buffer.seek(0)
+    response = HttpResponse(
+        archive_buffer.read(), content_type='application/zip'
+    )
+    current_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f'certs_{current_datetime}.zip'
+    response['Content-Disposition'] = (
+        f'attachment; filename={filename}'
+    )
+    return response

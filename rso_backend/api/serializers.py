@@ -23,7 +23,8 @@ from headquarters.models import (CentralHeadquarter, Detachment,
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
                           UserRegion, UsersParent, UserStatementDocuments,
-                          UserVerificationRequest, ForeignUserDocuments,)
+                          UserVerificationRequest, ForeignUserDocuments,
+                          MemberCert)
 
 
 class PositionSerializer(serializers.ModelSerializer):
@@ -862,17 +863,27 @@ class CentralHeadquarterSerializer(BaseUnitSerializer):
         fields = BaseUnitSerializer.Meta.fields + ('members',)
 
 
-class CentralHeadquarterSerializer(BaseUnitSerializer):
-    """Сериализатор для центрального штаба.
+class MemberCertSerializer(serializers.ModelSerializer):
 
-    Наследует общую логику и поля от BaseUnitSerializer и связывает
-    с моделью CentralHeadquarter.
-    """
-    members = CentralPositionSerializer(
+    users = ShortUserSerializer(
         many=True,
         read_only=True
     )
+    ids = serializers.ListField(
+        child=serializers.IntegerField(), read_only=True
+    )
 
     class Meta:
-        model = CentralHeadquarter
-        fields = BaseUnitSerializer.Meta.fields + ('members',)
+        model = MemberCert
+        fields = (
+            'id',
+            'users',
+            'cert_start_date',
+            'cert_end_date',
+            'recipient',
+            'issue_date',
+            'number',
+            'ids',
+            'signatory',
+            'position_procuration'
+        )

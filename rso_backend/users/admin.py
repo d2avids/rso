@@ -8,7 +8,7 @@ from import_export.admin import ImportExportModelAdmin
 
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserPrivacySettings, UserRegion, UsersParent,
-                          UserMembershipLogs)
+                          UserMembershipLogs, UserStatementDocuments)
 from users.resources import RSOUserResource
 
 
@@ -42,6 +42,11 @@ class UsersParentInline(admin.StackedInline):
     extra = 1
 
 
+class UserStatementDocumentsInLine(admin.StackedInline):
+    model = UserStatementDocuments
+    extra = 1
+
+
 @admin.register(RSOUser)
 class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
     resource_class = RSOUserResource
@@ -52,6 +57,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         UserDocumentsInline,
         UserPrivacySettingsInline,
         UsersParentInline,
+        UserStatementDocumentsInLine,
     ]
 
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff')

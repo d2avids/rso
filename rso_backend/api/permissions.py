@@ -276,19 +276,11 @@ class IsRegStuffOrDetCommander(BasePermission):
 
     def has_permission(self, request, view):
         user = request.user
-        print('Нашли юзера:')
-        print(user)
         user_to_verify = get_object_or_404(RSOUser, id=view.kwargs.get('pk'))
-        print('Нашли юзера для верификации:')
-        print(user_to_verify)
         user_to_verify_region = user_to_verify.region
-        print('Регион юзера для верификации:')
-        print(user_to_verify_region)
         reg_headquarter = get_object_or_404(
             RegionalHeadquarter, region=user_to_verify_region
         )
-        print('Региональный штаб с регионом юзера найден:')
-        print(reg_headquarter)
 
         if reg_headquarter.commander == user:
             return True
@@ -300,8 +292,6 @@ class IsRegStuffOrDetCommander(BasePermission):
             )
         except UserRegionalHeadquarterPosition.DoesNotExist:
             reg_headquarter_member = None
-        print('Нашли ли юзера осуществляющего действие в членах регионального объединения?')
-        print(reg_headquarter_member)
 
         if reg_headquarter_member:
             if reg_headquarter_member.is_trusted:
@@ -352,3 +342,39 @@ class MembershipFeePermission(BasePermission):
                 return True
 
         return False
+
+
+class IsRegionalCommanderForCert(BasePermission):
+    """Пермишен для командира выдачи справок.
+
+    Для ролей 'is stuff' и 'superuser' возвращается True.
+    Роль 'командир регионального штаба' и 'доверенный пользователь'
+    возвращают True.
+    Остальные пользователи получают True, если обращаются к эндпоинту
+    с безопасным запросом (GET, HEAD, OPTIONS).
+    """
+
+    def has_permission(self, request, view):
+        """Проверка прав пользователя для выдачи справки."""
+
+        check_model_instance = True
+        request_user_id = request.user.id
+        ids = request.data.get('ids')
+        try:
+            commander_regheadquarter_id = RegionalHeadquarter.objects.filter(
+                commander_id=request_user_id
+            ).first().id
+            for id in ids:
+                user_reghead_id = UserRegionalHeadquarterPosition.objects.get(
+                    user_id=id
+                ).headquarter_id
+                if user_reghead_id != commander_regheadquarter_id:
+                    check_model_instance = False
+                    break
+        except (RegionalHeadquarter.DoesNotExist, AttributeError):
+            check_model_instance = False
+        return any([
+            is_safe_method(request),
+            is_stuff_or_central_commander(request),
+            check_model_instance
+        ])
