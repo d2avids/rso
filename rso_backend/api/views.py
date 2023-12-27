@@ -1064,22 +1064,20 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
             'position_procuration', 'Руководитель регионального отделения'
         )
         try:
-            reg_headquarter_id = UserRegionalHeadquarterPosition.objects.get(
+            regional_headquarter = UserRegionalHeadquarterPosition.objects.get(
                 user=user
-            ).headquarter_id
-            regional_headquarter = get_object_or_404(
-                RegionalHeadquarter, id=reg_headquarter_id
+            ).headquarter
+            commander = RSOUser.objects.get(
+                id=regional_headquarter.commander.id
             )
             reg_case_name = regional_headquarter.case_name
             legal_address = str(regional_headquarter.legal_address)
             requisites = str(regional_headquarter.requisites)
             registry_number = str(regional_headquarter.registry_number)
             registry_date = regional_headquarter.registry_date
-            commander_first_name = regional_headquarter.commander.first_name
-            commander_last_name = regional_headquarter.commander.last_name
-            commander_patronymic_name = (
-                regional_headquarter.commander.patronymic_name
-            )
+            commander_first_name = commander.first_name
+            commander_last_name = commander.last_name
+            commander_patronymic_name = commander.patronymic_name
         except (
             UserRegionalHeadquarterPosition.DoesNotExist,
             RegionalHeadquarter.DoesNotExist
