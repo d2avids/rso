@@ -31,7 +31,8 @@ def document_path(instance, filename):
 
     filename = dt.today().strftime('%Y%m%d%H%M%S') + '_' + filename
     filepath = 'documents/users'
-    return os.path.join(filepath, instance.name, filename)
+    print(instance)
+    return os.path.join(filepath, instance.user.username, filename)
 
 
 def validate_years(value):

@@ -23,7 +23,8 @@ from headquarters.models import (CentralHeadquarter, Detachment,
 from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
                           UserRegion, UsersParent, UserStatementDocuments,
-                          UserVerificationRequest, ForeignUserDocuments,)
+                          UserVerificationRequest, ForeignUserDocuments,
+                          MemberCert)
 
 
 class PositionSerializer(serializers.ModelSerializer):
@@ -375,6 +376,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
             'parent',
             'professional_education',
         )
+        read_only_fields = ('membership_fee', 'is_verified')
 
     def get_professional_education(self, obj):
         return UserProfessionalEducationSerializer(
@@ -814,6 +816,7 @@ class DetachmentSerializer(BaseUnitSerializer):
             'photo2',
             'photo3',
             'photo4',
+            'city',
             'applications',
             'members',
             'users_for_verification',
@@ -858,3 +861,29 @@ class CentralHeadquarterSerializer(BaseUnitSerializer):
     class Meta:
         model = CentralHeadquarter
         fields = BaseUnitSerializer.Meta.fields + ('members',)
+
+
+class MemberCertSerializer(serializers.ModelSerializer):
+
+    users = ShortUserSerializer(
+        many=True,
+        read_only=True
+    )
+    ids = serializers.ListField(
+        child=serializers.IntegerField(), read_only=True
+    )
+
+    class Meta:
+        model = MemberCert
+        fields = (
+            'id',
+            'users',
+            'cert_start_date',
+            'cert_end_date',
+            'recipient',
+            'issue_date',
+            'number',
+            'ids',
+            'signatory',
+            'position_procuration'
+        )

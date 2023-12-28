@@ -9,6 +9,9 @@ UPDATE = {
         'put': 'update',
         'patch': 'partial_update',
 }
+RETRIEVE = {
+        'get': 'retrieve',
+}
 RETRIEVE_CREATE = {
         'get': 'retrieve',
         'post': 'create',
