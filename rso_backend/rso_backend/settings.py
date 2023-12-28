@@ -297,18 +297,24 @@ CORS_ORIGIN_WHITELIST = [
     'http://localhost:3000',
     'http://localhost:8080',
     'http://127.0.0.1:8080',
+    'http://localhost:80',
     'http://localhost',
     'https://d2avids.sytes.net',
-    'https://rso.sprint.1t.ru'
+    'https://rso.sprint.1t.ru',
+    'http://213.139.208.147',
+    'https://213.139.208.147',
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:8080',
+    'http://localhost:80',
     'http://127.0.0.1:8080',
     'http://localhost'
     'https://127.0.0.1',
-    'https://rso.sprint.1t.ru'
+    'https://rso.sprint.1t.ru',
+    'http://213.139.208.147',
+    'https://213.139.208.147',
 ]
 
 REST_FRAMEWORK = {

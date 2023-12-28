@@ -1,8 +1,10 @@
 from django.core.exceptions import ValidationError
-from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-from headquarters.utils import image_path
 from django.conf import settings
+from django.db import models
+
+from headquarters.constants import PositionsOption
+from headquarters.utils import image_path
 
 
 class EducationalInstitution(models.Model):
@@ -77,6 +79,7 @@ class Unit(models.Model):
 
     name = models.CharField(
         max_length=100,
+        unique=True,
         verbose_name='Название'
     )
     commander = models.ForeignKey(
@@ -448,7 +451,14 @@ class Detachment(Unit):
 class Position(models.Model):
     """Хранение наименований должностей для членов отрядов и штабов."""
 
-    name = models.CharField(max_length=150, verbose_name='Должность')
+    name = models.CharField(
+        verbose_name='Должность',
+        max_length=43,
+        choices=PositionsOption.choices,
+        default=PositionsOption.candidate,
+        blank=True,
+        null=True
+    )
 
     def __str__(self):
         return self.name
@@ -615,7 +625,7 @@ class UserLocalHeadquarterPosition(UserUnitPosition):
     headquarter = models.ForeignKey(
         'LocalHeadquarter',
         on_delete=models.CASCADE,
-        verbose_name='Локальный штаб',
+        verbose_name='Местный штаб',
         related_name='members'
     )
 
@@ -626,8 +636,8 @@ class UserLocalHeadquarterPosition(UserUnitPosition):
         super().save(*args, **kwargs)
 
     class Meta:
-        verbose_name_plural = 'Члены локальных штабов'
-        verbose_name = 'Член локального штаба'
+        verbose_name_plural = 'Члены местных штабов'
+        verbose_name = 'Член местного штаба'
 
 
 class UserEducationalHeadquarterPosition(UserUnitPosition):
@@ -669,9 +679,10 @@ class UserDetachmentPosition(UserUnitPosition):
 
     def get_first_filled_headquarter(self):
         """
-        Возвращает первый связанный с отрядом заполненный штаб по иерархии: 
+        Возвращает первый связанный с отрядом заполненный штаб по иерархии:
         ШОО, МШ или РШ.
         """
+
         educational_headquarter = self.headquarter.educational_headquarter
         if educational_headquarter:
             return educational_headquarter
@@ -682,8 +693,14 @@ class UserDetachmentPosition(UserUnitPosition):
 
     def save(self, *args, **kwargs):
         if self._state.adding:
-            kwargs['headquarter'] = self.get_first_filled_headquarter()
-            kwargs['class_above'] = UserEducationalHeadquarterPosition
+            headquarter = self.get_first_filled_headquarter()
+            kwargs['headquarter'] = headquarter
+            if isinstance(headquarter, EducationalHeadquarter):
+                kwargs['class_above'] = UserEducationalHeadquarterPosition
+            elif isinstance(headquarter, LocalHeadquarter):
+                kwargs['class_above'] = UserLocalHeadquarterPosition
+            elif isinstance(headquarter, RegionalHeadquarter):
+                kwargs['class_above'] = UserRegionalHeadquarterPosition
         super().save(*args, **kwargs)
 
     class Meta:
