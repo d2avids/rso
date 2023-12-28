@@ -20,6 +20,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status, viewsets, filters
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
+from drf_yasg.utils import swagger_auto_schema
 
 from api.mixins import (CreateDeleteViewSet, ListRetrieveUpdateViewSet,
                         ListRetrieveViewSet)
@@ -52,7 +53,8 @@ from api.serializers import (CentralHeadquarterSerializer,
                              UserStatementDocumentsSerializer,
                              ForeignUserDocumentsSerializer,
                              AreaSerializer, EducationalInstitutionSerializer,
-                             MemberCertSerializer)
+                             MemberCertSerializer, EventSerializer, EventDocumentSerializer, EventDocumentDataSerializer, EventTimeDataSerializer, EventAdditionalIssueSerializer, EventOrganizerDataSerializer)
+from api.swagger_schemas import EventSwaggerSerializer
 from api.utils import (download_file, get_headquarter_users_positions_queryset,
                        get_user, text_to_lines, get_user_by_id,
                        create_and_return_archive)
@@ -68,11 +70,12 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserRegionalHeadquarterPosition, Area,
                                  EducationalInstitution, Position)
 from rso_backend.settings import BASE_DIR
-from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
+from users.models import (UserProfessionalEducation, RSOUser, UserDocuments,
                           UserEducation, UserMedia, UserPrivacySettings,
-                          UserRegion, UsersParent, UserStatementDocuments,
-                          UserVerificationRequest, ForeignUserDocuments,
+                          UserRegion, UserParent, UserStatementDocuments,
+                          UserVerificationRequest, UserForeignDocuments,
                           UserMembershipLogs, MemberCert)
+from events.models import Event, EventTimeData, EventDocumentData, EventDocument, EventOrganizationData
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -248,11 +251,11 @@ class UserProfessionalEducationViewSet(BaseUserViewSet):
     'users_prof_educations'.
     """
 
-    queryset = ProfessionalEduction.objects.all()
+    queryset = UserProfessionalEducation.objects.all()
     permission_classes = [IsStuffOrAuthor,]
 
     def get_object(self):
-        return ProfessionalEduction.objects.filter(
+        return UserProfessionalEducation.objects.filter(
             user_id=self.request.user.id
         )
 
@@ -321,12 +324,12 @@ class UserDocumentsViewSet(BaseUserViewSet):
 class ForeignUserDocumentsViewSet(BaseUserViewSet):
     """Представляет документы иностранного пользователя."""
 
-    queryset = ForeignUserDocuments.objects.all()
+    queryset = UserForeignDocuments.objects.all()
     serializer_class = ForeignUserDocumentsSerializer
     permission_classes = (IsStuffOrAuthor,)
 
     def get_object(self):
-        return get_object_or_404(ForeignUserDocuments, user=self.request.user)
+        return get_object_or_404(UserForeignDocuments, user=self.request.user)
 
 
 class UserRegionViewSet(BaseUserViewSet):
@@ -461,12 +464,12 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
 class UsersParentViewSet(BaseUserViewSet):
     """Представляет законного представителя пользователя."""
 
-    queryset = UsersParent.objects.all()
+    queryset = UserParent.objects.all()
     serializer_class = UsersParentSerializer
     permission_classes = (IsStuffOrAuthor,)
 
     def get_object(self):
-        return get_object_or_404(UsersParent, user=self.request.user)
+        return get_object_or_404(UserParent, user=self.request.user)
 
 
 class CentralViewSet(ListRetrieveUpdateViewSet):
@@ -853,6 +856,60 @@ class DetachmentApplicationViewSet(viewsets.ModelViewSet):
             {'success': 'Заявка отклонена'},
             status=status.HTTP_204_NO_CONTENT
         )
+
+
+class EventViewSet(viewsets.ModelViewSet):
+    queryset = Event.objects.all()
+    serializer_class = EventSerializer
+
+    @swagger_auto_schema(request_body=EventSwaggerSerializer)
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @swagger_auto_schema(request_body=EventTimeDataSerializer)
+    @action(detail=True, methods=['put',], url_path='time_data')
+    def update_time_data(self, request, pk=None):
+        event = self.get_object()
+        time_data_instance = EventTimeData.objects.get(event=event)
+
+        serializer = EventTimeDataSerializer(time_data_instance, data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(request_body=EventDocumentDataSerializer)
+    @action(detail=True, methods=['put',], url_path='document_data')
+    def update_document_data(self, request, pk=None):
+        event = self.get_object()
+        document_data_instance = EventDocumentData.objects.get(event=event)
+
+        serializer = EventDocumentDataSerializer(document_data_instance, data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class EventOrganizationDataViewSet(viewsets.ModelViewSet):
+    queryset = EventOrganizationData.objects.all()
+    serializer_class = EventOrganizerDataSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        event_pk = self.kwargs.get('event_pk')
+        if event_pk is not None:
+            queryset = queryset.filter(event__id=event_pk)
+        return queryset
+
+    def create(self, request, *args, **kwargs):
+        event_pk = self.kwargs.get('event_pk')
+        event = get_object_or_404(Event, pk=event_pk)
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(event=event)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])

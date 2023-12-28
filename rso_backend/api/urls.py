@@ -7,7 +7,7 @@ from api.constants import (CREATE_DELETE, CREATE_METHOD,
                            DOWNLOAD_ALL_FORMS, DOWNLOAD_CONSENT_PD,
                            DOWNLOAD_MEMBERSHIP_FILE,
                            DOWNLOAD_PARENT_CONSENT_PD, LIST, RETRIEVE_CREATE,
-                           UPDATE)
+                           UPDATE, CRUD_METHODS_WITHOUT_RETRIEVE)
 from api.views import (CentralPositionViewSet, CentralViewSet,
                        DetachmentAcceptViewSet, DetachmentApplicationViewSet,
                        DetachmentPositionViewSet, DetachmentViewSet,
@@ -23,7 +23,7 @@ from api.views import (CentralPositionViewSet, CentralViewSet,
                        ForeignUserDocumentsViewSet, apply_for_verification,
                        verify_user, AreaViewSet, change_membership_fee_status,
                        EducationalInstitutionViewSet, get_structural_units,
-                       PositionViewSet, MemberCertViewSet)
+                       PositionViewSet, MemberCertViewSet, EventViewSet, EventOrganizationDataViewSet)
 
 app_name = 'api'
 
@@ -41,6 +41,7 @@ router.register(r'centrals', CentralViewSet)
 router.register(r'positions', PositionViewSet)
 router.register('eduicational_institutions', EducationalInstitutionViewSet)
 router.register('membership_certificates', MemberCertViewSet)
+router.register('events', EventViewSet)
 
 
 UserEduVS = UserEducationViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
@@ -86,7 +87,7 @@ DistrictPositionListVS = DistrictPositionViewSet.as_view(LIST)
 DistrictPositionUpdateVS = DistrictPositionViewSet.as_view(UPDATE)
 CentralPositionListVS = CentralPositionViewSet.as_view(LIST)
 CentralPositionUpdateVS = CentralPositionViewSet.as_view(UPDATE)
-
+EventOrganizationDataVS = EventOrganizationDataViewSet.as_view(CRUD_METHODS_WITHOUT_RETRIEVE)
 
 user_nested_urls = [
     path('rsousers/me/education/', UserEduVS, name='user-education'),
@@ -226,6 +227,11 @@ user_nested_urls = [
         'structural_units/',
         get_structural_units,
         name='structural-units'
+    ),
+    path(
+        'events/<int:event_pk>/organizers/',
+        EventOrganizationDataVS,
+        name='event-organization'
     ),
     path('', include('djoser.urls')),
 ]

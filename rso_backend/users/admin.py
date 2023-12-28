@@ -7,7 +7,7 @@ from django_celery_beat.models import (PeriodicTask, IntervalSchedule,
 from import_export.admin import ImportExportModelAdmin
 
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
-                          UserPrivacySettings, UserRegion, UsersParent,
+                          UserPrivacySettings, UserRegion, UserParent,
                           UserMembershipLogs, UserStatementDocuments)
 from users.resources import RSOUserResource
 
@@ -38,7 +38,7 @@ class UserPrivacySettingsInline(admin.StackedInline):
 
 
 class UsersParentInline(admin.StackedInline):
-    model = UsersParent
+    model = UserParent
     extra = 1
 
 

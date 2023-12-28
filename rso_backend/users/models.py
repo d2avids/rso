@@ -4,7 +4,6 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-
 from users.constants import (Gender, MilitaryDocType, PrivacyOption,
                              RelationshipType, StudyForm)
 from users.utils import document_path, validate_years, image_path
@@ -114,10 +113,25 @@ class RSOUser(AbstractUser):
         verbose_name_plural = 'Пользователи'
         verbose_name = 'Пользователь'
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        try:
+            UserEducation.objects.get_or_create(user=self)
+            UserDocuments.objects.get_or_create(user=self)
+            UserForeignDocuments.objects.get_or_create(user=self)
+            UserRegion.objects.get_or_create(user=self)
+            UserPrivacySettings.objects.get_or_create(user=self)
+            UserMedia.objects.get_or_create(user=self)
+            UserStatementDocuments.objects.get_or_create(user=self)
+            UserParent.objects.get_or_create(user=self)
+        except Exception:
+            raise
+
     def clean(self):
         super().clean()
         if self.email and RSOUser.objects.exclude(pk=self.pk).filter(
-            email__iexact=self.email
+                email__iexact=self.email
         ).exists():
             raise ValidationError('Данный Email уже зарегистрирован.')
 
@@ -137,9 +151,11 @@ class UserEducation(models.Model):
         on_delete=models.CASCADE,
         related_name='education',
     )
-    study_institution = models.CharField(
+    study_institution = models.ForeignKey(
+        to='headquarters.EducationalInstitution',
+        on_delete=models.CASCADE,
+        related_name='users_education',
         verbose_name='Образовательная организация',
-        max_length=200,
         blank=True,
         null=True,
     )
@@ -184,14 +200,14 @@ class UserEducation(models.Model):
         )
 
 
-class ProfessionalEduction(models.Model):
+class UserProfessionalEducation(models.Model):
     """Дополнительное профессиональное образование."""
 
     user = models.ForeignKey(
         verbose_name='Пользователь',
         to='RSOUser',
         on_delete=models.CASCADE,
-        related_name='proffesional_education',
+        related_name='professional_education',
     )
     study_institution = models.CharField(
         verbose_name='Образовательная организация',
@@ -239,8 +255,10 @@ class UserDocuments(models.Model):
         on_delete=models.CASCADE,
         related_name='documents',
     )
-    snils = models.CharField(max_length=15, blank=True, default='',
-                             verbose_name='СНИЛС')
+    snils = models.CharField(
+        max_length=15, blank=True, null=True,
+        verbose_name='СНИЛС'
+    )
     inn = models.CharField(
         verbose_name='ИНН',
         max_length=15,
@@ -325,7 +343,7 @@ class UserDocuments(models.Model):
         )
 
 
-class ForeignUserDocuments(models.Model):
+class UserForeignDocuments(models.Model):
     """Информация о документах пользователя-инстранца."""
 
     user = models.OneToOneField(
@@ -364,6 +382,8 @@ class ForeignUserDocuments(models.Model):
     )
     foreign_pass_date = models.DateField(
         verbose_name='Дата выдачи',
+        blank=True,
+        null=True,
     )
     work_book_num = models.CharField(
         verbose_name='Трудовая книжка: серия, номер',
@@ -682,7 +702,7 @@ class UserStatementDocuments(models.Model):
         )
 
 
-class UsersParent(models.Model):
+class UserParent(models.Model):
     """Законный представитель несовершеннолетнего."""
     user = models.OneToOneField(
         verbose_name='Пользователь',
@@ -846,13 +866,13 @@ class UserMembershipLogs(models.Model):
         current_date = date.today()
         current_year = current_date.year
         if date(current_year, 1, 1) <= current_date < date(
-            current_year, 10, 1
+                current_year, 10, 1
         ):
-            self.period = f"{current_year-1}-{current_year}"
+            self.period = f"{current_year - 1}-{current_year}"
         elif date(current_year, 10, 1) <= current_date <= date(
-            current_year, 12, 31
+                current_year, 12, 31
         ):
-            self.period = f"{current_year}-{current_year+1}"
+            self.period = f"{current_year}-{current_year + 1}"
         else:
             self.period = "Неопределенный"
         super(UserMembershipLogs, self).save(*args, **kwargs)

@@ -69,6 +69,7 @@ INSTALLED_APPS += [
     'api.apps.ApiConfig',
     'users.apps.UsersConfig',
     'headquarters.apps.HeadquartersConfig',
+    'events.apps.EventsConfig',
 ]
 
 MIDDLEWARE = [
