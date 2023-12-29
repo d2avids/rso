@@ -1,7 +1,8 @@
 from django.contrib import admin
-from events.models import (Event, EventDocument, EventDocumentData,
-                           EventTimeData, EventOrganizationData,
-                           EventAdditionalIssue)
+
+from events.models import (Event, EventAdditionalIssue, EventDocument,
+                           EventDocumentData, EventOrganizationData,
+                           EventTimeData)
 
 
 class EventTimeDataInline(admin.TabularInline):
@@ -32,7 +33,7 @@ class EventAdditionalIssuesInline(admin.TabularInline):
 
 
 class EventAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'format', 'direction', 'status', 'created_at')
+    list_display = ('id', 'name', 'format', 'direction', 'status', 'author', 'created_at')
     list_filter = ('format', 'direction', 'status', 'created_at')
     search_fields = ('name', 'description')
     inlines = [
@@ -43,7 +44,7 @@ class EventAdmin(admin.ModelAdmin):
         EventAdditionalIssuesInline,
     ]
     fieldsets = [
-        ('Basic Information', {'fields': ['name', 'format', 'direction', 'status']}),
+        ('Basic Information', {'fields': ['name', 'author', 'format', 'direction', 'status']}),
         ('Time Information', {'fields': ['participants_number', 'description']}),
         ('Location Information', {'fields': ['address', 'conference_link']}),
         ('Application Information', {'fields': ['application_type', 'available_structural_units']}),

@@ -1,5 +1,6 @@
 from django.db import models
-from events.utils import image_path, document_path
+
+from events.utils import document_path, image_path
 
 
 class Event(models.Model):
@@ -31,6 +32,11 @@ class Event(models.Model):
         DISTRICTS = 'districts', 'Окружные штабы'
         CENTRAL = 'central', 'Центральные штабы'
 
+    author = models.ForeignKey(
+        to='users.RSOUser',
+        on_delete=models.CASCADE,
+        verbose_name='Создатель мероприятия',
+    )
     format = models.CharField(
         max_length=7,
         choices=EventFormat.choices,

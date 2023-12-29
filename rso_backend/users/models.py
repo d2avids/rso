@@ -1,12 +1,12 @@
 from datetime import date
 
-from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from users.constants import (Gender, MilitaryDocType, PrivacyOption,
                              RelationshipType, StudyForm)
-from users.utils import document_path, validate_years, image_path
+from users.utils import document_path, image_path, validate_years
 
 
 class RSOUser(AbstractUser):

@@ -6,24 +6,26 @@ from api.constants import (CREATE_DELETE, CREATE_METHOD,
                            CRUD_METHODS_WITHOUT_LIST, DELETE,
                            DOWNLOAD_ALL_FORMS, DOWNLOAD_CONSENT_PD,
                            DOWNLOAD_MEMBERSHIP_FILE,
-                           DOWNLOAD_PARENT_CONSENT_PD, LIST, RETRIEVE_CREATE,
-                           UPDATE, CRUD_METHODS_WITHOUT_RETRIEVE)
-from api.views import (CentralPositionViewSet, CentralViewSet,
+                           DOWNLOAD_PARENT_CONSENT_PD, LIST, LIST_CREATE,
+                           RETRIEVE_CREATE, UPDATE, UPDATE_DELETE)
+from api.views import (AreaViewSet, CentralPositionViewSet, CentralViewSet,
                        DetachmentAcceptViewSet, DetachmentApplicationViewSet,
                        DetachmentPositionViewSet, DetachmentViewSet,
                        DistrictPositionViewSet, DistrictViewSet,
+                       EducationalInstitutionViewSet,
                        EducationalPositionViewSet, EducationalViewSet,
-                       LocalPositionViewSet, LocalViewSet,
+                       EventAdditionalIssueViewSet,
+                       EventOrganizationDataViewSet, EventViewSet,
+                       ForeignUserDocumentsViewSet, LocalPositionViewSet,
+                       LocalViewSet, MemberCertViewSet, PositionViewSet,
                        RegionalPositionViewSet, RegionalViewSet, RegionViewSet,
                        RSOUserViewSet, UserDocumentsViewSet,
                        UserEducationViewSet, UserMediaViewSet,
                        UserPrivacySettingsViewSet,
                        UserProfessionalEducationViewSet, UserRegionViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
-                       ForeignUserDocumentsViewSet, apply_for_verification,
-                       verify_user, AreaViewSet, change_membership_fee_status,
-                       EducationalInstitutionViewSet, get_structural_units,
-                       PositionViewSet, MemberCertViewSet, EventViewSet, EventOrganizationDataViewSet)
+                       apply_for_verification, change_membership_fee_status,
+                       get_structural_units, verify_user)
 
 app_name = 'api'
 
@@ -49,14 +51,14 @@ UserProfEduRetrieveCreateVS = UserProfessionalEducationViewSet.as_view(
     RETRIEVE_CREATE
 )
 UserProfEduPUDVS = UserProfessionalEducationViewSet.as_view(UPDATE | DELETE)
-UserDocVS = UserDocumentsViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
-UserRegVS = UserRegionViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
-UserPrivacyVS = UserPrivacySettingsViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
-UserMediaVS = UserMediaViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
+UserDocVS = UserDocumentsViewSet.as_view(UPDATE)
+UserRegVS = UserRegionViewSet.as_view(UPDATE)
+UserPrivacyVS = UserPrivacySettingsViewSet.as_view(UPDATE)
+UserMediaVS = UserMediaViewSet.as_view(UPDATE)
 UserStatementVS = UserStatementDocumentsViewSet.as_view(
-    CRUD_METHODS_WITHOUT_LIST
+    UPDATE
 )
-UsersParentVS = UsersParentViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
+UsersParentVS = UsersParentViewSet.as_view(UPDATE)
 DetachmentPositionVS = DetachmentPositionViewSet.as_view(CREATE_METHOD)
 UserStatementMembershipDownloadVS = UserStatementDocumentsViewSet.as_view(
     DOWNLOAD_MEMBERSHIP_FILE
@@ -71,7 +73,7 @@ UserStatementDownloadAllVS = UserStatementDocumentsViewSet.as_view(
     DOWNLOAD_ALL_FORMS
 )
 ForeignUserDocsVS = ForeignUserDocumentsViewSet.as_view(
-    CRUD_METHODS_WITHOUT_LIST
+    UPDATE
 )
 DetachmentAcceptVS = DetachmentAcceptViewSet.as_view(CREATE_DELETE)
 DetachmentApplicationVS = DetachmentApplicationViewSet.as_view(CREATE_DELETE)
@@ -87,7 +89,12 @@ DistrictPositionListVS = DistrictPositionViewSet.as_view(LIST)
 DistrictPositionUpdateVS = DistrictPositionViewSet.as_view(UPDATE)
 CentralPositionListVS = CentralPositionViewSet.as_view(LIST)
 CentralPositionUpdateVS = CentralPositionViewSet.as_view(UPDATE)
-EventOrganizationDataVS = EventOrganizationDataViewSet.as_view(CRUD_METHODS_WITHOUT_RETRIEVE)
+EventOrganizationDataListVS = EventOrganizationDataViewSet.as_view(LIST_CREATE)
+EventOrganizationDataObjVS = EventOrganizationDataViewSet.as_view(
+    UPDATE_DELETE
+)
+EventAdditionalIssueListVS = EventAdditionalIssueViewSet.as_view(LIST_CREATE)
+EventAdditionalIssueObjVS = EventAdditionalIssueViewSet.as_view(UPDATE_DELETE)
 
 user_nested_urls = [
     path('rsousers/me/education/', UserEduVS, name='user-education'),
@@ -230,8 +237,23 @@ user_nested_urls = [
     ),
     path(
         'events/<int:event_pk>/organizers/',
-        EventOrganizationDataVS,
-        name='event-organization'
+        EventOrganizationDataListVS,
+        name='event-organization-list'
+    ),
+    path(
+        'events/<int:event_pk>/organizers/<int:pk>/',
+        EventOrganizationDataObjVS,
+        name='event-organization-objects'
+    ),
+    path(
+        'events/<int:event_pk>/issues/',
+        EventAdditionalIssueListVS,
+        name='event-organization-list'
+    ),
+    path(
+        'events/<int:event_pk>/issues/<int:pk>/',
+        EventAdditionalIssueObjVS,
+        name='event-organization-objects'
     ),
     path('', include('djoser.urls')),
 ]

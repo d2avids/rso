@@ -6,11 +6,15 @@ from djoser.serializers import UserCreatePasswordRetypeSerializer
 from rest_framework import serializers
 
 from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
-                           MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
-                           REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS,
-                           TOO_MANY_EDUCATIONS, EVENT_TIME_DATA_RAW_EXISTS, EVENT_DOCUMENT_DATA_RAW_EXISTS)
+                           EVENT_DOCUMENT_DATA_RAW_EXISTS,
+                           EVENT_TIME_DATA_RAW_EXISTS, MEDIA_RAW_EXISTS,
+                           PRIVACY_RAW_EXISTS, REGION_RAW_EXISTS,
+                           STATEMENT_RAW_EXISTS, TOO_MANY_EDUCATIONS)
 from api.utils import create_first_or_exception
-from headquarters.models import (CentralHeadquarter, Detachment,
+from events.models import (Event, EventAdditionalIssue, EventDocument,
+                           EventDocumentData, EventOrganizationData,
+                           EventTimeData)
+from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
                                  Position, Region, RegionalHeadquarter,
@@ -20,15 +24,12 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition, Area,)
-from users.models import (UserProfessionalEducation, RSOUser, UserDocuments,
-                          UserEducation, UserMedia, UserPrivacySettings,
-                          UserRegion, UserParent, UserStatementDocuments,
-                          UserVerificationRequest, UserForeignDocuments,
-                          MemberCert)
-from events.models import (Event, EventDocument, EventDocumentData,
-                           EventTimeData, EventOrganizationData,
-                           EventAdditionalIssue)
+                                 UserRegionalHeadquarterPosition)
+from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
+                          UserForeignDocuments, UserMedia, UserParent,
+                          UserPrivacySettings, UserProfessionalEducation,
+                          UserRegion, UserStatementDocuments,
+                          UserVerificationRequest)
 
 
 class PositionSerializer(serializers.ModelSerializer):
@@ -126,6 +127,7 @@ class EventOrganizerDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventOrganizationData
         fields = (
+            'id',
             'organizer',
             'organizer_phone_number',
             'organizer_email',
@@ -138,13 +140,13 @@ class EventOrganizerDataSerializer(serializers.ModelSerializer):
 class EventDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventDocument
-        fields = ('document',)
+        fields = ('id', 'document',)
 
 
 class EventAdditionalIssueSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventAdditionalIssue
-        fields = ('event',)
+        fields = ('id', 'issue',)
 
 
 class EventSerializer(serializers.ModelSerializer):
@@ -157,6 +159,7 @@ class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = (
+            'author',
             'format',
             'direction',
             'status',
@@ -176,6 +179,7 @@ class EventSerializer(serializers.ModelSerializer):
             'additional_issues',
         )
         read_only_fields = (
+            'author',
             'created_at',
             'documents',
             'organization_data',
@@ -1001,6 +1005,7 @@ class CentralHeadquarterSerializer(BaseUnitSerializer):
         model = CentralHeadquarter
         fields = BaseUnitSerializer.Meta.fields + (
             'members',
+            'working_years',
         )
 
     @staticmethod

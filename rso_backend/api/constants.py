@@ -26,13 +26,15 @@ CRUD_METHODS_WITHOUT_LIST = {
         'patch': 'partial_update',
         'delete': 'destroy'
     }
-CRUD_METHODS_WITHOUT_RETRIEVE = {
+LIST_CREATE = {
         'get': 'list',
-        'put': 'update',
         'post': 'create',
+}
+UPDATE_DELETE = {
+        'put': 'update',
         'patch': 'partial_update',
-        'delete': 'destroy'
-    }
+        'delete': 'destroy',
+}
 CREATE_METHOD = {'post': 'create', }
 DOWNLOAD_MEMBERSHIP_FILE = {'get': 'download_membership_file'}
 DOWNLOAD_CONSENT_PD = {'get': 'download_consent_personal_data'}
