@@ -46,7 +46,7 @@ router.register('membership_certificates', MemberCertViewSet)
 router.register('events', EventViewSet)
 
 
-UserEduVS = UserEducationViewSet.as_view(CRUD_METHODS_WITHOUT_LIST)
+UserEduVS = UserEducationViewSet.as_view(UPDATE)
 UserProfEduRetrieveCreateVS = UserProfessionalEducationViewSet.as_view(
     RETRIEVE_CREATE
 )
