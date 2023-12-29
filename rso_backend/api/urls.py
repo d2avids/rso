@@ -7,7 +7,7 @@ from api.constants import (CREATE_DELETE, CREATE_METHOD,
                            DOWNLOAD_ALL_FORMS, DOWNLOAD_CONSENT_PD,
                            DOWNLOAD_MEMBERSHIP_FILE,
                            DOWNLOAD_PARENT_CONSENT_PD, LIST, LIST_CREATE,
-                           RETRIEVE_CREATE, UPDATE, UPDATE_DELETE)
+                           RETRIEVE_CREATE, UPDATE_RETRIEVE, UPDATE_DELETE)
 from api.views import (AreaViewSet, CentralPositionViewSet, CentralViewSet,
                        DetachmentAcceptViewSet, DetachmentApplicationViewSet,
                        DetachmentPositionViewSet, DetachmentViewSet,
@@ -46,19 +46,19 @@ router.register('membership_certificates', MemberCertViewSet)
 router.register('events', EventViewSet)
 
 
-UserEduVS = UserEducationViewSet.as_view(UPDATE)
+UserEduVS = UserEducationViewSet.as_view(UPDATE_RETRIEVE)
 UserProfEduRetrieveCreateVS = UserProfessionalEducationViewSet.as_view(
     RETRIEVE_CREATE
 )
-UserProfEduPUDVS = UserProfessionalEducationViewSet.as_view(UPDATE | DELETE)
-UserDocVS = UserDocumentsViewSet.as_view(UPDATE)
-UserRegVS = UserRegionViewSet.as_view(UPDATE)
-UserPrivacyVS = UserPrivacySettingsViewSet.as_view(UPDATE)
-UserMediaVS = UserMediaViewSet.as_view(UPDATE)
+UserProfEduPUDVS = UserProfessionalEducationViewSet.as_view(UPDATE_RETRIEVE | DELETE)
+UserDocVS = UserDocumentsViewSet.as_view(UPDATE_RETRIEVE)
+UserRegVS = UserRegionViewSet.as_view(UPDATE_RETRIEVE)
+UserPrivacyVS = UserPrivacySettingsViewSet.as_view(UPDATE_RETRIEVE)
+UserMediaVS = UserMediaViewSet.as_view(UPDATE_RETRIEVE)
 UserStatementVS = UserStatementDocumentsViewSet.as_view(
-    UPDATE
+    UPDATE_RETRIEVE
 )
-UsersParentVS = UsersParentViewSet.as_view(UPDATE)
+UsersParentVS = UsersParentViewSet.as_view(UPDATE_RETRIEVE)
 DetachmentPositionVS = DetachmentPositionViewSet.as_view(CREATE_METHOD)
 UserStatementMembershipDownloadVS = UserStatementDocumentsViewSet.as_view(
     DOWNLOAD_MEMBERSHIP_FILE
@@ -73,22 +73,22 @@ UserStatementDownloadAllVS = UserStatementDocumentsViewSet.as_view(
     DOWNLOAD_ALL_FORMS
 )
 ForeignUserDocsVS = ForeignUserDocumentsViewSet.as_view(
-    UPDATE
+    UPDATE_RETRIEVE
 )
 DetachmentAcceptVS = DetachmentAcceptViewSet.as_view(CREATE_DELETE)
 DetachmentApplicationVS = DetachmentApplicationViewSet.as_view(CREATE_DELETE)
 DetachmentPositionListVS = DetachmentPositionViewSet.as_view(LIST)
-DetachmentPositionUpdateVS = DetachmentPositionViewSet.as_view(UPDATE)
+DetachmentPositionUpdateVS = DetachmentPositionViewSet.as_view(UPDATE_RETRIEVE)
 EducationalPositionListVS = EducationalPositionViewSet.as_view(LIST)
-EducationalPositionUpdateVS = EducationalPositionViewSet.as_view(UPDATE)
+EducationalPositionUpdateVS = EducationalPositionViewSet.as_view(UPDATE_RETRIEVE)
 LocalPositionListVS = LocalPositionViewSet.as_view(LIST)
-LocalPositionUpdateVS = LocalPositionViewSet.as_view(UPDATE)
+LocalPositionUpdateVS = LocalPositionViewSet.as_view(UPDATE_RETRIEVE)
 RegionalPositionListVS = RegionalPositionViewSet.as_view(LIST)
-RegionalPositionUpdateVS = RegionalPositionViewSet.as_view(UPDATE)
+RegionalPositionUpdateVS = RegionalPositionViewSet.as_view(UPDATE_RETRIEVE)
 DistrictPositionListVS = DistrictPositionViewSet.as_view(LIST)
-DistrictPositionUpdateVS = DistrictPositionViewSet.as_view(UPDATE)
+DistrictPositionUpdateVS = DistrictPositionViewSet.as_view(UPDATE_RETRIEVE)
 CentralPositionListVS = CentralPositionViewSet.as_view(LIST)
-CentralPositionUpdateVS = CentralPositionViewSet.as_view(UPDATE)
+CentralPositionUpdateVS = CentralPositionViewSet.as_view(UPDATE_RETRIEVE)
 EventOrganizationDataListVS = EventOrganizationDataViewSet.as_view(LIST_CREATE)
 EventOrganizationDataObjVS = EventOrganizationDataViewSet.as_view(
     UPDATE_DELETE

@@ -5,9 +5,10 @@ CREATE_DELETE = {
 LIST = {
         'get': 'list',
     }
-UPDATE = {
+UPDATE_RETRIEVE = {
         'put': 'update',
         'patch': 'partial_update',
+        'get': 'retrieve',
 }
 RETRIEVE = {
         'get': 'retrieve',
