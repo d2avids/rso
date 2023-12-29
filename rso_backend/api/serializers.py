@@ -871,6 +871,7 @@ class CentralHeadquarterSerializer(BaseUnitSerializer):
         model = CentralHeadquarter
         fields = BaseUnitSerializer.Meta.fields + (
             'members',
+            'working_years',
         )
 
     @staticmethod

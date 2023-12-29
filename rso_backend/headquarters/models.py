@@ -391,7 +391,7 @@ class Detachment(Unit):
                 self.local_headquarter
             ):
                 raise ValidationError({
-                    'educational_headquarter': 'Этот образовательный штаб '
+                    'educational_headquarter': 'Выбранный образовательный штаб '
                                                'связан с другим местным '
                                                'штабом.'
                 })
@@ -402,7 +402,7 @@ class Detachment(Unit):
                 self.regional_headquarter
             ):
                 raise ValidationError({
-                    'local_headquarter': 'Этот местный штаб связан с '
+                    'local_headquarter': 'Выбранный местный штаб связан с '
                                          'другим региональным штабом.'
                 })
 
@@ -412,14 +412,14 @@ class Detachment(Unit):
                 self.regional_headquarter
             ):
                 raise ValidationError({
-                    'educational_headquarter': 'Этот образовательный штаб '
+                    'educational_headquarter': 'Выбранный образовательный штаб '
                                                'связан с другим региональным '
                                                'штабом.'
                 })
         if self.regional_headquarter:
             if self.region != self.regional_headquarter.region:
                 raise ValidationError({
-                    'region': 'Этот регион не совпадает с регионом '
+                    'region': 'Выбранный регион не совпадает с регионом '
                               'выбранного регионального штаба.'
                 })
         if self.educational_headquarter:
@@ -428,7 +428,7 @@ class Detachment(Unit):
                     self.educational_institution
             ):
                 raise ValidationError({
-                    'educational_institution': 'Это учебное заведение '
+                    'educational_institution': 'Выбранное учебное заведение '
                                                'не совпадает с учебным '
                                                'заведением выбранного '
                                                'образовательного штаба.'
