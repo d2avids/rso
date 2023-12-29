@@ -26,6 +26,15 @@ CRUD_METHODS_WITHOUT_LIST = {
         'patch': 'partial_update',
         'delete': 'destroy'
     }
+LIST_CREATE = {
+        'get': 'list',
+        'post': 'create',
+}
+UPDATE_DELETE = {
+        'put': 'update',
+        'patch': 'partial_update',
+        'delete': 'destroy',
+}
 CREATE_METHOD = {'post': 'create', }
 DOWNLOAD_MEMBERSHIP_FILE = {'get': 'download_membership_file'}
 DOWNLOAD_CONSENT_PD = {'get': 'download_consent_personal_data'}
@@ -48,4 +57,11 @@ REGION_RAW_EXISTS = (
 )
 TOO_MANY_EDUCATIONS = (
         'Уже существует 5 записей о допобразовании.'
+)
+EVENT_TIME_DATA_RAW_EXISTS = (
+        'Информация о времени проведения данного мероприятия уже существует'
+)
+EVENT_DOCUMENT_DATA_RAW_EXISTS = (
+        'Информация о необходимых документах для данного мероприятия уже '
+        'существует'
 )

@@ -1,10 +1,10 @@
 import os
-from pathlib import Path
 from datetime import timedelta
-from pythonjsonlogger import jsonlogger
+from pathlib import Path
 
 from celery.schedules import crontab
 from dotenv import load_dotenv
+from pythonjsonlogger import jsonlogger
 
 load_dotenv()
 
@@ -69,6 +69,7 @@ INSTALLED_APPS += [
     'api.apps.ApiConfig',
     'users.apps.UsersConfig',
     'headquarters.apps.HeadquartersConfig',
+    'events.apps.EventsConfig',
 ]
 
 MIDDLEWARE = [

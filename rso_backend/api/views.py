@@ -1,78 +1,85 @@
-import mimetypes
 import io
+import mimetypes
 import os
 import zipfile
 from datetime import datetime
 
-from pdfrw.buildxobj import pagexobj
-from pdfrw.toreportlab import makerl
-
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfbase import pdfmetrics
 import pdfrw
-
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
-from rest_framework import permissions, status, viewsets, filters
+from drf_yasg.utils import swagger_auto_schema
+from pdfrw.buildxobj import pagexobj
+from pdfrw.toreportlab import makerl
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
+from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
 from api.mixins import (CreateDeleteViewSet, ListRetrieveUpdateViewSet,
                         ListRetrieveViewSet)
-from api.permissions import (IsStuffOrCentralCommander, IsStuffOrAuthor,
-                             IsDistrictCommander, IsRegionalCommander,
-                             IsLocalCommander, IsEducationalCommander,
-                             IsDetachmentCommander, IsRegStuffOrDetCommander,
-                             MembershipFeePermission,
-                             IsRegionalCommanderForCert)
-from api.serializers import (CentralHeadquarterSerializer,
+from api.permissions import (IsDetachmentCommander, IsDistrictCommander,
+                             IsEducationalCommander, IsLocalCommander,
+                             IsRegionalCommander, IsRegionalCommanderForCert,
+                             IsRegStuffOrDetCommander, IsStuffOrAuthor,
+                             IsStuffOrCentralCommander,
+                             MembershipFeePermission)
+from api.serializers import (AreaSerializer, CentralHeadquarterSerializer,
                              CentralPositionSerializer,
                              DetachmentPositionSerializer,
                              DetachmentSerializer,
                              DistrictHeadquarterSerializer,
                              DistrictPositionSerializer,
                              EducationalHeadquarterSerializer,
+                             EducationalInstitutionSerializer,
                              EducationalPositionSerializer,
+                             EventAdditionalIssueSerializer,
+                             EventDocumentDataSerializer,
+                             EventOrganizerDataSerializer, EventSerializer,
+                             EventTimeDataSerializer,
+                             ForeignUserDocumentsSerializer,
                              LocalHeadquarterSerializer,
-                             LocalPositionSerializer,
+                             LocalPositionSerializer, MemberCertSerializer,
+                             PositionSerializer,
                              ProfessionalEductionSerializer,
                              RegionalHeadquarterSerializer,
                              RegionalPositionSerializer, RegionSerializer,
                              RSOUserSerializer,
                              UserDetachmentApplicationSerializer,
                              UserDocumentsSerializer, UserEducationSerializer,
-                             UserMediaSerializer, PositionSerializer,
+                             UserMediaSerializer,
                              UserPrivacySettingsSerializer,
                              UserProfessionalEducationSerializer,
                              UserRegionSerializer, UsersParentSerializer,
-                             UserStatementDocumentsSerializer,
-                             ForeignUserDocumentsSerializer,
-                             AreaSerializer, EducationalInstitutionSerializer,
-                             MemberCertSerializer)
-from api.utils import (download_file, get_headquarter_users_positions_queryset,
-                       get_user, text_to_lines, get_user_by_id,
-                       create_and_return_archive)
-from headquarters.models import (CentralHeadquarter, Detachment,
+                             UserStatementDocumentsSerializer)
+from api.swagger_schemas import EventSwaggerSerializer
+from api.utils import (create_and_return_archive, download_file,
+                       get_headquarter_users_positions_queryset, get_user,
+                       get_user_by_id, text_to_lines)
+from events.models import (Event, EventAdditionalIssue,
+                           EventDocumentData, EventOrganizationData,
+                           EventTimeData)
+from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
-                                 LocalHeadquarter, Region, RegionalHeadquarter,
+                                 EducationalInstitution, LocalHeadquarter,
+                                 Position, Region, RegionalHeadquarter,
                                  UserCentralHeadquarterPosition,
                                  UserDetachmentApplication,
                                  UserDetachmentPosition,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition, Area,
-                                 EducationalInstitution, Position)
+                                 UserRegionalHeadquarterPosition)
 from rso_backend.settings import BASE_DIR
-from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
-                          UserEducation, UserMedia, UserPrivacySettings,
-                          UserRegion, UsersParent, UserStatementDocuments,
-                          UserVerificationRequest, ForeignUserDocuments,
-                          UserMembershipLogs, MemberCert)
+from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
+                          UserForeignDocuments, UserMedia, UserMembershipLogs,
+                          UserParent, UserPrivacySettings,
+                          UserProfessionalEducation, UserRegion,
+                          UserStatementDocuments, UserVerificationRequest)
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -248,11 +255,11 @@ class UserProfessionalEducationViewSet(BaseUserViewSet):
     'users_prof_educations'.
     """
 
-    queryset = ProfessionalEduction.objects.all()
+    queryset = UserProfessionalEducation.objects.all()
     permission_classes = [IsStuffOrAuthor,]
 
     def get_object(self):
-        return ProfessionalEduction.objects.filter(
+        return UserProfessionalEducation.objects.filter(
             user_id=self.request.user.id
         )
 
@@ -321,12 +328,12 @@ class UserDocumentsViewSet(BaseUserViewSet):
 class ForeignUserDocumentsViewSet(BaseUserViewSet):
     """Представляет документы иностранного пользователя."""
 
-    queryset = ForeignUserDocuments.objects.all()
+    queryset = UserForeignDocuments.objects.all()
     serializer_class = ForeignUserDocumentsSerializer
     permission_classes = (IsStuffOrAuthor,)
 
     def get_object(self):
-        return get_object_or_404(ForeignUserDocuments, user=self.request.user)
+        return get_object_or_404(UserForeignDocuments, user=self.request.user)
 
 
 class UserRegionViewSet(BaseUserViewSet):
@@ -461,12 +468,12 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
 class UsersParentViewSet(BaseUserViewSet):
     """Представляет законного представителя пользователя."""
 
-    queryset = UsersParent.objects.all()
+    queryset = UserParent.objects.all()
     serializer_class = UsersParentSerializer
     permission_classes = (IsStuffOrAuthor,)
 
     def get_object(self):
-        return get_object_or_404(UsersParent, user=self.request.user)
+        return get_object_or_404(UserParent, user=self.request.user)
 
 
 class CentralViewSet(ListRetrieveUpdateViewSet):
@@ -853,6 +860,105 @@ class DetachmentApplicationViewSet(viewsets.ModelViewSet):
             {'success': 'Заявка отклонена'},
             status=status.HTTP_204_NO_CONTENT
         )
+
+
+class EventViewSet(viewsets.ModelViewSet):
+    """Представляет мероприятия."""
+    queryset = Event.objects.all()
+    serializer_class = EventSerializer
+
+    @swagger_auto_schema(request_body=EventSwaggerSerializer)
+    def create(self, request, *args, **kwargs):
+        author = request.user
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(author=author)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(request_body=EventTimeDataSerializer)
+    @action(detail=True, methods=['put',], url_path='time_data')
+    def update_time_data(self, request, pk=None):
+        event = self.get_object()
+        time_data_instance = EventTimeData.objects.get(event=event)
+
+        serializer = EventTimeDataSerializer(time_data_instance, data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(request_body=EventDocumentDataSerializer)
+    @action(detail=True, methods=['put',], url_path='document_data')
+    def update_document_data(self, request, pk=None):
+        event = self.get_object()
+        document_data_instance = EventDocumentData.objects.get(event=event)
+
+        serializer = EventDocumentDataSerializer(document_data_instance, data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class EventOrganizationDataViewSet(viewsets.ModelViewSet):
+    queryset = EventOrganizationData.objects.all()
+    serializer_class = EventOrganizerDataSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        event_pk = self.kwargs.get('event_pk')
+        if event_pk is not None:
+            queryset = queryset.filter(event__id=event_pk)
+        return queryset
+
+    def create(self, request, *args, **kwargs):
+        event_pk = self.kwargs.get('event_pk')
+        event = get_object_or_404(Event, pk=event_pk)
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(event=event)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        data_pk = kwargs.get('pk')
+        instance = get_object_or_404(EventOrganizationData, pk=data_pk, event__id=self.kwargs.get('event_pk'))
+        serializer = self.get_serializer(instance, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class EventAdditionalIssueViewSet(viewsets.ModelViewSet):
+    queryset = EventAdditionalIssue.objects.all()
+    serializer_class = EventAdditionalIssueSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        event_pk = self.kwargs.get('event_pk')
+        if event_pk is not None:
+            queryset = queryset.filter(event__id=event_pk)
+        return queryset
+
+    def create(self, request, *args, **kwargs):
+        event_pk = self.kwargs.get('event_pk')
+        event = get_object_or_404(Event, pk=event_pk)
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(event=event)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        data_pk = kwargs.get('pk')
+        instance = get_object_or_404(EventAdditionalIssue, pk=data_pk, event__id=self.kwargs.get('event_pk'))
+        serializer = self.get_serializer(instance, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])

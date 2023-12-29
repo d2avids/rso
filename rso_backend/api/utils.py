@@ -9,12 +9,11 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.permissions import SAFE_METHODS
 
-from headquarters.models import (UserDistrictHeadquarterPosition,
+from headquarters.models import (CentralHeadquarter, UserDetachmentPosition,
+                                 UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition,
-                                 UserDetachmentPosition,
-                                 CentralHeadquarter)
+                                 UserRegionalHeadquarterPosition)
 from users.models import RSOUser
 
 

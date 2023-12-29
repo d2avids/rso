@@ -31,7 +31,6 @@ def document_path(instance, filename):
 
     filename = dt.today().strftime('%Y%m%d%H%M%S') + '_' + filename
     filepath = 'documents/users'
-    print(instance)
     return os.path.join(filepath, instance.user.username, filename)
 
 

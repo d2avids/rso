@@ -6,11 +6,15 @@ from djoser.serializers import UserCreatePasswordRetypeSerializer
 from rest_framework import serializers
 
 from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
-                           MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
-                           REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS,
-                           TOO_MANY_EDUCATIONS)
+                           EVENT_DOCUMENT_DATA_RAW_EXISTS,
+                           EVENT_TIME_DATA_RAW_EXISTS, MEDIA_RAW_EXISTS,
+                           PRIVACY_RAW_EXISTS, REGION_RAW_EXISTS,
+                           STATEMENT_RAW_EXISTS, TOO_MANY_EDUCATIONS)
 from api.utils import create_first_or_exception
-from headquarters.models import (CentralHeadquarter, Detachment,
+from events.models import (Event, EventAdditionalIssue, EventDocument,
+                           EventDocumentData, EventOrganizationData,
+                           EventTimeData)
+from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
                                  Position, Region, RegionalHeadquarter,
@@ -20,12 +24,12 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition, Area,)
-from users.models import (ProfessionalEduction, RSOUser, UserDocuments,
-                          UserEducation, UserMedia, UserPrivacySettings,
-                          UserRegion, UsersParent, UserStatementDocuments,
-                          UserVerificationRequest, ForeignUserDocuments,
-                          MemberCert)
+                                 UserRegionalHeadquarterPosition)
+from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
+                          UserForeignDocuments, UserMedia, UserParent,
+                          UserPrivacySettings, UserProfessionalEducation,
+                          UserRegion, UserStatementDocuments,
+                          UserVerificationRequest)
 
 
 class PositionSerializer(serializers.ModelSerializer):
@@ -52,6 +56,136 @@ class RegionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Region
         fields = ('id', 'name',)
+
+
+class EventTimeDataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventTimeData
+        fields = (
+            'event_duration_type',
+            'start_date',
+            'start_time',
+            'end_date',
+            'end_time',
+            'registration_end_date',
+            'registration_end_time',
+        )
+
+    def save(self):
+        self.instance.event_duration_type = self.validated_data['event_duration_type']
+        self.instance.start_date = self.validated_data['start_date']
+        self.instance.start_time = self.validated_data['start_time']
+        self.instance.end_date = self.validated_data['end_date']
+        self.instance.end_time = self.validated_data['end_time']
+        self.instance.registration_end_date = self.validated_data['registration_end_date']
+        self.instance.registration_end_time = self.validated_data['registration_end_time']
+        self.instance.save()
+
+    def create(self, validated_data):
+        return create_first_or_exception(
+            self,
+            validated_data,
+            EventTimeData,
+            EVENT_TIME_DATA_RAW_EXISTS
+        )
+
+
+class EventDocumentDataSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = EventDocumentData
+        fields = (
+            'passport',
+            'snils',
+            'inn',
+            'work_book',
+            'military_document',
+            'consent_personal_data',
+            'additional_info',
+        )
+
+    def save(self):
+        self.instance.passport = self.validated_data['passport']
+        self.instance.snils = self.validated_data['snils']
+        self.instance.inn = self.validated_data['inn']
+        self.instance.work_book = self.validated_data['work_book']
+        self.instance.military_document = self.validated_data['military_document']
+        self.instance.consent_personal_data = self.validated_data['consent_personal_data']
+        self.instance.additional_info = self.validated_data['additional_info']
+        self.instance.save()
+
+    def create(self, validated_data):
+        return create_first_or_exception(
+            self,
+            validated_data,
+            EventDocumentData,
+            EVENT_DOCUMENT_DATA_RAW_EXISTS
+        )
+
+
+class EventOrganizerDataSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventOrganizationData
+        fields = (
+            'id',
+            'organizer',
+            'organizer_phone_number',
+            'organizer_email',
+            'organization',
+            'telegram',
+            'is_contact_person',
+        )
+
+
+class EventDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventDocument
+        fields = ('id', 'document',)
+
+
+class EventAdditionalIssueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventAdditionalIssue
+        fields = ('id', 'issue',)
+
+
+class EventSerializer(serializers.ModelSerializer):
+    time_data = EventTimeDataSerializer(read_only=True)
+    document_data = EventDocumentDataSerializer(read_only=True)
+    additional_issues = EventAdditionalIssueSerializer(read_only=True, many=True)
+    organization_data = EventOrganizerDataSerializer(read_only=True, many=True)
+    documents = EventDocumentSerializer(read_only=True, many=True)
+
+    class Meta:
+        model = Event
+        fields = (
+            'author',
+            'format',
+            'direction',
+            'status',
+            'created_at',
+            'name',
+            'banner',
+            'conference_link',
+            'address',
+            'participants_number',
+            'description',
+            'application_type',
+            'available_structural_units',
+            'time_data',
+            'document_data',
+            'documents',
+            'organization_data',
+            'additional_issues',
+        )
+        read_only_fields = (
+            'author',
+            'created_at',
+            'documents',
+            'organization_data',
+            'time_data',
+            'document_data',
+        )
 
 
 class UserEducationSerializer(serializers.ModelSerializer):
@@ -83,7 +217,7 @@ class ProfessionalEductionSerializer(serializers.ModelSerializer):
     """
 
     class Meta:
-        model = ProfessionalEduction
+        model = UserProfessionalEducation
         fields = (
             'study_institution',
             'years_of_study',
@@ -96,7 +230,7 @@ class ProfessionalEductionSerializerID(ProfessionalEductionSerializer):
     """Сериализатор дополнительного проф образования всех юзеров c ID."""
 
     class Meta:
-        model = ProfessionalEduction
+        model = UserProfessionalEducation
         fields = ('id',) + ProfessionalEductionSerializer.Meta.fields
 
     def create(self, validated_data):
@@ -105,7 +239,7 @@ class ProfessionalEductionSerializerID(ProfessionalEductionSerializer):
         В методе реализована проверка количества записей.
         """
 
-        manager = ProfessionalEduction.objects
+        manager = UserProfessionalEducation.objects
         if manager.count() < 5:
             return manager.create(**validated_data)
         raise serializers.ValidationError(TOO_MANY_EDUCATIONS)
@@ -117,7 +251,7 @@ class UserProfessionalEducationSerializer(serializers.ModelSerializer):
     users_prof_educations = serializers.SerializerMethodField()
 
     class Meta:
-        model = ProfessionalEduction
+        model = UserProfessionalEducation
         fields = (
             'users_prof_educations',
         )
@@ -131,7 +265,7 @@ class UserProfessionalEducationSerializer(serializers.ModelSerializer):
         При отсутвии проф образования возвращаем исключение с сообщением.
         """
         try:
-            users_data = ProfessionalEduction.objects.filter(
+            users_data = UserProfessionalEducation.objects.filter(
                 user_id=obj.first().user_id
             )
         except AttributeError:
@@ -174,7 +308,7 @@ class ForeignUserDocumentsSerializer(serializers.ModelSerializer):
     """Сериализатор документом иностранного гражданина."""
 
     class Meta:
-        model = ForeignUserDocuments
+        model = UserForeignDocuments
         fields = (
             'name',
             'foreign_pass_num',
@@ -189,7 +323,7 @@ class ForeignUserDocumentsSerializer(serializers.ModelSerializer):
         return create_first_or_exception(
             self,
             validated_data,
-            ForeignUserDocuments,
+            UserForeignDocuments,
             DOCUMENTS_RAW_EXISTS
         )
 
@@ -306,7 +440,7 @@ class UserRegionSerializer(serializers.ModelSerializer):
 class UsersParentSerializer(serializers.ModelSerializer):
     """Сериализатор законного представителя."""
     class Meta:
-        model = UsersParent
+        model = UserParent
         fields = (
             'parent_last_name',
             'parent_first_name',
@@ -381,7 +515,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
 
     def get_professional_education(self, obj):
         return UserProfessionalEducationSerializer(
-            ProfessionalEduction.objects.filter(user=obj),
+            UserProfessionalEducation.objects.filter(user=obj),
             many=True,
             context={'request': self.context.get('request')},
         ).data
@@ -903,3 +1037,6 @@ class MemberCertSerializer(serializers.ModelSerializer):
             'signatory',
             'position_procuration'
         )
+
+
+

@@ -1,7 +1,6 @@
 from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
 
-
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -12,10 +11,10 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
-from headquarters.resources import (RegionResource,
+from headquarters.resources import (DistrictHeadquarterResource,
                                     EducationalInstitutionResource,
-                                    DistrictHeadquarterResource,
-                                    RegionalHeadquarterResource)
+                                    RegionalHeadquarterResource,
+                                    RegionResource)
 
 
 @admin.register(CentralHeadquarter)

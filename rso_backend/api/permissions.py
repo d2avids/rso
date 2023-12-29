@@ -1,22 +1,21 @@
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import BasePermission
 
-from api.utils import (is_stuff_or_central_commander, is_safe_method,
-                       check_trusted_user, check_trusted_in_headquarters,
-                       check_roles_for_edit,
-                       check_trusted_for_detachments,
-                       check_trusted_for_eduhead,
-                       check_trusted_for_localhead,
+from api.utils import (check_roles_for_edit, check_trusted_for_detachments,
+                       check_trusted_for_districthead,
+                       check_trusted_for_eduhead, check_trusted_for_localhead,
                        check_trusted_for_regionalhead,
-                       check_trusted_for_districthead)
-from headquarters.models import (UserCentralHeadquarterPosition,
+                       check_trusted_in_headquarters, check_trusted_user,
+                       is_safe_method, is_stuff_or_central_commander)
+from headquarters.models import (Detachment, DistrictHeadquarter,
+                                 EducationalHeadquarter, LocalHeadquarter,
+                                 RegionalHeadquarter,
+                                 UserCentralHeadquarterPosition,
+                                 UserDetachmentPosition,
                                  UserDistrictHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition,
-                                 UserLocalHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
-                                 UserDetachmentPosition, DistrictHeadquarter,
-                                 RegionalHeadquarter, LocalHeadquarter,
-                                 EducationalHeadquarter, Detachment)
+                                 UserLocalHeadquarterPosition,
+                                 UserRegionalHeadquarterPosition)
 from users.models import RSOUser
 
 
