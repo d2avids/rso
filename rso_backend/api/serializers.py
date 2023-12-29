@@ -1,3 +1,4 @@
+import datetime as dt
 from datetime import date
 
 from django.core.exceptions import ValidationError
@@ -569,7 +570,8 @@ class BaseUnitSerializer(serializers.ModelSerializer):
     commander = serializers.PrimaryKeyRelatedField(
         queryset=RSOUser.objects.all(),
     )
-    members_count = serializers.SerializerMethodField()
+    members_count = serializers.SerializerMethodField(read_only=True)
+    participants_count = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = None
@@ -585,10 +587,16 @@ class BaseUnitSerializer(serializers.ModelSerializer):
             'slogan',
             'city',
             'members_count',
+            'participants_count',
         )
 
-    def get_members_count(self, obj):
-        return self.Meta.model.objects.get(id=obj.id).members.count()
+    @staticmethod
+    def get_members_count(instance):
+        return instance.members.filter(user__membership_fee=True).count()
+
+    @staticmethod
+    def get_participants_count(instance):
+        return instance.members.count()
 
 
 class DistrictHeadquarterSerializer(BaseUnitSerializer):
@@ -857,10 +865,17 @@ class CentralHeadquarterSerializer(BaseUnitSerializer):
         many=True,
         read_only=True
     )
+    working_years = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = CentralHeadquarter
-        fields = BaseUnitSerializer.Meta.fields + ('members',)
+        fields = BaseUnitSerializer.Meta.fields + (
+            'members',
+        )
+
+    @staticmethod
+    def get_working_years(instance):
+        return dt.datetime.now().year - 1958
 
 
 class MemberCertSerializer(serializers.ModelSerializer):
