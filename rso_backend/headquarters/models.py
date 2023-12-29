@@ -660,8 +660,12 @@ class UserEducationalHeadquarterPosition(UserUnitPosition):
 
     def save(self, *args, **kwargs):
         if self._state.adding:
-            kwargs['headquarter'] = self.get_first_filled_headquarter()
-            kwargs['class_above'] = UserLocalHeadquarterPosition
+            headquarter = self.get_first_filled_headquarter()
+            kwargs['headquarter'] = headquarter
+            if isinstance(headquarter, LocalHeadquarter):
+                kwargs['class_above'] = UserLocalHeadquarterPosition
+            else:
+                kwargs['class_above'] = UserRegionalHeadquarterPosition
         super().save(*args, **kwargs)
 
     class Meta:
