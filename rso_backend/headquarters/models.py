@@ -477,11 +477,11 @@ class UserUnitPosition(models.Model):
     пользователе, его должности и статусе доверенности в конкретной структурной
     единице.
     """
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         'users.RSOUser',
         on_delete=models.CASCADE,
         verbose_name='Пользователь',
-        related_name="%(class)s_position"
+        related_name="%(class)s"
     )
     position = models.ForeignKey(
         'Position',

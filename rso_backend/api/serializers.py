@@ -478,6 +478,14 @@ class RSOUserSerializer(serializers.ModelSerializer):
     privacy = UserPrivacySettingsSerializer(read_only=True)
     parent = UsersParentSerializer(read_only=True)
     professional_education = serializers.SerializerMethodField()
+    central_headquarter_id = serializers.SerializerMethodField(read_only=True)
+    district_headquarter_id = serializers.SerializerMethodField(read_only=True)
+    regional_headquarter_id = serializers.SerializerMethodField(read_only=True)
+    local_headquarter_id = serializers.SerializerMethodField(read_only=True)
+    educational_headquarter_id = serializers.SerializerMethodField(
+        read_only=True
+    )
+    detachment_id = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = RSOUser
@@ -510,6 +518,12 @@ class RSOUserSerializer(serializers.ModelSerializer):
             'privacy',
             'parent',
             'professional_education',
+            'central_headquarter_id',
+            'district_headquarter_id',
+            'regional_headquarter_id',
+            'local_headquarter_id',
+            'educational_headquarter_id',
+            'detachment_id',
         )
         read_only_fields = ('membership_fee', 'is_verified')
 
@@ -535,6 +549,54 @@ class RSOUserSerializer(serializers.ModelSerializer):
                        )
                    ))
             return age >= 18
+
+    @staticmethod
+    def get_central_headquarter_id(instance):
+        try:
+            central_headquarter_id = CentralHeadquarter.objects.get(id=instance.id).id
+        except CentralHeadquarter.DoesNotExist:
+            central_headquarter_id = None
+        return central_headquarter_id
+
+    @staticmethod
+    def get_district_headquarter_id(instance):
+        try:
+            district_headquarter_id = DistrictHeadquarter.objects.get(id=instance.id).id
+        except DistrictHeadquarter.DoesNotExist:
+            district_headquarter_id = None
+        return district_headquarter_id
+
+    @staticmethod
+    def get_regional_headquarter_id(instance):
+        try:
+            regional_headquarter_id = RegionalHeadquarter.objects.get(id=instance.id).id
+        except RegionalHeadquarter.DoesNotExist:
+            regional_headquarter_id = None
+        return regional_headquarter_id
+
+    @staticmethod
+    def get_local_headquarter_id(instance):
+        try:
+            local_headquarter_id = LocalHeadquarter.objects.get(id=instance.id).id
+        except LocalHeadquarter.DoesNotExist:
+            local_headquarter_id = None
+        return local_headquarter_id
+
+    @staticmethod
+    def get_educational_headquarter_id(instance):
+        try:
+            eduicational_headquarter_id = EducationalHeadquarter.objects.get(id=instance.id).id
+        except EducationalHeadquarter.DoesNotExist:
+            eduicational_headquarter_id = None
+        return eduicational_headquarter_id
+
+    @staticmethod
+    def get_detachment_id(instance):
+        try:
+            detachment_id = Detachment.objects.get(id=instance.id).id
+        except Detachment.DoesNotExist:
+            detachment_id = None
+        return detachment_id
 
 
 class UserAvatarSerializer(serializers.ModelSerializer):
