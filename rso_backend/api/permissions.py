@@ -1,5 +1,7 @@
 from django.shortcuts import get_object_or_404
+from rest_framework import status
 from rest_framework.permissions import BasePermission
+from rest_framework.response import Response
 
 from api.utils import (check_roles_for_edit, check_trusted_for_detachments,
                        check_trusted_for_districthead,
@@ -359,18 +361,31 @@ class IsRegionalCommanderForCert(BasePermission):
         check_model_instance = True
         request_user_id = request.user.id
         ids = request.data.get('ids')
+        if ids is None:
+            return Response(
+                {'detail': 'Поле ids не может быть пустым.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         try:
             commander_regheadquarter_id = RegionalHeadquarter.objects.filter(
                 commander_id=request_user_id
             ).first().id
             for id in ids:
+                if id == 0:
+                    return Response(
+                        {'detail': 'Поле ids не может содержать 0.'},
+                    )
                 user_reghead_id = UserRegionalHeadquarterPosition.objects.get(
                     user_id=id
                 ).headquarter_id
                 if user_reghead_id != commander_regheadquarter_id:
                     check_model_instance = False
                     break
-        except (RegionalHeadquarter.DoesNotExist, AttributeError):
+        except (
+            RegionalHeadquarter.DoesNotExist,
+            AttributeError,
+            UserRegionalHeadquarterPosition.DoesNotExist
+        ):
             check_model_instance = False
         return any([
             is_safe_method(request),
