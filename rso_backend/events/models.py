@@ -359,3 +359,84 @@ class EventAdditionalIssue(models.Model):
             f'Вопрос по мероприятию {self.event.name}, '
             f'id {self.event.id}: {self.issue[:25]}...'
         )
+
+
+class EventApplications(models.Model):
+    """Таблица для хранения индивидуальных заявок на участие в мероприятиях."""
+    event = models.ForeignKey(
+        to='Event',
+        on_delete=models.CASCADE,
+        related_name='event_applications',
+        verbose_name='Мероприятие'
+    )
+    user = models.ForeignKey(
+        to='users.RSOUser',
+        on_delete=models.CASCADE,
+        related_name='event_applications',
+        verbose_name='Пользователь',
+    )
+    is_approved = models.BooleanField(
+        verbose_name='Подтверждено',
+        default=False,
+    )
+    created_at = models.DateTimeField(
+        verbose_name='Дата создания заявки',
+        auto_now_add=True,
+    )
+    # для отслеживания времени изменения статуса подтверждения
+    # нужно/нет?
+    updated_at = models.DateTimeField(
+        verbose_name='Дата обновления заявки',
+        auto_now=True,
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ['-id']
+        verbose_name_plural = 'Заявки на участие в мероприятиях'
+        verbose_name = 'Заявка на участие в мероприятии'
+        # в сериализаторе доп. проверка для коррктной и содержательной выдачи ошибки
+        constraints = [
+            models.UniqueConstraint(
+                fields=('event', 'user'),
+                name='unique_event_application'
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f'Заявка пользователя {self.user.last_name} '
+            f'{self.user.first_name}. Id: {self.user.id}'
+            f' на участие в мероприятии {self.event.name}. Id: {self.event.id}'
+        )
+
+
+class EventIssueAnswer(models.Model):
+    """Таблица для хранения ответов на вопросы участников мероприятий."""
+    application = models.ForeignKey(
+        to='EventApplications',
+        on_delete=models.CASCADE,
+        related_name='answers',
+        verbose_name='Заявка',
+    )
+    issue = models.ForeignKey(
+        to='EventAdditionalIssue',
+        on_delete=models.CASCADE,
+        related_name='answers',
+        verbose_name='Вопрос',
+    )
+    answer = models.TextField(
+        verbose_name='Ответ',
+    )
+
+    class Meta:
+        ordering = ['-id']
+        verbose_name_plural = 'Ответы на вопросы участников мероприятий'
+        verbose_name = 'Ответ на вопрос участника мероприятия'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('application', 'issue'),
+                name='unique_issue_answer'
+            )
+        ]

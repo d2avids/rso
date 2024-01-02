@@ -26,6 +26,7 @@ from api.views import (AreaViewSet, CentralPositionViewSet, CentralViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
                        apply_for_verification, change_membership_fee_status,
                        get_structural_units, verify_user)
+from events.views import EventApplicationsViewSet
 
 app_name = 'api'
 
@@ -44,6 +45,11 @@ router.register(r'positions', PositionViewSet)
 router.register('eduicational_institutions', EducationalInstitutionViewSet)
 router.register('membership_certificates', MemberCertViewSet)
 router.register('events', EventViewSet)
+router.register(
+    r'events/(?P<event_pk>\d+)/applications',
+    EventApplicationsViewSet,
+    basename='event-applications'
+)
 
 
 UserEduVS = UserEducationViewSet.as_view(UPDATE_RETRIEVE)
