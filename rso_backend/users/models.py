@@ -822,6 +822,7 @@ class UserVerificationRequest(models.Model):
 
 class UserMembershipLogs(models.Model):
     """Таблица для хранения логов об оплате членского взноса."""
+
     user = models.ForeignKey(
         to='RSOUser',
         on_delete=models.CASCADE,
@@ -933,3 +934,37 @@ class MemberCert(models.Model):
             f'Пользователь {self.signatory} выдал справку'
             f' пользователю {self.user.username}.'
         )
+
+
+class UserMemberCertLogs(models.Model):
+    """Таблица для хранения логов о выдаче справок."""
+
+    user = models.ForeignKey(
+        to='RSOUser',
+        on_delete=models.CASCADE,
+        related_name='membercert_logs',
+        verbose_name='Пользователь',
+    )
+    cert_issued_by = models.ForeignKey(
+        to='RSOUser',
+        on_delete=models.CASCADE,
+        related_name='issued_membercert_logs',
+        verbose_name='Пользователь, выдавший справку'
+    )
+    date = models.DateField(
+        verbose_name='Дата действия',
+        auto_now_add=True,
+    )
+    description = models.TextField(
+        verbose_name='Сообщение лога',
+        blank=True,
+        null=True
+    )
+    cert_type = models.CharField(
+        verbose_name='Тип справки',
+        max_length=50
+    )
+
+    class Meta:
+        verbose_name_plural = 'Логи выдачи справок о членстве в РСО.'
+        verbose_name = 'Лог выдачи справки о членстве в РСО.'

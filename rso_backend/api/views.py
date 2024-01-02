@@ -79,7 +79,8 @@ from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
                           UserForeignDocuments, UserMedia, UserMembershipLogs,
                           UserParent, UserPrivacySettings,
                           UserProfessionalEducation, UserRegion,
-                          UserStatementDocuments, UserVerificationRequest)
+                          UserStatementDocuments, UserVerificationRequest,
+                          UserMemberCertLogs)
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -142,16 +143,6 @@ class AreaViewSet(ListRetrieveViewSet):
     queryset = Area.objects.all()
     serializer_class = AreaSerializer
     permission_classes = [IsStuffOrCentralCommander,]
-
-
-class PositionViewSet(ListRetrieveViewSet):
-    """Представляет должности для юзеров.
-
-    Доступны только операции чтения.
-    """
-
-    queryset = Position.objects.all()
-    serializer_class = PositionSerializer
 
 
 class PositionViewSet(ListRetrieveViewSet):
@@ -882,7 +873,9 @@ class EventViewSet(viewsets.ModelViewSet):
         event = self.get_object()
         time_data_instance = EventTimeData.objects.get(event=event)
 
-        serializer = EventTimeDataSerializer(time_data_instance, data=request.data)
+        serializer = EventTimeDataSerializer(
+            time_data_instance, data=request.data
+        )
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data)
@@ -894,7 +887,9 @@ class EventViewSet(viewsets.ModelViewSet):
         event = self.get_object()
         document_data_instance = EventDocumentData.objects.get(event=event)
 
-        serializer = EventDocumentDataSerializer(document_data_instance, data=request.data)
+        serializer = EventDocumentDataSerializer(
+            document_data_instance, data=request.data
+        )
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data)
@@ -923,7 +918,11 @@ class EventOrganizationDataViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         data_pk = kwargs.get('pk')
-        instance = get_object_or_404(EventOrganizationData, pk=data_pk, event__id=self.kwargs.get('event_pk'))
+        instance = get_object_or_404(
+            EventOrganizationData,
+            pk=data_pk,
+            event__id=self.kwargs.get('event_pk')
+        )
         serializer = self.get_serializer(instance, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -953,7 +952,11 @@ class EventAdditionalIssueViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         data_pk = kwargs.get('pk')
-        instance = get_object_or_404(EventAdditionalIssue, pk=data_pk, event__id=self.kwargs.get('event_pk'))
+        instance = get_object_or_404(
+            EventAdditionalIssue,
+            pk=data_pk,
+            event__id=self.kwargs.get('event_pk')
+        )
         serializer = self.get_serializer(instance, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -1490,6 +1493,11 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                     f'{user.username}.pdf'
                 )
                 external_certs[filename] = pdf_cert_or_response
+                UserMemberCertLogs.objects.create(
+                    user=user,
+                    cert_type='external_cert',
+                    cert_issued_by=request.user
+                )
             response = create_and_return_archive(external_certs)
             return response
 
@@ -1523,5 +1531,10 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                     f'{user.username}.pdf'
                 )
                 internal_certs[filename] = pdf_cert_or_response
+                UserMemberCertLogs.objects.create(
+                    user=user,
+                    cert_type='internal_cert',
+                    cert_issued_by=request.user
+                )
             response = create_and_return_archive(internal_certs)
             return response
