@@ -59,6 +59,10 @@ class RegionSerializer(serializers.ModelSerializer):
 
 
 class EventTimeDataSerializer(serializers.ModelSerializer):
+    event_duration_type = serializers.CharField(
+        source='get_event_duration_type_display'
+    )
+
     class Meta:
         model = EventTimeData
         fields = (
@@ -70,16 +74,6 @@ class EventTimeDataSerializer(serializers.ModelSerializer):
             'registration_end_date',
             'registration_end_time',
         )
-
-    def save(self):
-        self.instance.event_duration_type = self.validated_data['event_duration_type']
-        self.instance.start_date = self.validated_data['start_date']
-        self.instance.start_time = self.validated_data['start_time']
-        self.instance.end_date = self.validated_data['end_date']
-        self.instance.end_time = self.validated_data['end_time']
-        self.instance.registration_end_date = self.validated_data['registration_end_date']
-        self.instance.registration_end_time = self.validated_data['registration_end_time']
-        self.instance.save()
 
     def create(self, validated_data):
         return create_first_or_exception(
@@ -103,16 +97,6 @@ class EventDocumentDataSerializer(serializers.ModelSerializer):
             'consent_personal_data',
             'additional_info',
         )
-
-    def save(self):
-        self.instance.passport = self.validated_data['passport']
-        self.instance.snils = self.validated_data['snils']
-        self.instance.inn = self.validated_data['inn']
-        self.instance.work_book = self.validated_data['work_book']
-        self.instance.military_document = self.validated_data['military_document']
-        self.instance.consent_personal_data = self.validated_data['consent_personal_data']
-        self.instance.additional_info = self.validated_data['additional_info']
-        self.instance.save()
 
     def create(self, validated_data):
         return create_first_or_exception(
@@ -152,13 +136,25 @@ class EventAdditionalIssueSerializer(serializers.ModelSerializer):
 class EventSerializer(serializers.ModelSerializer):
     time_data = EventTimeDataSerializer(read_only=True)
     document_data = EventDocumentDataSerializer(read_only=True)
-    additional_issues = EventAdditionalIssueSerializer(read_only=True, many=True)
+    additional_issues = EventAdditionalIssueSerializer(
+        read_only=True, many=True
+    )
     organization_data = EventOrganizerDataSerializer(read_only=True, many=True)
     documents = EventDocumentSerializer(read_only=True, many=True)
+    available_structural_units = serializers.CharField(
+        source='get_available_structural_units_display'
+    )
+    application_type = serializers.CharField(
+        source='get_application_type_display'
+    )
+    direction = serializers.CharField(source='get_direction_display')
+    format = serializers.CharField(source='get_format_display')
+    status = serializers.CharField(source='get_status_display')
 
     class Meta:
         model = Event
         fields = (
+            'id',
             'author',
             'format',
             'direction',
@@ -179,6 +175,7 @@ class EventSerializer(serializers.ModelSerializer):
             'additional_issues',
         )
         read_only_fields = (
+            'id',
             'author',
             'created_at',
             'documents',
@@ -328,7 +325,22 @@ class ForeignUserDocumentsSerializer(serializers.ModelSerializer):
         )
 
 
+class PrivacyOptionField(serializers.ChoiceField):
+    def to_representation(self, value):
+        if value in self.choices:
+            return self.choices[value][1]
+        return value
+
+
 class UserPrivacySettingsSerializer(serializers.ModelSerializer):
+    privacy_telephone = serializers.CharField(
+        source='get_privacy_telephone_display'
+    )
+    privacy_email = serializers.CharField(source='get_privacy_email_display')
+    privacy_social = serializers.CharField(source='get_privacy_social_display')
+    privacy_about = serializers.CharField(source='get_privacy_about_display')
+    privacy_photo = serializers.CharField(source='get_privacy_photo_display')
+
     class Meta:
         model = UserPrivacySettings
         fields = (
@@ -553,7 +565,9 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_central_headquarter_id(instance):
         try:
-            central_headquarter_id = CentralHeadquarter.objects.get(id=instance.id).id
+            central_headquarter_id = CentralHeadquarter.objects.get(
+                id=instance.id
+            ).id
         except CentralHeadquarter.DoesNotExist:
             central_headquarter_id = None
         return central_headquarter_id
@@ -561,7 +575,9 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_district_headquarter_id(instance):
         try:
-            district_headquarter_id = DistrictHeadquarter.objects.get(id=instance.id).id
+            district_headquarter_id = DistrictHeadquarter.objects.get(
+                id=instance.id
+            ).id
         except DistrictHeadquarter.DoesNotExist:
             district_headquarter_id = None
         return district_headquarter_id
@@ -569,7 +585,9 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_regional_headquarter_id(instance):
         try:
-            regional_headquarter_id = RegionalHeadquarter.objects.get(id=instance.id).id
+            regional_headquarter_id = RegionalHeadquarter.objects.get(
+                id=instance.id
+            ).id
         except RegionalHeadquarter.DoesNotExist:
             regional_headquarter_id = None
         return regional_headquarter_id
@@ -577,7 +595,9 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_local_headquarter_id(instance):
         try:
-            local_headquarter_id = LocalHeadquarter.objects.get(id=instance.id).id
+            local_headquarter_id = LocalHeadquarter.objects.get(
+                id=instance.id
+            ).id
         except LocalHeadquarter.DoesNotExist:
             local_headquarter_id = None
         return local_headquarter_id
@@ -585,7 +605,9 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_educational_headquarter_id(instance):
         try:
-            eduicational_headquarter_id = EducationalHeadquarter.objects.get(id=instance.id).id
+            eduicational_headquarter_id = EducationalHeadquarter.objects.get(
+                id=instance.id
+            ).id
         except EducationalHeadquarter.DoesNotExist:
             eduicational_headquarter_id = None
         return eduicational_headquarter_id
@@ -1099,6 +1121,3 @@ class MemberCertSerializer(serializers.ModelSerializer):
             'signatory',
             'position_procuration'
         )
-
-
-

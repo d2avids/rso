@@ -95,7 +95,8 @@ class Event(models.Model):
         max_length=30,
         choices=EventAvailableStructuralUnit.choices,
         default=EventAvailableStructuralUnit.DETACHMENTS,
-        verbose_name='Объекты, имеющие возможность формировать групповые заявки'
+        verbose_name='Объекты, имеющие возможность '
+                     'формировать групповые заявки'
     )
 
     class Meta:
