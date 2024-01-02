@@ -363,22 +363,26 @@ class IsRegionalCommanderForCert(BasePermission):
         ids = request.data.get('ids')
         if ids is None:
             return Response(
-                {'detail': 'Поле ids не может быть пустым.'},
+                {'detail': 'Поле "ids" не может быть пустым.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         try:
-            commander_regheadquarter_id = RegionalHeadquarter.objects.filter(
+            commanders_regional_head_id = RegionalHeadquarter.objects.filter(
                 commander_id=request_user_id
             ).first().id
             for id in ids:
                 if id == 0:
                     return Response(
-                        {'detail': 'Поле ids не может содержать 0.'},
+                        {'detail': 'Поле "ids" не может содержать 0.'},
                     )
-                user_reghead_id = UserRegionalHeadquarterPosition.objects.get(
-                    user_id=id
-                ).headquarter_id
-                if user_reghead_id != commander_regheadquarter_id:
+                users_regional_head_id = (
+                    UserRegionalHeadquarterPosition.objects.get(
+                        user_id=id
+                    ).headquarter_id
+                )
+                if (
+                    users_regional_head_id != commanders_regional_head_id
+                ):
                     check_model_instance = False
                     break
         except (
