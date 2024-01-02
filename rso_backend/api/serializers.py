@@ -150,6 +150,7 @@ class EventSerializer(serializers.ModelSerializer):
     direction = serializers.CharField(source='get_direction_display')
     format = serializers.CharField(source='get_format_display')
     status = serializers.CharField(source='get_status_display')
+    scale = serializers.CharField(source='get_scale_display')
 
     class Meta:
         model = Event
@@ -159,6 +160,7 @@ class EventSerializer(serializers.ModelSerializer):
             'format',
             'direction',
             'status',
+            'scale',
             'created_at',
             'name',
             'banner',
@@ -177,6 +179,7 @@ class EventSerializer(serializers.ModelSerializer):
         read_only_fields = (
             'id',
             'author',
+            'scale',
             'created_at',
             'documents',
             'organization_data',
@@ -778,6 +781,52 @@ class DetachmentPositionSerializer(BasePositionSerializer):
         read_only_fields = BasePositionSerializer.Meta.read_only_fields
 
 
+class BaseShortUnitSerializer(serializers.ModelSerializer):
+    """Базовый сериализатор для хранения общей логики штабов.
+
+    Хранит только поля id, name и banner.
+    """
+
+    class Meta:
+        model = None
+        fields = (
+            'id',
+            'name',
+            'banner',
+        )
+
+
+class ShortDistrictHeadquarterSerializer(BaseShortUnitSerializer):
+    class Meta:
+        model = DistrictHeadquarter
+        fields = BaseShortUnitSerializer.Meta.fields
+
+
+class ShortRegionalHeadquarterSerializer(BaseShortUnitSerializer):
+    class Meta:
+        model = RegionalHeadquarter
+        fields = BaseShortUnitSerializer.Meta.fields
+
+
+class ShortLocalHeadquarterSerializer(BaseShortUnitSerializer):
+    class Meta:
+        model = LocalHeadquarter
+        fields = BaseShortUnitSerializer.Meta.fields
+
+
+class ShortEducationalHeadquarterSerializer(BaseShortUnitSerializer):
+    class Meta:
+        model = EducationalHeadquarter
+        fields = BaseShortUnitSerializer.Meta.fields
+
+
+class ShortDetachmentSerializer(BaseShortUnitSerializer):
+    class Meta:
+        model = Detachment
+        fields = BaseShortUnitSerializer.Meta.fields
+
+
+
 class BaseUnitSerializer(serializers.ModelSerializer):
     """Базовый сериализатор для хранения общей логики штабов.
 
@@ -834,6 +883,7 @@ class DistrictHeadquarterSerializer(BaseUnitSerializer):
         many=True,
         read_only=True
     )
+    regional_headquarters = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = DistrictHeadquarter
@@ -841,7 +891,13 @@ class DistrictHeadquarterSerializer(BaseUnitSerializer):
             'central_headquarter',
             'founding_date',
             'members',
+            'regional_headquarters',
         )
+        read_only_fields = ('regional_headquarters', )
+
+    def get_regional_headquarters(self, obj):
+        hqs = RegionalHeadquarter.objects.filter(district_headquarter=obj)
+        return ShortRegionalHeadquarterSerializer(hqs, many=True).data
 
 
 class RegionalHeadquarterSerializer(BaseUnitSerializer):
@@ -863,6 +919,11 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
         read_only=True
     )
     users_for_verification = serializers.SerializerMethodField(read_only=True)
+    detachments = serializers.SerializerMethodField(read_only=True)
+    local_headquarters = serializers.SerializerMethodField(read_only=True)
+    educational_headquarters = serializers.SerializerMethodField(
+        read_only=True
+    )
 
     class Meta:
         model = RegionalHeadquarter
@@ -879,6 +940,14 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
             'legal_address',
             'requisites',
             'founding_date',
+            'detachments',
+            'local_headquarters',
+            'educational_headquarters',
+        )
+        read_only_fields = (
+            'detachments',
+            'local_headquarters',
+            'educational_headquarters',
         )
 
     @staticmethod
@@ -892,6 +961,18 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
             'name': f'{request.user.first_name} {request.user.last_name}',
             'email': request.user.email
         } for request in verification_requests]
+
+    def get_detachments(self, obj):
+        hqs = Detachment.objects.filter(regional_headquarter=obj)
+        return ShortDetachmentSerializer(hqs, many=True).data
+
+    def get_local_headquarters(self, obj):
+        hqs = LocalHeadquarter.objects.filter(regional_headquarter=obj)
+        return ShortLocalHeadquarterSerializer(hqs, many=True).data
+
+    def get_educational_headquarters(self, obj):
+        hqs = EducationalHeadquarter.objects.filter(regional_headquarter=obj)
+        return ShortEducationalHeadquarterSerializer(hqs, many=True).data
 
 
 class LocalHeadquarterSerializer(BaseUnitSerializer):
@@ -908,6 +989,12 @@ class LocalHeadquarterSerializer(BaseUnitSerializer):
         many=True,
         read_only=True
     )
+    educational_headquarters = serializers.SerializerMethodField(
+        read_only=True
+    )
+    detachments = serializers.SerializerMethodField(
+        read_only=True
+    )
 
     class Meta:
         model = LocalHeadquarter
@@ -915,7 +1002,19 @@ class LocalHeadquarterSerializer(BaseUnitSerializer):
             'regional_headquarter',
             'members',
             'founding_date',
+            'educational_headquarters',
+            'detachments',
         )
+        read_only_fields = ('educational_headquarters', 'detachments')
+
+    def get_educational_headquarters(self, obj):
+        hqs = EducationalHeadquarter.objects.filter(local_headquarter=obj)
+        return ShortEducationalHeadquarterSerializer(hqs, many=True).data
+
+
+    def get_detachments(self, obj):
+        hqs = Detachment.objects.filter(local_headquarter=obj)
+        return ShortDetachmentSerializer(hqs, many=True).data
 
 
 class EducationalHeadquarterSerializer(BaseUnitSerializer):
@@ -940,6 +1039,9 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
         many=True,
         read_only=True
     )
+    detachments = serializers.SerializerMethodField(
+        read_only=True
+    )
 
     class Meta:
         model = EducationalHeadquarter
@@ -949,7 +1051,9 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
             'regional_headquarter',
             'members',
             'founding_date',
+            'detachments'
         )
+        read_only_fields = ('detachments', )
 
     def validate(self, data):
         """
@@ -962,6 +1066,10 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
         except ValidationError as e:
             raise serializers.ValidationError(e.message_dict)
         return data
+
+    def get_detachments(self, obj):
+        hqs = Detachment.objects.filter(educational_headquarter=obj)
+        return ShortDetachmentSerializer(hqs, many=True).data
 
 
 class UserDetachmentApplicationSerializer(serializers.ModelSerializer):

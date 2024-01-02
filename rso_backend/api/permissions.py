@@ -8,6 +8,7 @@ from api.utils import (check_roles_for_edit, check_trusted_for_detachments,
                        check_trusted_for_regionalhead,
                        check_trusted_in_headquarters, check_trusted_user,
                        is_safe_method, is_stuff_or_central_commander)
+from events.models import Event
 from headquarters.models import (Detachment, DistrictHeadquarter,
                                  EducationalHeadquarter, LocalHeadquarter,
                                  RegionalHeadquarter,
@@ -18,7 +19,6 @@ from headquarters.models import (Detachment, DistrictHeadquarter,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
 from users.models import RSOUser
-from events.models import Event
 
 
 class IsStuffOrCentralCommander(BasePermission):

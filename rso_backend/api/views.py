@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg.utils import swagger_auto_schema
 from pdfrw.buildxobj import pagexobj
 from pdfrw.toreportlab import makerl
@@ -20,15 +21,16 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
+from api.filters import EventFilter
 from api.mixins import (CreateDeleteViewSet, ListRetrieveUpdateViewSet,
                         ListRetrieveViewSet)
-from api.permissions import (IsDetachmentCommander, IsDistrictCommander,
-                             IsEducationalCommander, IsLocalCommander,
+from api.permissions import (IsAuthorPermission, IsDetachmentCommander,
+                             IsDistrictCommander, IsEducationalCommander,
+                             IsEventAuthor, IsLocalCommander,
                              IsRegionalCommander, IsRegionalCommanderForCert,
                              IsRegStuffOrDetCommander, IsStuffOrAuthor,
                              IsStuffOrCentralCommander,
-                             MembershipFeePermission, IsAuthorPermission,
-                             IsEventAuthor)
+                             MembershipFeePermission)
 from api.serializers import (AreaSerializer, CentralHeadquarterSerializer,
                              CentralPositionSerializer,
                              DetachmentPositionSerializer,
@@ -49,7 +51,11 @@ from api.serializers import (AreaSerializer, CentralHeadquarterSerializer,
                              ProfessionalEductionSerializer,
                              RegionalHeadquarterSerializer,
                              RegionalPositionSerializer, RegionSerializer,
-                             RSOUserSerializer,
+                             RSOUserSerializer, ShortDetachmentSerializer,
+                             ShortDistrictHeadquarterSerializer,
+                             ShortEducationalHeadquarterSerializer,
+                             ShortLocalHeadquarterSerializer,
+                             ShortRegionalHeadquarterSerializer,
                              UserDetachmentApplicationSerializer,
                              UserDocumentsSerializer, UserEducationSerializer,
                              UserMediaSerializer,
@@ -61,9 +67,8 @@ from api.swagger_schemas import EventSwaggerSerializer
 from api.utils import (create_and_return_archive, download_file,
                        get_headquarter_users_positions_queryset, get_user,
                        get_user_by_id, text_to_lines)
-from events.models import (Event, EventAdditionalIssue,
-                           EventDocumentData, EventOrganizationData,
-                           EventTimeData)
+from events.models import (Event, EventAdditionalIssue, EventDocumentData,
+                           EventOrganizationData, EventTimeData)
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -77,11 +82,10 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserRegionalHeadquarterPosition)
 from rso_backend.settings import BASE_DIR
 from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
-                          UserForeignDocuments, UserMedia, UserMembershipLogs,
-                          UserParent, UserPrivacySettings,
+                          UserForeignDocuments, UserMedia, UserMemberCertLogs,
+                          UserMembershipLogs, UserParent, UserPrivacySettings,
                           UserProfessionalEducation, UserRegion,
-                          UserStatementDocuments, UserVerificationRequest,
-                          UserMemberCertLogs)
+                          UserStatementDocuments, UserVerificationRequest)
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -859,6 +863,9 @@ class EventViewSet(viewsets.ModelViewSet):
 
     queryset = Event.objects.all()
     serializer_class = EventSerializer
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
+    filterset_class = EventFilter
+    search_fields = ('name', 'address', 'description',)
 
     PERMISSIONS_MAPPING = {
         'central': IsStuffOrCentralCommander,
@@ -874,7 +881,7 @@ class EventViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve']:
             permission_classes = [permissions.AllowAny]
         if self.action == 'create':
-            event_unit = self.request.data.get('available_structural_units')
+            event_unit = self.request.data.get('scale')
             permission_classes = [permissions.IsAuthenticated]
             permission_classes += [
                 self.PERMISSIONS_MAPPING.get(
@@ -1044,19 +1051,19 @@ def get_structural_units(request):
         'central_headquarters': CentralHeadquarterSerializer(
             central_headquarters, many=True
         ).data,
-        'regional_headquarters': RegionalHeadquarterSerializer(
+        'regional_headquarters': ShortRegionalHeadquarterSerializer(
             regional_headquarters, many=True
         ).data,
-        'district_headquarters': DistrictHeadquarterSerializer(
+        'district_headquarters': ShortDistrictHeadquarterSerializer(
             district_headquarters, many=True
         ).data,
-        'local_headquarters': LocalHeadquarterSerializer(
+        'local_headquarters': ShortLocalHeadquarterSerializer(
             local_headquarters, many=True
         ).data,
-        'educational_headquarters': EducationalHeadquarterSerializer(
+        'educational_headquarters': ShortEducationalHeadquarterSerializer(
             educational_headquarters, many=True
         ).data,
-        'detachments': DetachmentSerializer(detachments, many=True).data
+        'detachments': ShortDetachmentSerializer(detachments, many=True).data
     }
 
     return Response(response)
