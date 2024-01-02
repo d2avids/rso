@@ -27,7 +27,8 @@ from api.permissions import (IsDetachmentCommander, IsDistrictCommander,
                              IsRegionalCommander, IsRegionalCommanderForCert,
                              IsRegStuffOrDetCommander, IsStuffOrAuthor,
                              IsStuffOrCentralCommander,
-                             MembershipFeePermission)
+                             MembershipFeePermission, IsAuthorPermission,
+                             IsEventAuthor)
 from api.serializers import (AreaSerializer, CentralHeadquarterSerializer,
                              CentralPositionSerializer,
                              DetachmentPositionSerializer,
@@ -855,8 +856,37 @@ class DetachmentApplicationViewSet(viewsets.ModelViewSet):
 
 class EventViewSet(viewsets.ModelViewSet):
     """Представляет мероприятия."""
+
     queryset = Event.objects.all()
     serializer_class = EventSerializer
+
+    PERMISSIONS_MAPPING = {
+        'central': IsStuffOrCentralCommander,
+        'districts': IsDistrictCommander,
+        'regionals': IsRegionalCommander,
+        'locals': IsLocalCommander,
+        'educationals': IsEducationalCommander,
+        'detachments': IsDetachmentCommander,
+    }
+
+    def get_permissions(self):
+        """Применить пермишен в зависимости от действия."""
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [permissions.AllowAny]
+        if self.action == 'create':
+            event_unit = self.request.data.get('available_structural_units')
+            permission_classes = [permissions.IsAuthenticated]
+            permission_classes += [
+                self.PERMISSIONS_MAPPING.get(
+                    event_unit, permissions.IsAuthenticated
+                )
+            ]
+        if self.action in (
+                'update', 'update_time_data', 'update_document_data'
+        ):
+            permission_classes = [IsAuthorPermission]
+        print(permission_classes)
+        return [permission() for permission in permission_classes]
 
     @swagger_auto_schema(request_body=EventSwaggerSerializer)
     def create(self, request, *args, **kwargs):
@@ -899,6 +929,7 @@ class EventViewSet(viewsets.ModelViewSet):
 class EventOrganizationDataViewSet(viewsets.ModelViewSet):
     queryset = EventOrganizationData.objects.all()
     serializer_class = EventOrganizerDataSerializer
+    permission_classes = (IsEventAuthor,)
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -933,6 +964,7 @@ class EventOrganizationDataViewSet(viewsets.ModelViewSet):
 class EventAdditionalIssueViewSet(viewsets.ModelViewSet):
     queryset = EventAdditionalIssue.objects.all()
     serializer_class = EventAdditionalIssueSerializer
+    permission_classes = (IsEventAuthor,)
 
     def get_queryset(self):
         queryset = super().get_queryset()
