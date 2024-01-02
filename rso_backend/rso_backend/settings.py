@@ -291,8 +291,13 @@ if DEBUG:
         'schedule': timedelta(seconds=90),
     }
 
+# FOR LINUX:
 # celery -A rso_backend worker --loglevel=info
 # celery -A rso_backend beat -l info
+
+# FOR WINDOWS:
+# celery -A rso_backend worker --loglevel=info -P eventlet
+# celery -A rso_backend beat -l info -P eventlet
 
 CORS_ORIGIN_WHITELIST = [
     'http://localhost:3000',
