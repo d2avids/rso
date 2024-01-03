@@ -416,12 +416,6 @@ class EventApplications(models.Model):
 
 class EventIssueAnswer(models.Model):
     """Таблица для хранения ответов на вопросы участников мероприятий."""
-    # application = models.ForeignKey(
-    #     to='EventApplications',
-    #     on_delete=models.CASCADE,
-    #     related_name='answers',
-    #     verbose_name='Заявка',
-    # )
     event = models.ForeignKey(
         to='Event',
         on_delete=models.CASCADE,

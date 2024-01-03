@@ -48,7 +48,8 @@ class EventApplicationsViewSet(mixins.ListModelMixin,
     @action(detail=True,
             methods=['post'],
             url_path='confirm',
-            serializer_class=EventParticipantsSerializer) # дописать пермишн на Организатор мероприятия
+            serializer_class=EventParticipantsSerializer)
+    # дописать пермишн на Организатор мероприятия
     def confirm(self, request, *args, **kwargs):
         """
         Подтверждение заявки на участие в мероприятии и создание участника.
@@ -78,45 +79,6 @@ class EventApplicationsViewSet(mixins.ListModelMixin,
         #             IsApplicationAuthorOrEventOrganizer()]
         # else:
         return super().get_permissions()
-
-    @action(detail=True,
-            methods=['get', 'post', 'delete'],
-            url_path='answers',
-            serializer_class=AnswerSerializer)
-    # дописать пермишн доступ ПОСТ - авторизованному и ГЕТ - организатору
-    def answers(self, request, event_pk, pk):
-        """
-        Action для получения (GET) или сохранения ответов (POST) на вопросы
-        мероприятия по данной заявке.
-        """
-        application = self.get_object()
-        questions = application.event.additional_issues.all()
-
-        if request.method == 'POST':
-            serializer = AnswerSerializer(data=request.data,
-                                          many=True,
-                                          context={'application': application,
-                                                   'request': request})
-            serializer.is_valid(raise_exception=True)
-            answers_to_create = []
-            for answer_data in request.data:
-                issue_id = answer_data['issue_id']
-                answer_text = answer_data['answer']
-                issue_instance = questions.get(id=issue_id)
-                answer_to_create = EventIssueAnswer(
-                    application=application,
-                    issue=issue_instance,
-                    answer=answer_text
-                )
-                answers_to_create.append(answer_to_create)
-
-            EventIssueAnswer.objects.bulk_create(answers_to_create)
-
-            return Response(status=status.HTTP_201_CREATED)
-        else:
-            answers = EventIssueAnswer.objects.filter(application=application)
-            serializer = AnswerSerializer(answers, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class EventParticipantsViewSet(mixins.ListModelMixin,

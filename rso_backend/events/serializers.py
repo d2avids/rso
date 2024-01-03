@@ -64,9 +64,6 @@ class EventApplicationsSerializer(serializers.ModelSerializer):
 
 
 class AnswerSerializer(serializers.ModelSerializer):
-    # issue_id = serializers.PrimaryKeyRelatedField(
-    #     queryset=EventAdditionalIssue.objects.all()
-    # )
 
     class Meta:
         model = EventIssueAnswer
@@ -93,25 +90,6 @@ class AnswerSerializer(serializers.ModelSerializer):
                     'Вы уже отвечали на вопросы данного мероприятия'
                 )
         return attrs
-
-    # # Перенесено во вью. Так как из за many=True передается один экземпляр
-    # def create(self, validated_data):
-    #     print(validated_data)
-    #     application = self.context.get('application')
-    #     questions = application.event.additional_issues.all()
-    #     answers_to_create = []
-    #     for answer_data in validated_data:
-    #         issue_id = answer_data['issue_id']
-    #         answer_text = answer_data['answer']
-    #         issue_instance = questions.get(id=issue_id)
-    #         answer_to_create = EventIssueAnswer(
-    #             application=application,
-    #             issue=issue_instance,
-    #             answer=answer_text
-    #         )
-    #         answers_to_create.append(answer_to_create)
-
-    #     return EventIssueAnswer.objects.bulk_create(answers_to_create)
 
 
 class EventParticipantsSerializer(serializers.ModelSerializer):
