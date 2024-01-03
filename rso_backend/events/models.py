@@ -32,10 +32,24 @@ class Event(models.Model):
         DISTRICTS = 'districts', 'Окружные штабы'
         CENTRAL = 'central', 'Центральные штабы'
 
+    class EventScale(models.TextChoices):
+        DETACHMENTS = 'detachments', 'Отрядное'
+        EDUCATIONALS = 'educationals', 'Мероприятие ОО'
+        LOCALS = 'locals', 'Городское'
+        REGIONALS = 'regionals', 'Региональное'
+        DISTRICTS = 'districts', 'Мероприятие ОО'
+        CENTRAL = 'central', 'Отрядное ОО'
+
     author = models.ForeignKey(
         to='users.RSOUser',
         on_delete=models.CASCADE,
         verbose_name='Создатель мероприятия',
+    )
+    scale = models.CharField(
+        max_length=20,
+        choices=EventScale.choices,
+        default=EventScale.DETACHMENTS,
+        verbose_name='Масштаб'
     )
     format = models.CharField(
         max_length=7,
@@ -95,7 +109,8 @@ class Event(models.Model):
         max_length=30,
         choices=EventAvailableStructuralUnit.choices,
         default=EventAvailableStructuralUnit.DETACHMENTS,
-        verbose_name='Объекты, имеющие возможность формировать групповые заявки'
+        verbose_name='Объекты, имеющие возможность '
+                     'формировать групповые заявки'
     )
 
     class Meta:
@@ -375,28 +390,15 @@ class EventApplications(models.Model):
         related_name='event_applications',
         verbose_name='Пользователь',
     )
-    is_approved = models.BooleanField(
-        verbose_name='Подтверждено',
-        default=False,
-    )
     created_at = models.DateTimeField(
         verbose_name='Дата создания заявки',
         auto_now_add=True,
-    )
-    # для отслеживания времени изменения статуса подтверждения
-    # нужно/нет?
-    updated_at = models.DateTimeField(
-        verbose_name='Дата обновления заявки',
-        auto_now=True,
-        null=True,
-        blank=True,
     )
 
     class Meta:
         ordering = ['-id']
         verbose_name_plural = 'Заявки на участие в мероприятиях'
         verbose_name = 'Заявка на участие в мероприятии'
-        # в сериализаторе доп. проверка для коррктной и содержательной выдачи ошибки
         constraints = [
             models.UniqueConstraint(
                 fields=('event', 'user'),
@@ -414,11 +416,23 @@ class EventApplications(models.Model):
 
 class EventIssueAnswer(models.Model):
     """Таблица для хранения ответов на вопросы участников мероприятий."""
-    application = models.ForeignKey(
-        to='EventApplications',
+    # application = models.ForeignKey(
+    #     to='EventApplications',
+    #     on_delete=models.CASCADE,
+    #     related_name='answers',
+    #     verbose_name='Заявка',
+    # )
+    event = models.ForeignKey(
+        to='Event',
         on_delete=models.CASCADE,
-        related_name='answers',
-        verbose_name='Заявка',
+        related_name='issue_answers',
+        verbose_name='Мероприятие',
+    )
+    user = models.ForeignKey(
+        to='users.RSOUser',
+        on_delete=models.CASCADE,
+        related_name='issue_answers',
+        verbose_name='Пользователь',
     )
     issue = models.ForeignKey(
         to='EventAdditionalIssue',
@@ -436,7 +450,34 @@ class EventIssueAnswer(models.Model):
         verbose_name = 'Ответ на вопрос участника мероприятия'
         constraints = [
             models.UniqueConstraint(
-                fields=('application', 'issue'),
+                fields=('event', 'user', 'issue'),
                 name='unique_issue_answer'
             )
+        ]
+
+
+class EventParticipants(models.Model):
+    """Таблица для хранения участников мероприятий."""
+    event = models.ForeignKey(
+        to='Event',
+        on_delete=models.CASCADE,
+        related_name='event_participants',
+        verbose_name='Мероприятие'
+    )
+    user = models.ForeignKey(
+        to='users.RSOUser',
+        on_delete=models.CASCADE,
+        related_name='event_participants',
+        verbose_name='Пользователь',
+    )
+
+    class Meta:
+        ordering = ['-id']
+        verbose_name_plural = 'Участники мероприятий'
+        verbose_name = 'Участник мероприятия'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('event', 'user'),
+                name='unique_event_participant'
+            ),
         ]

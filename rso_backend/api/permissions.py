@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from rest_framework import permissions
 from rest_framework.permissions import BasePermission
 
 from api.utils import (check_roles_for_edit, check_trusted_for_detachments,
@@ -7,6 +8,7 @@ from api.utils import (check_roles_for_edit, check_trusted_for_detachments,
                        check_trusted_for_regionalhead,
                        check_trusted_in_headquarters, check_trusted_user,
                        is_safe_method, is_stuff_or_central_commander)
+from events.models import Event
 from headquarters.models import (Detachment, DistrictHeadquarter,
                                  EducationalHeadquarter, LocalHeadquarter,
                                  RegionalHeadquarter,
@@ -377,3 +379,30 @@ class IsRegionalCommanderForCert(BasePermission):
             is_stuff_or_central_commander(request),
             check_model_instance
         ])
+
+
+class IsAuthorPermission(BasePermission):
+    """Проверяет, является ли пользователь автором объекта."""
+    def has_object_permission(self, request, view, obj):
+        return obj.author == request.user
+
+
+class IsEventAuthor(BasePermission):
+    """Проверяет, является ли пользователем автором
+
+    мероприятия при редактировании, создании или удалении
+    объекта, связанного с мероприятием.
+    """
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        event_pk = view.kwargs.get('event_pk')
+        if event_pk is not None:
+            event = Event.objects.filter(pk=event_pk).first()
+            if event is not None:
+                return event.author == request.user
+        return False
+
+    def has_object_permission(self, request, view, obj):
+        return obj.event.author == request.user

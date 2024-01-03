@@ -1,8 +1,9 @@
 from django.contrib import admin
 
 from events.models import (Event, EventAdditionalIssue, EventDocument,
-                           EventDocumentData, EventOrganizationData,
-                           EventTimeData, EventIssueAnswer, EventApplications)
+                           EventDocumentData, EventOrganizationData, 
+                           EventParticipants, EventTimeData, EventIssueAnswer,
+                           EventApplications)
 
 
 class EventTimeDataInline(admin.TabularInline):
@@ -55,3 +56,4 @@ class EventAdmin(admin.ModelAdmin):
 admin.site.register(Event, EventAdmin)
 admin.site.register(EventApplications)
 admin.site.register(EventIssueAnswer)
+admin.site.register(EventParticipants)

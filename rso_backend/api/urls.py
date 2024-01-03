@@ -7,7 +7,7 @@ from api.constants import (CREATE_DELETE, CREATE_METHOD,
                            DOWNLOAD_ALL_FORMS, DOWNLOAD_CONSENT_PD,
                            DOWNLOAD_MEMBERSHIP_FILE,
                            DOWNLOAD_PARENT_CONSENT_PD, LIST, LIST_CREATE,
-                           RETRIEVE_CREATE, UPDATE_RETRIEVE, UPDATE_DELETE)
+                           RETRIEVE_CREATE, UPDATE_DELETE, UPDATE_RETRIEVE)
 from api.views import (AreaViewSet, CentralPositionViewSet, CentralViewSet,
                        DetachmentAcceptViewSet, DetachmentApplicationViewSet,
                        DetachmentPositionViewSet, DetachmentViewSet,
@@ -26,7 +26,7 @@ from api.views import (AreaViewSet, CentralPositionViewSet, CentralViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
                        apply_for_verification, change_membership_fee_status,
                        get_structural_units, verify_user)
-from events.views import EventApplicationsViewSet
+from events.views import EventApplicationsViewSet, EventParticipantsViewSet
 
 app_name = 'api'
 
@@ -49,6 +49,11 @@ router.register(
     r'events/(?P<event_pk>\d+)/applications',
     EventApplicationsViewSet,
     basename='event-applications'
+)
+router.register(
+    r'events/(?P<event_pk>\d+)/participants',
+    EventParticipantsViewSet,
+    basename='event-participants'
 )
 
 
