@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from events.models import Event
+from events.models import Event, EventApplications
 
 
 class EventSwaggerSerializer(serializers.ModelSerializer):
