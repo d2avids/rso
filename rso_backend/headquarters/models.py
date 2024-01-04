@@ -3,7 +3,6 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-from headquarters.constants import PositionsOption
 from headquarters.utils import image_path
 
 
@@ -391,8 +390,8 @@ class Detachment(Unit):
                 self.local_headquarter
             ):
                 raise ValidationError({
-                    'educational_headquarter': 'Выбранный образовательный штаб '
-                                               'связан с другим местным '
+                    'educational_headquarter': 'Выбранный образовательный '
+                                               'штаб связан с другим местным '
                                                'штабом.'
                 })
 
@@ -412,9 +411,9 @@ class Detachment(Unit):
                 self.regional_headquarter
             ):
                 raise ValidationError({
-                    'educational_headquarter': 'Выбранный образовательный штаб '
-                                               'связан с другим региональным '
-                                               'штабом.'
+                    'educational_headquarter': 'Выбранный образовательный '
+                                               'штаб связан с другим '
+                                               'региональным  штабом.'
                 })
         if self.regional_headquarter:
             if self.region != self.regional_headquarter.region:
@@ -454,8 +453,6 @@ class Position(models.Model):
     name = models.CharField(
         verbose_name='Должность',
         max_length=43,
-        choices=PositionsOption.choices,
-        default=PositionsOption.candidate,
         blank=True,
         null=True
     )

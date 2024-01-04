@@ -32,10 +32,24 @@ class Event(models.Model):
         DISTRICTS = 'districts', 'Окружные штабы'
         CENTRAL = 'central', 'Центральные штабы'
 
+    class EventScale(models.TextChoices):
+        DETACHMENTS = 'detachments', 'Отрядное'
+        EDUCATIONALS = 'educationals', 'Мероприятие ОО'
+        LOCALS = 'locals', 'Городское'
+        REGIONALS = 'regionals', 'Региональное'
+        DISTRICTS = 'districts', 'Мероприятие ОО'
+        CENTRAL = 'central', 'Отрядное ОО'
+
     author = models.ForeignKey(
         to='users.RSOUser',
         on_delete=models.CASCADE,
         verbose_name='Создатель мероприятия',
+    )
+    scale = models.CharField(
+        max_length=20,
+        choices=EventScale.choices,
+        default=EventScale.DETACHMENTS,
+        verbose_name='Масштаб'
     )
     format = models.CharField(
         max_length=7,
@@ -95,7 +109,8 @@ class Event(models.Model):
         max_length=30,
         choices=EventAvailableStructuralUnit.choices,
         default=EventAvailableStructuralUnit.DETACHMENTS,
-        verbose_name='Объекты, имеющие возможность формировать групповые заявки'
+        verbose_name='Объекты, имеющие возможность '
+                     'формировать групповые заявки'
     )
 
     class Meta:

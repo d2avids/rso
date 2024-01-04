@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from pdfrw.buildxobj import pagexobj
@@ -22,10 +23,12 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
 from api import constants
+from api.filters import EventFilter
 from api.mixins import (CreateDeleteViewSet, ListRetrieveUpdateViewSet,
                         ListRetrieveViewSet)
-from api.permissions import (IsDetachmentCommander, IsDistrictCommander,
-                             IsEducationalCommander, IsLocalCommander,
+from api.permissions import (IsAuthorPermission, IsDetachmentCommander,
+                             IsDistrictCommander, IsEducationalCommander,
+                             IsEventAuthor, IsLocalCommander,
                              IsRegionalCommander, IsRegionalCommanderForCert,
                              IsRegStuffOrDetCommander, IsStuffOrAuthor,
                              IsStuffOrCentralCommander,
@@ -50,7 +53,11 @@ from api.serializers import (AreaSerializer, CentralHeadquarterSerializer,
                              ProfessionalEductionSerializer,
                              RegionalHeadquarterSerializer,
                              RegionalPositionSerializer, RegionSerializer,
-                             RSOUserSerializer,
+                             RSOUserSerializer, ShortDetachmentSerializer,
+                             ShortDistrictHeadquarterSerializer,
+                             ShortEducationalHeadquarterSerializer,
+                             ShortLocalHeadquarterSerializer,
+                             ShortRegionalHeadquarterSerializer,
                              UserDetachmentApplicationSerializer,
                              UserDocumentsSerializer, UserEducationSerializer,
                              UserMediaSerializer,
@@ -62,9 +69,8 @@ from api.swagger_schemas import EventSwaggerSerializer
 from api.utils import (create_and_return_archive, download_file,
                        get_headquarter_users_positions_queryset, get_user,
                        get_user_by_id, text_to_lines)
-from events.models import (Event, EventAdditionalIssue,
-                           EventDocumentData, EventOrganizationData,
-                           EventTimeData)
+from events.models import (Event, EventAdditionalIssue, EventDocumentData,
+                           EventOrganizationData, EventTimeData)
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -78,8 +84,8 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserRegionalHeadquarterPosition)
 from rso_backend.settings import BASE_DIR
 from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
-                          UserForeignDocuments, UserMedia, UserMembershipLogs,
-                          UserParent, UserPrivacySettings,
+                          UserForeignDocuments, UserMedia, UserMemberCertLogs,
+                          UserMembershipLogs, UserParent, UserPrivacySettings,
                           UserProfessionalEducation, UserRegion,
                           UserStatementDocuments, UserVerificationRequest)
 
@@ -144,16 +150,6 @@ class AreaViewSet(ListRetrieveViewSet):
     queryset = Area.objects.all()
     serializer_class = AreaSerializer
     permission_classes = [IsStuffOrCentralCommander,]
-
-
-class PositionViewSet(ListRetrieveViewSet):
-    """Представляет должности для юзеров.
-
-    Доступны только операции чтения.
-    """
-
-    queryset = Position.objects.all()
-    serializer_class = PositionSerializer
 
 
 class PositionViewSet(ListRetrieveViewSet):
@@ -866,8 +862,40 @@ class DetachmentApplicationViewSet(viewsets.ModelViewSet):
 
 class EventViewSet(viewsets.ModelViewSet):
     """Представляет мероприятия."""
+
     queryset = Event.objects.all()
     serializer_class = EventSerializer
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
+    filterset_class = EventFilter
+    search_fields = ('name', 'address', 'description',)
+
+    PERMISSIONS_MAPPING = {
+        'central': IsStuffOrCentralCommander,
+        'districts': IsDistrictCommander,
+        'regionals': IsRegionalCommander,
+        'locals': IsLocalCommander,
+        'educationals': IsEducationalCommander,
+        'detachments': IsDetachmentCommander,
+    }
+
+    def get_permissions(self):
+        """Применить пермишен в зависимости от действия."""
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [permissions.AllowAny]
+        if self.action == 'create':
+            event_unit = self.request.data.get('scale')
+            permission_classes = [permissions.IsAuthenticated]
+            permission_classes += [
+                self.PERMISSIONS_MAPPING.get(
+                    event_unit, permissions.IsAuthenticated
+                )
+            ]
+        if self.action in (
+                'update', 'update_time_data', 'update_document_data'
+        ):
+            permission_classes = [IsAuthorPermission]
+        print(permission_classes)
+        return [permission() for permission in permission_classes]
 
     @swagger_auto_schema(request_body=EventSwaggerSerializer)
     def create(self, request, *args, **kwargs):
@@ -884,7 +912,9 @@ class EventViewSet(viewsets.ModelViewSet):
         event = self.get_object()
         time_data_instance = EventTimeData.objects.get(event=event)
 
-        serializer = EventTimeDataSerializer(time_data_instance, data=request.data)
+        serializer = EventTimeDataSerializer(
+            time_data_instance, data=request.data
+        )
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data)
@@ -896,7 +926,9 @@ class EventViewSet(viewsets.ModelViewSet):
         event = self.get_object()
         document_data_instance = EventDocumentData.objects.get(event=event)
 
-        serializer = EventDocumentDataSerializer(document_data_instance, data=request.data)
+        serializer = EventDocumentDataSerializer(
+            document_data_instance, data=request.data
+        )
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data)
@@ -906,6 +938,7 @@ class EventViewSet(viewsets.ModelViewSet):
 class EventOrganizationDataViewSet(viewsets.ModelViewSet):
     queryset = EventOrganizationData.objects.all()
     serializer_class = EventOrganizerDataSerializer
+    permission_classes = (IsEventAuthor,)
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -925,7 +958,11 @@ class EventOrganizationDataViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         data_pk = kwargs.get('pk')
-        instance = get_object_or_404(EventOrganizationData, pk=data_pk, event__id=self.kwargs.get('event_pk'))
+        instance = get_object_or_404(
+            EventOrganizationData,
+            pk=data_pk,
+            event__id=self.kwargs.get('event_pk')
+        )
         serializer = self.get_serializer(instance, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -936,6 +973,7 @@ class EventOrganizationDataViewSet(viewsets.ModelViewSet):
 class EventAdditionalIssueViewSet(viewsets.ModelViewSet):
     queryset = EventAdditionalIssue.objects.all()
     serializer_class = EventAdditionalIssueSerializer
+    permission_classes = (IsEventAuthor,)
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -955,7 +993,11 @@ class EventAdditionalIssueViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         data_pk = kwargs.get('pk')
-        instance = get_object_or_404(EventAdditionalIssue, pk=data_pk, event__id=self.kwargs.get('event_pk'))
+        instance = get_object_or_404(
+            EventAdditionalIssue,
+            pk=data_pk,
+            event__id=self.kwargs.get('event_pk')
+        )
         serializer = self.get_serializer(instance, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -1011,19 +1053,19 @@ def get_structural_units(request):
         'central_headquarters': CentralHeadquarterSerializer(
             central_headquarters, many=True
         ).data,
-        'regional_headquarters': RegionalHeadquarterSerializer(
+        'regional_headquarters': ShortRegionalHeadquarterSerializer(
             regional_headquarters, many=True
         ).data,
-        'district_headquarters': DistrictHeadquarterSerializer(
+        'district_headquarters': ShortDistrictHeadquarterSerializer(
             district_headquarters, many=True
         ).data,
-        'local_headquarters': LocalHeadquarterSerializer(
+        'local_headquarters': ShortLocalHeadquarterSerializer(
             local_headquarters, many=True
         ).data,
-        'educational_headquarters': EducationalHeadquarterSerializer(
+        'educational_headquarters': ShortEducationalHeadquarterSerializer(
             educational_headquarters, many=True
         ).data,
-        'detachments': DetachmentSerializer(detachments, many=True).data
+        'detachments': ShortDetachmentSerializer(detachments, many=True).data
     }
 
     return Response(response)
@@ -1520,6 +1562,11 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                     f'{user.username}.pdf'
                 )
                 external_certs[filename] = pdf_cert_or_response
+                UserMemberCertLogs.objects.create(
+                    user=user,
+                    cert_type='external_cert',
+                    cert_issued_by=request.user
+                )
             response = create_and_return_archive(external_certs)
             return response
 
@@ -1570,5 +1617,10 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                     f'{user.username}.pdf'
                 )
                 internal_certs[filename] = pdf_cert_or_response
+                UserMemberCertLogs.objects.create(
+                    user=user,
+                    cert_type='internal_cert',
+                    cert_issued_by=request.user
+                )
             response = create_and_return_archive(internal_certs)
             return response
