@@ -59,7 +59,7 @@ services:
     networks:
       - internal
   frontend:
-    image: d2avids/rso_frontend:latest
+    image: nem1zida/rso_frontend:latest
     env_file: .env
     depends_on:
       - backend
