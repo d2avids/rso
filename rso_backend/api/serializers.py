@@ -1,6 +1,7 @@
 import datetime as dt
 from datetime import date
 
+from django.db.models import Q
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreatePasswordRetypeSerializer
@@ -834,12 +835,31 @@ class BaseUnitSerializer(serializers.ModelSerializer):
     Предназначен для использования как родительский класс для всех
     сериализаторов штабов, обеспечивая наследование общих полей и методов.
     """
+    _POSITIONS_MAPPING = {
+        CentralHeadquarter: (
+            UserCentralHeadquarterPosition, CentralPositionSerializer
+        ),
+        DistrictHeadquarter: (
+            UserDistrictHeadquarterPosition, DistrictPositionSerializer
+        ),
+        RegionalHeadquarter: (
+            UserRegionalHeadquarterPosition, RegionalPositionSerializer
+        ),
+        LocalHeadquarter: (
+            UserLocalHeadquarterPosition, LocalPositionSerializer
+        ),
+        EducationalHeadquarter: (
+            UserEducationalHeadquarterPosition, EducationalPositionSerializer
+        ),
+        Detachment: (UserDetachmentPosition, DetachmentPositionSerializer),
+    }
 
     commander = serializers.PrimaryKeyRelatedField(
         queryset=RSOUser.objects.all(),
     )
     members_count = serializers.SerializerMethodField(read_only=True)
     participants_count = serializers.SerializerMethodField(read_only=True)
+    leadership = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = None
@@ -856,7 +876,40 @@ class BaseUnitSerializer(serializers.ModelSerializer):
             'city',
             'members_count',
             'participants_count',
+            'leadership',
         )
+
+    def _get_position_instance(self):
+        instance_type = type(self.instance)
+        instance_type = type(self.instance.first())
+
+        for model_class, (
+                position_model, _
+        ) in self._POSITIONS_MAPPING.items():
+            if issubclass(instance_type, model_class):
+                return position_model
+
+    def _get_position_serializer(self):
+        instance_type = type(self.instance)
+        instance_type = type(self.instance.first())
+
+        for model_class, (
+                _, serializer_class
+        ) in self._POSITIONS_MAPPING.items():
+            if issubclass(instance_type, model_class):
+                return serializer_class
+
+    def get_leadership(self, instance):
+        """
+        Вывод руководства отряда
+        (пользователи с должностями "Мастер-методист" и "Комиссар").
+        """
+        serializer = self._get_position_serializer()
+        position_instance = self._get_position_instance()
+        leaders = position_instance.objects.filter(
+            Q(position__name='Мастер-методист') | Q(position__name='Комиссар')
+        )
+        return serializer(leaders, many=True).data
 
     @staticmethod
     def get_members_count(instance):
