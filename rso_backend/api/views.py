@@ -1590,6 +1590,13 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
+    """Представление заявок на участие в мероприятии.
+
+    Доступ:
+        - создание - авторизованные пользователи;
+        - чтение и удаление - авторы заявок либо пользователи
+          из модели организаторов;
+    """
     queryset = EventApplications.objects.all()
     serializer_class = EventApplicationsSerializer
     permission_classes = (permissions.IsAuthenticated, IsEventOrganizer)
@@ -1610,13 +1617,13 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
     def get_permissions(self):
         if self.action == 'create':
             return [permissions.IsAuthenticated()]
-        elif self.action == 'destroy':
+        elif self.action in ['retrieve', 'destroy']:
             return [permissions.IsAuthenticated(), IsApplicantOrOrganizer()]
         else:
             return super().get_permissions()
 
     def create(self, request, *args, **kwargs):
-        """ Создание заявки на участие в мероприятии. """
+        """Создание заявки на участие в мероприятии."""
         user = request.user
         event_pk = self.kwargs.get('event_pk')
         event = get_object_or_404(Event, pk=event_pk)
@@ -1655,8 +1662,8 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
             permission_classes=(permissions.IsAuthenticated,
                                 IsEventOrganizer,))
     def confirm(self, request, *args, **kwargs):
-        """
-        Подтверждение заявки на участие в мероприятии и создание участника.
+        """Подтверждение заявки на участие в мероприятии и создание участника.
+
         После подтверждения заявка удаляется.
         Доступен только для организаторов мероприятия.
         Если пользователь уже участвует в мероприятии,
@@ -1681,9 +1688,9 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
             permission_classes=(permissions.IsAuthenticated,
                                 IsEventOrganizer,))
     def answers(self, request, event_pk, pk):
-        """
-        Action для получения (GET) или удаления ответов (DELETE) на вопросы
-        мероприятия по данной заявке.
+        """Action для получения (GET) или удаления ответов (DELETE)
+        на вопросы мероприятия по данной заявке.
+
         Доступен только для пользователей из модели организаторов.
         """
         answers = EventIssueAnswer.objects.filter(user=request.user,
@@ -1697,10 +1704,31 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(detail=False,
+            methods=['get'],
+            url_path='me',
+            serializer_class=EventApplicationsSerializer,
+            permission_classes=(permissions.IsAuthenticated,))
+    def me(self, request, event_pk):
+        """Action для получения всей информации по поданной текущим
+        пользователем заявке на участие в мероприятии.
+
+        Доступен всем авторизованным пользователям.
+
+        Если у этого пользователя заявки по данному мероприятию нет -
+        выводится HTTP_404_NOT_FOUND.
+        """
+        application = EventApplications.objects.filter(
+            user=request.user, event__id=event_pk
+        ).first()
+        if application is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = EventApplicationsSerializer(application)
+        return Response(serializer.data)
+
 
 class EventParticipantsViewSet(ListRetrieveDestroyViewSet):
-    """
-    Представление участников мероприятия.
+    """Представление участников мероприятия.
 
     Доступ:
         - удаление: фигурирующий в записи пользователь или
@@ -1724,13 +1752,34 @@ class EventParticipantsViewSet(ListRetrieveDestroyViewSet):
             return [permissions.IsAuthenticated(), IsApplicantOrOrganizer()]
         return super().get_permissions()
 
+    @action(detail=False,
+            methods=['get'],
+            url_path='me',
+            serializer_class=EventParticipantsSerializer,
+            permission_classes=(permissions.IsAuthenticated,))
+    def me(self, request, event_pk):
+        """Action для получения всей информации по профилю участника
+        мероприятия.
+
+        Доступен всем авторизованным пользователям.
+
+        Если текущий пользователь не участвует в мероприятии -
+        выводится HTTP_404_NOT_FOUND.
+        """
+        user_profile = EventParticipants.objects.filter(
+            user=request.user, event__id=event_pk
+        ).first()
+        if user_profile is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = EventParticipantsSerializer(user_profile)
+        return Response(serializer.data)
+
 
 @swagger_auto_schema(method='POST', request_body=AnswerSerializer(many=True))
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def create_answers(request, event_pk):
-    """
-    Сохранение ответов на вопросы мероприятия.
+    """Сохранение ответов на вопросы мероприятия.
 
     Доступ - все авторизованные.
     """
@@ -1761,21 +1810,34 @@ def create_answers(request, event_pk):
 
 
 class AnswerDetailViewSet(RetrieveUpdateDestroyViewSet):
-    """
-    Поштучное получение, изменение и удаление ответов
+    """Поштучное получение, изменение и удаление ответов
     в индивидуальных заявках на мероприятие.
 
-    Доступ только для пользователей из модели организаторов.
+    Доступ:
+        - удаление - только пользователи из модели организаторов;
+        - редактирование - автор записи (только если заявка еще не принята)
+          либо пользователи из модели организаторов.
+        - чтение - автор заявки, либо пользователи из модели организаторов.
     """
     permission_classes = (permissions.IsAuthenticated,)
     queryset = EventIssueAnswer.objects.all()
     serializer_class = AnswerSerializer
-    permission_classes = (permissions.IsAuthenticated, IsEventOrganizer)
+    permission_classes = (permissions.IsAuthenticated, IsApplicantOrOrganizer)
+
+    def get_permissions(self):
+        if self.action == 'destroy':
+            return [permissions.IsAuthenticated(), IsEventOrganizer()]
+        if self.action in ['update', 'partial_update']:
+            if not EventApplications.objects.filter(
+                event=self.get_object().event,
+                user=self.request.user
+            ).exists():
+                return [permissions.IsAuthenticated(), IsEventOrganizer()]
+        return super().get_permissions()
 
 
 class EventUserDocumentViewSet(CreateRetrieveUpdateDestroyViewSet):
-    """
-    Представление сохраненных документов пользователя (сканов).
+    """Представление сохраненных документов пользователя (сканов).
 
     Доступ:
         - создание(загрузка) только авторизованные пользователи;
@@ -1796,11 +1858,19 @@ class EventUserDocumentViewSet(CreateRetrieveUpdateDestroyViewSet):
     def get_permissions(self):
         if self.action == 'create':
             return [permissions.IsAuthenticated()]
+        if self.action in ['update', 'partial_update']:
+            if EventApplications.objects.filter(
+                event=self.get_object().event,
+                user=self.request.user
+            ).exists():
+                return [permissions.IsAuthenticated(),
+                        IsApplicantOrOrganizer()]
+        if self.action == 'retrieve':
+            return [permissions.IsAuthenticated(), IsApplicantOrOrganizer()]
         return super().get_permissions()
 
     def create(self, request, *args, **kwargs):
-        """
-        Сохранение скана документа пользователя.
+        """Сохранение скана документа пользователя.
 
         Доступ - только авторизованные пользователи.
         Принимает только файл.

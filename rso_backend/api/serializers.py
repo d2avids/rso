@@ -1243,7 +1243,6 @@ class EventApplicationsCreateSerializer(serializers.ModelSerializer):
         user = request.user
         event_id = request.parser_context.get('kwargs').get('event_pk')
         event = get_object_or_404(Event, id=event_id)
-        msg_apply_type_validation = self.validate_application_type(event)
         msg_answer_validation = self.validate_answered_questions(
             event, user
         )
@@ -1256,8 +1255,6 @@ class EventApplicationsCreateSerializer(serializers.ModelSerializer):
         msg_all_documents_uploaded = self.validate_all_documents_uploaded(
             event, user
         )
-        if msg_apply_type_validation:
-            validation_error_messages.append(msg_apply_type_validation)
         if msg_answer_validation:
             validation_error_messages.append(msg_answer_validation)
         if msg_duplicate_apply:
@@ -1269,11 +1266,6 @@ class EventApplicationsCreateSerializer(serializers.ModelSerializer):
         if validation_error_messages:
             raise serializers.ValidationError(validation_error_messages)
         return attrs
-
-    def validate_application_type(self, event):
-        if event.application_type != Event.EventApplicationType.PERSONAL:
-            return ('Для данного мероприятия разрешена подача только '
-                    'индивидуальных заявок')
 
     def validate_answered_questions(self, event, user):
         len_answers = EventIssueAnswer.objects.filter(
@@ -1295,7 +1287,6 @@ class EventApplicationsCreateSerializer(serializers.ModelSerializer):
             event=event, user=user
         ).count()
         len_documents = event.documents.count()
-        print(len_uploaded_documents, len_documents)
         if len_uploaded_documents != len_documents:
             return (
                 'Вы загрузили не все документы. '
@@ -1306,12 +1297,18 @@ class EventApplicationsCreateSerializer(serializers.ModelSerializer):
 class AnswerSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventIssueAnswer
-        fields = ('id',
-                  'issue',
-                  'answer',
-                  'event',
-                  'user')
-        read_only_fields = ('id', 'event', 'user')
+        fields = (
+            'id',
+            'issue',
+            'answer',
+            'event',
+            'user'
+        )
+        read_only_fields = (
+            'id',
+            'event',
+            'user'
+        )
 
     def validate(self, attrs):
         request = self.context.get('request')
@@ -1347,15 +1344,19 @@ class EventApplicationsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = EventApplications
-        fields = ('id',
-                  'user',
-                  'event',
-                  'answers',
-                  'documents',
-                  'created_at')
-        read_only_fields = ('created_at',
-                            'event',
-                            'user')
+        fields = (
+            'id',
+            'user',
+            'event',
+            'answers',
+            'documents',
+            'created_at'
+        )
+        read_only_fields = (
+            'created_at',
+            'event',
+            'user'
+        )
 
     def get_answers(self, obj):
         return AnswerSerializer(
@@ -1376,14 +1377,18 @@ class EventParticipantsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = EventParticipants
-        fields = ('id',
-                  'user',
-                  'event',
-                  'answers',
-                  'documents')
-        read_only_fields = ('id',
-                            'event',
-                            'user')
+        fields = (
+            'id',
+            'user',
+            'event',
+            'answers',
+            'documents'
+        )
+        read_only_fields = (
+            'id',
+            'event',
+            'user'
+        )
 
     def validate(self, attrs):
         request = self.context.get('request')
@@ -1417,6 +1422,8 @@ class EventUserDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventUserDocument
         fields = '__all__'
-        read_only_fields = ('id',
-                            'event',
-                            'user')
+        read_only_fields = (
+            'id',
+            'event',
+            'user'
+        )
