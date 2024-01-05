@@ -24,9 +24,9 @@ from rest_framework.response import Response
 
 from api.filters import EventFilter
 from api.mixins import (CreateDeleteViewSet, CreateListRetrieveDestroyViewSet,
-                        CreateRetrieveUpdateDestroyViewSet,
+                        CreateRetrieveUpdateViewSet,
                         ListRetrieveDestroyViewSet, ListRetrieveUpdateViewSet,
-                        ListRetrieveViewSet, RetrieveUpdateDestroyViewSet)
+                        ListRetrieveViewSet, RetrieveUpdateViewSet)
 from api.permissions import (IsApplicantOrOrganizer, IsAuthorPermission,
                              IsDetachmentCommander, IsDistrictCommander,
                              IsEducationalCommander, IsEventAuthor,
@@ -1809,7 +1809,7 @@ def create_answers(request, event_pk):
     return Response(status=status.HTTP_201_CREATED)
 
 
-class AnswerDetailViewSet(RetrieveUpdateDestroyViewSet):
+class AnswerDetailViewSet(RetrieveUpdateViewSet):
     """Поштучное получение, изменение и удаление ответов
     в индивидуальных заявках на мероприятие.
 
@@ -1827,16 +1827,37 @@ class AnswerDetailViewSet(RetrieveUpdateDestroyViewSet):
     def get_permissions(self):
         if self.action == 'destroy':
             return [permissions.IsAuthenticated(), IsEventOrganizer()]
-        if self.action in ['update', 'partial_update']:
+        if (self.action in ['update', 'partial_update'] and
+                self.request.user.is_authenticated):
             if not EventApplications.objects.filter(
-                event=self.get_object().event,
+                event_id=self.kwargs.get('event_pk'),
                 user=self.request.user
             ).exists():
                 return [permissions.IsAuthenticated(), IsEventOrganizer()]
         return super().get_permissions()
 
+    @action(detail=False,
+            methods=['get'],
+            url_path='me',
+            serializer_class=AnswerSerializer,
+            permission_classes=(permissions.IsAuthenticated,))
+    def me(self, request, event_pk):
+        """Action для получения сохраненных ответов пользователя по
+        текущему мероприятию.
 
-class EventUserDocumentViewSet(CreateRetrieveUpdateDestroyViewSet):
+        Доступен всем авторизованным пользователям.
+
+        Если текущий пользователь не имеет сохраненных ответов -
+        возвращается пустой массив.
+        """
+        user_documents = EventIssueAnswer.objects.filter(
+            user=request.user, event__id=event_pk
+        ).all()
+        serializer = AnswerSerializer(user_documents, many=True)
+        return Response(serializer.data)
+
+
+class EventUserDocumentViewSet(CreateRetrieveUpdateViewSet):
     """Представление сохраненных документов пользователя (сканов).
 
     Доступ:
@@ -1858,9 +1879,10 @@ class EventUserDocumentViewSet(CreateRetrieveUpdateDestroyViewSet):
     def get_permissions(self):
         if self.action == 'create':
             return [permissions.IsAuthenticated()]
-        if self.action in ['update', 'partial_update']:
+        if (self.action in ['update', 'partial_update'] and
+                self.request.user.is_authenticated):
             if EventApplications.objects.filter(
-                event=self.get_object().event,
+                event_id=self.kwargs.get('event_pk'),
                 user=self.request.user
             ).exists():
                 return [permissions.IsAuthenticated(),
@@ -1883,3 +1905,23 @@ class EventUserDocumentViewSet(CreateRetrieveUpdateDestroyViewSet):
             serializer.save(event=event, user=user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='me',
+            serializer_class=EventUserDocumentSerializer,
+            permission_classes=(permissions.IsAuthenticated,))
+    def me(self, request, event_pk):
+        """Action для получения загруженных документов пользователя
+        текущего мероприятия.
+
+        Доступен всем авторизованным пользователям.
+
+        Если текущий пользователь не загружал документы -
+        возвращается пустой массив.
+        """
+        user_documents = EventUserDocument.objects.filter(
+            user=request.user, event__id=event_pk
+        ).all()
+        serializer = EventUserDocumentSerializer(user_documents, many=True)
+        return Response(serializer.data)
