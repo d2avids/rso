@@ -890,7 +890,9 @@ class EventViewSet(viewsets.ModelViewSet):
     }
 
     def get_permissions(self):
-        """Применить пермишен в зависимости от действия."""
+        """
+        Применить пермишен в зависимости от действия и масштаба мероприятия.
+        """
         if self.action in ['list', 'retrieve']:
             permission_classes = [permissions.AllowAny]
         if self.action == 'create':
@@ -904,7 +906,7 @@ class EventViewSet(viewsets.ModelViewSet):
         if self.action in (
                 'update', 'update_time_data', 'update_document_data'
         ):
-            permission_classes = [IsAuthorPermission]
+            permission_classes = [IsAuthorPermission, IsEventOrganizer]
         return [permission() for permission in permission_classes]
 
     @swagger_auto_schema(request_body=EventSwaggerSerializer)
@@ -919,6 +921,7 @@ class EventViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(request_body=EventTimeDataSerializer)
     @action(detail=True, methods=['put',], url_path='time_data')
     def update_time_data(self, request, pk=None):
+        """Заполнить информацию о времени проведения мероприятия."""
         event = self.get_object()
         time_data_instance = EventTimeData.objects.get(event=event)
 
@@ -933,6 +936,10 @@ class EventViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(request_body=EventDocumentDataSerializer)
     @action(detail=True, methods=['put',], url_path='document_data')
     def update_document_data(self, request, pk=None):
+        """
+        Указать необходимые к заполнению документы
+        для участия в мероприятии.
+        """
         event = self.get_object()
         document_data_instance = EventDocumentData.objects.get(event=event)
 
@@ -946,6 +953,11 @@ class EventViewSet(viewsets.ModelViewSet):
 
 
 class EventOrganizationDataViewSet(viewsets.ModelViewSet):
+    """Представляет информацию об организаторах мероприятия.
+
+    Добавленные пользователь могу иметь доступ к редактированию информации о
+    мероприятии, а также рассмотрение и принятие/отклонение заявок на участие.
+    """
     queryset = EventOrganizationData.objects.all()
     serializer_class = EventOrganizerDataSerializer
     permission_classes = (IsEventAuthor,)
@@ -981,6 +993,10 @@ class EventOrganizationDataViewSet(viewsets.ModelViewSet):
 
 
 class EventAdditionalIssueViewSet(viewsets.ModelViewSet):
+    """
+    Представляет дополнительные вопросы к мероприятию, необходимые
+    для заполнения при подаче индивидуальной заявки.
+    """
     queryset = EventAdditionalIssue.objects.all()
     serializer_class = EventAdditionalIssueSerializer
     permission_classes = (IsEventAuthor,)
