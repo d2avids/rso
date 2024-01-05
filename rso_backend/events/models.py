@@ -197,6 +197,7 @@ class EventTimeData(models.Model):
 
 
 class EventDocument(models.Model):
+    """ Таблица для хранения документов мероприятий """
     event = models.ForeignKey(
         to='Event',
         on_delete=models.CASCADE,
@@ -373,4 +374,140 @@ class EventAdditionalIssue(models.Model):
         return (
             f'Вопрос по мероприятию {self.event.name}, '
             f'id {self.event.id}: {self.issue[:25]}...'
+        )
+
+
+class EventApplications(models.Model):
+    """Таблица для хранения индивидуальных заявок на участие в мероприятиях."""
+    event = models.ForeignKey(
+        to='Event',
+        on_delete=models.CASCADE,
+        related_name='event_applications',
+        verbose_name='Мероприятие'
+    )
+    user = models.ForeignKey(
+        to='users.RSOUser',
+        on_delete=models.CASCADE,
+        related_name='event_applications',
+        verbose_name='Пользователь',
+    )
+    created_at = models.DateTimeField(
+        verbose_name='Дата создания заявки',
+        auto_now_add=True,
+    )
+
+    class Meta:
+        ordering = ['-id']
+        verbose_name_plural = 'Заявки на участие в мероприятиях'
+        verbose_name = 'Заявка на участие в мероприятии'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('event', 'user'),
+                name='unique_event_application'
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f'Заявка пользователя {self.user.last_name} '
+            f'{self.user.first_name}. Id: {self.user.id}'
+            f' на участие в мероприятии {self.event.name}. Id: {self.event.id}'
+        )
+
+
+class EventIssueAnswer(models.Model):
+    """Таблица для хранения ответов на вопросы участников мероприятий."""
+    event = models.ForeignKey(
+        to='Event',
+        on_delete=models.CASCADE,
+        related_name='issue_answers',
+        verbose_name='Мероприятие',
+    )
+    user = models.ForeignKey(
+        to='users.RSOUser',
+        on_delete=models.CASCADE,
+        related_name='issue_answers',
+        verbose_name='Пользователь',
+    )
+    issue = models.ForeignKey(
+        to='EventAdditionalIssue',
+        on_delete=models.CASCADE,
+        related_name='answers',
+        verbose_name='Вопрос',
+    )
+    answer = models.TextField(
+        verbose_name='Ответ',
+    )
+
+    class Meta:
+        ordering = ['id']
+        verbose_name_plural = 'Ответы на вопросы участников мероприятий'
+        verbose_name = 'Ответ на вопрос участника мероприятия'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('event', 'user', 'issue'),
+                name='unique_issue_answer'
+            )
+        ]
+
+
+class EventParticipants(models.Model):
+    """Таблица для хранения участников мероприятий."""
+    event = models.ForeignKey(
+        to='Event',
+        on_delete=models.CASCADE,
+        related_name='event_participants',
+        verbose_name='Мероприятие'
+    )
+    user = models.ForeignKey(
+        to='users.RSOUser',
+        on_delete=models.CASCADE,
+        related_name='event_participants',
+        verbose_name='Пользователь',
+    )
+
+    class Meta:
+        ordering = ['-id']
+        verbose_name_plural = 'Участники мероприятий'
+        verbose_name = 'Участник мероприятия'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('event', 'user'),
+                name='unique_event_participant'
+            ),
+        ]
+
+
+class EventUserDocument(models.Model):
+    """
+    Таблица для хранения заполненных сканов документов
+    участников мероприятий.
+    """
+    event = models.ForeignKey(
+        to='Event',
+        on_delete=models.CASCADE,
+        related_name='event_user_documents',
+        verbose_name='Мероприятие',
+    )
+    user = models.ForeignKey(
+        to='users.RSOUser',
+        on_delete=models.CASCADE,
+        related_name='event_user_documents',
+        verbose_name='Пользователь',
+    )
+    document = models.FileField(
+        verbose_name='Скан документа. Файл формата pdf, png, jpeg.',
+        upload_to=document_path,
+    )
+
+    class Meta:
+        ordering = ['-id']
+        verbose_name_plural = 'Сканы документов участников мероприятий'
+        verbose_name = 'Скан документа участника мероприятия'
+
+    def __str__(self):
+        return (
+            f'Скан документа пользователя {self.user.last_name} '
+            f'{self.user.first_name}. Id: {self.user.id}'
+            f' на участие в мероприятии {self.event.name}. Id: {self.event.id}'
         )

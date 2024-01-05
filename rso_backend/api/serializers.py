@@ -2,6 +2,7 @@ import datetime as dt
 from datetime import date
 
 from django.core.exceptions import ValidationError
+from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreatePasswordRetypeSerializer
 from rest_framework import serializers
 
@@ -11,9 +12,10 @@ from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                            PRIVACY_RAW_EXISTS, REGION_RAW_EXISTS,
                            STATEMENT_RAW_EXISTS, TOO_MANY_EDUCATIONS)
 from api.utils import create_first_or_exception
-from events.models import (Event, EventAdditionalIssue, EventDocument,
-                           EventDocumentData, EventOrganizationData,
-                           EventTimeData)
+from events.models import (Event, EventAdditionalIssue, EventApplications,
+                           EventDocument, EventDocumentData, EventIssueAnswer,
+                           EventOrganizationData, EventParticipants,
+                           EventTimeData, EventUserDocument)
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -826,7 +828,6 @@ class ShortDetachmentSerializer(BaseShortUnitSerializer):
         fields = BaseShortUnitSerializer.Meta.fields
 
 
-
 class BaseUnitSerializer(serializers.ModelSerializer):
     """Базовый сериализатор для хранения общей логики штабов.
 
@@ -1010,7 +1011,6 @@ class LocalHeadquarterSerializer(BaseUnitSerializer):
     def get_educational_headquarters(self, obj):
         hqs = EducationalHeadquarter.objects.filter(local_headquarter=obj)
         return ShortEducationalHeadquarterSerializer(hqs, many=True).data
-
 
     def get_detachments(self, obj):
         hqs = Detachment.objects.filter(local_headquarter=obj)
@@ -1228,4 +1228,202 @@ class MemberCertSerializer(serializers.ModelSerializer):
             'ids',
             'signatory',
             'position_procuration'
+        )
+
+
+class EventApplicationsCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventApplications
+        fields = '__all__'
+        read_only_fields = ('event', 'user', 'created_at')
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        validation_error_messages = []
+        user = request.user
+        event_id = request.parser_context.get('kwargs').get('event_pk')
+        event = get_object_or_404(Event, id=event_id)
+        msg_answer_validation = self.validate_answered_questions(
+            event, user
+        )
+        msg_duplicate_apply = self.validate_duplicate_application(
+            event, user
+        )
+        msg_user_is_participant = self.validate_user_is_participant(
+            event, user
+        )
+        msg_all_documents_uploaded = self.validate_all_documents_uploaded(
+            event, user
+        )
+        if msg_answer_validation:
+            validation_error_messages.append(msg_answer_validation)
+        if msg_duplicate_apply:
+            validation_error_messages.append(msg_duplicate_apply)
+        if msg_user_is_participant:
+            validation_error_messages.append(msg_user_is_participant)
+        if msg_all_documents_uploaded:
+            validation_error_messages.append(msg_all_documents_uploaded)
+        if validation_error_messages:
+            raise serializers.ValidationError(validation_error_messages)
+        return attrs
+
+    def validate_answered_questions(self, event, user):
+        len_answers = EventIssueAnswer.objects.filter(
+            event=event, user=user
+        ).count()
+        if event.additional_issues.count() != len_answers:
+            return 'Вы не ответили на все вопросы'
+
+    def validate_duplicate_application(self, event, user):
+        if EventApplications.objects.filter(event=event, user=user).exists():
+            return 'Вы уже подали заявку на участие в этом мероприятии'
+
+    def validate_user_is_participant(self, event, user):
+        if EventParticipants.objects.filter(event=event, user=user).exists():
+            return 'Вы уже участвуете в этом мероприятии'
+
+    def validate_all_documents_uploaded(self, event, user):
+        len_uploaded_documents = EventUserDocument.objects.filter(
+            event=event, user=user
+        ).count()
+        len_documents = event.documents.count()
+        if len_uploaded_documents != len_documents:
+            return (
+                'Вы загрузили не все документы. '
+                'Всего необходимо {} документов'.format(len_documents)
+            )
+
+
+class AnswerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventIssueAnswer
+        fields = (
+            'id',
+            'issue',
+            'answer',
+            'event',
+            'user'
+        )
+        read_only_fields = (
+            'id',
+            'event',
+            'user'
+        )
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if request.method == 'POST':
+            event = self.context.get('event')
+            len_questions = len(event.additional_issues.all())
+            if len(request.data) != len_questions:
+                raise serializers.ValidationError(
+                    'Не на все вопросы даны ответы. '
+                    'Всего вопросов: {}'.format(len_questions)
+                )
+            if EventIssueAnswer.objects.filter(
+                event=event, user=request.user
+            ).exists():
+                raise serializers.ValidationError(
+                    'Вы уже отвечали на вопросы данного мероприятия'
+                )
+            for answer in request.data:
+                if not answer.get('answer'):
+                    raise serializers.ValidationError(
+                        'Ответ на вопрос не может быть пустым'
+                    )
+                if not answer.get('issue'):
+                    raise serializers.ValidationError(
+                        'Не выбран вопрос'
+                    )
+        return attrs
+
+
+class EventApplicationsSerializer(serializers.ModelSerializer):
+    answers = serializers.SerializerMethodField()
+    documents = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EventApplications
+        fields = (
+            'id',
+            'user',
+            'event',
+            'answers',
+            'documents',
+            'created_at'
+        )
+        read_only_fields = (
+            'created_at',
+            'event',
+            'user'
+        )
+
+    def get_answers(self, obj):
+        return AnswerSerializer(
+            EventIssueAnswer.objects.filter(event=obj.event, user=obj.user),
+            many=True
+        ).data
+
+    def get_documents(self, obj):
+        return EventUserDocumentSerializer(
+            EventUserDocument.objects.filter(event=obj.event, user=obj.user),
+            many=True
+        ).data
+
+
+class EventParticipantsSerializer(serializers.ModelSerializer):
+    answers = serializers.SerializerMethodField()
+    documents = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EventParticipants
+        fields = (
+            'id',
+            'user',
+            'event',
+            'answers',
+            'documents'
+        )
+        read_only_fields = (
+            'id',
+            'event',
+            'user'
+        )
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if request.method == 'POST':
+            user = request.user
+            event_id = request.parser_context.get('kwargs').get('event_pk')
+            event = get_object_or_404(Event, id=event_id)
+            if EventParticipants.objects.filter(
+                event=event, user=user
+            ).exists():
+                raise serializers.ValidationError(
+                    'Пользователь уже участвует в этом мероприятии. '
+                    'Отклоните повторную заявку.'
+                )
+        return attrs
+
+    def get_answers(self, obj):
+        return AnswerSerializer(
+            EventIssueAnswer.objects.filter(event=obj.event, user=obj.user),
+            many=True
+        ).data
+
+    def get_documents(self, obj):
+        return EventUserDocumentSerializer(
+            EventUserDocument.objects.filter(event=obj.event, user=obj.user),
+            many=True
+        ).data
+
+
+class EventUserDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventUserDocument
+        fields = '__all__'
+        read_only_fields = (
+            'id',
+            'event',
+            'user'
         )
