@@ -24,9 +24,9 @@ from rest_framework.response import Response
 
 from api.filters import EventFilter
 from api.mixins import (CreateDeleteViewSet, CreateListRetrieveDestroyViewSet,
-                        CreateRetrieveUpdateDestroyViewSet,
+                        CreateRetrieveUpdateViewSet,
                         ListRetrieveDestroyViewSet, ListRetrieveUpdateViewSet,
-                        ListRetrieveViewSet, RetrieveUpdateDestroyViewSet)
+                        ListRetrieveViewSet, RetrieveUpdateViewSet)
 from api.permissions import (IsApplicantOrOrganizer, IsAuthorPermission,
                              IsDetachmentCommander, IsDistrictCommander,
                              IsEducationalCommander, IsEventAuthor,
@@ -1809,7 +1809,7 @@ def create_answers(request, event_pk):
     return Response(status=status.HTTP_201_CREATED)
 
 
-class AnswerDetailViewSet(RetrieveUpdateDestroyViewSet):
+class AnswerDetailViewSet(RetrieveUpdateViewSet):
     """Поштучное получение, изменение и удаление ответов
     в индивидуальных заявках на мероприятие.
 
@@ -1836,7 +1836,7 @@ class AnswerDetailViewSet(RetrieveUpdateDestroyViewSet):
         return super().get_permissions()
 
 
-class EventUserDocumentViewSet(CreateRetrieveUpdateDestroyViewSet):
+class EventUserDocumentViewSet(CreateRetrieveUpdateViewSet):
     """Представление сохраненных документов пользователя (сканов).
 
     Доступ:
