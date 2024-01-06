@@ -281,6 +281,10 @@ class UserProfessionalEducationSerializer(serializers.ModelSerializer):
 
 
 class UserDocumentsSerializer(serializers.ModelSerializer):
+    mil_reg_doc_type = serializers.CharField(
+        source='get_mil_reg_doc_type_display'
+    )
+
     class Meta:
         model = UserDocuments
         fields = (
