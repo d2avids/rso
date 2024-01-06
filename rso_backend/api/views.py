@@ -27,7 +27,8 @@ from api.permissions import (IsDetachmentCommander, IsDistrictCommander,
                              IsRegionalCommander, IsRegionalCommanderForCert,
                              IsRegStuffOrDetCommander, IsStuffOrAuthor,
                              IsStuffOrCentralCommander,
-                             MembershipFeePermission)
+                             MembershipFeePermission,
+                             IsStuffOrCentralCommanderOrTrusted)
 from api.serializers import (AreaSerializer, CentralHeadquarterSerializer,
                              CentralPositionSerializer,
                              DetachmentPositionSerializer,
@@ -484,7 +485,7 @@ class CentralViewSet(ListRetrieveUpdateViewSet):
         if self.action == 'create':
             permission_classes = (permissions.IsAdminUser,)
         else:
-            permission_classes = (IsStuffOrCentralCommander,)
+            permission_classes = (IsStuffOrCentralCommanderOrTrusted,)
         return [permission() for permission in permission_classes]
 
 
@@ -505,7 +506,7 @@ class DistrictViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action == 'create':
-            permission_classes = (IsStuffOrCentralCommander,)
+            permission_classes = (IsStuffOrCentralCommanderOrTrusted,)
         else:
             permission_classes = (IsDistrictCommander,)
         return [permission() for permission in permission_classes]

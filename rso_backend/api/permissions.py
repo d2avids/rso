@@ -6,7 +6,8 @@ from api.utils import (check_roles_for_edit, check_trusted_for_detachments,
                        check_trusted_for_eduhead, check_trusted_for_localhead,
                        check_trusted_for_regionalhead,
                        check_trusted_in_headquarters, check_trusted_user,
-                       is_safe_method, is_stuff_or_central_commander)
+                       is_safe_method, is_stuff_or_central_commander,
+                       check_trusted_for_centralhead, check_commander_or_not)
 from headquarters.models import (Detachment, DistrictHeadquarter,
                                  EducationalHeadquarter, LocalHeadquarter,
                                  RegionalHeadquarter,
@@ -20,9 +21,29 @@ from users.models import RSOUser
 
 
 class IsStuffOrCentralCommander(BasePermission):
-    """Пермишен для админа и командира центрального штаба.
+    """Пермишен для стаффа и командира центрального штаба.
 
-    Роли 'админ' и 'командир центрального штаба' возвращают True.
+    Роли 'стафф', 'админ' и 'командир центрального штаба' возвращают True.
+    Остальные пользователи получают True, если обращаются к эндпоинту
+    с безопасным запросом (GET, HEAD, OPTIONS).
+    """
+    def has_permission(self, request, view):
+        return any([
+            is_safe_method(request),
+            is_stuff_or_central_commander(request)
+        ])
+
+    def has_object_permission(self, request, view, obj):
+        return any([
+            is_safe_method(request),
+            is_stuff_or_central_commander(request),
+        ])
+
+
+class IsStuffOrCentralCommanderOrTrusted(IsStuffOrCentralCommander):
+    """Пермишен для стаффа,командира ЦШ и доверенного в ЦШ.
+
+    Роли 'стафф', 'командир ЦШ' и 'доверенный в ЦШ' возвращают True.
     Остальные пользователи получают True, если обращаются к эндпоинту
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
@@ -49,6 +70,13 @@ class IsDistrictCommander(BasePermission):
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
 
+    def has_permission(self, request, view):
+        return any([
+            is_safe_method(request),
+            is_stuff_or_central_commander(request),
+            check_trusted_for_centralhead(request),
+        ])
+
     def has_object_permission(self, request, view, obj):
         check_model_instance = False
         user_id = request.user.id
@@ -74,6 +102,19 @@ class IsRegionalCommander(BasePermission):
     Остальные пользователи получают True, если обращаются к эндпоинту
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
+
+    def has_permission(self, request, view):
+        headquarters = [
+            DistrictHeadquarter,
+            RegionalHeadquarter
+        ]
+        return any([
+            is_safe_method(request),
+            is_stuff_or_central_commander(request),
+            check_trusted_for_centralhead(request),
+            check_trusted_for_districthead(request),
+            check_commander_or_not(request, headquarters),
+        ])
 
     def has_object_permission(self, request, view, obj):
         """Метод, для проверки доступа к эндпоинтам РШ.
@@ -107,6 +148,21 @@ class IsLocalCommander(BasePermission):
     Остальные пользователи получают True, если обращаются к эндпоинту
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
+
+    def has_permission(self, request, view):
+        headquarters = [
+            LocalHeadquarter,
+            RegionalHeadquarter,
+            DistrictHeadquarter
+        ]
+        print(check_commander_or_not(request, headquarters))
+        return any([
+            is_safe_method(request),
+            is_stuff_or_central_commander(request),
+            check_trusted_for_centralhead(request),
+            check_trusted_for_regionalhead(request),
+            check_commander_or_not(request, headquarters),
+        ])
 
     def has_object_permission(self, request, view, obj):
         """Метод, для проверки доступа к эндпоинтам МШ.
@@ -143,6 +199,21 @@ class IsEducationalCommander(BasePermission):
     Остальные пользователи получают True, если обращаются к эндпоинту
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
+
+    def has_permission(self, request, view):
+        headquarters = [
+            EducationalHeadquarter,
+            LocalHeadquarter,
+            RegionalHeadquarter,
+            DistrictHeadquarter
+        ]
+        return any([
+            is_safe_method(request),
+            is_stuff_or_central_commander(request),
+            check_trusted_for_centralhead(request),
+            check_trusted_for_localhead(request),
+            check_commander_or_not(request, headquarters),
+        ])
 
     def has_object_permission(self, request, view, obj):
         """Метод, для проверки доступа к эндпоинтам ШОО.
@@ -190,16 +261,12 @@ class IsDetachmentCommander(BasePermission):
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
 
-    def has_object_permission(self, request, view, obj):
-        """Метод, для проверки доступа к эндпоинтам отряда.
-
-        check_roles - проверяет http-методы пользователя или роли.
-        """
-
-        user_id = request.user.id
+    @classmethod
+    def check_instances(cls, request, obj=None):
         check_model_instance = False
         check_local_head = False
         check_edu_head = False
+        user_id = request.user.id
         regional_head = obj.regional_headquarter
         if isinstance(obj, Detachment) and any(
                 user_id == commander.commander_id
@@ -220,16 +287,35 @@ class IsDetachmentCommander(BasePermission):
                     user_id == edu_head.commander_id
             ):
                 check_edu_head = True
-        check_roles = any([
-            is_safe_method(request),
-            is_stuff_or_central_commander(request),
-            check_trusted_for_detachments(request, obj)
-        ])
         return any([
-            check_roles,
             check_model_instance,
             check_local_head,
             check_edu_head
+        ])
+
+    def has_permission(self, request, view):
+        headquarters = [
+            Detachment,
+            EducationalHeadquarter,
+            LocalHeadquarter,
+            RegionalHeadquarter,
+            DistrictHeadquarter
+        ]
+        return any([
+            is_safe_method(request),
+            is_stuff_or_central_commander(request),
+            check_trusted_for_centralhead(request),
+            check_trusted_for_eduhead(request),
+            check_commander_or_not(request, headquarters),
+        ])
+
+    def has_object_permission(self, request, view, obj):
+
+        return any([
+            is_safe_method(request),
+            is_stuff_or_central_commander(request),
+            check_trusted_for_detachments(request, obj),
+            self.check_instances(request, obj),
         ])
 
 
@@ -255,7 +341,8 @@ class IsStuffOrAuthor(BasePermission):
             check_roles_for_edit(request=request, roles_models=roles_models),
             check_trusted_in_headquarters(
                 request=request,
-                roles_models=roles_models
+                roles_models=roles_models,
+                obj=obj
             )
         ])
         return any([

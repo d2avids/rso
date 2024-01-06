@@ -13,7 +13,8 @@ from headquarters.models import (CentralHeadquarter, UserDetachmentPosition,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition)
+                                 UserRegionalHeadquarterPosition,
+                                 UserCentralHeadquarterPosition)
 from users.models import RSOUser
 
 
@@ -54,7 +55,7 @@ def is_stuff_or_central_commander(request):
     """Проверка роли пользователя.
 
     При запросе пользователя к эндпоинту проверяет роль пользователя.
-    Если роль совпал с ролью админа или командира ЦШ, возвращает True.
+    Если роль совпала с ролью админа или командира ЦШ, возвращает True.
     """
 
     check_central_commander = False
@@ -72,6 +73,22 @@ def is_stuff_or_central_commander(request):
                 ]))
     except CentralHeadquarter.DoesNotExist:
         return False
+
+
+def check_commander_or_not(request, headquarters):
+    """Проверка является ли юзер командиром.
+
+    headquarters - список моделей, в которых проверяется роль пользователя.
+    request - запрос к эндпоинту
+    """
+
+    for headquarter in headquarters:
+        try:
+            headquarter.objects.get(commander_id=request.user.id)
+            return True
+        except headquarter.DoesNotExist:
+            pass
+    return False
 
 
 def check_role_get(request, model, position_in_quarter):
@@ -96,6 +113,26 @@ def check_role_get(request, model, position_in_quarter):
     )
 
 
+def search_trusted_in_list(user_id, tables_list):
+    """Поиск первого доверенного пользователя в списке таблиц.
+
+    tables_list - список таблиц, в котором производится поиск.
+    """
+
+    index = 0
+    number_of_tables = len(tables_list)
+    while index < number_of_tables:
+        try:
+            if tables_list[index].objects.get(
+                user_id=user_id
+            ).is_trusted:
+                return True
+            index += 1
+        except tables_list[index].DoesNotExist:
+            index += 1
+    return False
+
+
 def check_trusted_user(request, model, obj):
     """Проверка доверенного пользователя.
 
@@ -118,7 +155,7 @@ def check_trusted_user(request, model, obj):
     )
 
 
-def check_trusted_for_detachments(request, obj):
+def check_trusted_for_detachments(request, obj=None):
     """Проверка доверенного пользователя для отряда.
 
     request - запрос к эндпоинту.
@@ -128,55 +165,66 @@ def check_trusted_for_detachments(request, obj):
     в штабах выше и если существует, то возвращает статус доверенности.
     """
 
-    detachment_trusted = False
-    regional_trusted = district_trusted = False
+    tables_for_check = [
+        UserDetachmentPosition,
+        UserEducationalHeadquarterPosition,
+        UserLocalHeadquarterPosition,
+        UserRegionalHeadquarterPosition,
+        UserDistrictHeadquarterPosition
+    ]
     user_id = request.user.id
-    detachment_position = UserDetachmentPosition.objects.filter(
-        headquarter_id=obj.id,
-        user_id=user_id
-    )
-    try:
-        headquarter_id = obj.educational_headquarter.id
-        edu_position = UserEducationalHeadquarterPosition.objects.get(
-            headquarter_id=headquarter_id,
-            user_id=user_id
-        )
-        edu_trusted = edu_position.first().is_trusted
-    except (UserEducationalHeadquarterPosition.DoesNotExist, AttributeError):
-        edu_trusted = False
-    try:
-        headquarter_id = obj.local_headquarter.id
-        local_position = UserLocalHeadquarterPosition.objects.get(
-            headquarter_id=headquarter_id,
-            user_id=user_id
-        )
-        local_trusted = local_position.first().is_trusted
-    except (UserLocalHeadquarterPosition.DoesNotExist, AttributeError):
-        local_trusted = False
-    regional_position = UserRegionalHeadquarterPosition.objects.filter(
-        headquarter_id=obj.regional_headquarter.id,
-        user_id=user_id
-    )
-    district_position = UserDistrictHeadquarterPosition.objects.filter(
-        headquarter_id=obj.regional_headquarter.district_headquarter.id,
-    )
-    if detachment_position.exists():
-        detachment_trusted = detachment_position.first().is_trusted
-    if regional_position.exists():
-        regional_trusted = regional_position.first().is_trusted
-    if district_position.exists():
-        district_trusted = district_position.first().is_trusted
+    if obj is None:
+        try:
+            detachment_trusted = UserDetachmentPosition.objects.get(
+                headquarter_id=obj.id,
+                user_id=user_id
+            ).is_trusted
+        except UserDetachmentPosition.DoesNotExist:
+            detachment_trusted = False
+        try:
+            headquarter_id = obj.educational_headquarter.id
+            edu_trusted = UserEducationalHeadquarterPosition.objects.get(
+                headquarter_id=headquarter_id,
+                user_id=user_id
+            ).is_trusted
+        except (
+            UserEducationalHeadquarterPosition.DoesNotExist, AttributeError
+        ):
+            edu_trusted = False
+        try:
+            headquarter_id = obj.local_headquarter.id
+            local_trusted = UserLocalHeadquarterPosition.objects.get(
+                headquarter_id=headquarter_id,
+                user_id=user_id
+            ).is_trusted
+        except (UserLocalHeadquarterPosition.DoesNotExist, AttributeError):
+            local_trusted = False
+        try:
+            regional_trusted = UserRegionalHeadquarterPosition.objects.get(
+                headquarter_id=obj.regional_headquarter.id,
+                user_id=user_id
+            ).is_trusted
+        except UserRegionalHeadquarterPosition.DoesNotExist:
+            regional_trusted = False
+        try:
+            headquarter_id = obj.regional_headquarter.district_headquarter.id
+            district_trusted = UserDistrictHeadquarterPosition.objects.get(
+                headquarter_id=headquarter_id,
+            ).is_trusted
+        except UserDistrictHeadquarterPosition.DoesNotExist:
+            district_trusted = False
+        return any([
+            detachment_trusted,
+            edu_trusted,
+            local_trusted,
+            regional_trusted,
+            district_trusted
+        ])
+    else:
+        search_trusted_in_list(user_id, tables_for_check)
 
-    return any([
-        detachment_trusted,
-        edu_trusted,
-        local_trusted,
-        regional_trusted,
-        district_trusted
-    ])
 
-
-def check_trusted_for_eduhead(request, obj):
+def check_trusted_for_eduhead(request, obj=None):
     """Проверка доверенного пользователя для Образовательного Штаба.
 
     request - запрос к эндпоинту.
@@ -186,45 +234,61 @@ def check_trusted_for_eduhead(request, obj):
     в штабах выше и если существует, то возвращает статус доверенности.
     """
 
-    edu_trusted = False
-    regional_trusted = district_trusted = False
+    tables_for_check = [
+        UserEducationalHeadquarterPosition,
+        UserLocalHeadquarterPosition,
+        UserRegionalHeadquarterPosition,
+        UserDistrictHeadquarterPosition
+    ]
     user_id = request.user.id
     user_id = request.user.id
-    edu_position = UserEducationalHeadquarterPosition.objects.filter(
-        headquarter_id=obj.id,
-        user_id=user_id
-    )
-    try:
-        headquarter_id = obj.local_headquarter.id
-        local_position = UserLocalHeadquarterPosition.objects.get(
-            headquarter_id=headquarter_id,
-            user_id=user_id
-        )
-        local_trusted = local_position.first().is_trusted
-    except (UserLocalHeadquarterPosition.DoesNotExist, AttributeError):
-        local_trusted = False
-    regional_position = UserRegionalHeadquarterPosition.objects.filter(
-        headquarter_id=obj.regional_headquarter.id,
-        user_id=user_id
-    )
-    district_position = UserDistrictHeadquarterPosition.objects.filter(
-        headquarter_id=obj.regional_headquarter.district_headquarter.id,
-    )
-    if edu_position.exists():
-        edu_trusted = edu_position.first().is_trusted
-    if regional_position.exists():
-        regional_trusted = regional_position.first().is_trusted
-    if district_position.exists():
-        district_trusted = district_position.first().is_trusted
-    return any([
-        edu_trusted,
-        local_trusted,
-        regional_trusted,
-        district_trusted
-    ])
+    if obj is None:
+        try:
+            edu_trusted = UserEducationalHeadquarterPosition.objects.get(
+                headquarter_id=obj.id,
+                user_id=user_id
+            ).is_trusted
+        except (
+            UserEducationalHeadquarterPosition.DoesNotExist, AttributeError
+        ):
+            edu_trusted = False
+        try:
+            headquarter_id = obj.local_headquarter.id
+            local_trusted = UserLocalHeadquarterPosition.objects.get(
+                headquarter_id=headquarter_id,
+                user_id=user_id
+            ).is_trusted
+        except (UserLocalHeadquarterPosition.DoesNotExist, AttributeError):
+            local_trusted = False
+        try:
+            regional_trusted = UserRegionalHeadquarterPosition.objects.get(
+                headquarter_id=obj.regional_headquarter.id,
+                user_id=user_id
+            ).is_trusted
+        except (
+            UserRegionalHeadquarterPosition.DoesNotExist, AttributeError
+        ):
+            regional_trusted = False
+            try:
+                head_id = obj.regional_headquarter.district_headquarter.id
+                district_trusted = UserDistrictHeadquarterPosition.objects.get(
+                    headquarter_id=head_id,
+                ).is_trusted
+            except (
+                UserDistrictHeadquarterPosition.DoesNotExist, AttributeError
+            ):
+                district_trusted = False
+        return any([
+            edu_trusted,
+            local_trusted,
+            regional_trusted,
+            district_trusted
+        ])
+    else:
+        search_trusted_in_list(user_id, tables_for_check)
 
 
-def check_trusted_for_localhead(request, obj):
+def check_trusted_for_localhead(request, obj=None):
     """Проверка доверенного пользователя для Местного Штаба.
 
     request - запрос к эндпоинту.
@@ -234,33 +298,44 @@ def check_trusted_for_localhead(request, obj):
     в штабах выше и если существует, то возвращает статус доверенности.
     """
 
-    local_trusted = regional_trusted = district_trusted = False
+    tables_for_check = [
+        UserLocalHeadquarterPosition,
+        UserRegionalHeadquarterPosition,
+        UserDistrictHeadquarterPosition
+    ]
     user_id = request.user.id
-    local_position = UserLocalHeadquarterPosition.objects.filter(
-        headquarter_id=obj.id,
-        user_id=user_id
-    )
-    regional_position = UserRegionalHeadquarterPosition.objects.filter(
-        headquarter_id=obj.regional_headquarter.id,
-        user_id=user_id
-    )
-    district_position = UserDistrictHeadquarterPosition.objects.filter(
-        headquarter_id=obj.regional_headquarter.district_headquarter.id,
-    )
-    if local_position.exists():
-        local_trusted = local_position.first().is_trusted
-    if regional_position.exists():
-        regional_trusted = regional_position.first().is_trusted
-    if district_position.exists():
-        district_trusted = district_position.first().is_trusted
-    return any([
-        local_trusted,
-        regional_trusted,
-        district_trusted
-    ])
+    if obj is not None:
+        try:
+            local_trusted = UserLocalHeadquarterPosition.objects.get(
+                headquarter_id=obj.id,
+                user_id=user_id
+            ).is_trusted
+        except (UserLocalHeadquarterPosition.DoesNotExist, AttributeError):
+            local_trusted = False
+        try:
+            regional_trusted = UserRegionalHeadquarterPosition.objects.get(
+                headquarter_id=obj.regional_headquarter.id,
+                user_id=user_id
+            ).is_trusted
+        except (UserRegionalHeadquarterPosition.DoesNotExist, AttributeError):
+            regional_trusted = False
+        try:
+            headquarter_id = obj.regional_headquarter.district_headquarter.id
+            district_trusted = UserDistrictHeadquarterPosition.objects.get(
+                headquarter_id=headquarter_id,
+            ).is_trusted
+        except (UserDistrictHeadquarterPosition.DoesNotExist, AttributeError):
+            district_trusted = False
+        return any([
+            local_trusted,
+            regional_trusted,
+            district_trusted
+        ])
+    else:
+        search_trusted_in_list(user_id, tables_for_check)
 
 
-def check_trusted_for_regionalhead(request, obj):
+def check_trusted_for_regionalhead(request, obj=None):
     """Проверка доверенного пользователя для Регионального Штаба.
 
     request - запрос к эндпоинту.
@@ -270,26 +345,41 @@ def check_trusted_for_regionalhead(request, obj):
     в Окружном штабе и если существует, то возвращает статус доверенности.
     """
 
-    regional_trusted = district_trusted = False
     user_id = request.user.id
-    regional_position = UserRegionalHeadquarterPosition.objects.filter(
-        headquarter_id=obj.id,
-        user_id=user_id
-    )
-    district_position = UserDistrictHeadquarterPosition.objects.filter(
-        headquarter_id=obj.district_headquarter.id,
-    )
-    if regional_position.exists():
-        regional_trusted = regional_position.first().is_trusted
-    if district_position.exists():
-        district_trusted = district_position.first().is_trusted
+    if obj is not None:
+        try:
+            regional_trusted = UserRegionalHeadquarterPosition.objects.get(
+                headquarter_id=obj.id,
+                user_id=user_id
+            ).is_trusted
+        except UserRegionalHeadquarterPosition.DoesNotExist:
+            regional_trusted = False
+        try:
+            district_trusted = UserDistrictHeadquarterPosition.objects.get(
+                headquarter_id=obj.district_headquarter.id,
+            ).is_trusted
+        except UserDistrictHeadquarterPosition.DoesNotExist:
+            district_trusted = False
+    else:
+        try:
+            regional_trusted = UserRegionalHeadquarterPosition.objects.get(
+                user_id=user_id
+            ).is_trusted
+        except UserRegionalHeadquarterPosition.DoesNotExist:
+            regional_trusted = False
+        try:
+            district_trusted = UserDistrictHeadquarterPosition.objects.get(
+                user_id=user_id
+            ).is_trusted
+        except UserDistrictHeadquarterPosition.DoesNotExist:
+            district_trusted = False
     return any([
         regional_trusted,
         district_trusted
     ])
 
 
-def check_trusted_for_districthead(request, obj):
+def check_trusted_for_districthead(request, obj=None):
     """Проверка доверенного пользователя для Окружного Штаба.
 
     request - запрос к эндпоинту.
@@ -298,15 +388,42 @@ def check_trusted_for_districthead(request, obj):
     в Окружном штабе и если существует, то возвращает статус доверенности.
     """
 
-    district_trusted = False
     user_id = request.user.id
-    district_position = UserDistrictHeadquarterPosition.objects.filter(
-        headquarter_id=obj.id,
-        user_id=user_id
-    )
-    if district_position.exists():
-        district_trusted = district_position.first().is_trusted
-    return district_trusted
+    if obj is not None:
+        try:
+            return UserDistrictHeadquarterPosition.objects.get(
+                headquarter_id=obj.id,
+                user_id=user_id
+            ).is_trusted
+        except UserDistrictHeadquarterPosition.DoesNotExist:
+            return False
+    else:
+        try:
+            return UserDistrictHeadquarterPosition.objects.get(
+                user_id=user_id
+            ).is_trusted
+        except UserDistrictHeadquarterPosition.DoesNotExist:
+            return False
+
+
+def check_trusted_for_centralhead(request):
+    """Проверка доверенного пользователя для Центрального Штаба.
+
+    request - запрос к эндпоинту.
+    Функция проверяет существует ли запись о юзере
+    в Центральном штабе и если существует, то возвращает статус доверенности.
+    """
+
+    request_user_id = request.user.id
+    try:
+        return UserCentralHeadquarterPosition.objects.get(
+            user_id=request_user_id
+        ).is_trusted
+    except (
+        UserCentralHeadquarterPosition.DoesNotExist,
+        UserCentralHeadquarterPosition.MultipleObjectsReturned
+    ):
+        return False
 
 
 def check_roles_for_edit(request, roles_models: dict):
