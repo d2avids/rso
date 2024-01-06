@@ -511,3 +511,68 @@ class EventUserDocument(models.Model):
             f'{self.user.first_name}. Id: {self.user.id}'
             f' на участие в мероприятии {self.event.name}. Id: {self.event.id}'
         )
+
+
+class MultiEventApplication(models.Model):
+    """Таблица для хранения заявок на участие в многоэтапном мероприятии."""
+    event = models.ForeignKey(
+        to='Event',
+        on_delete=models.CASCADE,
+        related_name='multi_event_applications',
+        verbose_name='Мероприятие',
+    )
+    user = models.ForeignKey(
+        to='users.RSOUser',
+        on_delete=models.CASCADE,
+        related_name='multi_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Боец',
+    )
+    local_headquarter = models.ForeignKey(
+        to='headquarters.LocalHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='multi_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Местный штаб',
+    )
+    educational_headquarter = models.ForeignKey(
+        to='headquarters.EducationalHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='multi_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Образовательный штаб',
+    )
+    detachment = models.ForeignKey(
+        to='headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='multi_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Отряд',
+    )
+
+    class Meta:
+        ordering = ['-id']
+        verbose_name_plural = 'Заявки на участие в многоэтапном мероприятии'
+        verbose_name = 'Заявка на участие в многоэтапном мероприятии'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('event', 'local_headquarter'),
+                name='unique_local_headquarter_application'
+            ),
+            models.UniqueConstraint(
+                fields=('event', 'educational_headquarter'),
+                name='unique_educational_headquarter_application'
+            ),
+            models.UniqueConstraint(
+                fields=('event', 'detachment'),
+                name='unique_detachment_application'
+            ),
+            models.UniqueConstraint(
+                fields=('event', 'user'),
+                name='unique_user_application'
+            )
+        ]
