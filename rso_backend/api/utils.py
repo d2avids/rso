@@ -71,7 +71,7 @@ def is_stuff_or_central_commander(request):
                     request.user.is_superuser,
                     request.user.is_staff
                 ]))
-    except CentralHeadquarter.DoesNotExist:
+    except (CentralHeadquarter.DoesNotExist, AttributeError):
         return False
 
 
@@ -86,7 +86,7 @@ def check_commander_or_not(request, headquarters):
         try:
             headquarter.objects.get(commander_id=request.user.id)
             return True
-        except headquarter.DoesNotExist:
+        except (headquarter.DoesNotExist, AttributeError):
             pass
     return False
 
@@ -106,7 +106,7 @@ def check_role_get(request, model, position_in_quarter):
             user_headquarter_object.position.name
             if user_headquarter_object.position else None
         )
-    except model.DoesNotExist:
+    except (model.DoesNotExist, AttributeError):
         return False
     return (
         request.user.is_authenticated and position_name == position_in_quarter
@@ -128,7 +128,7 @@ def search_trusted_in_list(user_id, tables_list):
             ).is_trusted:
                 return True
             index += 1
-        except tables_list[index].DoesNotExist:
+        except (tables_list[index].DoesNotExist, AttributeError):
             index += 1
     return False
 
@@ -173,13 +173,13 @@ def check_trusted_for_detachments(request, obj=None):
         UserDistrictHeadquarterPosition
     ]
     user_id = request.user.id
-    if obj is None:
+    if obj is not None:
         try:
             detachment_trusted = UserDetachmentPosition.objects.get(
                 headquarter_id=obj.id,
                 user_id=user_id
             ).is_trusted
-        except UserDetachmentPosition.DoesNotExist:
+        except (UserDetachmentPosition.DoesNotExist, AttributeError):
             detachment_trusted = False
         try:
             headquarter_id = obj.educational_headquarter.id
@@ -204,14 +204,14 @@ def check_trusted_for_detachments(request, obj=None):
                 headquarter_id=obj.regional_headquarter.id,
                 user_id=user_id
             ).is_trusted
-        except UserRegionalHeadquarterPosition.DoesNotExist:
+        except (UserRegionalHeadquarterPosition.DoesNotExist, AttributeError):
             regional_trusted = False
         try:
             headquarter_id = obj.regional_headquarter.district_headquarter.id
             district_trusted = UserDistrictHeadquarterPosition.objects.get(
                 headquarter_id=headquarter_id,
             ).is_trusted
-        except UserDistrictHeadquarterPosition.DoesNotExist:
+        except (UserDistrictHeadquarterPosition.DoesNotExist, AttributeError):
             district_trusted = False
         return any([
             detachment_trusted,
@@ -221,7 +221,7 @@ def check_trusted_for_detachments(request, obj=None):
             district_trusted
         ])
     else:
-        search_trusted_in_list(user_id, tables_for_check)
+        return search_trusted_in_list(user_id, tables_for_check)
 
 
 def check_trusted_for_eduhead(request, obj=None):
@@ -242,7 +242,7 @@ def check_trusted_for_eduhead(request, obj=None):
     ]
     user_id = request.user.id
     user_id = request.user.id
-    if obj is None:
+    if obj is not None:
         try:
             edu_trusted = UserEducationalHeadquarterPosition.objects.get(
                 headquarter_id=obj.id,
@@ -285,7 +285,7 @@ def check_trusted_for_eduhead(request, obj=None):
             district_trusted
         ])
     else:
-        search_trusted_in_list(user_id, tables_for_check)
+        return search_trusted_in_list(user_id, tables_for_check)
 
 
 def check_trusted_for_localhead(request, obj=None):
@@ -332,7 +332,7 @@ def check_trusted_for_localhead(request, obj=None):
             district_trusted
         ])
     else:
-        search_trusted_in_list(user_id, tables_for_check)
+        return search_trusted_in_list(user_id, tables_for_check)
 
 
 def check_trusted_for_regionalhead(request, obj=None):
@@ -352,26 +352,26 @@ def check_trusted_for_regionalhead(request, obj=None):
                 headquarter_id=obj.id,
                 user_id=user_id
             ).is_trusted
-        except UserRegionalHeadquarterPosition.DoesNotExist:
+        except (UserRegionalHeadquarterPosition.DoesNotExist, AttributeError):
             regional_trusted = False
         try:
             district_trusted = UserDistrictHeadquarterPosition.objects.get(
                 headquarter_id=obj.district_headquarter.id,
             ).is_trusted
-        except UserDistrictHeadquarterPosition.DoesNotExist:
+        except (UserDistrictHeadquarterPosition.DoesNotExist, AttributeError):
             district_trusted = False
     else:
         try:
             regional_trusted = UserRegionalHeadquarterPosition.objects.get(
                 user_id=user_id
             ).is_trusted
-        except UserRegionalHeadquarterPosition.DoesNotExist:
+        except (UserRegionalHeadquarterPosition.DoesNotExist, AttributeError):
             regional_trusted = False
         try:
             district_trusted = UserDistrictHeadquarterPosition.objects.get(
                 user_id=user_id
             ).is_trusted
-        except UserDistrictHeadquarterPosition.DoesNotExist:
+        except (UserDistrictHeadquarterPosition.DoesNotExist, AttributeError):
             district_trusted = False
     return any([
         regional_trusted,
@@ -395,14 +395,14 @@ def check_trusted_for_districthead(request, obj=None):
                 headquarter_id=obj.id,
                 user_id=user_id
             ).is_trusted
-        except UserDistrictHeadquarterPosition.DoesNotExist:
+        except (UserDistrictHeadquarterPosition.DoesNotExist, AttributeError):
             return False
     else:
         try:
             return UserDistrictHeadquarterPosition.objects.get(
                 user_id=user_id
             ).is_trusted
-        except UserDistrictHeadquarterPosition.DoesNotExist:
+        except (UserDistrictHeadquarterPosition.DoesNotExist, AttributeError):
             return False
 
 
@@ -421,7 +421,8 @@ def check_trusted_for_centralhead(request):
         ).is_trusted
     except (
         UserCentralHeadquarterPosition.DoesNotExist,
-        UserCentralHeadquarterPosition.MultipleObjectsReturned
+        UserCentralHeadquarterPosition.MultipleObjectsReturned,
+        AttributeError
     ):
         return False
 

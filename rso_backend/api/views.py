@@ -1496,7 +1496,7 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                 external_certs[filename] = pdf_cert_or_response
                 UserMemberCertLogs.objects.create(
                     user=user,
-                    cert_type='external_cert',
+                    cert_type='Для работодателя',
                     cert_issued_by=request.user
                 )
             response = create_and_return_archive(external_certs)
@@ -1534,7 +1534,7 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                 internal_certs[filename] = pdf_cert_or_response
                 UserMemberCertLogs.objects.create(
                     user=user,
-                    cert_type='internal_cert',
+                    cert_type='Внутренняя справка',
                     cert_issued_by=request.user
                 )
             response = create_and_return_archive(internal_certs)

@@ -112,7 +112,7 @@ class IsRegionalCommander(BasePermission):
             is_safe_method(request),
             is_stuff_or_central_commander(request),
             check_trusted_for_centralhead(request),
-            check_trusted_for_districthead(request),
+            check_trusted_for_regionalhead(request),
             check_commander_or_not(request, headquarters),
         ])
 
@@ -155,12 +155,11 @@ class IsLocalCommander(BasePermission):
             RegionalHeadquarter,
             DistrictHeadquarter
         ]
-        print(check_commander_or_not(request, headquarters))
         return any([
             is_safe_method(request),
             is_stuff_or_central_commander(request),
             check_trusted_for_centralhead(request),
-            check_trusted_for_regionalhead(request),
+            check_trusted_for_localhead(request),
             check_commander_or_not(request, headquarters),
         ])
 
@@ -211,7 +210,7 @@ class IsEducationalCommander(BasePermission):
             is_safe_method(request),
             is_stuff_or_central_commander(request),
             check_trusted_for_centralhead(request),
-            check_trusted_for_localhead(request),
+            check_trusted_for_eduhead(request),
             check_commander_or_not(request, headquarters),
         ])
 
@@ -305,7 +304,7 @@ class IsDetachmentCommander(BasePermission):
             is_safe_method(request),
             is_stuff_or_central_commander(request),
             check_trusted_for_centralhead(request),
-            check_trusted_for_eduhead(request),
+            check_trusted_for_detachments(request),
             check_commander_or_not(request, headquarters),
         ])
 
@@ -326,6 +325,13 @@ class IsStuffOrAuthor(BasePermission):
     Остальные пользователи получают True, если обращаются к эндпоинту
     с безопасным запросом (GET, HEAD, OPTIONS).
     """
+
+    def has_permission(self, request, view):
+        return any([
+            is_safe_method(request),
+            is_stuff_or_central_commander(request),
+            request.user.is_authenticated
+        ])
 
     def has_object_permission(self, request, view, obj):
         roles_models = {
@@ -376,7 +382,7 @@ class IsRegStuffOrDetCommander(BasePermission):
                 UserRegionalHeadquarterPosition.
                 objects.get(user=user, headquarter=reg_headquarter)
             )
-        except UserRegionalHeadquarterPosition.DoesNotExist:
+        except (UserRegionalHeadquarterPosition.DoesNotExist, AttributeError):
             reg_headquarter_member = None
 
         if reg_headquarter_member:
@@ -387,7 +393,7 @@ class IsRegStuffOrDetCommander(BasePermission):
             user_in_detachment = UserDetachmentPosition.objects.get(
                 user=user_to_verify
             )
-        except UserDetachmentPosition.DoesNotExist:
+        except (UserDetachmentPosition.DoesNotExist, AttributeError):
             return False
 
         if user_in_detachment.headquarter.commander == user:
@@ -409,7 +415,7 @@ class MembershipFeePermission(BasePermission):
                 UserRegionalHeadquarterPosition.
                 objects.get(user=user_to_change)
             ).headquarter
-        except UserRegionalHeadquarterPosition.DoesNotExist:
+        except (UserRegionalHeadquarterPosition.DoesNotExist, AttributeError):
             return False
 
         if reg_headquarter.commander == user:
@@ -420,13 +426,11 @@ class MembershipFeePermission(BasePermission):
                 UserRegionalHeadquarterPosition.
                 objects.get(user=user, headquarter=reg_headquarter)
             )
-        except UserRegionalHeadquarterPosition.DoesNotExist:
+        except (UserRegionalHeadquarterPosition.DoesNotExist, AttributeError):
             return False
-
         if reg_headquarter_member:
             if reg_headquarter_member.is_trusted:
                 return True
-
         return False
 
 
@@ -447,9 +451,9 @@ class IsRegionalCommanderForCert(BasePermission):
         request_user_id = request.user.id
         ids = request.data.get('ids')
         try:
-            commander_regheadquarter_id = RegionalHeadquarter.objects.filter(
+            commander_regheadquarter_id = RegionalHeadquarter.objects.get(
                 commander_id=request_user_id
-            ).first().id
+            ).id
             for id in ids:
                 user_reghead_id = UserRegionalHeadquarterPosition.objects.get(
                     user_id=id
