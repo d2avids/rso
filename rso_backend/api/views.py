@@ -11,6 +11,7 @@ from django.db.models import Q
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from pdfrw.buildxobj import pagexobj
 from pdfrw.toreportlab import makerl
@@ -22,6 +23,7 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
+from api import constants
 from api.filters import EventFilter
 from api.mixins import (CreateDeleteViewSet, CreateListRetrieveDestroyViewSet,
                         CreateRetrieveUpdateViewSet,
@@ -888,7 +890,9 @@ class EventViewSet(viewsets.ModelViewSet):
     }
 
     def get_permissions(self):
-        """Применить пермишен в зависимости от действия."""
+        """
+        Применить пермишен в зависимости от действия и масштаба мероприятия.
+        """
         if self.action in ['list', 'retrieve']:
             permission_classes = [permissions.AllowAny]
         if self.action == 'create':
@@ -902,7 +906,7 @@ class EventViewSet(viewsets.ModelViewSet):
         if self.action in (
                 'update', 'update_time_data', 'update_document_data'
         ):
-            permission_classes = [IsAuthorPermission]
+            permission_classes = [IsAuthorPermission, IsEventOrganizer]
         return [permission() for permission in permission_classes]
 
     @swagger_auto_schema(request_body=EventSwaggerSerializer)
@@ -917,6 +921,7 @@ class EventViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(request_body=EventTimeDataSerializer)
     @action(detail=True, methods=['put',], url_path='time_data')
     def update_time_data(self, request, pk=None):
+        """Заполнить информацию о времени проведения мероприятия."""
         event = self.get_object()
         time_data_instance = EventTimeData.objects.get(event=event)
 
@@ -931,6 +936,10 @@ class EventViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(request_body=EventDocumentDataSerializer)
     @action(detail=True, methods=['put',], url_path='document_data')
     def update_document_data(self, request, pk=None):
+        """
+        Указать необходимые к заполнению документы
+        для участия в мероприятии.
+        """
         event = self.get_object()
         document_data_instance = EventDocumentData.objects.get(event=event)
 
@@ -944,6 +953,11 @@ class EventViewSet(viewsets.ModelViewSet):
 
 
 class EventOrganizationDataViewSet(viewsets.ModelViewSet):
+    """Представляет информацию об организаторах мероприятия.
+
+    Добавленные пользователь могу иметь доступ к редактированию информации о
+    мероприятии, а также рассмотрение и принятие/отклонение заявок на участие.
+    """
     queryset = EventOrganizationData.objects.all()
     serializer_class = EventOrganizerDataSerializer
     permission_classes = (IsEventAuthor,)
@@ -979,6 +993,10 @@ class EventOrganizationDataViewSet(viewsets.ModelViewSet):
 
 
 class EventAdditionalIssueViewSet(viewsets.ModelViewSet):
+    """
+    Представляет дополнительные вопросы к мероприятию, необходимые
+    для заполнения при подаче индивидуальной заявки.
+    """
     queryset = EventAdditionalIssue.objects.all()
     serializer_class = EventAdditionalIssueSerializer
     permission_classes = (IsEventAuthor,)
@@ -1209,10 +1227,19 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                 }
             )
         recipient = data.get('recipient', 'по месту требования')
-        cert_start_date = datetime.strptime(
-            data.get('cert_start_date'),
-            '%Y-%m-%d'
-        )
+
+        if data.get('cert_start_date') is not None:
+            cert_start_date = datetime.strptime(
+                data.get('cert_start_date'),
+                '%Y-%m-%d'
+            )
+        else:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={
+                    'detail': 'Не указана дата начала действия сертификата.'
+                }
+            )
         cert_end_date = datetime.strptime(
             data.get('cert_end_date'),
             '%Y-%m-%d'
@@ -1460,6 +1487,8 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                     + signatory_list[1][0]
                     + '.'
                 )
+            else:
+                c.drawString(cls.SIGNATORY_X, cls.SIGNATORY_Y, signatory)
         if cert_template == 'internal_cert.pdf':
             string_width = c.stringWidth(
                 recipient, 'Times_New_Roman', cls.TIMES_TEXT_SIZE
@@ -1512,9 +1541,17 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
         c.save()
         return buf.getvalue()
 
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties=constants.properties | constants.properties_external,
+            required=['cert_start_date', 'cert_end_date', 'recipient', 'ids'],
+        ),
+        method='post',
+    )
     @action(
         detail=False,
-        methods=['get', 'post'],
+        methods=['post',],
         permission_classes=(IsRegionalCommanderForCert,),
         serializer_class=MemberCertSerializer,
     )
@@ -1528,8 +1565,17 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save(user=user)
             ids = request.data.get('ids')
+            if ids is None:
+                return Response(
+                    {'detail': 'Поле ids не может быть пустым.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             external_certs = {}
             for user_id in ids:
+                if user_id == 0:
+                    return Response(
+                        {'detail': 'Поле ids не может содержать 0.'},
+                    )
                 user = get_user_by_id(user_id)
                 pdf_cert_or_response = self.get_certificate(
                     user=user,
@@ -1550,9 +1596,17 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
             response = create_and_return_archive(external_certs)
             return response
 
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties=constants.properties,
+            required=['cert_start_date', 'cert_end_date', 'recipient', 'ids'],
+        ),
+        method='post',
+    )
     @action(
         detail=False,
-        methods=['get', 'post'],
+        methods=['post',],
         permission_classes=(IsRegionalCommanderForCert,),
         serializer_class=MemberCertSerializer,
     )
@@ -1566,8 +1620,17 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save(user=user)
             ids = request.data.get('ids')
+            if ids is None:
+                return Response(
+                    {'detail': 'Поле ids не может быть пустым.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             internal_certs = {}
             for user_id in ids:
+                if user_id == 0:
+                    return Response(
+                        {'detail': 'Поле ids не может содержать 0.'},
+                    )
                 user = get_user_by_id(user_id)
                 pdf_cert_or_response = self.get_certificate(
                     user=user,

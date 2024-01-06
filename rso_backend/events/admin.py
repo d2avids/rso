@@ -54,7 +54,3 @@ class EventAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Event, EventAdmin)
-admin.site.register(EventApplications)
-admin.site.register(EventIssueAnswer)
-admin.site.register(EventParticipants)
-admin.site.register(EventUserDocument)

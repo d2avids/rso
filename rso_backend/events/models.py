@@ -75,7 +75,7 @@ class Event(models.Model):
     )
     name = models.CharField(
         max_length=100,
-        verbose_name='Название мероприятия,'
+        verbose_name='Название мероприятия'
     )
     banner = models.ImageField(
         upload_to=image_path,
