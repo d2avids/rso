@@ -285,6 +285,7 @@ class UserDocumentsSerializer(serializers.ModelSerializer):
         model = UserDocuments
         fields = (
             'snils',
+            'russian_passport',
             'inn',
             'pass_ser_num',
             'pass_town',
