@@ -8,7 +8,8 @@ from import_export.admin import ImportExportModelAdmin
 
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserMembershipLogs, UserParent, UserPrivacySettings,
-                          UserRegion, UserStatementDocuments)
+                          UserRegion, UserStatementDocuments,
+                          UserMemberCertLogs)
 from users.resources import RSOUserResource
 
 
@@ -75,6 +76,14 @@ class UserMembershipLogsAdmin(admin.ModelAdmin):
     readonly_fields = ('user', 'status_changed_by', 'date', 'period', 'status')
     search_fields = ('user', 'status_changed_by',)
     list_filter = ('date', 'period', 'status')
+
+
+@admin.register(UserMemberCertLogs)
+class UserMemberCertLogsAdmin(admin.ModelAdmin):
+    list_display = ('user', 'cert_issued_by', 'date', 'cert_type')
+    readonly_fields = ('user', 'cert_issued_by', 'date', 'cert_type')
+    search_fields = ('user', 'cert_issued_by')
+    list_filter = ('date', 'cert_issued_by', 'cert_type')
 
 
 admin.site.unregister(Group)
