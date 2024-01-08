@@ -7,15 +7,17 @@ from api.constants import (CREATE_DELETE, CREATE_METHOD,
                            DOWNLOAD_ALL_FORMS, DOWNLOAD_CONSENT_PD,
                            DOWNLOAD_MEMBERSHIP_FILE,
                            DOWNLOAD_PARENT_CONSENT_PD, LIST, LIST_CREATE,
-                           RETRIEVE_CREATE, UPDATE_RETRIEVE, UPDATE_DELETE)
-from api.views import (AreaViewSet, CentralPositionViewSet, CentralViewSet,
+                           RETRIEVE_CREATE, UPDATE_DELETE, UPDATE_RETRIEVE)
+from api.views import (AnswerDetailViewSet, AreaViewSet,
+                       CentralPositionViewSet, CentralViewSet,
                        DetachmentAcceptViewSet, DetachmentApplicationViewSet,
                        DetachmentPositionViewSet, DetachmentViewSet,
                        DistrictPositionViewSet, DistrictViewSet,
                        EducationalInstitutionViewSet,
                        EducationalPositionViewSet, EducationalViewSet,
-                       EventAdditionalIssueViewSet,
-                       EventOrganizationDataViewSet, EventViewSet,
+                       EventAdditionalIssueViewSet, EventApplicationsViewSet,
+                       EventOrganizationDataViewSet, EventParticipantsViewSet,
+                       EventUserDocumentViewSet, EventViewSet,
                        ForeignUserDocumentsViewSet, LocalPositionViewSet,
                        LocalViewSet, MemberCertViewSet, PositionViewSet,
                        RegionalPositionViewSet, RegionalViewSet, RegionViewSet,
@@ -25,7 +27,8 @@ from api.views import (AreaViewSet, CentralPositionViewSet, CentralViewSet,
                        UserProfessionalEducationViewSet, UserRegionViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
                        apply_for_verification, change_membership_fee_status,
-                       get_structural_units, verify_user)
+                       create_answers, get_structural_units, verify_user)
+
 
 app_name = 'api'
 
@@ -44,6 +47,26 @@ router.register(r'positions', PositionViewSet)
 router.register('eduicational_institutions', EducationalInstitutionViewSet)
 router.register('membership_certificates', MemberCertViewSet)
 router.register('events', EventViewSet)
+router.register(
+    r'events/(?P<event_pk>\d+)/applications',
+    EventApplicationsViewSet,
+    basename='event-applications'
+)
+router.register(
+    r'events/(?P<event_pk>\d+)/participants',
+    EventParticipantsViewSet,
+    basename='event-participants'
+)
+router.register(
+    r'events/(?P<event_pk>\d+)/answers',
+    AnswerDetailViewSet,
+    basename='answer'
+),
+router.register(
+    r'events/(?P<event_pk>\d+)/user_documents',
+    EventUserDocumentViewSet,
+    basename='event-user-document'
+)
 
 
 UserEduVS = UserEducationViewSet.as_view(UPDATE_RETRIEVE)
@@ -254,6 +277,11 @@ user_nested_urls = [
         'events/<int:event_pk>/issues/<int:pk>/',
         EventAdditionalIssueObjVS,
         name='event-organization-objects'
+    ),
+    path(
+        'events/<int:event_pk>/answers/',
+        create_answers,
+        name='create-answers'
     ),
     path('', include('djoser.urls')),
 ]

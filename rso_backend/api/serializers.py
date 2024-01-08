@@ -1,7 +1,9 @@
 import datetime as dt
 from datetime import date
 
+from django.db.models import Q
 from django.core.exceptions import ValidationError
+from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreatePasswordRetypeSerializer
 from rest_framework import serializers
 
@@ -11,9 +13,10 @@ from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                            PRIVACY_RAW_EXISTS, REGION_RAW_EXISTS,
                            STATEMENT_RAW_EXISTS, TOO_MANY_EDUCATIONS)
 from api.utils import create_first_or_exception
-from events.models import (Event, EventAdditionalIssue, EventDocument,
-                           EventDocumentData, EventOrganizationData,
-                           EventTimeData)
+from events.models import (Event, EventAdditionalIssue, EventApplications,
+                           EventDocument, EventDocumentData, EventIssueAnswer,
+                           EventOrganizationData, EventParticipants,
+                           EventTimeData, EventUserDocument)
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -59,6 +62,10 @@ class RegionSerializer(serializers.ModelSerializer):
 
 
 class EventTimeDataSerializer(serializers.ModelSerializer):
+    event_duration_type = serializers.CharField(
+        source='get_event_duration_type_display'
+    )
+
     class Meta:
         model = EventTimeData
         fields = (
@@ -70,16 +77,6 @@ class EventTimeDataSerializer(serializers.ModelSerializer):
             'registration_end_date',
             'registration_end_time',
         )
-
-    def save(self):
-        self.instance.event_duration_type = self.validated_data['event_duration_type']
-        self.instance.start_date = self.validated_data['start_date']
-        self.instance.start_time = self.validated_data['start_time']
-        self.instance.end_date = self.validated_data['end_date']
-        self.instance.end_time = self.validated_data['end_time']
-        self.instance.registration_end_date = self.validated_data['registration_end_date']
-        self.instance.registration_end_time = self.validated_data['registration_end_time']
-        self.instance.save()
 
     def create(self, validated_data):
         return create_first_or_exception(
@@ -103,16 +100,6 @@ class EventDocumentDataSerializer(serializers.ModelSerializer):
             'consent_personal_data',
             'additional_info',
         )
-
-    def save(self):
-        self.instance.passport = self.validated_data['passport']
-        self.instance.snils = self.validated_data['snils']
-        self.instance.inn = self.validated_data['inn']
-        self.instance.work_book = self.validated_data['work_book']
-        self.instance.military_document = self.validated_data['military_document']
-        self.instance.consent_personal_data = self.validated_data['consent_personal_data']
-        self.instance.additional_info = self.validated_data['additional_info']
-        self.instance.save()
 
     def create(self, validated_data):
         return create_first_or_exception(
@@ -152,17 +139,31 @@ class EventAdditionalIssueSerializer(serializers.ModelSerializer):
 class EventSerializer(serializers.ModelSerializer):
     time_data = EventTimeDataSerializer(read_only=True)
     document_data = EventDocumentDataSerializer(read_only=True)
-    additional_issues = EventAdditionalIssueSerializer(read_only=True, many=True)
+    additional_issues = EventAdditionalIssueSerializer(
+        read_only=True, many=True
+    )
     organization_data = EventOrganizerDataSerializer(read_only=True, many=True)
     documents = EventDocumentSerializer(read_only=True, many=True)
+    available_structural_units = serializers.CharField(
+        source='get_available_structural_units_display'
+    )
+    application_type = serializers.CharField(
+        source='get_application_type_display'
+    )
+    direction = serializers.CharField(source='get_direction_display')
+    format = serializers.CharField(source='get_format_display')
+    status = serializers.CharField(source='get_status_display')
+    scale = serializers.CharField(source='get_scale_display')
 
     class Meta:
         model = Event
         fields = (
+            'id',
             'author',
             'format',
             'direction',
             'status',
+            'scale',
             'created_at',
             'name',
             'banner',
@@ -179,7 +180,9 @@ class EventSerializer(serializers.ModelSerializer):
             'additional_issues',
         )
         read_only_fields = (
+            'id',
             'author',
+            'scale',
             'created_at',
             'documents',
             'organization_data',
@@ -278,10 +281,15 @@ class UserProfessionalEducationSerializer(serializers.ModelSerializer):
 
 
 class UserDocumentsSerializer(serializers.ModelSerializer):
+    mil_reg_doc_type = serializers.CharField(
+        source='get_mil_reg_doc_type_display'
+    )
+
     class Meta:
         model = UserDocuments
         fields = (
             'snils',
+            'russian_passport',
             'inn',
             'pass_ser_num',
             'pass_town',
@@ -328,7 +336,22 @@ class ForeignUserDocumentsSerializer(serializers.ModelSerializer):
         )
 
 
+class PrivacyOptionField(serializers.ChoiceField):
+    def to_representation(self, value):
+        if value in self.choices:
+            return self.choices[value][1]
+        return value
+
+
 class UserPrivacySettingsSerializer(serializers.ModelSerializer):
+    privacy_telephone = serializers.CharField(
+        source='get_privacy_telephone_display'
+    )
+    privacy_email = serializers.CharField(source='get_privacy_email_display')
+    privacy_social = serializers.CharField(source='get_privacy_social_display')
+    privacy_about = serializers.CharField(source='get_privacy_about_display')
+    privacy_photo = serializers.CharField(source='get_privacy_photo_display')
+
     class Meta:
         model = UserPrivacySettings
         fields = (
@@ -553,7 +576,9 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_central_headquarter_id(instance):
         try:
-            central_headquarter_id = CentralHeadquarter.objects.get(id=instance.id).id
+            central_headquarter_id = CentralHeadquarter.objects.get(
+                id=instance.id
+            ).id
         except CentralHeadquarter.DoesNotExist:
             central_headquarter_id = None
         return central_headquarter_id
@@ -561,7 +586,9 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_district_headquarter_id(instance):
         try:
-            district_headquarter_id = DistrictHeadquarter.objects.get(id=instance.id).id
+            district_headquarter_id = DistrictHeadquarter.objects.get(
+                id=instance.id
+            ).id
         except DistrictHeadquarter.DoesNotExist:
             district_headquarter_id = None
         return district_headquarter_id
@@ -569,7 +596,9 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_regional_headquarter_id(instance):
         try:
-            regional_headquarter_id = RegionalHeadquarter.objects.get(id=instance.id).id
+            regional_headquarter_id = RegionalHeadquarter.objects.get(
+                id=instance.id
+            ).id
         except RegionalHeadquarter.DoesNotExist:
             regional_headquarter_id = None
         return regional_headquarter_id
@@ -577,7 +606,9 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_local_headquarter_id(instance):
         try:
-            local_headquarter_id = LocalHeadquarter.objects.get(id=instance.id).id
+            local_headquarter_id = LocalHeadquarter.objects.get(
+                id=instance.id
+            ).id
         except LocalHeadquarter.DoesNotExist:
             local_headquarter_id = None
         return local_headquarter_id
@@ -585,7 +616,9 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_educational_headquarter_id(instance):
         try:
-            eduicational_headquarter_id = EducationalHeadquarter.objects.get(id=instance.id).id
+            eduicational_headquarter_id = EducationalHeadquarter.objects.get(
+                id=instance.id
+            ).id
         except EducationalHeadquarter.DoesNotExist:
             eduicational_headquarter_id = None
         return eduicational_headquarter_id
@@ -756,18 +789,82 @@ class DetachmentPositionSerializer(BasePositionSerializer):
         read_only_fields = BasePositionSerializer.Meta.read_only_fields
 
 
+class BaseShortUnitSerializer(serializers.ModelSerializer):
+    """Базовый сериализатор для хранения общей логики штабов.
+
+    Хранит только поля id, name и banner.
+    """
+
+    class Meta:
+        model = None
+        fields = (
+            'id',
+            'name',
+            'banner',
+        )
+
+
+class ShortDistrictHeadquarterSerializer(BaseShortUnitSerializer):
+    class Meta:
+        model = DistrictHeadquarter
+        fields = BaseShortUnitSerializer.Meta.fields
+
+
+class ShortRegionalHeadquarterSerializer(BaseShortUnitSerializer):
+    class Meta:
+        model = RegionalHeadquarter
+        fields = BaseShortUnitSerializer.Meta.fields
+
+
+class ShortLocalHeadquarterSerializer(BaseShortUnitSerializer):
+    class Meta:
+        model = LocalHeadquarter
+        fields = BaseShortUnitSerializer.Meta.fields
+
+
+class ShortEducationalHeadquarterSerializer(BaseShortUnitSerializer):
+    class Meta:
+        model = EducationalHeadquarter
+        fields = BaseShortUnitSerializer.Meta.fields
+
+
+class ShortDetachmentSerializer(BaseShortUnitSerializer):
+    class Meta:
+        model = Detachment
+        fields = BaseShortUnitSerializer.Meta.fields
+
+
 class BaseUnitSerializer(serializers.ModelSerializer):
     """Базовый сериализатор для хранения общей логики штабов.
 
     Предназначен для использования как родительский класс для всех
     сериализаторов штабов, обеспечивая наследование общих полей и методов.
     """
+    _POSITIONS_MAPPING = {
+        CentralHeadquarter: (
+            UserCentralHeadquarterPosition, CentralPositionSerializer
+        ),
+        DistrictHeadquarter: (
+            UserDistrictHeadquarterPosition, DistrictPositionSerializer
+        ),
+        RegionalHeadquarter: (
+            UserRegionalHeadquarterPosition, RegionalPositionSerializer
+        ),
+        LocalHeadquarter: (
+            UserLocalHeadquarterPosition, LocalPositionSerializer
+        ),
+        EducationalHeadquarter: (
+            UserEducationalHeadquarterPosition, EducationalPositionSerializer
+        ),
+        Detachment: (UserDetachmentPosition, DetachmentPositionSerializer),
+    }
 
     commander = serializers.PrimaryKeyRelatedField(
         queryset=RSOUser.objects.all(),
     )
     members_count = serializers.SerializerMethodField(read_only=True)
     participants_count = serializers.SerializerMethodField(read_only=True)
+    leadership = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = None
@@ -784,7 +881,40 @@ class BaseUnitSerializer(serializers.ModelSerializer):
             'city',
             'members_count',
             'participants_count',
+            'leadership',
         )
+
+    def _get_position_instance(self):
+        instance_type = type(self.instance)
+        instance_type = type(self.instance.first())
+
+        for model_class, (
+                position_model, _
+        ) in self._POSITIONS_MAPPING.items():
+            if issubclass(instance_type, model_class):
+                return position_model
+
+    def _get_position_serializer(self):
+        instance_type = type(self.instance)
+        instance_type = type(self.instance.first())
+
+        for model_class, (
+                _, serializer_class
+        ) in self._POSITIONS_MAPPING.items():
+            if issubclass(instance_type, model_class):
+                return serializer_class
+
+    def get_leadership(self, instance):
+        """
+        Вывод руководства отряда
+        (пользователи с должностями "Мастер-методист" и "Комиссар").
+        """
+        serializer = self._get_position_serializer()
+        position_instance = self._get_position_instance()
+        leaders = position_instance.objects.filter(
+            Q(position__name='Мастер-методист') | Q(position__name='Комиссар')
+        )
+        return serializer(leaders, many=True).data
 
     @staticmethod
     def get_members_count(instance):
@@ -812,6 +942,7 @@ class DistrictHeadquarterSerializer(BaseUnitSerializer):
         many=True,
         read_only=True
     )
+    regional_headquarters = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = DistrictHeadquarter
@@ -819,7 +950,13 @@ class DistrictHeadquarterSerializer(BaseUnitSerializer):
             'central_headquarter',
             'founding_date',
             'members',
+            'regional_headquarters',
         )
+        read_only_fields = ('regional_headquarters', )
+
+    def get_regional_headquarters(self, obj):
+        hqs = RegionalHeadquarter.objects.filter(district_headquarter=obj)
+        return ShortRegionalHeadquarterSerializer(hqs, many=True).data
 
 
 class RegionalHeadquarterSerializer(BaseUnitSerializer):
@@ -841,6 +978,11 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
         read_only=True
     )
     users_for_verification = serializers.SerializerMethodField(read_only=True)
+    detachments = serializers.SerializerMethodField(read_only=True)
+    local_headquarters = serializers.SerializerMethodField(read_only=True)
+    educational_headquarters = serializers.SerializerMethodField(
+        read_only=True
+    )
 
     class Meta:
         model = RegionalHeadquarter
@@ -857,6 +999,14 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
             'legal_address',
             'requisites',
             'founding_date',
+            'detachments',
+            'local_headquarters',
+            'educational_headquarters',
+        )
+        read_only_fields = (
+            'detachments',
+            'local_headquarters',
+            'educational_headquarters',
         )
 
     @staticmethod
@@ -870,6 +1020,18 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
             'name': f'{request.user.first_name} {request.user.last_name}',
             'email': request.user.email
         } for request in verification_requests]
+
+    def get_detachments(self, obj):
+        hqs = Detachment.objects.filter(regional_headquarter=obj)
+        return ShortDetachmentSerializer(hqs, many=True).data
+
+    def get_local_headquarters(self, obj):
+        hqs = LocalHeadquarter.objects.filter(regional_headquarter=obj)
+        return ShortLocalHeadquarterSerializer(hqs, many=True).data
+
+    def get_educational_headquarters(self, obj):
+        hqs = EducationalHeadquarter.objects.filter(regional_headquarter=obj)
+        return ShortEducationalHeadquarterSerializer(hqs, many=True).data
 
 
 class LocalHeadquarterSerializer(BaseUnitSerializer):
@@ -886,6 +1048,12 @@ class LocalHeadquarterSerializer(BaseUnitSerializer):
         many=True,
         read_only=True
     )
+    educational_headquarters = serializers.SerializerMethodField(
+        read_only=True
+    )
+    detachments = serializers.SerializerMethodField(
+        read_only=True
+    )
 
     class Meta:
         model = LocalHeadquarter
@@ -893,7 +1061,18 @@ class LocalHeadquarterSerializer(BaseUnitSerializer):
             'regional_headquarter',
             'members',
             'founding_date',
+            'educational_headquarters',
+            'detachments',
         )
+        read_only_fields = ('educational_headquarters', 'detachments')
+
+    def get_educational_headquarters(self, obj):
+        hqs = EducationalHeadquarter.objects.filter(local_headquarter=obj)
+        return ShortEducationalHeadquarterSerializer(hqs, many=True).data
+
+    def get_detachments(self, obj):
+        hqs = Detachment.objects.filter(local_headquarter=obj)
+        return ShortDetachmentSerializer(hqs, many=True).data
 
 
 class EducationalHeadquarterSerializer(BaseUnitSerializer):
@@ -918,6 +1097,9 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
         many=True,
         read_only=True
     )
+    detachments = serializers.SerializerMethodField(
+        read_only=True
+    )
 
     class Meta:
         model = EducationalHeadquarter
@@ -927,7 +1109,9 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
             'regional_headquarter',
             'members',
             'founding_date',
+            'detachments'
         )
+        read_only_fields = ('detachments', )
 
     def validate(self, data):
         """
@@ -940,6 +1124,10 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
         except ValidationError as e:
             raise serializers.ValidationError(e.message_dict)
         return data
+
+    def get_detachments(self, obj):
+        hqs = Detachment.objects.filter(educational_headquarter=obj)
+        return ShortDetachmentSerializer(hqs, many=True).data
 
 
 class UserDetachmentApplicationSerializer(serializers.ModelSerializer):
@@ -1101,4 +1289,199 @@ class MemberCertSerializer(serializers.ModelSerializer):
         )
 
 
+class EventApplicationsCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventApplications
+        fields = '__all__'
+        read_only_fields = ('event', 'user', 'created_at')
 
+    def validate(self, attrs):
+        request = self.context.get('request')
+        validation_error_messages = []
+        user = request.user
+        event_id = request.parser_context.get('kwargs').get('event_pk')
+        event = get_object_or_404(Event, id=event_id)
+        msg_answer_validation = self.validate_answered_questions(
+            event, user
+        )
+        msg_duplicate_apply = self.validate_duplicate_application(
+            event, user
+        )
+        msg_user_is_participant = self.validate_user_is_participant(
+            event, user
+        )
+        msg_all_documents_uploaded = self.validate_all_documents_uploaded(
+            event, user
+        )
+        if msg_answer_validation:
+            validation_error_messages.append(msg_answer_validation)
+        if msg_duplicate_apply:
+            validation_error_messages.append(msg_duplicate_apply)
+        if msg_user_is_participant:
+            validation_error_messages.append(msg_user_is_participant)
+        if msg_all_documents_uploaded:
+            validation_error_messages.append(msg_all_documents_uploaded)
+        if validation_error_messages:
+            raise serializers.ValidationError(validation_error_messages)
+        return attrs
+
+    def validate_answered_questions(self, event, user):
+        len_answers = EventIssueAnswer.objects.filter(
+            event=event, user=user
+        ).count()
+        if event.additional_issues.count() != len_answers:
+            return 'Вы не ответили на все вопросы'
+
+    def validate_duplicate_application(self, event, user):
+        if EventApplications.objects.filter(event=event, user=user).exists():
+            return 'Вы уже подали заявку на участие в этом мероприятии'
+
+    def validate_user_is_participant(self, event, user):
+        if EventParticipants.objects.filter(event=event, user=user).exists():
+            return 'Вы уже участвуете в этом мероприятии'
+
+    def validate_all_documents_uploaded(self, event, user):
+        len_uploaded_documents = EventUserDocument.objects.filter(
+            event=event, user=user
+        ).count()
+        len_documents = event.documents.count()
+        if len_uploaded_documents != len_documents:
+            return (
+                'Вы загрузили не все документы. '
+                'Всего необходимо {} документов'.format(len_documents)
+            )
+
+
+class AnswerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventIssueAnswer
+        fields = (
+            'id',
+            'issue',
+            'answer',
+            'event',
+            'user'
+        )
+        read_only_fields = (
+            'id',
+            'event',
+            'user'
+        )
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if request.method == 'POST':
+            event = self.context.get('event')
+            len_questions = len(event.additional_issues.all())
+            if len(request.data) != len_questions:
+                raise serializers.ValidationError(
+                    'Не на все вопросы даны ответы. '
+                    'Всего вопросов: {}'.format(len_questions)
+                )
+            if EventIssueAnswer.objects.filter(
+                event=event, user=request.user
+            ).exists():
+                raise serializers.ValidationError(
+                    'Вы уже отвечали на вопросы данного мероприятия'
+                )
+            for answer in request.data:
+                if not answer.get('answer'):
+                    raise serializers.ValidationError(
+                        'Ответ на вопрос не может быть пустым'
+                    )
+                if not answer.get('issue'):
+                    raise serializers.ValidationError(
+                        'Не выбран вопрос'
+                    )
+        return attrs
+
+
+class EventApplicationsSerializer(serializers.ModelSerializer):
+    answers = serializers.SerializerMethodField()
+    documents = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EventApplications
+        fields = (
+            'id',
+            'user',
+            'event',
+            'answers',
+            'documents',
+            'created_at'
+        )
+        read_only_fields = (
+            'created_at',
+            'event',
+            'user'
+        )
+
+    def get_answers(self, obj):
+        return AnswerSerializer(
+            EventIssueAnswer.objects.filter(event=obj.event, user=obj.user),
+            many=True
+        ).data
+
+    def get_documents(self, obj):
+        return EventUserDocumentSerializer(
+            EventUserDocument.objects.filter(event=obj.event, user=obj.user),
+            many=True
+        ).data
+
+
+class EventParticipantsSerializer(serializers.ModelSerializer):
+    answers = serializers.SerializerMethodField()
+    documents = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EventParticipants
+        fields = (
+            'id',
+            'user',
+            'event',
+            'answers',
+            'documents'
+        )
+        read_only_fields = (
+            'id',
+            'event',
+            'user'
+        )
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if request.method == 'POST':
+            user = request.user
+            event_id = request.parser_context.get('kwargs').get('event_pk')
+            event = get_object_or_404(Event, id=event_id)
+            if EventParticipants.objects.filter(
+                event=event, user=user
+            ).exists():
+                raise serializers.ValidationError(
+                    'Пользователь уже участвует в этом мероприятии. '
+                    'Отклоните повторную заявку.'
+                )
+        return attrs
+
+    def get_answers(self, obj):
+        return AnswerSerializer(
+            EventIssueAnswer.objects.filter(event=obj.event, user=obj.user),
+            many=True
+        ).data
+
+    def get_documents(self, obj):
+        return EventUserDocumentSerializer(
+            EventUserDocument.objects.filter(event=obj.event, user=obj.user),
+            many=True
+        ).data
+
+
+class EventUserDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventUserDocument
+        fields = '__all__'
+        read_only_fields = (
+            'id',
+            'event',
+            'user'
+        )

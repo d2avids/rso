@@ -6,9 +6,12 @@ from datetime import datetime
 
 import pdfrw
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models import Q
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from pdfrw.buildxobj import pagexobj
 from pdfrw.toreportlab import makerl
@@ -20,16 +23,23 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
-from api.mixins import (CreateDeleteViewSet, ListRetrieveUpdateViewSet,
-                        ListRetrieveViewSet)
-from api.permissions import (IsDetachmentCommander, IsDistrictCommander,
-                             IsEducationalCommander, IsLocalCommander,
+from api import constants
+from api.filters import EventFilter
+from api.mixins import (CreateDeleteViewSet, CreateListRetrieveDestroyViewSet,
+                        CreateRetrieveUpdateViewSet,
+                        ListRetrieveDestroyViewSet, ListRetrieveUpdateViewSet,
+                        ListRetrieveViewSet, RetrieveUpdateViewSet)
+from api.permissions import (IsApplicantOrOrganizer, IsAuthorPermission,
+                             IsDetachmentCommander, IsDistrictCommander,
+                             IsEducationalCommander, IsEventAuthor,
+                             IsEventOrganizer, IsLocalCommander,
                              IsRegionalCommander, IsRegionalCommanderForCert,
                              IsRegStuffOrDetCommander, IsStuffOrAuthor,
                              IsStuffOrCentralCommander,
                              MembershipFeePermission,
                              IsStuffOrCentralCommanderOrTrusted)
-from api.serializers import (AreaSerializer, CentralHeadquarterSerializer,
+from api.serializers import (AnswerSerializer, AreaSerializer,
+                             CentralHeadquarterSerializer,
                              CentralPositionSerializer,
                              DetachmentPositionSerializer,
                              DetachmentSerializer,
@@ -39,9 +49,13 @@ from api.serializers import (AreaSerializer, CentralHeadquarterSerializer,
                              EducationalInstitutionSerializer,
                              EducationalPositionSerializer,
                              EventAdditionalIssueSerializer,
+                             EventApplicationsSerializer,
+                             EventApplicationsCreateSerializer,
                              EventDocumentDataSerializer,
-                             EventOrganizerDataSerializer, EventSerializer,
+                             EventOrganizerDataSerializer,
+                             EventParticipantsSerializer, EventSerializer,
                              EventTimeDataSerializer,
+                             EventUserDocumentSerializer,
                              ForeignUserDocumentsSerializer,
                              LocalHeadquarterSerializer,
                              LocalPositionSerializer, MemberCertSerializer,
@@ -49,7 +63,11 @@ from api.serializers import (AreaSerializer, CentralHeadquarterSerializer,
                              ProfessionalEductionSerializer,
                              RegionalHeadquarterSerializer,
                              RegionalPositionSerializer, RegionSerializer,
-                             RSOUserSerializer,
+                             RSOUserSerializer, ShortDetachmentSerializer,
+                             ShortDistrictHeadquarterSerializer,
+                             ShortEducationalHeadquarterSerializer,
+                             ShortLocalHeadquarterSerializer,
+                             ShortRegionalHeadquarterSerializer,
                              UserDetachmentApplicationSerializer,
                              UserDocumentsSerializer, UserEducationSerializer,
                              UserMediaSerializer,
@@ -61,9 +79,10 @@ from api.swagger_schemas import EventSwaggerSerializer
 from api.utils import (create_and_return_archive, download_file,
                        get_headquarter_users_positions_queryset, get_user,
                        get_user_by_id, text_to_lines)
-from events.models import (Event, EventAdditionalIssue,
-                           EventDocumentData, EventOrganizationData,
-                           EventTimeData)
+from events.models import (Event, EventAdditionalIssue, EventApplications,
+                           EventDocumentData, EventIssueAnswer,
+                           EventOrganizationData, EventParticipants,
+                           EventTimeData, EventUserDocument)
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -77,11 +96,10 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserRegionalHeadquarterPosition)
 from rso_backend.settings import BASE_DIR
 from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
-                          UserForeignDocuments, UserMedia, UserMembershipLogs,
-                          UserParent, UserPrivacySettings,
+                          UserForeignDocuments, UserMedia, UserMemberCertLogs,
+                          UserMembershipLogs, UserParent, UserPrivacySettings,
                           UserProfessionalEducation, UserRegion,
-                          UserStatementDocuments, UserVerificationRequest,
-                          UserMemberCertLogs)
+                          UserStatementDocuments, UserVerificationRequest)
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):
@@ -856,8 +874,41 @@ class DetachmentApplicationViewSet(viewsets.ModelViewSet):
 
 class EventViewSet(viewsets.ModelViewSet):
     """Представляет мероприятия."""
+
     queryset = Event.objects.all()
     serializer_class = EventSerializer
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
+    filterset_class = EventFilter
+    search_fields = ('name', 'address', 'description',)
+
+    PERMISSIONS_MAPPING = {
+        'central': IsStuffOrCentralCommander,
+        'districts': IsDistrictCommander,
+        'regionals': IsRegionalCommander,
+        'locals': IsLocalCommander,
+        'educationals': IsEducationalCommander,
+        'detachments': IsDetachmentCommander,
+    }
+
+    def get_permissions(self):
+        """
+        Применить пермишен в зависимости от действия и масштаба мероприятия.
+        """
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [permissions.AllowAny]
+        if self.action == 'create':
+            event_unit = self.request.data.get('scale')
+            permission_classes = [permissions.IsAuthenticated]
+            permission_classes += [
+                self.PERMISSIONS_MAPPING.get(
+                    event_unit, permissions.IsAuthenticated
+                )
+            ]
+        if self.action in (
+                'update', 'update_time_data', 'update_document_data'
+        ):
+            permission_classes = [IsAuthorPermission, IsEventOrganizer]
+        return [permission() for permission in permission_classes]
 
     @swagger_auto_schema(request_body=EventSwaggerSerializer)
     def create(self, request, *args, **kwargs):
@@ -871,6 +922,7 @@ class EventViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(request_body=EventTimeDataSerializer)
     @action(detail=True, methods=['put',], url_path='time_data')
     def update_time_data(self, request, pk=None):
+        """Заполнить информацию о времени проведения мероприятия."""
         event = self.get_object()
         time_data_instance = EventTimeData.objects.get(event=event)
 
@@ -885,6 +937,10 @@ class EventViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(request_body=EventDocumentDataSerializer)
     @action(detail=True, methods=['put',], url_path='document_data')
     def update_document_data(self, request, pk=None):
+        """
+        Указать необходимые к заполнению документы
+        для участия в мероприятии.
+        """
         event = self.get_object()
         document_data_instance = EventDocumentData.objects.get(event=event)
 
@@ -898,8 +954,14 @@ class EventViewSet(viewsets.ModelViewSet):
 
 
 class EventOrganizationDataViewSet(viewsets.ModelViewSet):
+    """Представляет информацию об организаторах мероприятия.
+
+    Добавленные пользователь могу иметь доступ к редактированию информации о
+    мероприятии, а также рассмотрение и принятие/отклонение заявок на участие.
+    """
     queryset = EventOrganizationData.objects.all()
     serializer_class = EventOrganizerDataSerializer
+    permission_classes = (IsEventAuthor,)
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -932,8 +994,13 @@ class EventOrganizationDataViewSet(viewsets.ModelViewSet):
 
 
 class EventAdditionalIssueViewSet(viewsets.ModelViewSet):
+    """
+    Представляет дополнительные вопросы к мероприятию, необходимые
+    для заполнения при подаче индивидуальной заявки.
+    """
     queryset = EventAdditionalIssue.objects.all()
     serializer_class = EventAdditionalIssueSerializer
+    permission_classes = (IsEventAuthor,)
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -1013,19 +1080,19 @@ def get_structural_units(request):
         'central_headquarters': CentralHeadquarterSerializer(
             central_headquarters, many=True
         ).data,
-        'regional_headquarters': RegionalHeadquarterSerializer(
+        'regional_headquarters': ShortRegionalHeadquarterSerializer(
             regional_headquarters, many=True
         ).data,
-        'district_headquarters': DistrictHeadquarterSerializer(
+        'district_headquarters': ShortDistrictHeadquarterSerializer(
             district_headquarters, many=True
         ).data,
-        'local_headquarters': LocalHeadquarterSerializer(
+        'local_headquarters': ShortLocalHeadquarterSerializer(
             local_headquarters, many=True
         ).data,
-        'educational_headquarters': EducationalHeadquarterSerializer(
+        'educational_headquarters': ShortEducationalHeadquarterSerializer(
             educational_headquarters, many=True
         ).data,
-        'detachments': DetachmentSerializer(detachments, many=True).data
+        'detachments': ShortDetachmentSerializer(detachments, many=True).data
     }
 
     return Response(response)
@@ -1161,10 +1228,19 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                 }
             )
         recipient = data.get('recipient', 'по месту требования')
-        cert_start_date = datetime.strptime(
-            data.get('cert_start_date'),
-            '%Y-%m-%d'
-        )
+
+        if data.get('cert_start_date') is not None:
+            cert_start_date = datetime.strptime(
+                data.get('cert_start_date'),
+                '%Y-%m-%d'
+            )
+        else:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={
+                    'detail': 'Не указана дата начала действия сертификата.'
+                }
+            )
         cert_end_date = datetime.strptime(
             data.get('cert_end_date'),
             '%Y-%m-%d'
@@ -1412,6 +1488,8 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                     + signatory_list[1][0]
                     + '.'
                 )
+            else:
+                c.drawString(cls.SIGNATORY_X, cls.SIGNATORY_Y, signatory)
         if cert_template == 'internal_cert.pdf':
             string_width = c.stringWidth(
                 recipient, 'Times_New_Roman', cls.TIMES_TEXT_SIZE
@@ -1464,9 +1542,17 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
         c.save()
         return buf.getvalue()
 
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties=constants.properties | constants.properties_external,
+            required=['cert_start_date', 'cert_end_date', 'recipient', 'ids'],
+        ),
+        method='post',
+    )
     @action(
         detail=False,
-        methods=['get', 'post'],
+        methods=['post',],
         permission_classes=(IsRegionalCommanderForCert,),
         serializer_class=MemberCertSerializer,
     )
@@ -1480,8 +1566,17 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save(user=user)
             ids = request.data.get('ids')
+            if ids is None:
+                return Response(
+                    {'detail': 'Поле ids не может быть пустым.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             external_certs = {}
             for user_id in ids:
+                if user_id == 0:
+                    return Response(
+                        {'detail': 'Поле ids не может содержать 0.'},
+                    )
                 user = get_user_by_id(user_id)
                 pdf_cert_or_response = self.get_certificate(
                     user=user,
@@ -1502,9 +1597,17 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
             response = create_and_return_archive(external_certs)
             return response
 
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties=constants.properties,
+            required=['cert_start_date', 'cert_end_date', 'recipient', 'ids'],
+        ),
+        method='post',
+    )
     @action(
         detail=False,
-        methods=['get', 'post'],
+        methods=['post',],
         permission_classes=(IsRegionalCommanderForCert,),
         serializer_class=MemberCertSerializer,
     )
@@ -1518,8 +1621,17 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save(user=user)
             ids = request.data.get('ids')
+            if ids is None:
+                return Response(
+                    {'detail': 'Поле ids не может быть пустым.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             internal_certs = {}
             for user_id in ids:
+                if user_id == 0:
+                    return Response(
+                        {'detail': 'Поле ids не может содержать 0.'},
+                    )
                 user = get_user_by_id(user_id)
                 pdf_cert_or_response = self.get_certificate(
                     user=user,
@@ -1539,3 +1651,341 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                 )
             response = create_and_return_archive(internal_certs)
             return response
+
+
+class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
+    """Представление заявок на участие в мероприятии.
+
+    Доступ:
+        - создание - авторизованные пользователи;
+        - чтение и удаление - авторы заявок либо пользователи
+          из модели организаторов;
+    """
+    queryset = EventApplications.objects.all()
+    serializer_class = EventApplicationsSerializer
+    permission_classes = (permissions.IsAuthenticated, IsEventOrganizer)
+
+    def get_queryset(self):
+        """ Получение заявок конкретного мероприятия. """
+        queryset = super().get_queryset()
+        event_pk = self.kwargs.get('event_pk')
+        if event_pk is not None:
+            queryset = queryset.filter(event__id=event_pk)
+        return queryset
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return EventApplicationsCreateSerializer
+        return super().get_serializer_class()
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [permissions.IsAuthenticated()]
+        elif self.action in ['retrieve', 'destroy']:
+            return [permissions.IsAuthenticated(), IsApplicantOrOrganizer()]
+        else:
+            return super().get_permissions()
+
+    def create(self, request, *args, **kwargs):
+        """Создание заявки на участие в мероприятии."""
+        user = request.user
+        event_pk = self.kwargs.get('event_pk')
+        event = get_object_or_404(Event, pk=event_pk)
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save(event=event, user=user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Реализует функционал отклонения заявки на участие в мероприятии.
+        При отклонении заявки удаляются все документы и ответы на вопросы.
+        """
+        instance = self.get_object()
+        # очень дорого, нужно оптимизировать.
+        answers = EventIssueAnswer.objects.filter(
+            event=instance.event, user=instance.user
+        )
+        documents = EventUserDocument.objects.filter(
+            event=instance.event, user=instance.user
+        )
+        try:
+            with transaction.atomic():
+                instance.delete()
+                documents.delete()  # и тут подумать над оптимизацией...
+                answers.delete()
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True,
+            methods=['post'],
+            url_path='confirm',
+            serializer_class=EventParticipantsSerializer,
+            permission_classes=(permissions.IsAuthenticated,
+                                IsEventOrganizer,))
+    def confirm(self, request, *args, **kwargs):
+        """Подтверждение заявки на участие в мероприятии и создание участника.
+
+        После подтверждения заявка удаляется.
+        Доступен только для организаторов мероприятия.
+        Если пользователь уже участвует в мероприятии,
+        выводится предупреждение.
+        """
+        instance = self.get_object()
+        serializer = EventParticipantsSerializer(data=request.data,
+                                                 context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        try:
+            with transaction.atomic():
+                serializer.save(user=instance.user, event=instance.event)
+                instance.delete()
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True,
+            methods=['get', 'delete'],
+            url_path='answers',
+            serializer_class=AnswerSerializer,
+            permission_classes=(permissions.IsAuthenticated,
+                                IsEventOrganizer,))
+    def answers(self, request, event_pk, pk):
+        """Action для получения (GET) или удаления ответов (DELETE)
+        на вопросы мероприятия по данной заявке.
+
+        Доступен только для пользователей из модели организаторов.
+        """
+        answers = EventIssueAnswer.objects.filter(user=request.user,
+                                                  event__id=event_pk)
+        if request.method == 'GET':
+            serializer = AnswerSerializer(answers, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        try:
+            answers.delete()
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='me',
+            serializer_class=EventApplicationsSerializer,
+            permission_classes=(permissions.IsAuthenticated,))
+    def me(self, request, event_pk):
+        """Action для получения всей информации по поданной текущим
+        пользователем заявке на участие в мероприятии.
+
+        Доступен всем авторизованным пользователям.
+
+        Если у этого пользователя заявки по данному мероприятию нет -
+        выводится HTTP_404_NOT_FOUND.
+        """
+        application = EventApplications.objects.filter(
+            user=request.user, event__id=event_pk
+        ).first()
+        if application is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = EventApplicationsSerializer(application)
+        return Response(serializer.data)
+
+
+class EventParticipantsViewSet(ListRetrieveDestroyViewSet):
+    """Представление участников мероприятия.
+
+    Доступ:
+        - удаление: фигурирующий в записи пользователь или
+                    юзер из модели организаторов мероприятий;
+        - чтение: только для пользователей из модели
+                  организаторов мероприятий.
+    """
+    queryset = EventParticipants.objects.all()
+    serializer_class = EventParticipantsSerializer
+    permission_classes = (permissions.IsAuthenticated, IsEventOrganizer)
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        event_pk = self.kwargs.get('event_pk')
+        if event_pk is not None:
+            queryset = queryset.filter(event__id=event_pk)
+        return queryset
+
+    def get_permissions(self):
+        if self.action == 'destroy':
+            return [permissions.IsAuthenticated(), IsApplicantOrOrganizer()]
+        return super().get_permissions()
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='me',
+            serializer_class=EventParticipantsSerializer,
+            permission_classes=(permissions.IsAuthenticated,))
+    def me(self, request, event_pk):
+        """Action для получения всей информации по профилю участника
+        мероприятия.
+
+        Доступен всем авторизованным пользователям.
+
+        Если текущий пользователь не участвует в мероприятии -
+        выводится HTTP_404_NOT_FOUND.
+        """
+        user_profile = EventParticipants.objects.filter(
+            user=request.user, event__id=event_pk
+        ).first()
+        if user_profile is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = EventParticipantsSerializer(user_profile)
+        return Response(serializer.data)
+
+
+@swagger_auto_schema(method='POST', request_body=AnswerSerializer(many=True))
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def create_answers(request, event_pk):
+    """Сохранение ответов на вопросы мероприятия.
+
+    Доступ - все авторизованные.
+    """
+    event = get_object_or_404(Event, pk=event_pk)
+    user = request.user
+    questions = event.additional_issues.all()
+    serializer = AnswerSerializer(data=request.data,
+                                  many=True,
+                                  context={'event': event,
+                                           'request': request})
+    serializer.is_valid(raise_exception=True)
+    answers_to_create = []
+    for answer_data in request.data:
+        issue_id = answer_data.get('issue')
+        answer_text = answer_data.get('answer')
+        issue_instance = questions.get(id=issue_id)
+        answer_to_create = EventIssueAnswer(
+            event=event,
+            user=user,
+            issue=issue_instance,
+            answer=answer_text
+        )
+        answers_to_create.append(answer_to_create)
+
+    EventIssueAnswer.objects.bulk_create(answers_to_create)
+
+    return Response(status=status.HTTP_201_CREATED)
+
+
+class AnswerDetailViewSet(RetrieveUpdateViewSet):
+    """Поштучное получение, изменение и удаление ответов
+    в индивидуальных заявках на мероприятие.
+
+    Доступ:
+        - удаление - только пользователи из модели организаторов;
+        - редактирование - автор записи (только если заявка еще не принята)
+          либо пользователи из модели организаторов.
+        - чтение - автор заявки, либо пользователи из модели организаторов.
+    """
+    permission_classes = (permissions.IsAuthenticated,)
+    queryset = EventIssueAnswer.objects.all()
+    serializer_class = AnswerSerializer
+    permission_classes = (permissions.IsAuthenticated, IsApplicantOrOrganizer)
+
+    def get_permissions(self):
+        if self.action == 'destroy':
+            return [permissions.IsAuthenticated(), IsEventOrganizer()]
+        if (self.action in ['update', 'partial_update'] and
+                self.request.user.is_authenticated):
+            if not EventApplications.objects.filter(
+                event_id=self.kwargs.get('event_pk'),
+                user=self.request.user
+            ).exists():
+                return [permissions.IsAuthenticated(), IsEventOrganizer()]
+        return super().get_permissions()
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='me',
+            serializer_class=AnswerSerializer,
+            permission_classes=(permissions.IsAuthenticated,))
+    def me(self, request, event_pk):
+        """Action для получения сохраненных ответов пользователя по
+        текущему мероприятию.
+
+        Доступен всем авторизованным пользователям.
+
+        Если текущий пользователь не имеет сохраненных ответов -
+        возвращается пустой массив.
+        """
+        user_documents = EventIssueAnswer.objects.filter(
+            user=request.user, event__id=event_pk
+        ).all()
+        serializer = AnswerSerializer(user_documents, many=True)
+        return Response(serializer.data)
+
+
+class EventUserDocumentViewSet(CreateRetrieveUpdateViewSet):
+    """Представление сохраненных документов пользователя (сканов).
+
+    Доступ:
+        - создание(загрузка) только авторизованные пользователи;
+        - чтение/редактирование/удаление только пользователи
+          из модели организаторов мероприятий.
+    """
+    queryset = EventUserDocument.objects.all()
+    serializer_class = EventUserDocumentSerializer
+    permission_classes = (permissions.IsAuthenticated, IsEventOrganizer)
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        event_pk = self.kwargs.get('event_pk')
+        if event_pk is not None:
+            queryset = queryset.filter(event__id=event_pk)
+        return queryset
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [permissions.IsAuthenticated()]
+        if (self.action in ['update', 'partial_update'] and
+                self.request.user.is_authenticated):
+            if EventApplications.objects.filter(
+                event_id=self.kwargs.get('event_pk'),
+                user=self.request.user
+            ).exists():
+                return [permissions.IsAuthenticated(),
+                        IsApplicantOrOrganizer()]
+        if self.action == 'retrieve':
+            return [permissions.IsAuthenticated(), IsApplicantOrOrganizer()]
+        return super().get_permissions()
+
+    def create(self, request, *args, **kwargs):
+        """Сохранение скана документа пользователя.
+
+        Доступ - только авторизованные пользователи.
+        Принимает только файл.
+        """
+        event_pk = self.kwargs.get('event_pk')
+        user = request.user
+        event = get_object_or_404(Event, pk=event_pk)
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save(event=event, user=user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='me',
+            serializer_class=EventUserDocumentSerializer,
+            permission_classes=(permissions.IsAuthenticated,))
+    def me(self, request, event_pk):
+        """Action для получения загруженных документов пользователя
+        текущего мероприятия.
+
+        Доступен всем авторизованным пользователям.
+
+        Если текущий пользователь не загружал документы -
+        возвращается пустой массив.
+        """
+        user_documents = EventUserDocument.objects.filter(
+            user=request.user, event__id=event_pk
+        ).all()
+        serializer = EventUserDocumentSerializer(user_documents, many=True)
+        return Response(serializer.data)

@@ -255,6 +255,10 @@ class UserDocuments(models.Model):
         on_delete=models.CASCADE,
         related_name='documents',
     )
+    russian_passport = models.BooleanField(
+        verbose_name='Паспорт гражданина РФ',
+        default=True,
+    )
     snils = models.CharField(
         max_length=15, blank=True, null=True,
         verbose_name='СНИЛС'

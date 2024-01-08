@@ -1,5 +1,8 @@
 from django.shortcuts import get_object_or_404
+from rest_framework import status
+from rest_framework import permissions
 from rest_framework.permissions import BasePermission
+from rest_framework.response import Response
 
 from api.utils import (check_roles_for_edit, check_trusted_for_detachments,
                        check_trusted_for_districthead,
@@ -8,6 +11,7 @@ from api.utils import (check_roles_for_edit, check_trusted_for_detachments,
                        check_trusted_in_headquarters, check_trusted_user,
                        is_safe_method, is_stuff_or_central_commander,
                        check_trusted_for_centralhead, check_commander_or_not)
+from events.models import Event, EventOrganizationData
 from headquarters.models import (Detachment, DistrictHeadquarter,
                                  EducationalHeadquarter, LocalHeadquarter,
                                  RegionalHeadquarter,
@@ -450,21 +454,122 @@ class IsRegionalCommanderForCert(BasePermission):
         check_model_instance = True
         request_user_id = request.user.id
         ids = request.data.get('ids')
+        if ids is None:
+            return Response(
+                {'detail': 'Поле "ids" не может быть пустым.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         try:
-            commander_regheadquarter_id = RegionalHeadquarter.objects.get(
+            commanders_regional_head_id = RegionalHeadquarter.objects.filter(
                 commander_id=request_user_id
             ).id
             for id in ids:
-                user_reghead_id = UserRegionalHeadquarterPosition.objects.get(
-                    user_id=id
-                ).headquarter_id
-                if user_reghead_id != commander_regheadquarter_id:
+                if id == 0:
+                    return Response(
+                        {'detail': 'Поле "ids" не может содержать 0.'},
+                    )
+                users_regional_head_id = (
+                    UserRegionalHeadquarterPosition.objects.get(
+                        user_id=id
+                    ).headquarter_id
+                )
+                if (
+                    users_regional_head_id != commanders_regional_head_id
+                ):
                     check_model_instance = False
                     break
-        except (RegionalHeadquarter.DoesNotExist, AttributeError):
+        except (
+            RegionalHeadquarter.DoesNotExist,
+            AttributeError,
+            UserRegionalHeadquarterPosition.DoesNotExist
+        ):
             check_model_instance = False
         return any([
             is_safe_method(request),
             is_stuff_or_central_commander(request),
             check_model_instance
         ])
+
+
+class IsAuthorPermission(BasePermission):
+    """Проверяет, является ли пользователь автором объекта."""
+    def has_object_permission(self, request, view, obj):
+        return obj.author == request.user
+
+
+class IsEventAuthor(BasePermission):
+    """
+    Проверяет, является ли пользователем автором
+
+    мероприятия при редактировании, создании или удалении
+    объекта, связанного с мероприятием.
+    """
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        event_pk = view.kwargs.get('event_pk')
+        if event_pk is not None:
+            event = Event.objects.filter(pk=event_pk).first()
+            if event is not None:
+                return event.author == request.user
+        return False
+
+    def has_object_permission(self, request, view, obj):
+        return obj.event.author == request.user
+
+
+class IsEventOrganizer(BasePermission):
+    """
+    Проверяет, является ли пользователем автором
+    мероприятия при чтении или редактировании одного или нескольких
+    объектов связанных с мероприятием.
+    """
+    def has_permission(self, request, view):
+        if EventOrganizationData.objects.filter(
+            organizer=request.user
+        ).exists():
+            return True
+        return False
+
+    def has_object_permission(self, request, view, obj):
+        if EventOrganizationData.objects.filter(
+            organizer=request.user
+        ).exists():
+            return True
+
+
+class IsEventOrganizerOrAuthor(BasePermission):
+    """
+    Проверяет, является ли пользователем автором
+    мероприятия при чтении или редактировании одного или нескольких
+    объектов связанных с мероприятием.
+    Для операций с одним объектом дополнительно проверяется,
+    является ли пользователь автором.
+    """
+    def has_permission(self, request, view):
+        if EventOrganizationData.objects.filter(
+            organizer=request.user
+        ).exists():
+            return True
+        return False
+
+    def has_object_permission(self, request, view, obj):
+        if EventOrganizationData.objects.filter(
+            organizer=request.user
+        ).exists():
+            return True
+        return obj.user == request.user
+
+
+class IsApplicantOrOrganizer(BasePermission):
+    """
+    Проверяет, является ли пользователь автором заявки
+    или организатором мероприятия. Только одиночных объектов.
+    """
+    def has_object_permission(self, request, view, obj):
+        if EventOrganizationData.objects.filter(
+            organizer=request.user
+        ).exists():
+            return True
+        return obj.user == request.user
