@@ -911,7 +911,6 @@ class BaseUnitSerializer(serializers.ModelSerializer):
         )
 
     def _get_position_instance(self):
-        instance_type = type(self.instance)
         instance_type = type(self.instance.first())
 
         for model_class, (
@@ -921,7 +920,6 @@ class BaseUnitSerializer(serializers.ModelSerializer):
                 return position_model
 
     def _get_position_serializer(self):
-        instance_type = type(self.instance)
         instance_type = type(self.instance.first())
 
         for model_class, (
