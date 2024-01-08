@@ -182,7 +182,6 @@ class EventSerializer(serializers.ModelSerializer):
         read_only_fields = (
             'id',
             'author',
-            'scale',
             'created_at',
             'documents',
             'organization_data',

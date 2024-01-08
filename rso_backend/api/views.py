@@ -904,6 +904,7 @@ class EventViewSet(viewsets.ModelViewSet):
                     event_unit, permissions.IsAuthenticated
                 )
             ]
+            print(permission_classes)
         if self.action in (
                 'update', 'update_time_data', 'update_document_data'
         ):

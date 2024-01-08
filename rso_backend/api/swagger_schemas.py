@@ -12,6 +12,7 @@ class EventSwaggerSerializer(serializers.ModelSerializer):
             'status',
             'name',
             'banner',
+            'scale',
             'conference_link',
             'address',
             'participants_number',
