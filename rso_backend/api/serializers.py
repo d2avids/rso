@@ -189,6 +189,33 @@ class EventSerializer(serializers.ModelSerializer):
             'document_data',
         )
 
+    def create(self, validated_data):
+        format = validated_data.pop('get_format_display', None)
+        direction = validated_data.pop('get_direction_display', None)
+        status = validated_data.pop('get_status_display', None)
+        scale = validated_data.pop('get_scale_display', None)
+        application_type = validated_data.pop('get_application_type_display',
+                                              None)
+        available_structural_units = validated_data.pop(
+            'get_available_structural_units_display', None)
+
+        if format is not None:
+            validated_data['format'] = format
+        if direction is not None:
+            validated_data['direction'] = direction
+        if status is not None:
+            validated_data['status'] = status
+        if scale is not None:
+            validated_data['scale'] = scale
+        if application_type is not None:
+            validated_data['application_type'] = application_type
+        if available_structural_units is not None:
+            validated_data[
+                'available_structural_units'] = available_structural_units
+
+        event = Event.objects.create(**validated_data)
+        return event
+
 
 class UserEducationSerializer(serializers.ModelSerializer):
     class Meta:
