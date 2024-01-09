@@ -57,6 +57,8 @@ class DetachmentAdmin(BaseUnitAdmin):
 
 
 class BaseCentralPositionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'position', 'headquarter',)
+
     def delete_queryset(self, request, queryset):
         """
         Переопределяет метод для удаления набора объектов через админ-панель.
