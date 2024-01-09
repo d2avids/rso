@@ -211,6 +211,7 @@ def check_trusted_for_detachments(request, obj=None):
             headquarter_id = obj.regional_headquarter.district_headquarter.id
             district_trusted = UserDistrictHeadquarterPosition.objects.get(
                 headquarter_id=headquarter_id,
+                user_id=user_id
             ).is_trusted
         except (UserDistrictHeadquarterPosition.DoesNotExist, AttributeError):
             district_trusted = False
@@ -324,6 +325,7 @@ def check_trusted_for_localhead(request, obj=None):
             headquarter_id = obj.regional_headquarter.district_headquarter.id
             district_trusted = UserDistrictHeadquarterPosition.objects.get(
                 headquarter_id=headquarter_id,
+                user_id=user_id
             ).is_trusted
         except (UserDistrictHeadquarterPosition.DoesNotExist, AttributeError):
             district_trusted = False
@@ -358,6 +360,7 @@ def check_trusted_for_regionalhead(request, obj=None):
         try:
             district_trusted = UserDistrictHeadquarterPosition.objects.get(
                 headquarter_id=obj.district_headquarter.id,
+                user_id=user_id
             ).is_trusted
         except (UserDistrictHeadquarterPosition.DoesNotExist, AttributeError):
             district_trusted = False
