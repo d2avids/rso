@@ -61,8 +61,26 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         UserStatementDocumentsInLine,
     ]
 
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff')
-    search_fields = ('username', 'email', 'first_name', 'last_name')
+    list_display = (
+        'id',
+        'username',
+        'email',
+        'first_name',
+        'last_name',
+        'patronymic_name',
+        'is_staff',
+        'date_joined',
+        'last_login'
+    )
+    search_fields = (
+        'username',
+        'first_name',
+        'last_name',
+        'patronymic_name',
+        'email',
+        'first_name',
+        'last_name'
+    )
     readonly_fields = ('date_joined', 'last_login')
 
     filter_horizontal = ()
@@ -73,17 +91,15 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
 @admin.register(UserMembershipLogs)
 class UserMembershipLogsAdmin(admin.ModelAdmin):
     list_display = ('user', 'status_changed_by', 'date', 'period', 'status')
-    readonly_fields = ('user', 'status_changed_by', 'date', 'period', 'status')
-    search_fields = ('user', 'status_changed_by',)
+    readonly_fields = ('user', 'status_changed_by', 'date', 'period', 'status', 'description')
     list_filter = ('date', 'period', 'status')
 
 
 @admin.register(UserMemberCertLogs)
 class UserMemberCertLogsAdmin(admin.ModelAdmin):
     list_display = ('user', 'cert_issued_by', 'date', 'cert_type')
-    readonly_fields = ('user', 'cert_issued_by', 'date', 'cert_type')
-    search_fields = ('user', 'cert_issued_by')
-    list_filter = ('date', 'cert_issued_by', 'cert_type')
+    readonly_fields = ('user', 'cert_issued_by', 'date', 'cert_type', 'description')
+    list_filter = ('date', 'cert_type')
 
 
 admin.site.unregister(Group)

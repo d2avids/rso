@@ -17,33 +17,42 @@ from headquarters.resources import (DistrictHeadquarterResource,
                                     RegionResource)
 
 
+class BaseUnitAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'commander', 'city',)
+    search_fields = ('name', 'city')
+
+
 @admin.register(CentralHeadquarter)
-class CentralHeadquarterAdmin(admin.ModelAdmin):
+class CentralHeadquarterAdmin(BaseUnitAdmin):
     pass
 
 
 @admin.register(DistrictHeadquarter)
 class DistrictHeadquarterAdmin(ImportExportModelAdmin):
     resource_class = DistrictHeadquarterResource
+    list_display = ('id', 'name', 'commander', 'city',)
+    search_fields = ('name', 'city')
 
 
 @admin.register(RegionalHeadquarter)
 class RegionalHeadquarterAdmin(ImportExportModelAdmin):
     resource_class = RegionalHeadquarterResource
+    list_display = ('id', 'name', 'commander', 'city',)
+    search_fields = ('name', 'city')
 
 
 @admin.register(LocalHeadquarter)
-class LocalHeadquarterAdmin(admin.ModelAdmin):
+class LocalHeadquarterAdmin(BaseUnitAdmin):
     pass
 
 
 @admin.register(EducationalHeadquarter)
-class EducationalHeadquarterAdmin(admin.ModelAdmin):
+class EducationalHeadquarterAdmin(BaseUnitAdmin):
     pass
 
 
 @admin.register(Detachment)
-class DetachmentAdmin(admin.ModelAdmin):
+class DetachmentAdmin(BaseUnitAdmin):
     pass
 
 

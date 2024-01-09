@@ -36,7 +36,7 @@ class EventAdditionalIssuesInline(admin.TabularInline):
 class EventAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'format', 'direction', 'status', 'author', 'created_at')
     list_filter = ('format', 'direction', 'status', 'created_at')
-    search_fields = ('name', 'description')
+    search_fields = ('name',)
     inlines = [
         EventTimeDataInline,
         EventDocumentInline,

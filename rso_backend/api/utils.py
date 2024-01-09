@@ -84,7 +84,7 @@ def check_commander_or_not(request, headquarters):
 
     for headquarter in headquarters:
         try:
-            headquarter.objects.get(commander_id=request.user.id)
+            headquarter.objects.filter(commander_id=request.user.id).first()
             return True
         except (headquarter.DoesNotExist, AttributeError):
             pass
