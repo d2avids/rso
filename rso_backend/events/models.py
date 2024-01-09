@@ -521,13 +521,29 @@ class MultiEventApplication(models.Model):
         related_name='multi_event_applications',
         verbose_name='Мероприятие',
     )
-    user = models.ForeignKey(
-        to='users.RSOUser',
+    central_headquarter = models.ForeignKey(
+        to='headquarters.CentralHeadquarter',
         on_delete=models.CASCADE,
         related_name='multi_event_applications',
         null=True,
         blank=True,
-        verbose_name='Боец',
+        verbose_name='Центральный штаб',
+    )
+    district_headquarter = models.ForeignKey(
+        to='headquarters.DistrictHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='multi_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Окружной штаб',
+    )
+    regional_headquarter = models.ForeignKey(
+        to='headquarters.RegionalHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='multi_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Региональный штаб',
     )
     local_headquarter = models.ForeignKey(
         to='headquarters.LocalHeadquarter',
@@ -553,12 +569,39 @@ class MultiEventApplication(models.Model):
         blank=True,
         verbose_name='Отряд',
     )
+    organizer_id = models.PositiveIntegerField(
+        verbose_name='Идентификатор организатора',
+    )
+    is_approved = models.BooleanField(
+        verbose_name='Одобрено',
+        default=False
+    )
+    participants_count = models.PositiveIntegerField(
+        verbose_name='Количество участников',
+        default=0
+    )
+    created_at = models.DateTimeField(
+        verbose_name='Дата и время создания заявки',
+        auto_now_add=True
+    )
 
     class Meta:
         ordering = ['-id']
         verbose_name_plural = 'Заявки на участие в многоэтапном мероприятии'
         verbose_name = 'Заявка на участие в многоэтапном мероприятии'
         constraints = [
+            models.UniqueConstraint(
+                fields=('event', 'central_headquarter'),
+                name='unique_central_headquarter_application'
+            ),
+            models.UniqueConstraint(
+                fields=('event', 'district_headquarter'),
+                name='unique_district_headquarter_application'
+            ),
+            models.UniqueConstraint(
+                fields=('event', 'regional_headquarter'),
+                name='unique_regional_headquarter_application'
+            ),
             models.UniqueConstraint(
                 fields=('event', 'local_headquarter'),
                 name='unique_local_headquarter_application'
@@ -571,8 +614,4 @@ class MultiEventApplication(models.Model):
                 fields=('event', 'detachment'),
                 name='unique_detachment_application'
             ),
-            models.UniqueConstraint(
-                fields=('event', 'user'),
-                name='unique_user_application'
-            )
         ]

@@ -28,6 +28,7 @@ from api.views import (AnswerDetailViewSet, AreaViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
                        apply_for_verification, change_membership_fee_status,
                        create_answers, get_structural_units, verify_user)
+from events.views import MultiEventViewSet
 
 
 app_name = 'api'
@@ -61,11 +62,16 @@ router.register(
     r'events/(?P<event_pk>\d+)/answers',
     AnswerDetailViewSet,
     basename='answer'
-),
+)
 router.register(
     r'events/(?P<event_pk>\d+)/user_documents',
     EventUserDocumentViewSet,
     basename='event-user-document'
+)
+router.register(
+    r'events/(?P<event_pk>\d+)/multi_applications',
+    MultiEventViewSet,
+    basename='multi-applications'
 )
 
 
