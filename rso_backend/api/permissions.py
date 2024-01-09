@@ -374,9 +374,12 @@ class IsRegStuffOrDetCommander(BasePermission):
         user = request.user
         user_to_verify = get_object_or_404(RSOUser, id=view.kwargs.get('pk'))
         user_to_verify_region = user_to_verify.region
-        reg_headquarter = get_object_or_404(
-            RegionalHeadquarter, region=user_to_verify_region
-        )
+        reg_headquarter = RegionalHeadquarter.objects.filter(region=user_to_verify_region).first()
+        if not reg_headquarter:
+            return Response(
+                {'detail': 'Не найден региональный штаб, совпадающий с регионом пользователя'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         if reg_headquarter.commander == user:
             return True
