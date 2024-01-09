@@ -65,14 +65,14 @@ def is_stuff_or_central_commander(request):
         ).commander_id
         if request.user.id == commander_id:
             check_central_commander = True
-        return (request.user.is_authenticated
-                and any([
-                    check_central_commander,
-                    request.user.is_superuser,
-                    request.user.is_staff
-                ]))
     except (CentralHeadquarter.DoesNotExist, AttributeError):
         return False
+    return (request.user.is_authenticated
+            and any([
+                check_central_commander,
+                request.user.is_superuser,
+                request.user.is_staff
+            ]))
 
 
 def check_commander_or_not(request, headquarters):
@@ -270,16 +270,16 @@ def check_trusted_for_eduhead(request, obj=None):
             UserRegionalHeadquarterPosition.DoesNotExist, AttributeError
         ):
             regional_trusted = False
-            try:
-                head_id = obj.regional_headquarter.district_headquarter.id
-                district_trusted = UserDistrictHeadquarterPosition.objects.get(
-                    headquarter_id=head_id,
-                    user_id=user_id
-                ).is_trusted
-            except (
-                UserDistrictHeadquarterPosition.DoesNotExist, AttributeError
-            ):
-                district_trusted = False
+        try:
+            head_id = obj.regional_headquarter.district_headquarter.id
+            district_trusted = UserDistrictHeadquarterPosition.objects.get(
+                headquarter_id=head_id,
+                user_id=user_id
+            ).is_trusted
+        except (
+            UserDistrictHeadquarterPosition.DoesNotExist, AttributeError
+        ):
+            district_trusted = False
         return any([
             edu_trusted,
             local_trusted,
@@ -425,7 +425,6 @@ def check_trusted_for_centralhead(request):
         ).is_trusted
     except (
         UserCentralHeadquarterPosition.DoesNotExist,
-        UserCentralHeadquarterPosition.MultipleObjectsReturned,
         AttributeError
     ):
         return False

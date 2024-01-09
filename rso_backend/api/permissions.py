@@ -381,7 +381,10 @@ class IsRegStuffOrDetCommander(BasePermission):
         ).first()
         if not reg_headquarter:
             return Response(
-                {'detail': 'Не найден региональный штаб, совпадающий с регионом пользователя'},
+                {
+                    'detail': ('Не найден региональный штаб,'
+                               ' совпадающий с регионом пользователя')
+                },
                 status=status.HTTP_400_BAD_REQUEST
             )
 
