@@ -110,14 +110,17 @@ class EducationalInstAdmin(ImportExportModelAdmin):
 
 @admin.register(Region)
 class RegionAdmin(ImportExportModelAdmin):
+    search_fields = ('name',)
     resource_class = RegionResource
 
 
 @admin.register(Area)
 class AreaAdmin(admin.ModelAdmin):
+    search_fields = ('name',)
     pass
 
 
 @admin.register(Position)
 class PositionAdmin(admin.ModelAdmin):
+    search_fields = ('name',)
     pass
