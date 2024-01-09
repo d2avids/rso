@@ -2,6 +2,7 @@ import datetime as dt
 from datetime import date
 
 from django.db.models import Q
+from django.db.models.query import QuerySet
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreatePasswordRetypeSerializer
@@ -911,7 +912,13 @@ class BaseUnitSerializer(serializers.ModelSerializer):
         )
 
     def _get_position_instance(self):
-        instance_type = type(self.instance.first())
+        if isinstance(self.instance, QuerySet):
+            print('УСЛОВИЕ СРАБОТАЛО')
+            instance_type = type(self.instance.first())
+        else:
+            print('УСЛОВИЕ НЕ СРАБОТАЛО')
+            instance_type = type(self.instance)
+        print(instance_type)
 
         for model_class, (
                 position_model, _
@@ -920,7 +927,14 @@ class BaseUnitSerializer(serializers.ModelSerializer):
                 return position_model
 
     def _get_position_serializer(self):
-        instance_type = type(self.instance.first())
+        if isinstance(self.instance, QuerySet):
+            print('УСЛОВИЕ СРАБОТАЛО')
+            instance_type = type(self.instance.first())
+        else:
+            print('УСЛОВИЕ НЕ СРАБОТАЛО')
+            instance_type = type(self.instance)
+        print(instance_type)
+
 
         for model_class, (
                 _, serializer_class

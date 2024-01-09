@@ -242,7 +242,6 @@ def check_trusted_for_eduhead(request, obj=None):
         UserDistrictHeadquarterPosition
     ]
     user_id = request.user.id
-    user_id = request.user.id
     if obj is not None:
         try:
             edu_trusted = UserEducationalHeadquarterPosition.objects.get(
@@ -274,6 +273,7 @@ def check_trusted_for_eduhead(request, obj=None):
                 head_id = obj.regional_headquarter.district_headquarter.id
                 district_trusted = UserDistrictHeadquarterPosition.objects.get(
                     headquarter_id=head_id,
+                    user_id=user_id
                 ).is_trusted
             except (
                 UserDistrictHeadquarterPosition.DoesNotExist, AttributeError
