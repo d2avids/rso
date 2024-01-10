@@ -1597,7 +1597,7 @@ class ShortDetachmentSerializerME(ShortUnitSerializer):
 
 
 class ShortEducationalHeadquarterSerializerME(ShortUnitSerializer):
-    detachments = ShortDetachmentSerializer(many=True)
+    detachments = ShortDetachmentSerializerME(many=True)
 
     class Meta:
         model = EducationalHeadquarter
@@ -1607,8 +1607,10 @@ class ShortEducationalHeadquarterSerializerME(ShortUnitSerializer):
 
 
 class ShortLocalHeadquarterSerializerME(ShortUnitSerializer):
-    educational_headquarters = ShortEducationalHeadquarterSerializer(many=True)
-    detachments = ShortDetachmentSerializer(many=True)
+    educational_headquarters = ShortEducationalHeadquarterSerializerME(
+        many=True
+    )
+    detachments = ShortDetachmentSerializerME(many=True)
 
     class Meta:
         model = LocalHeadquarter
@@ -1619,8 +1621,8 @@ class ShortLocalHeadquarterSerializerME(ShortUnitSerializer):
 
 
 class ShortRegionalHeadquarterSerializerME(ShortUnitSerializer):
-    local_headquarters = ShortLocalHeadquarterSerializer(many=True)
-    detachments = ShortDetachmentSerializer(many=True)
+    local_headquarters = ShortLocalHeadquarterSerializerME(many=True)
+    detachments = ShortDetachmentSerializerME(many=True)
 
     class Meta:
         model = RegionalHeadquarter
@@ -1631,7 +1633,7 @@ class ShortRegionalHeadquarterSerializerME(ShortUnitSerializer):
 
 
 class ShortDistrictHeadquarterSerializerME(ShortUnitSerializer):
-    regionals_headquarters = ShortRegionalHeadquarterSerializer(many=True)
+    regionals_headquarters = ShortRegionalHeadquarterSerializerME(many=True)
 
     class Meta:
         model = DistrictHeadquarter
@@ -1641,7 +1643,7 @@ class ShortDistrictHeadquarterSerializerME(ShortUnitSerializer):
 
 
 class ShortCentralHeadquarterSerializerME(ShortUnitSerializer):
-    districts_headquarters = ShortDistrictHeadquarterSerializer(many=True)
+    districts_headquarters = ShortDistrictHeadquarterSerializerME(many=True)
 
     class Meta:
         model = CentralHeadquarter
