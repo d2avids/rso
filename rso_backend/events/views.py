@@ -24,6 +24,7 @@ from headquarters.models import (
 )
 from api.mixins import CreateListRetrieveDestroyViewSet
 from users.models import RSOUser
+from api.permissions import IsAuthorMultiEventApplication, IsCommander, IsEventOrganizer
 
 
 class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
@@ -65,6 +66,17 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
             )
         return MultiEventApplication.objects.filter(event=event)
 
+    def get_permissions(self):
+        if self.action == 'list' or self.action == 'create':
+            return [
+                permissions.IsAuthenticated(), IsCommander()
+            ]
+        if self.action == 'destroy' or self.action == 'retrieve':
+            return [
+                permissions.IsAuthenticated(), IsAuthorMultiEventApplication()
+            ]
+        return super().get_permissions()
+
     def list(self, request, *args, **kwargs):
         """Выводит список подвластных структурных единиц
         доступных к подаче в заявке.
@@ -74,8 +86,6 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
               разрешена подача заявок.
         """
         queryset = self.get_queryset()
-        if not len(queryset):  # TODO: перенести в пермишн)
-            return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -175,7 +185,7 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
             methods=['delete'],
             url_path=r'delete/(?P<organizer_id>\d+)',
             serializer_class=MultiEventApplicationSerializer,
-            permission_classes=(permissions.IsAuthenticated,)) # TODO: поменять на пермишн организатора
+            permission_classes=(permissions.IsAuthenticated, IsEventOrganizer))
     def delete_all_applications(self, request, event_pk, organizer_id):
         """Удаление многоэтапной заявки на мероприятие поданной
         пользователем, id которого был передан в эндпоинте.
@@ -196,7 +206,7 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
             methods=['post'],
             url_path=r'confirm/(?P<organizer_id>\d+)',
             serializer_class=MultiEventApplicationSerializer,
-            permission_classes=(permissions.IsAuthenticated,)) # TODO: поменять на пермишн организатора
+            permission_classes=(permissions.IsAuthenticated, IsEventOrganizer))
     def confirm(self, request, event_pk, organizer_id):
         """Подтверждение многоэтапной заявки на мероприятие поданной
         пользователем, id которого был передан в эндпоинте.
@@ -206,7 +216,14 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
         """
         queryset = self.get_queryset().filter(organizer_id=organizer_id)
         if not len(queryset):
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Заявка не найдена"},
+                            status=status.HTTP_404_NOT_FOUND)
+        queryset = queryset.filter(
+            is_approved=False
+        )
+        if not len(queryset):
+            return Response({"message": "Заявка уже подтверждена"},
+                            status=status.HTTP_400_BAD_REQUEST)
         queryset.update(is_approved=True)
         return Response(status=status.HTTP_201_CREATED)
 
@@ -238,12 +255,12 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
         if not len(queryset):
             return Response({'error': 'Заявка не существует'},
                             status=status.HTTP_404_NOT_FOUND)
+        queryset = queryset.filter(is_approved=True)
+        if not len(queryset):
+            return Response({'error': 'Ваша заявка еще не подтверждена'},
+                            status=status.HTTP_404_NOT_FOUND)
 
         if request.method == 'POST':
-            queryset = queryset.filter(is_approved=True)
-            if not len(queryset):
-                return Response({'error': 'Ваша заявка еще не подтверждена'},
-                                status=status.HTTP_404_NOT_FOUND)
             serializer = MultiEventParticipantsSerializer(
                 data=request.data,
                 many=True
@@ -313,6 +330,11 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
             )
         all_members = RSOUser.objects.filter(id__in=all_members_ids)
         if not len(all_members) or all_members is None:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error":
+                    "В поданых структурных единицах нет доступных бойцов. "
+                    "Возможно они уже участники этого мероприятия"},
+                status=status.HTTP_404_NOT_FOUND
+            )
         serializer = ShortUserSerializer(all_members, many=True)
         return Response(serializer.data)
