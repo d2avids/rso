@@ -1100,7 +1100,7 @@ def get_structural_units(request):
 
 
 @api_view(['POST', 'DELETE'])
-@permission_classes([IsRegStuffOrDetCommander])
+@permission_classes([permissions.IsAuthenticated, IsRegStuffOrDetCommander])
 def verify_user(request, pk):
     """Принять/отклонить заявку пользователя на верификацию.
 
