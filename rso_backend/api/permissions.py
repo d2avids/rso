@@ -484,27 +484,6 @@ class IsApplicantOrOrganizer(BasePermission):
         return obj.user == request.user
 
 
-# class IsCommander(BasePermission):
-#     """Проверяет, является ли пользователь командиром.
-
-#     def has_permission только для action list MultiEventViewSet.
-#     """
-
-    
-
-#     def has_permission(self, request, view):
-#         return view.get_serializer_class().Meta.model.objects.filter(
-#                 commander=request.user
-#             ).exists()
-
-    # def has_object_permission(self, request, view, obj):
-    #     available_structural_model = self._STRUCTURAL_MAPPING.get(
-    #         obj.event.available_structural_units
-    #     )
-    #     return available_structural_model.objects.filter(
-    #         commander=request.user
-    #     ).exists()
-
 class IsCommander(BasePermission):
     """Проверяет, является ли пользователь командиром
     структурной единицы, типу которых разрешена подача
