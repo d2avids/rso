@@ -1587,7 +1587,7 @@ class ShortUnitSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def get_members_count(obj):
-        return obj.members.count()
+        return obj.members.filter(user__is_verified=True).count()
 
 
 class ShortDetachmentSerializerME(ShortUnitSerializer):
@@ -1666,6 +1666,15 @@ class MultiEventParticipantsSerializer(serializers.ModelSerializer):
             'id',
             'event',
         )
+
+    def validate(self, attrs):
+        user = attrs.get('user')
+        if not user.is_verified:
+            raise serializers.ValidationError(
+                'Только верифицированных пользователей можно '
+                'включать в списки.'
+            )
+        return attrs
 
 
 class ShortMultiEventApplicationSerializer(serializers.ModelSerializer):

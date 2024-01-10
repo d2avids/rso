@@ -488,6 +488,7 @@ class IsCommander(BasePermission):
     """Проверяет, является ли пользователь командиром
     структурной единицы, типу которых разрешена подача
     заявок на многоэтапное мероприятие.
+    Дополнительно проверяет верифицирован ли пользователь.
     """
     _STRUCTURAL_MAPPING = {
         'central': CentralHeadquarter,
@@ -505,7 +506,7 @@ class IsCommander(BasePermission):
         )
         return available_structural_model.objects.filter(
             commander=request.user
-        ).exists()
+        ).exists() and request.user.is_verified
 
 
 class IsAuthorMultiEventApplication(BasePermission):
@@ -514,3 +515,9 @@ class IsAuthorMultiEventApplication(BasePermission):
     """
     def has_object_permission(self, request, view, obj):
         return obj.organizer_id == request.user.id
+
+
+class IsVerifiedPermission(BasePermission):
+    """Проверяет, верифицирован ли пользователь."""
+    def has_permission(self, request, view):
+        return request.user.is_verified

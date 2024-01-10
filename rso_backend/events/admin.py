@@ -3,7 +3,8 @@ from django.contrib import admin
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocument, EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
-                           EventTimeData, EventUserDocument, MultiEventApplication,
+                           EventTimeData, EventUserDocument,
+                           MultiEventApplication,
                            EventIssueAnswer)
 
 
@@ -55,7 +56,8 @@ class EventAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Event, EventAdmin)
-admin.site.register(MultiEventApplication)
 admin.site.register(EventApplications)
 admin.site.register(EventParticipants)
 admin.site.register(EventIssueAnswer)
+admin.site.register(EventUserDocument)
+admin.site.register(MultiEventApplication)

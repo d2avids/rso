@@ -38,7 +38,7 @@ from api.permissions import (IsApplicantOrOrganizer,
                              IsEventOrganizer, IsLocalCommander,
                              IsRegionalCommander, IsRegionalCommanderForCert,
                              IsRegStuffOrDetCommander, IsStuffOrAuthor,
-                             IsStuffOrCentralCommander,
+                             IsStuffOrCentralCommander, IsVerifiedPermission,
                              MembershipFeePermission)
 from api.serializers import (AnswerSerializer, AreaSerializer,
                              CentralHeadquarterSerializer,
@@ -1695,7 +1695,7 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
 
     def get_permissions(self):
         if self.action == 'create':
-            return [permissions.IsAuthenticated()]
+            return [permissions.IsAuthenticated(), IsVerifiedPermission()]
         elif self.action in ['retrieve', 'destroy']:
             return [permissions.IsAuthenticated(), IsApplicantOrOrganizer()]
         else:
@@ -2312,7 +2312,8 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
                 all_members_ids -
                 set(users_already_participating.values_list('user', flat=True))
             )
-        all_members = RSOUser.objects.filter(id__in=all_members_ids)
+        all_members = RSOUser.objects.filter(id__in=all_members_ids,
+                                             is_verified=True)
         if not len(all_members) or all_members is None:
             return Response(
                 {"error":
