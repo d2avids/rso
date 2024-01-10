@@ -1,4 +1,5 @@
 import io
+import itertools
 import mimetypes
 import os
 import zipfile
@@ -19,7 +20,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
-from rest_framework import filters, permissions, status, viewsets
+from rest_framework import filters, permissions, serializers, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
@@ -29,7 +30,9 @@ from api.mixins import (CreateDeleteViewSet, CreateListRetrieveDestroyViewSet,
                         CreateRetrieveUpdateViewSet,
                         ListRetrieveDestroyViewSet, ListRetrieveUpdateViewSet,
                         ListRetrieveViewSet, RetrieveUpdateViewSet)
-from api.permissions import (IsApplicantOrOrganizer, IsAuthorPermission,
+from api.permissions import (IsApplicantOrOrganizer,
+                             IsAuthorMultiEventApplication,
+                             IsAuthorPermission, IsCommander,
                              IsDetachmentCommander, IsDistrictCommander,
                              IsEducationalCommander, IsEventAuthor,
                              IsEventOrganizer, IsLocalCommander,
@@ -58,15 +61,26 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              ForeignUserDocumentsSerializer,
                              LocalHeadquarterSerializer,
                              LocalPositionSerializer, MemberCertSerializer,
+                             MultiEventApplicationSerializer,
+                             MultiEventParticipantsSerializer,
                              PositionSerializer,
                              ProfessionalEductionSerializer,
                              RegionalHeadquarterSerializer,
                              RegionalPositionSerializer, RegionSerializer,
-                             RSOUserSerializer, ShortDetachmentSerializer,
+                             RSOUserSerializer,
+                             ShortCentralHeadquarterSerializerME,
+                             ShortDetachmentSerializer,
+                             ShortDetachmentSerializerME,
                              ShortDistrictHeadquarterSerializer,
+                             ShortDistrictHeadquarterSerializerME,
                              ShortEducationalHeadquarterSerializer,
+                             ShortEducationalHeadquarterSerializerME,
                              ShortLocalHeadquarterSerializer,
+                             ShortLocalHeadquarterSerializerME,
+                             ShortMultiEventApplicationSerializer,
                              ShortRegionalHeadquarterSerializer,
+                             ShortRegionalHeadquarterSerializerME,
+                             ShortUserSerializer,
                              UserDetachmentApplicationSerializer,
                              UserDocumentsSerializer, UserEducationSerializer,
                              UserMediaSerializer,
@@ -74,6 +88,7 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              UserProfessionalEducationSerializer,
                              UserRegionSerializer, UsersParentSerializer,
                              UserStatementDocumentsSerializer)
+
 from api.swagger_schemas import EventSwaggerSerializer
 from api.utils import (create_and_return_archive, download_file,
                        get_headquarter_users_positions_queryset, get_user,
@@ -81,7 +96,8 @@ from api.utils import (create_and_return_archive, download_file,
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
-                           EventTimeData, EventUserDocument)
+                           EventTimeData, EventUserDocument,
+                           MultiEventApplication)
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -1987,4 +2003,372 @@ class EventUserDocumentViewSet(CreateRetrieveUpdateViewSet):
             user=request.user, event__id=event_pk
         ).all()
         serializer = EventUserDocumentSerializer(user_documents, many=True)
+        return Response(serializer.data)
+
+
+class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
+    """Вьюсет для многоэтапной заявки на мероприятие.
+
+    GET(list): Выводит список подвластных структурных единиц
+               доступных к подаче в заявке.
+    GET(retrieve): Выводит одну структурную единицу из заявки (по pk).
+    POST(create): Создает заявку на мероприятие.
+    DELETE(destroy): Удаляет одну структурную единицу из заявки (по pk).
+    """
+    _STRUCTURAL_MAPPING = {
+        'central': ShortCentralHeadquarterSerializerME,
+        'districts': ShortDistrictHeadquarterSerializerME,
+        'regionals': ShortRegionalHeadquarterSerializerME,
+        'locals': ShortLocalHeadquarterSerializerME,
+        'educationals': ShortEducationalHeadquarterSerializerME,
+        'detachments': ShortDetachmentSerializerME
+    }
+    serializer_class = MultiEventApplicationSerializer
+    queryset = MultiEventApplication.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            event_pk = self.kwargs.get('event_pk')
+            event = get_object_or_404(Event, pk=event_pk)
+            return self._STRUCTURAL_MAPPING.get(
+                event.available_structural_units
+            )
+        return super().get_serializer_class()
+
+    def get_queryset(self):
+        event_pk = self.kwargs.get('event_pk')
+        event = get_object_or_404(Event, pk=event_pk)
+        if self.action == 'list':
+            return self.get_serializer_class().Meta.model.objects.filter(
+                commander=self.request.user
+            )
+        return MultiEventApplication.objects.filter(event=event)
+
+    def get_permissions(self):
+        if self.action == 'list' or self.action == 'create':
+            return [
+                permissions.IsAuthenticated(), IsCommander()
+            ]
+        if self.action == 'destroy' or self.action == 'retrieve':
+            return [
+                permissions.IsAuthenticated(), IsAuthorMultiEventApplication()
+            ]
+        return super().get_permissions()
+
+    def list(self, request, *args, **kwargs):
+        """Выводит список подвластных структурных единиц
+        доступных к подаче в заявке.
+
+        Доступ:
+            - только командир структурной единицы, типу которых
+              разрешена подача заявок.
+        """
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+            request_body=MultiEventApplicationSerializer(many=True)
+    )
+    def create(self, request, event_pk, *args, **kwargs):
+        """Создание многоэтапной заявки на мероприятие.
+
+        Принимает список с структурными единицами. Формат:
+        ```
+        [
+            {
+                "название_одной_из_структурных_единиц": id,
+                "emblem": эмблема структурной единицы (необязательное поле),
+                "participants_count": members_count
+            },
+            ...
+        ]
+        ```
+        Доступ:
+            - только командир структурной единицы, типу которых
+              разрешена подача заявок.
+
+        Дубли и структурные единицы без хотя бы одного участника игнорируются.
+        """
+        event = get_object_or_404(Event, id=event_pk)
+        if MultiEventApplication.objects.filter(
+            event=event, organizer_id=request.user.id
+        ).exists():
+            raise serializers.ValidationError(
+                'Вы уже подали заявку на участие в этом мероприятии.'
+            )
+
+        data_set = []
+        for item in request.data:
+            if item in data_set:
+                continue
+            if item.get('participants_count') == 0:
+                continue
+            data_set.append(item)
+
+        total_participants = sum(
+           int(item.get('participants_count', 0)) for item in data_set
+        )
+
+        if (event.participants_number and
+                total_participants > event.participants_number):
+            raise serializers.ValidationError(
+                'Общее количество поданых участников превышает общее'
+                'разрешенное количество участников мероприятя.'
+            )
+
+        serializer = self.get_serializer(data=data_set,
+                                         many=True)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save(event=event,
+                            organizer_id=request.user.id,
+                            is_approved=False)
+            return Response(status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='me',
+            serializer_class=MultiEventApplicationSerializer,
+            permission_classes=(permissions.IsAuthenticated,))
+    def me(self, request, event_pk):
+        """Выводит список структурных единиц, поданных текущим пользователем
+        в многоэтапной заявке на мероприятие.
+
+        Доступ:
+            - все авторизованные пользователи.
+        """
+        queryset = self.get_queryset().filter(organizer_id=request.user.id)
+        if not len(queryset):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False,
+            methods=['delete'],
+            url_path='me/delete',
+            serializer_class=MultiEventApplicationSerializer,
+            permission_classes=(permissions.IsAuthenticated,))
+    def delete_me_application(self, request, event_pk):
+        """Удаление многоэтапной заявки на мероприятие поданной
+        текущим пользователем.
+
+        Доступ:
+            - все авторизованные пользователи.
+        """
+        queryset = self.get_queryset().filter(organizer_id=request.user.id)
+        if not len(queryset):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        queryset.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False,
+            methods=['delete'],
+            url_path=r'delete/(?P<organizer_id>\d+)',
+            serializer_class=MultiEventApplicationSerializer,
+            permission_classes=(permissions.IsAuthenticated, IsEventOrganizer))
+    def delete_all_applications(self, request, event_pk, organizer_id):
+        """Удаление многоэтапной заявки на мероприятие поданной
+        пользователем, id которого был передан в эндпоинте.
+
+        Доступ:
+            - пользователи из модели организаторов мероприятий.
+        """
+        queryset = self.get_queryset().filter(organizer_id=organizer_id)
+        if not len(queryset):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        queryset.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={})
+    )
+    @action(detail=False,
+            methods=['post'],
+            url_path=r'confirm/(?P<organizer_id>\d+)',
+            serializer_class=MultiEventApplicationSerializer,
+            permission_classes=(permissions.IsAuthenticated, IsEventOrganizer))
+    def confirm(self, request, event_pk, organizer_id):
+        """Подтверждение многоэтапной заявки на мероприятие поданной
+        пользователем, id которого был передан в эндпоинте.
+
+        Доступ:
+            - пользователи из модели организаторов мероприятий.
+        """
+        queryset = self.get_queryset().filter(organizer_id=organizer_id)
+        if not len(queryset):
+            return Response({"error": "Заявка не найдена"},
+                            status=status.HTTP_404_NOT_FOUND)
+        queryset = queryset.filter(
+            is_approved=False
+        )
+        if not len(queryset):
+            return Response({"message": "Заявка уже подтверждена"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        queryset.update(is_approved=True)
+        return Response(status=status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(method='POST',
+                         request_body=MultiEventParticipantsSerializer(
+                             many=True))
+    @action(detail=False,
+            methods=['get', 'post'],
+            url_path='compile_lists',
+            serializer_class=MultiEventParticipantsSerializer,
+            permission_classes=(permissions.IsAuthenticated,))
+    def compile_lists(self, request, event_pk):
+        """Action для формирования списков участников мероприятия.
+
+        GET():Выводит список бойцов структурных единиц из одобренной
+              заявки на мероприятие.
+        POST(): Заносит полученных пользователей в бд как участников
+                мероприятия, дополнительно удаляя заявку на многоэтапное
+                мероприятие.
+
+        Доступ:
+            - чтение - все авторизованные. Если пользователь не имеет
+              заявки на мероприятие - выводится HTTP_404_NOT_FOUND.
+            - запись - все авторизованные. Если пользователь не имеет
+              подтвержденной заявки на мероприятие - выводится
+              HTTP_404_NOT_FOUND.
+        """
+        queryset = self.get_queryset().filter(organizer_id=request.user.id)
+        if not len(queryset):
+            return Response({'error': 'Заявка не существует'},
+                            status=status.HTTP_404_NOT_FOUND)
+        queryset = queryset.filter(is_approved=True)
+        if not len(queryset):
+            return Response({'error': 'Ваша заявка еще не подтверждена'},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        if request.method == 'POST':
+            serializer = MultiEventParticipantsSerializer(
+                data=request.data,
+                many=True
+            )
+            serializer.is_valid(raise_exception=True)
+            participants_to_create = []
+            for participant in serializer.data:
+                participants_to_create.append(
+                    EventParticipants(
+                        user_id=participant.get('user'),
+                        event_id=event_pk
+                    )
+                )
+            try:
+                with transaction.atomic():
+                    EventParticipants.objects.bulk_create(
+                        participants_to_create
+                    )
+                    queryset.delete()
+            except Exception as e:
+                return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+            return Response(status=status.HTTP_201_CREATED)
+
+        central_headquarter_members = (
+            queryset.filter(central_headquarter__isnull=False)
+                    .values_list('central_headquarter__members__user__id',
+                                 flat=True)
+        )
+        district_headquarter_members = (
+            queryset.filter(district_headquarter__isnull=False)
+                    .values_list('district_headquarter__members__user__id',
+                                 flat=True)
+        )
+        regional_headquarter_members = (
+            queryset.filter(regional_headquarter__isnull=False)
+                    .values_list('regional_headquarter__members__user__id',
+                                 flat=True)
+        )
+        local_headquarter_members = (
+            queryset.filter(local_headquarter__isnull=False)
+                    .values_list('local_headquarter__members__user__id',
+                                 flat=True)
+        )
+        educational_headquarter_members = (
+            queryset.filter(educational_headquarter__isnull=False)
+                    .values_list('educational_headquarter__members__user__id',
+                                 flat=True)
+        )
+        detachment_members = (
+            queryset.filter(detachment__isnull=False)
+                    .values_list('detachment__members__user__id',
+                                 flat=True)
+        )
+        all_members_ids = set(itertools.chain(
+            central_headquarter_members,
+            district_headquarter_members,
+            regional_headquarter_members,
+            local_headquarter_members,
+            educational_headquarter_members,
+            detachment_members
+        ))
+        users_already_participating = EventParticipants.objects.filter(
+            event__id=event_pk
+        )
+        if users_already_participating.exists():
+            all_members_ids = list(
+                all_members_ids -
+                set(users_already_participating.values_list('user', flat=True))
+            )
+        all_members = RSOUser.objects.filter(id__in=all_members_ids)
+        if not len(all_members) or all_members is None:
+            return Response(
+                {"error":
+                    "В поданых структурных единицах нет доступных бойцов. "
+                    "Возможно они уже участники этого мероприятия"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = ShortUserSerializer(all_members, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False,
+            methods=['get'],
+            url_path=r'detail/(?P<organizer_id>\d+)',
+            permission_classes=(permissions.IsAuthenticated, IsEventOrganizer))
+    def get_detail(self, request, event_pk, organizer_id):
+        """Выводит список структурных единиц, поданных пользователем
+        (id которого равен organizer_id) в многоэтапную заявку на мероприятие.
+
+        Доступ:
+            - пользователи из модели организаторов мероприятий.
+        """
+        queryset = self.get_queryset().filter(organizer_id=organizer_id)
+        if not len(queryset):
+            return Response({'error': 'Заявка не существует'},
+                            status=status.HTTP_404_NOT_FOUND)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='all',
+            serializer_class=ShortMultiEventApplicationSerializer,
+            permission_classes=(permissions.IsAuthenticated, IsEventOrganizer))
+    def all_applications(self, request, event_pk):
+        """Выводит список новых заявок по этому эвенту.
+
+        Выводит новые заявки и заявки по которым заявители
+        еще не сформировали списки.
+
+        Доступ:
+            - пользователи из модели организаторов мероприятий.
+        """
+        queryset = self.get_queryset()
+        if not len(queryset):
+            return Response({'message': 'Заявок пока нет'},
+                            status=status.HTTP_200_OK)
+        users = RSOUser.objects.filter(
+            id__in=queryset.values_list('organizer_id', flat=True)
+        ).all()
+        event = get_object_or_404(Event, pk=event_pk)
+        headquarter_model = self._STRUCTURAL_MAPPING.get(
+                event.available_structural_units
+            ).Meta.model
+        serializer = self.get_serializer(
+            users,
+            context={'headquarter_model': headquarter_model},
+            many=True
+        )
         return Response(serializer.data)

@@ -19,8 +19,9 @@ from api.views import (AnswerDetailViewSet, AreaViewSet,
                        EventOrganizationDataViewSet, EventParticipantsViewSet,
                        EventUserDocumentViewSet, EventViewSet,
                        ForeignUserDocumentsViewSet, LocalPositionViewSet,
-                       LocalViewSet, MemberCertViewSet, PositionViewSet,
-                       RegionalPositionViewSet, RegionalViewSet, RegionViewSet,
+                       LocalViewSet, MemberCertViewSet, MultiEventViewSet, 
+                       PositionViewSet, RegionalPositionViewSet,
+                       RegionalViewSet, RegionViewSet,
                        RSOUserViewSet, UserDocumentsViewSet,
                        UserEducationViewSet, UserMediaViewSet,
                        UserPrivacySettingsViewSet,
@@ -28,7 +29,6 @@ from api.views import (AnswerDetailViewSet, AreaViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
                        apply_for_verification, change_membership_fee_status,
                        create_answers, get_structural_units, verify_user)
-from events.views import MultiEventViewSet
 
 
 app_name = 'api'

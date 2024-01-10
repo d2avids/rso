@@ -580,6 +580,11 @@ class MultiEventApplication(models.Model):
         verbose_name='Количество участников',
         default=0
     )
+    emblem = models.TextField(
+        verbose_name='Путь к эмблеме',
+        null=True,
+        blank=True
+    )
     created_at = models.DateTimeField(
         verbose_name='Дата и время создания заявки',
         auto_now_add=True
