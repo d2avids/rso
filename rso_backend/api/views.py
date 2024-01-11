@@ -76,7 +76,7 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              UserRegionSerializer, UsersParentSerializer,
                              UserStatementDocumentsSerializer, UserDetachmentApplicationReadSerializer,
                              UserVerificationReadSerializer)
-from api.swagger_schemas import EventSwaggerSerializer
+from api.swagger_schemas import EventSwaggerSerializer, applications_response
 from api.utils import (create_and_return_archive, download_file,
                        get_headquarter_users_positions_queryset, get_user,
                        get_user_by_id, text_to_lines)
@@ -657,6 +657,7 @@ class DetachmentViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
 
     @action(detail=True, methods=['get', ], url_path='applications')
+    @swagger_auto_schema(responses=applications_response)
     def get_applications(self, request, pk=None):
         """Получить список заявок на вступление в отряд."""
         detachment = self.get_object()
