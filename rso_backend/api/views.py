@@ -74,7 +74,8 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              UserPrivacySettingsSerializer,
                              UserProfessionalEducationSerializer,
                              UserRegionSerializer, UsersParentSerializer,
-                             UserStatementDocumentsSerializer)
+                             UserStatementDocumentsSerializer, UserDetachmentApplicationReadSerializer,
+                             UserVerificationReadSerializer)
 from api.swagger_schemas import EventSwaggerSerializer
 from api.utils import (create_and_return_archive, download_file,
                        get_headquarter_users_positions_queryset, get_user,
@@ -556,6 +557,21 @@ class RegionalViewSet(viewsets.ModelViewSet):
             permission_classes = (IsRegionalCommander,)
         return [permission() for permission in permission_classes]
 
+    @action(detail=True, methods=['get', ], url_path='verifications')
+    def get_verifications(self, request, pk=None):
+        """
+        Получить список пользователей, подавших заявку на верификацию,
+        у которых совпадает регион с регионом текущего РШ.
+        """
+        headquarter = self.get_object()
+        verifications = UserVerificationRequest.objects.filter(
+            user__region=headquarter.region,
+        ).select_related('user')
+        serializer = UserVerificationReadSerializer(
+            instance=verifications, many=True
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class LocalViewSet(viewsets.ModelViewSet):
     """Представляет местные штабы.
@@ -619,13 +635,13 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     Установлена валидация соответствия всех связанных штабов на наличие
     связи между собой.
     При операции чтения доступно число количества участников в структурной
-    единице по ключу members_count, а также список всех участников по ключу
-    members.
+    единице по ключу members_count, а также список всех участников по эндпоинту
+    /members/.
     При операции чтения доступен список пользователей, подавших заявку на
     верификацию и относящихся к текущему отряду по
-    ключу users_for_verification.
+    эндпоинту /verifications/.
     При операции чтения доступен список пользователей, подавших заявку на
-    вступление в отряд по ключу applications.
+    вступление в отряд по эндпоинту /applications/.
     Доступен поиск по name при передаче ?search=<value> query-параметра.
     """
 
@@ -639,6 +655,31 @@ class DetachmentViewSet(viewsets.ModelViewSet):
             permission_classes = (IsEducationalCommander,)
         permission_classes = (IsDetachmentCommander, )
         return [permission() for permission in permission_classes]
+
+    @action(detail=True, methods=['get', ], url_path='applications')
+    def get_applications(self, request, pk=None):
+        """Получить список заявок на вступление в отряд."""
+        detachment = self.get_object()
+        applications = UserDetachmentApplication.objects.filter(
+            detachment=detachment
+        )
+        serializer = UserDetachmentApplicationReadSerializer(
+            instance=applications, many=True
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get', ], url_path='verifications')
+    def get_verifications(self, request, pk=None):
+        """Получить список членов отряда, подавших заявку на верификацию."""
+        detachment = self.get_object()
+        user_ids_in_verification_request = UserVerificationRequest.objects.values_list('user_id', flat=True)
+        members_to_verify = detachment.members.filter(
+            user__id__in=user_ids_in_verification_request
+        ).select_related('user')
+        serializer = UserVerificationReadSerializer(
+            instance=members_to_verify, many=True
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class BasePositionViewSet(viewsets.ModelViewSet):
