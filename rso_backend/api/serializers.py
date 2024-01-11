@@ -1150,7 +1150,7 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
         """
         instance = EducationalHeadquarter(**data)
         try:
-            instance.full_clean()
+            instance.check_headquarters_relations()
         except ValidationError as e:
             raise serializers.ValidationError(e.message_dict)
         return data
@@ -1251,7 +1251,7 @@ class DetachmentSerializer(BaseUnitSerializer):
         """
         instance = Detachment(**data)
         try:
-            instance.full_clean()
+            instance.check_headquarters_relations()
         except ValidationError as e:
             raise serializers.ValidationError(e.message_dict)
         return data

@@ -280,14 +280,12 @@ class EducationalHeadquarter(Unit):
         verbose_name='Дата основания',
     )
 
-    def clean(self):
+    def check_headquarters_relations(self) -> None:
         """
         Проверяет, что местный штаб (local_headquarter) связан с тем же
         региональным штабом (regional_headquarter),
         что и образовательный штаб (EducationalHeadquarter).
         """
-        super().clean()
-
         if self.local_headquarter and self.regional_headquarter:
             if (
                 self.local_headquarter.regional_headquarter !=
@@ -375,19 +373,22 @@ class Detachment(Unit):
         verbose_name='Дата основания',
     )
 
-    def clean(self):
+    def check_headquarters_relations(self) -> None:
         """
         Проверяет согласованность между
         образовательным штабом (educational_headquarter),
         местным штабом (local_headquarter)
         и региональным штабом (regional_headquarter).
         """
-        super().clean()
+        regional_headquarter = (
+            self.regional_headquarter if self.regional_headquarter
+            else self.region.headquarters.first()
+        )
 
         if self.educational_headquarter and self.local_headquarter:
             if (
-                self.educational_headquarter.local_headquarter !=
-                self.local_headquarter
+                    self.educational_headquarter.local_headquarter !=
+                    self.local_headquarter
             ):
                 raise ValidationError({
                     'educational_headquarter': 'Выбранный образовательный '
@@ -395,20 +396,20 @@ class Detachment(Unit):
                                                'штабом.'
                 })
 
-        if self.local_headquarter and self.regional_headquarter:
+        if self.local_headquarter and regional_headquarter:
             if (
-                self.local_headquarter.regional_headquarter !=
-                self.regional_headquarter
+                    self.local_headquarter.regional_headquarter !=
+                    regional_headquarter
             ):
                 raise ValidationError({
                     'local_headquarter': 'Выбранный местный штаб связан с '
                                          'другим региональным штабом.'
                 })
 
-        if self.educational_headquarter and self.regional_headquarter:
+        if self.educational_headquarter:
             if (
-                self.educational_headquarter.regional_headquarter !=
-                self.regional_headquarter
+                    self.educational_headquarter.regional_headquarter !=
+                    regional_headquarter
             ):
                 raise ValidationError({
                     'educational_headquarter': 'Выбранный образовательный '
@@ -416,7 +417,7 @@ class Detachment(Unit):
                                                'региональным  штабом.'
                 })
         if self.regional_headquarter:
-            if self.region != self.regional_headquarter.region:
+            if self.region != regional_headquarter.region:
                 raise ValidationError({
                     'region': 'Выбранный регион не совпадает с регионом '
                               'выбранного регионального штаба.'
