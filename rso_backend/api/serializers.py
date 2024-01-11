@@ -695,7 +695,7 @@ class UserVerificationReadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserVerificationRequest
-        fields = ('id', 'user',)
+        fields = ('user',)
         read_only_fields = ('user',)
 
 
