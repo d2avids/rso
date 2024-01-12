@@ -288,13 +288,17 @@ class EducationalHeadquarter(Unit):
         """
         if self.local_headquarter and self.regional_headquarter:
             if (
-                self.local_headquarter.regional_headquarter !=
-                self.regional_headquarter
+                    self.local_headquarter.regional_headquarter !=
+                    self.regional_headquarter
             ):
                 raise ValidationError({
                     'local_headquarter': 'Этот местный штаб связан '
                                          'с другим региональным штабом.'
                 })
+
+    def save(self, *args, **kwargs):
+        self.check_headquarters_relations()
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name_plural = 'Образовательные штабы'
@@ -382,14 +386,16 @@ class Detachment(Unit):
         """
         if (
                 not self.regional_headquarter and
-                not RegionalHeadquarter.objects.exists(region=self.region)
+                not RegionalHeadquarter.objects.filter(
+                    region=self.region
+                ).exists()
         ):
             raise ValidationError({
-                'educational_headquarter': 'В базе данных не найден РШ '
-                                           'с данным регионом. '
-                                           'Обратитесь в тех. поддержку или '
-                                           'руководство регионального штаба '
-                                           'Вашего региона.'
+                'region': 'В базе данных не найден РШ '
+                          'с данным регионом. '
+                          'Обратитесь в тех. поддержку или '
+                          'руководство регионального штаба '
+                          'Вашего региона.'
             })
 
         regional_headquarter = (
@@ -448,6 +454,7 @@ class Detachment(Unit):
 
     def save(self, *args, **kwargs):
         """Автоматически заполняет региональный штаб по региону."""
+        self.check_headquarters_relations()
         if not self.regional_headquarter:
             self.regional_headquarter = self.region.headquarters.first()
         super().save(*args, **kwargs)
