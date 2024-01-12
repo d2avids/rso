@@ -2243,6 +2243,7 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
                             status=status.HTTP_404_NOT_FOUND)
 
         if request.method == 'POST':
+            event = get_object_or_404(Event, pk=event_pk)
             serializer = MultiEventParticipantsSerializer(
                 data=request.data,
                 many=True
@@ -2255,6 +2256,17 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
                         user_id=participant.get('user'),
                         event_id=event_pk
                     )
+                )
+            if not len(participants_to_create):
+                return Response({'message': 'Нужно подать хотя бы 1 участника'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            available_participants = (event.participants_number
+                                      - event.event_participants.count())
+            if len(participants_to_create) > (available_participants):
+                return Response(
+                    {'message': f'Слишком много участников, в мероприятии '
+                                f'осталось {available_participants} мест'},
+                    status=status.HTTP_200_OK
                 )
             try:
                 with transaction.atomic():
