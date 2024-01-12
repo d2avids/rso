@@ -5,40 +5,40 @@ from events.utils import document_path, image_path
 
 class Event(models.Model):
     class EventFormat(models.TextChoices):
-        ONLINE = 'ONLINE', 'Онлайн'
-        OFFLINE = 'OFFLINE', 'Оффлайн'
+        ONLINE = 'Онлайн', 'Онлайн'
+        OFFLINE = 'Оффлайн', 'Оффлайн'
 
     class EventDirection(models.TextChoices):
-        VOLUNTARY = 'voluntary', 'Добровольческое'
-        EDUCATIONAL = 'educational', 'Образовательное'
-        PATRIOTIC = 'patriotic', 'Патриотическое'
-        SPORT = 'sport', 'Спортивное'
-        CREATIVE = 'creative', 'Творческое'
+        VOLUNTARY = 'Добровольческое', 'Добровольческое'
+        EDUCATIONAL = 'Образовательное', 'Образовательное'
+        PATRIOTIC = 'Патриотическое', 'Патриотическое'
+        SPORT = 'Спортивное', 'Спортивное'
+        CREATIVE = 'Творческое', 'Творческое'
 
     class EventStatus(models.TextChoices):
-        ACTIVE = 'active', 'Активный'
-        INACTIVE = 'inactive', 'Завершенный'
+        ACTIVE = 'Активный', 'Активный'
+        INACTIVE = 'Завершенный', 'Завершенный'
 
     class EventApplicationType(models.TextChoices):
-        PERSONAL = 'personal', 'Персональная'
-        GROUP = 'group', 'Групповая'
-        MULTI_STAGE = 'multi_stage', 'Мультиэтапная'
+        PERSONAL = 'Персональная', 'Персональная'
+        GROUP = 'Групповая', 'Групповая'
+        MULTI_STAGE = 'Мультиэтапная', 'Мультиэтапная'
 
     class EventAvailableStructuralUnit(models.TextChoices):
-        DETACHMENTS = 'detachments', 'Отряды'
-        EDUCATIONALS = 'educationals', 'Образовательные штабы'
-        LOCALS = 'locals', 'Местные штабы'
-        REGIONALS = 'regionals', 'Региональные штабы'
-        DISTRICTS = 'districts', 'Окружные штабы'
-        CENTRAL = 'central', 'Центральные штабы'
+        DETACHMENTS = 'Отряды', 'Отряды'
+        EDUCATIONALS = 'Образовательные штабы', 'Образовательные штабы'
+        LOCALS = 'Местные штабы', 'Местные штабы'
+        REGIONALS = 'Региональные штабы', 'Региональные штабы'
+        DISTRICTS = 'Окружные штабы', 'Окружные штабы'
+        CENTRAL = 'Центральные штабы', 'Центральные штабы'
 
     class EventScale(models.TextChoices):
-        DETACHMENTS = 'detachments', 'Отрядное'
-        EDUCATIONALS = 'educationals', 'Мероприятие ОО'
-        LOCALS = 'locals', 'Городское'
-        REGIONALS = 'regionals', 'Региональное'
-        DISTRICTS = 'districts', 'Мероприятие ОО'
-        CENTRAL = 'central', 'Отрядное ОО'
+        DETACHMENTS = 'Отрядное', 'Отрядное'
+        EDUCATIONALS = 'Образовательное', 'Мероприятие Образовательного Штаба'
+        LOCALS = 'Городское', 'Городское'
+        REGIONALS = 'Региональное', 'Региональное'
+        DISTRICTS = 'Окружное', 'Мероприятие Окружного Штаба'
+        CENTRAL = 'Всероссийское', 'Мероприятие ЦШ'
 
     author = models.ForeignKey(
         to='users.RSOUser',
@@ -134,8 +134,8 @@ class Event(models.Model):
 
 class EventTimeData(models.Model):
     class EventDurationType(models.TextChoices):
-        ONE_DAY = 'one_day', 'Однодневное'
-        MULTIPLE_DAYS = 'multiple_days', 'Многодневное'
+        ONE_DAY = 'Однодневное', 'Однодневное'
+        MULTIPLE_DAYS = 'Многодневное', 'Многодневное'
 
     event = models.OneToOneField(
         to='Event',
