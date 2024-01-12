@@ -380,6 +380,18 @@ class Detachment(Unit):
         местным штабом (local_headquarter)
         и региональным штабом (regional_headquarter).
         """
+        if (
+                not self.regional_headquarter and
+                not RegionalHeadquarter.objects.exists(region=self.region)
+        ):
+            raise ValidationError({
+                'educational_headquarter': 'В базе данных не найден РШ '
+                                           'с данным регионом. '
+                                           'Обратитесь в тех. поддержку или '
+                                           'руководство регионального штаба '
+                                           'Вашего региона.'
+            })
+
         regional_headquarter = (
             self.regional_headquarter if self.regional_headquarter
             else self.region.headquarters.first()
