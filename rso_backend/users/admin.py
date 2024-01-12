@@ -62,8 +62,8 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
     ]
 
     list_display = (
-        'id',
         'username',
+        'id',
         'email',
         'first_name',
         'last_name',
