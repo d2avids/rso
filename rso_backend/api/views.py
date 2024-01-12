@@ -74,7 +74,8 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              UserPrivacySettingsSerializer,
                              UserProfessionalEducationSerializer,
                              UserRegionSerializer, UsersParentSerializer,
-                             UserStatementDocumentsSerializer, UserDetachmentApplicationReadSerializer,
+                             UserStatementDocumentsSerializer,
+                             UserDetachmentApplicationReadSerializer,
                              UserVerificationReadSerializer)
 from api.swagger_schemas import EventSwaggerSerializer, applications_response
 from api.utils import (create_and_return_archive, download_file,
@@ -673,7 +674,9 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     def get_verifications(self, request, pk=None):
         """Получить список членов отряда, подавших заявку на верификацию."""
         detachment = self.get_object()
-        user_ids_in_verification_request = UserVerificationRequest.objects.values_list('user_id', flat=True)
+        user_ids_in_verification_request = UserVerificationRequest.objects.values_list(
+            'user_id', flat=True
+        )
         members_to_verify = detachment.members.filter(
             user__id__in=user_ids_in_verification_request
         ).select_related('user')

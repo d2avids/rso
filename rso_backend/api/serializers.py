@@ -372,13 +372,11 @@ class PrivacyOptionField(serializers.ChoiceField):
 
 
 class UserPrivacySettingsSerializer(serializers.ModelSerializer):
-    privacy_telephone = serializers.CharField(
-        source='get_privacy_telephone_display'
-    )
-    privacy_email = serializers.CharField(source='get_privacy_email_display')
-    privacy_social = serializers.CharField(source='get_privacy_social_display')
-    privacy_about = serializers.CharField(source='get_privacy_about_display')
-    privacy_photo = serializers.CharField(source='get_privacy_photo_display')
+    privacy_telephone = serializers.CharField()
+    privacy_email = serializers.CharField()
+    privacy_social = serializers.CharField()
+    privacy_about = serializers.CharField()
+    privacy_photo = serializers.CharField()
 
     class Meta:
         model = UserPrivacySettings
@@ -936,7 +934,6 @@ class BaseUnitSerializer(serializers.ModelSerializer):
             print('УСЛОВИЕ НЕ СРАБОТАЛО')
             instance_type = type(self.instance)
         print(instance_type)
-
 
         for model_class, (
                 _, serializer_class

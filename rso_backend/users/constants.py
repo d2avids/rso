@@ -30,9 +30,9 @@ class MilitaryDocType(models.TextChoices):
 class PrivacyOption(models.TextChoices):
     """Настройки приватности пользователя."""
 
-    ALL = 'all', 'Все'
-    DETACHMENT_MEMBERS = 'detachment_members', 'Члены отряда',
-    MANAGEMENT_MEMBERS = 'management_members', 'Руководство'
+    ALL = 'Все', 'Все'
+    DETACHMENT_MEMBERS = 'Члены отрядаs', 'Члены отряда',
+    MANAGEMENT_MEMBERS = 'Руководство', 'Руководство'
 
 
 class RelationshipType(models.TextChoices):

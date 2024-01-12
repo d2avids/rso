@@ -913,7 +913,7 @@ class MemberCert(models.Model):
     )
     number = models.CharField(
         verbose_name='Номер справки',
-        default='б/н',
+        default=' ',
         max_length=40
     )
     signatory = models.CharField(
