@@ -558,9 +558,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_central_headquarter_id(instance):
         try:
-            central_headquarter_id = CentralHeadquarter.objects.get(
-                id=instance.id
-            ).id
+            central_headquarter_id = CentralHeadquarter.objects.first().id
         except CentralHeadquarter.DoesNotExist:
             central_headquarter_id = None
         return central_headquarter_id
@@ -568,50 +566,92 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_district_headquarter_id(instance):
         try:
-            district_headquarter_id = DistrictHeadquarter.objects.get(
-                id=instance.id
-            ).id
-        except DistrictHeadquarter.DoesNotExist:
+            district_headquarter_id = (
+                UserDistrictHeadquarterPosition.objects.get(
+                    user_id=instance.id
+                ).id
+            )
+        except UserDistrictHeadquarterPosition.DoesNotExist:
             district_headquarter_id = None
         return district_headquarter_id
 
     @staticmethod
     def get_regional_headquarter_id(instance):
         try:
-            regional_headquarter_id = RegionalHeadquarter.objects.get(
-                id=instance.id
-            ).id
-        except RegionalHeadquarter.DoesNotExist:
+            regional_headquarter_id = (
+                    UserRegionalHeadquarterPosition.objects.get(
+                        user_id=instance.id
+                ).id
+            )
+        except UserRegionalHeadquarterPosition.DoesNotExist:
             regional_headquarter_id = None
         return regional_headquarter_id
 
     @staticmethod
     def get_local_headquarter_id(instance):
         try:
-            local_headquarter_id = LocalHeadquarter.objects.get(
-                id=instance.id
-            ).id
-        except LocalHeadquarter.DoesNotExist:
+            local_headquarter_id = (
+                UserLocalHeadquarterPosition.objects.get(
+                    user_id=instance.id
+                ).id
+            )
+        except UserLocalHeadquarterPosition.DoesNotExist:
             local_headquarter_id = None
         return local_headquarter_id
 
     @staticmethod
     def get_educational_headquarter_id(instance):
         try:
-            eduicational_headquarter_id = EducationalHeadquarter.objects.get(
-                id=instance.id
-            ).id
-        except EducationalHeadquarter.DoesNotExist:
-            eduicational_headquarter_id = None
-        return eduicational_headquarter_id
+            educational_headquarter_id = (
+                UserEducationalHeadquarterPosition.objects.get(
+                    user_id=instance.id
+                ).id
+            )
+        except UserEducationalHeadquarterPosition.DoesNotExist:
+            educational_headquarter_id = None
+        return educational_headquarter_id
 
     @staticmethod
     def get_detachment_id(instance):
         try:
-            detachment_id = Detachment.objects.get(id=instance.id).id
-        except Detachment.DoesNotExist:
+            detachment_id = (
+                UserDetachmentPosition.objects.get(user_id=instance.id).id
+            )
+        except UserDetachmentPosition.DoesNotExist:
             detachment_id = None
         return detachment_id
+
+
+class UserCommanderSerializer(serializers.ModelSerializer):
+    centralheadquarter_commander = serializers.PrimaryKeyRelatedField(
+        queryset=CentralHeadquarter.objects.all()
+    )
+    districtheadquarter_commander = serializers.PrimaryKeyRelatedField(
+        queryset=DistrictHeadquarter.objects.all()
+    )
+    regionalheadquarter_commander = serializers.PrimaryKeyRelatedField(
+        queryset=RegionalHeadquarter.objects.all()
+    )
+    localheadquarter_commander = serializers.PrimaryKeyRelatedField(
+        queryset=LocalHeadquarter.objects.all()
+    )
+    educationalheadquarter_commander = serializers.PrimaryKeyRelatedField(
+        queryset=EducationalHeadquarter.objects.all()
+    )
+    detachment_commander = serializers.PrimaryKeyRelatedField(
+        queryset=Detachment.objects.all()
+    )
+
+    class Meta:
+        model = RSOUser
+        fields = (
+            'centralheadquarter_commander',
+            'districtheadquarter_commander',
+            'regionalheadquarter_commander',
+            'localheadquarter_commander',
+            'educationalheadquarter_commander',
+            'detachment_commander'
+        )
 
 
 class UserAvatarSerializer(serializers.ModelSerializer):
@@ -919,6 +959,32 @@ class BaseUnitSerializer(serializers.ModelSerializer):
     def get_participants_count(instance):
         return instance.members.count()
 
+    def validate(self, attrs):
+        """
+        Запрещает назначить пользователя командиром, если он уже им является.
+        """
+        commander_id = attrs.get('commander')
+        print('валидириуем')
+        print('командир айди:', commander_id)
+        print(self.instance)
+        if commander_id:
+            instance_type = self.Meta.model
+            print(f'INSTANCE TYPE: {instance_type}')
+            for model_class in self._POSITIONS_MAPPING:
+                if not issubclass(instance_type, model_class):
+                    continue
+                print(f'MODEL CLASS: {model_class}')
+                existing_units = model_class.objects.exclude(
+                    id=getattr(self.instance, 'id', None))
+
+                if existing_units.filter(commander=commander_id).exists():
+                    raise serializers.ValidationError(
+                        f"Пользователь уже является командиром другого "
+                        f"{model_class.__name__}."
+                    )
+
+        return attrs
+
 
 class CentralHeadquarterSerializer(BaseUnitSerializer):
     """Сериализатор для центрального штаба.
@@ -1105,6 +1171,7 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
         instance = EducationalHeadquarter(**data)
         try:
             instance.check_headquarters_relations()
+            super().validate(data)
         except ValidationError as e:
             raise serializers.ValidationError(e.message_dict)
         return data
@@ -1206,6 +1273,7 @@ class DetachmentSerializer(BaseUnitSerializer):
         instance = Detachment(**data)
         try:
             instance.check_headquarters_relations()
+            super().validate(data)
         except ValidationError as e:
             raise serializers.ValidationError(e.message_dict)
         return data

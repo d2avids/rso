@@ -14,8 +14,6 @@ class RegionalHeadquarterResource(resources.ModelResource):
             row['conference_date'] = datetime.datetime.now().date()
         if 'founding_date' not in row or not row['founding_date']:
             row['founding_date'] = 1970
-        if 'commander' not in row or not row['commander']:
-            row['commander'] = RSOUser.objects.first().id
 
     def skip_row(self, instance, original, row, import_validation_errors=None):
         """Пропускает определенные строки."""

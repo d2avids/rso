@@ -81,10 +81,11 @@ class Unit(models.Model):
         unique=True,
         verbose_name='Название'
     )
-    commander = models.ForeignKey(
+    commander = models.OneToOneField(
         'users.RSOUser',
         on_delete=models.PROTECT,
-        verbose_name='Командир'
+        verbose_name='Командир',
+        related_name="%(class)s_commander"
     )
     about = models.CharField(
         max_length=500,
@@ -505,7 +506,9 @@ class UserUnitPosition(models.Model):
         'users.RSOUser',
         on_delete=models.CASCADE,
         verbose_name='Пользователь',
-        related_name="%(class)s"
+        related_name="%(class)s",
+        blank=True,
+        null=True,
     )
     position = models.ForeignKey(
         'Position',

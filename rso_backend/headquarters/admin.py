@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.core.exceptions import ValidationError
 from import_export.admin import ImportExportModelAdmin
 
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
@@ -53,7 +54,22 @@ class EducationalHeadquarterAdmin(BaseUnitAdmin):
 
 @admin.register(Detachment)
 class DetachmentAdmin(BaseUnitAdmin):
-    pass
+    def save_model(self, request, obj, form, change):
+        """
+        Валидируем создание отряда с регионом несуществующего РШ.
+        """
+        if (not obj.regional_headquarter and
+                not RegionalHeadquarter.objects.filter(
+                    region=obj.region).exists()
+        ):
+            raise ValidationError({
+                'region': 'В базе данных не найден РШ '
+                          'с данным регионом. '
+                          'Для начала создайте соответсвующий РШ или выберите '
+                          'другой регион.'
+            })
+
+        super().save_model(request, obj, form, change)
 
 
 class BaseCentralPositionAdmin(admin.ModelAdmin):

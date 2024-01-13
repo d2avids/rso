@@ -76,7 +76,8 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              UserRegionSerializer, UsersParentSerializer,
                              UserStatementDocumentsSerializer,
                              UserDetachmentApplicationReadSerializer,
-                             UserVerificationReadSerializer)
+                             UserVerificationReadSerializer,
+                             UserCommanderSerializer)
 from api.swagger_schemas import EventSwaggerSerializer, applications_response
 from api.utils import (create_and_return_archive, download_file,
                        get_headquarter_users_positions_queryset, get_user,
@@ -122,12 +123,11 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
     @action(
         detail=False,
         methods=['get', 'patch'],
-        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor),
+        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor,),
         serializer_class=RSOUserSerializer,
     )
     def me(self, request, pk=None):
         """Представляет текущего авторизованного пользователя."""
-
         if request.method == 'PATCH':
             serializer = self.get_serializer(
                 request.user,
@@ -138,6 +138,21 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
             serializer.save()
 
         return Response(self.get_serializer(request.user).data)
+
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor,),
+        serializer_class=UserCommanderSerializer
+    )
+    def me_commander(self, request, pk=None):
+        """
+        Представляет айди структурных единиц, в которых пользователь
+        является командиром.
+        """
+        if request.method == 'GET':
+            serializer = UserCommanderSerializer(request.user)
+            return Response(serializer.data)
 
 
 class EducationalInstitutionViewSet(ListRetrieveViewSet):
@@ -674,8 +689,10 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     def get_verifications(self, request, pk=None):
         """Получить список членов отряда, подавших заявку на верификацию."""
         detachment = self.get_object()
-        user_ids_in_verification_request = UserVerificationRequest.objects.values_list(
-            'user_id', flat=True
+        user_ids_in_verification_request = (
+            UserVerificationRequest.objects.values_list(
+                'user_id', flat=True
+            )
         )
         members_to_verify = detachment.members.filter(
             user__id__in=user_ids_in_verification_request
