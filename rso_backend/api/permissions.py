@@ -112,13 +112,6 @@ class IsRegionalCommander(BasePermission):
             DistrictHeadquarter,
             RegionalHeadquarter
         ]
-        print([
-            is_safe_method(request),
-            is_stuff_or_central_commander(request),
-            check_trusted_for_centralhead(request),
-            check_trusted_for_regionalhead(request),
-            check_commander_or_not(request, headquarters),
-        ])
         return any([
             is_safe_method(request),
             is_stuff_or_central_commander(request),

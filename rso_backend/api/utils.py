@@ -81,18 +81,18 @@ def check_commander_or_not(request, headquarters):
     headquarters - список моделей, в которых проверяется роль пользователя.
     request - запрос к эндпоинту
     """
-
+    result = False
     for headquarter in headquarters:
         try:
             # поменять на get когда добавим валидацию на 1 командира на уровень
             if headquarter.objects.filter(
                 commander_id=request.user.id
-            ).first().exists():
-                return True
-            return False
+            ).first() is not None:
+                result = True
+                break
         except (headquarter.DoesNotExist, AttributeError):
             pass
-    return False
+    return result
 
 
 def check_role_get(request, model, position_in_quarter):
