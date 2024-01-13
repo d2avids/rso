@@ -162,7 +162,9 @@ class DistrictHeadquarter(Unit):
         'CentralHeadquarter',
         related_name='district_headquarters',
         on_delete=models.PROTECT,
-        verbose_name='Привязка к ЦШ'
+        verbose_name='Привязка к ЦШ',
+        blank=True,
+        null=True
     )
     founding_date = models.DateField(
         verbose_name='Дата начала функционирования ОШ',
@@ -171,6 +173,11 @@ class DistrictHeadquarter(Unit):
     class Meta:
         verbose_name_plural = 'Окружные штабы'
         verbose_name = 'Окружной штаб'
+
+    def save(self, *args, **kwargs):
+        if not self.central_headquarter:
+            self.central_headquarter = CentralHeadquarter.objects.first()
+        super().save(*args, **kwargs)
 
 
 class RegionalHeadquarter(Unit):

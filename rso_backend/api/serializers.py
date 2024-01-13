@@ -945,7 +945,8 @@ class DistrictHeadquarterSerializer(BaseUnitSerializer):
     """
 
     central_headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=CentralHeadquarter.objects.all()
+        queryset=CentralHeadquarter.objects.all(),
+        required=False
     )
     commander = serializers.PrimaryKeyRelatedField(
         queryset=RSOUser.objects.all(),
