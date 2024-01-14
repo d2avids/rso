@@ -269,8 +269,6 @@ class UserDocuments(models.Model):
         blank=True,
         null=True,
     )
-    # INN_file
-    # pass_file
     pass_ser_num = models.CharField(
         verbose_name='Номер и серия паспорта',
         max_length=15,

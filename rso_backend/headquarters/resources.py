@@ -63,7 +63,10 @@ class RegionalHeadquarterResource(resources.ModelResource):
             'conference_date',
             'founding_date',
         )
-        import_id_fields = ()
+        import_id_fields = (
+            'region',
+            'district_headquarter',
+        )
 
 
 class DistrictHeadquarterResource(resources.ModelResource):
