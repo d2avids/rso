@@ -549,3 +549,24 @@ def create_and_return_archive(files: dict):
         f'attachment; filename={filename}'
     )
     return response
+
+
+def get_is_trusted(obj, model):
+    """Получение флага 'доверенный пользователь'.
+
+    Проверка производится по модели, указанной в параметре `model`.
+    Если юзер доверенный, то возвращается id штаба/отряда.
+    Если не доверенный, то False.
+    Если юзера нет в штабе/отряде, то None.
+    """
+    try:
+        result = model.objects.filter(
+            user_id=obj.id
+        ).select_related('user').first()
+        is_trusted = result.is_trusted
+        model_id = result.headquarter_id
+    except (model.DoesNotExist, AttributeError):
+        is_trusted = None
+    if is_trusted:
+        return model_id
+    return is_trusted
