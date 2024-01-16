@@ -2063,6 +2063,7 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
         Доступ:
             - только командир структурной единицы, типу которых
               разрешена подача заявок.
+            - командир должен быть верифицирован.
         """
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
