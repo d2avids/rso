@@ -1465,6 +1465,14 @@ class AnswerSerializer(serializers.ModelSerializer):
             'user'
         )
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if self.context['request'].method == 'GET':
+            issue_id = representation['issue']
+            issue = get_object_or_404(EventAdditionalIssue, id=issue_id)
+            representation['issue'] = issue.issue
+        return representation
+
     def validate(self, attrs):
         request = self.context.get('request')
         if request.method == 'POST':

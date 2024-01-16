@@ -1976,7 +1976,6 @@ class AnswerDetailViewSet(RetrieveUpdateViewSet):
           либо пользователи из модели организаторов.
         - чтение - автор заявки, либо пользователи из модели организаторов.
     """
-    permission_classes = (permissions.IsAuthenticated,)
     queryset = EventIssueAnswer.objects.all()
     serializer_class = AnswerSerializer
     permission_classes = (permissions.IsAuthenticated, IsApplicantOrOrganizer)
@@ -2010,7 +2009,9 @@ class AnswerDetailViewSet(RetrieveUpdateViewSet):
         user_documents = EventIssueAnswer.objects.filter(
             user=request.user, event__id=event_pk
         ).all()
-        serializer = AnswerSerializer(user_documents, many=True)
+        serializer = AnswerSerializer(user_documents,
+                                      many=True,
+                                      context={'request': request})
         return Response(serializer.data)
 
 
