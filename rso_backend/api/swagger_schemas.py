@@ -32,3 +32,26 @@ applications_response = {
         }
     )
 }
+
+answer_response = {
+    status.HTTP_200_OK: openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'id': openapi.Schema(
+                type=openapi.TYPE_INTEGER, read_only=True, title='ID'
+            ),
+            'issue': openapi.Schema(
+                type=openapi.TYPE_STRING, title='Вопрос'
+            ),
+            'answer': openapi.Schema(
+                type=openapi.TYPE_STRING, title='Ответ'
+            ),
+            'event': openapi.Schema(
+                type=openapi.TYPE_INTEGER, read_only=True, title='Мероприятие'
+            ),
+            'user': openapi.Schema(
+                type=openapi.TYPE_INTEGER, read_only=True, title='Пользователь'
+            ),
+        }
+    )
+}

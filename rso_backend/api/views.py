@@ -92,7 +92,8 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              UserDetachmentApplicationReadSerializer,
                              UserVerificationReadSerializer,
                              UserCommanderSerializer)
-from api.swagger_schemas import EventSwaggerSerializer, applications_response
+from api.swagger_schemas import (EventSwaggerSerializer, applications_response,
+                                 answer_response)
 from api.utils import (create_and_return_archive, download_file,
                        get_headquarter_users_positions_queryset, get_user,
                        get_user_by_id, text_to_lines)
@@ -1844,6 +1845,7 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
             serializer_class=AnswerSerializer,
             permission_classes=(permissions.IsAuthenticated,
                                 IsEventOrganizer,))
+    @swagger_auto_schema(responses=answer_response)
     def answers(self, request, event_pk, pk):
         """Action для получения (GET) или удаления ответов (DELETE)
         на вопросы мероприятия по данной заявке.
@@ -1853,7 +1855,9 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
         answers = EventIssueAnswer.objects.filter(user=request.user,
                                                   event__id=event_pk)
         if request.method == 'GET':
-            serializer = AnswerSerializer(answers, many=True)
+            serializer = AnswerSerializer(answers,
+                                          many=True,
+                                          context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
         try:
             answers.delete()
@@ -1880,7 +1884,8 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
         ).first()
         if application is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = EventApplicationsSerializer(application)
+        serializer = EventApplicationsSerializer(application,
+                                                 context={'request': request})
         return Response(serializer.data)
 
 
@@ -1992,11 +1997,16 @@ class AnswerDetailViewSet(RetrieveUpdateViewSet):
                 return [permissions.IsAuthenticated(), IsEventOrganizer()]
         return super().get_permissions()
 
+    @swagger_auto_schema(responses=answer_response)
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
     @action(detail=False,
             methods=['get'],
             url_path='me',
             serializer_class=AnswerSerializer,
             permission_classes=(permissions.IsAuthenticated,))
+    @swagger_auto_schema(responses=answer_response)
     def me(self, request, event_pk):
         """Action для получения сохраненных ответов пользователя по
         текущему мероприятию.
