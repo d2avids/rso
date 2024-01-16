@@ -19,8 +19,9 @@ from api.views import (AnswerDetailViewSet, AreaViewSet,
                        EventOrganizationDataViewSet, EventParticipantsViewSet,
                        EventUserDocumentViewSet, EventViewSet,
                        ForeignUserDocumentsViewSet, LocalPositionViewSet,
-                       LocalViewSet, MemberCertViewSet, PositionViewSet,
-                       RegionalPositionViewSet, RegionalViewSet, RegionViewSet,
+                       LocalViewSet, MemberCertViewSet, MultiEventViewSet, 
+                       PositionViewSet, RegionalPositionViewSet,
+                       RegionalViewSet, RegionViewSet,
                        RSOUserViewSet, UserDocumentsViewSet,
                        UserEducationViewSet, UserMediaViewSet,
                        UserPrivacySettingsViewSet,
@@ -61,11 +62,16 @@ router.register(
     r'events/(?P<event_pk>\d+)/answers',
     AnswerDetailViewSet,
     basename='answer'
-),
+)
 router.register(
     r'events/(?P<event_pk>\d+)/user_documents',
     EventUserDocumentViewSet,
     basename='event-user-document'
+)
+router.register(
+    r'events/(?P<event_pk>\d+)/multi_applications',
+    MultiEventViewSet,
+    basename='multi-applications'
 )
 
 

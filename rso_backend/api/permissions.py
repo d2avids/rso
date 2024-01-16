@@ -12,7 +12,7 @@ from api.utils import (check_roles_for_edit, check_trusted_for_detachments,
                        is_safe_method, is_stuff_or_central_commander,
                        check_trusted_for_centralhead, check_commander_or_not)
 from events.models import Event, EventOrganizationData
-from headquarters.models import (Detachment, DistrictHeadquarter,
+from headquarters.models import (CentralHeadquarter, Detachment, DistrictHeadquarter,
                                  EducationalHeadquarter, LocalHeadquarter,
                                  RegionalHeadquarter,
                                  UserCentralHeadquarterPosition,
@@ -531,7 +531,7 @@ class IsEventAuthor(BasePermission):
 
 class IsEventOrganizer(BasePermission):
     """
-    Проверяет, является ли пользователем автором
+    Проверяет, является ли пользователь автором
     мероприятия при чтении или редактировании одного или нескольких
     объектов связанных с мероприятием.
     """
@@ -583,3 +583,42 @@ class IsApplicantOrOrganizer(BasePermission):
         ).exists():
             return True
         return obj.user == request.user
+
+
+class IsCommander(BasePermission):
+    """Проверяет, является ли пользователь командиром
+    структурной единицы, типу которых разрешена подача
+    заявок на многоэтапное мероприятие.
+    Дополнительно проверяет верифицирован ли пользователь.
+    """
+    _STRUCTURAL_MAPPING = {
+        'central': CentralHeadquarter,
+        'districts': DistrictHeadquarter,
+        'regionals': RegionalHeadquarter,
+        'locals': LocalHeadquarter,
+        'educationals': EducationalHeadquarter,
+        'detachments': Detachment
+    }
+
+    def has_permission(self, request, view):
+        event = get_object_or_404(Event, pk=view.kwargs.get('event_pk'))
+        available_structural_model = self._STRUCTURAL_MAPPING.get(
+            event.available_structural_units
+        )
+        return available_structural_model.objects.filter(
+            commander=request.user
+        ).exists() and request.user.is_verified
+
+
+class IsAuthorMultiEventApplication(BasePermission):
+    """Проверяет, является ли пользователь автором
+    заявки на многоэтапное мероприятие.
+    """
+    def has_object_permission(self, request, view, obj):
+        return obj.organizer_id == request.user.id
+
+
+class IsVerifiedPermission(BasePermission):
+    """Проверяет, верифицирован ли пользователь."""
+    def has_permission(self, request, view):
+        return request.user.is_verified

@@ -513,3 +513,112 @@ class EventUserDocument(models.Model):
             f'{self.user.first_name}. Id: {self.user.id}'
             f' на участие в мероприятии {self.event.name}. Id: {self.event.id}'
         )
+
+
+class MultiEventApplication(models.Model):
+    """Таблица для хранения заявок на участие в многоэтапном мероприятии."""
+    event = models.ForeignKey(
+        to='Event',
+        on_delete=models.CASCADE,
+        related_name='multi_event_applications',
+        verbose_name='Мероприятие',
+    )
+    central_headquarter = models.ForeignKey(
+        to='headquarters.CentralHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='multi_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Центральный штаб',
+    )
+    district_headquarter = models.ForeignKey(
+        to='headquarters.DistrictHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='multi_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Окружной штаб',
+    )
+    regional_headquarter = models.ForeignKey(
+        to='headquarters.RegionalHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='multi_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Региональный штаб',
+    )
+    local_headquarter = models.ForeignKey(
+        to='headquarters.LocalHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='multi_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Местный штаб',
+    )
+    educational_headquarter = models.ForeignKey(
+        to='headquarters.EducationalHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='multi_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Образовательный штаб',
+    )
+    detachment = models.ForeignKey(
+        to='headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='multi_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Отряд',
+    )
+    organizer_id = models.PositiveIntegerField(
+        verbose_name='Идентификатор организатора',
+    )
+    is_approved = models.BooleanField(
+        verbose_name='Одобрено',
+        default=False
+    )
+    participants_count = models.PositiveIntegerField(
+        verbose_name='Количество участников',
+        default=0
+    )
+    emblem = models.TextField(
+        verbose_name='Путь к эмблеме',
+        null=True,
+        blank=True
+    )
+    created_at = models.DateTimeField(
+        verbose_name='Дата и время создания заявки',
+        auto_now_add=True
+    )
+
+    class Meta:
+        ordering = ['-id']
+        verbose_name_plural = 'Заявки на участие в многоэтапном мероприятии'
+        verbose_name = 'Заявка на участие в многоэтапном мероприятии'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('event', 'central_headquarter'),
+                name='unique_central_headquarter_application'
+            ),
+            models.UniqueConstraint(
+                fields=('event', 'district_headquarter'),
+                name='unique_district_headquarter_application'
+            ),
+            models.UniqueConstraint(
+                fields=('event', 'regional_headquarter'),
+                name='unique_regional_headquarter_application'
+            ),
+            models.UniqueConstraint(
+                fields=('event', 'local_headquarter'),
+                name='unique_local_headquarter_application'
+            ),
+            models.UniqueConstraint(
+                fields=('event', 'educational_headquarter'),
+                name='unique_educational_headquarter_application'
+            ),
+            models.UniqueConstraint(
+                fields=('event', 'detachment'),
+                name='unique_detachment_application'
+            ),
+        ]

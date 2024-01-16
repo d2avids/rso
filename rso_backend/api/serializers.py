@@ -18,7 +18,8 @@ from api.utils import create_first_or_exception
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocument, EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
-                           EventTimeData, EventUserDocument)
+                           EventTimeData, EventUserDocument,
+                           MultiEventApplication)
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -881,12 +882,31 @@ class BaseUnitSerializer(serializers.ModelSerializer):
         ),
         Detachment: (UserDetachmentPosition, DetachmentPositionSerializer),
     }
+    _POSITIONS_MAPPING = {
+        CentralHeadquarter: (
+            UserCentralHeadquarterPosition, CentralPositionSerializer
+        ),
+        DistrictHeadquarter: (
+            UserDistrictHeadquarterPosition, DistrictPositionSerializer
+        ),
+        RegionalHeadquarter: (
+            UserRegionalHeadquarterPosition, RegionalPositionSerializer
+        ),
+        LocalHeadquarter: (
+            UserLocalHeadquarterPosition, LocalPositionSerializer
+        ),
+        EducationalHeadquarter: (
+            UserEducationalHeadquarterPosition, EducationalPositionSerializer
+        ),
+        Detachment: (UserDetachmentPosition, DetachmentPositionSerializer),
+    }
 
     commander = serializers.PrimaryKeyRelatedField(
         queryset=RSOUser.objects.all(),
     )
     members_count = serializers.SerializerMethodField(read_only=True)
     participants_count = serializers.SerializerMethodField(read_only=True)
+    leadership = serializers.SerializerMethodField(read_only=True)
     leadership = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
@@ -904,6 +924,7 @@ class BaseUnitSerializer(serializers.ModelSerializer):
             'city',
             'members_count',
             'participants_count',
+            'leadership',
             'leadership',
         )
 
@@ -1361,7 +1382,7 @@ class EventApplicationsCreateSerializer(serializers.ModelSerializer):
             event=event, user=user
         ).count()
         len_documents = event.documents.count()
-        if len_uploaded_documents != len_documents:
+        if len_uploaded_documents < len_documents:
             return (
                 'Вы загрузили не все документы. '
                 'Всего необходимо {} документов'.format(len_documents)
@@ -1501,3 +1522,254 @@ class EventUserDocumentSerializer(serializers.ModelSerializer):
             'event',
             'user'
         )
+
+
+class MultiEventApplicationSerializer(serializers.ModelSerializer):
+    central_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=CentralHeadquarter.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Центральный штаб'
+    )
+    district_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=DistrictHeadquarter.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Окружной штаб'
+    )
+    regional_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=RegionalHeadquarter.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Региональный штаб'
+    )
+    local_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=LocalHeadquarter.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Местный штаб'
+    )
+    educational_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=EducationalHeadquarter.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Образовательный штаб'
+    )
+    detachment = serializers.PrimaryKeyRelatedField(
+        queryset=Detachment.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Отряд'
+    )
+    participants_count = serializers.IntegerField(
+        min_value=1,
+        label='Количество участников'
+    )
+    emblem = serializers.CharField(
+        required=False,
+        allow_null=True,
+        label='Эмблема'
+    )
+
+    class Meta:
+        model = MultiEventApplication
+        fields = '__all__'
+        read_only_fields = (
+            'id',
+            'event',
+            'organizer_id',
+            'created_at'
+        )
+
+    def validate(self, attrs):
+        """
+        Проверяет, что в одном элементе подана только одна структурная единица.
+        Проверяет, наличие поля 'participants_count'.
+        """
+        structural_units = [
+            attrs.get('central_headquarter'),
+            attrs.get('district_headquarter'),
+            attrs.get('regional_headquarter'),
+            attrs.get('local_headquarter'),
+            attrs.get('educational_headquarter'),
+            attrs.get('detachment')
+        ]
+        count = sum(unit is not None for unit in structural_units)
+        if count != 1:
+            raise serializers.ValidationError(
+                'В одном элементе можно подать только один тип '
+                'структурной единицы.'
+            )
+        participants_count = attrs.get('participants_count')
+        if not participants_count:
+            raise serializers.ValidationError(
+                'Необходимо указать количество участников.'
+            )
+        return attrs
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        return {key: value for key, value in representation.items()
+                if value is not None}
+
+
+class ShortUnitSerializer(serializers.ModelSerializer):
+    """Базовый сериализатор для хранения общей логики штабов."""
+    members_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = None
+        fields = (
+            'id',
+            'name',
+            'emblem',
+            'members_count',
+        )
+
+    @staticmethod
+    def get_members_count(obj):
+        return obj.members.filter(user__is_verified=True).count()
+
+
+class ShortDetachmentSerializerME(ShortUnitSerializer):
+    class Meta:
+        model = Detachment
+        fields = ShortUnitSerializer.Meta.fields
+
+
+class ShortEducationalHeadquarterSerializerME(ShortUnitSerializer):
+    detachments = ShortDetachmentSerializerME(many=True)
+
+    class Meta:
+        model = EducationalHeadquarter
+        fields = ShortUnitSerializer.Meta.fields + (
+            'detachments',
+        )
+
+
+class ShortLocalHeadquarterSerializerME(ShortUnitSerializer):
+    educational_headquarters = ShortEducationalHeadquarterSerializerME(
+        many=True
+    )
+    detachments = ShortDetachmentSerializerME(many=True)
+
+    class Meta:
+        model = LocalHeadquarter
+        fields = ShortUnitSerializer.Meta.fields + (
+            'educational_headquarters',
+            'detachments',
+        )
+
+
+class ShortRegionalHeadquarterSerializerME(ShortUnitSerializer):
+    local_headquarters = ShortLocalHeadquarterSerializerME(many=True)
+    detachments = ShortDetachmentSerializerME(many=True)
+
+    class Meta:
+        model = RegionalHeadquarter
+        fields = ShortUnitSerializer.Meta.fields + (
+            'local_headquarters',
+            'detachments',
+        )
+
+
+class ShortDistrictHeadquarterSerializerME(ShortUnitSerializer):
+    regionals_headquarters = ShortRegionalHeadquarterSerializerME(many=True)
+
+    class Meta:
+        model = DistrictHeadquarter
+        fields = ShortUnitSerializer.Meta.fields + (
+            'regionals_headquarters',
+        )
+
+
+class ShortCentralHeadquarterSerializerME(ShortUnitSerializer):
+    districts_headquarters = ShortDistrictHeadquarterSerializerME(many=True)
+
+    class Meta:
+        model = CentralHeadquarter
+        fields = ShortUnitSerializer.Meta.fields + (
+            'districts_headquarters',
+        )
+
+
+class MultiEventParticipantsSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=RSOUser.objects.all()
+    )
+
+    class Meta:
+        model = EventParticipants
+        fields = (
+            'id',
+            'user',
+            'event',
+        )
+        read_only_fields = (
+            'id',
+            'event',
+        )
+
+    def validate(self, attrs):
+        user = attrs.get('user')
+        if not user.is_verified:
+            raise serializers.ValidationError(
+                'Только верифицированных пользователей можно '
+                'включать в списки.'
+            )
+        return attrs
+
+
+class ShortMultiEventApplicationSerializer(serializers.ModelSerializer):
+    headquarter_name = serializers.SerializerMethodField(
+        label='Название штаба'
+    )
+    emblem = serializers.SerializerMethodField(
+        label='Иконка штаба'
+    )
+    created_at = serializers.SerializerMethodField(
+        label='Дата подачи заявки'
+    )
+    is_approved = serializers.SerializerMethodField(
+        label='Подтверждена ли заявка'
+    )
+
+    class Meta:
+        model = RSOUser
+        fields = (
+            'id',
+            'headquarter_name',
+            'emblem',
+            'is_approved',
+            'created_at',
+        )
+
+    def get_headquarter_name(self, instance):
+        headquarter_instance = (
+            self.context.get('headquarter_model').objects.filter(
+                commander=instance
+            ).first()
+        )
+        return headquarter_instance.name
+
+    def get_emblem(self, instance):
+        headquarter_instance = (
+            self.context.get('headquarter_model').objects.filter(
+                commander=instance
+            ).first()
+        )
+        return (headquarter_instance.emblem.url
+                if headquarter_instance.emblem
+                else None)
+
+    def get_created_at(self, instance):
+        first_application = MultiEventApplication.objects.filter(
+            organizer_id=instance.id
+        ).first()
+        return first_application.created_at
+
+    def get_is_approved(self, instance):
+        first_application = MultiEventApplication.objects.filter(
+            organizer_id=instance.id
+        ).first()
+        return first_application.is_approved
