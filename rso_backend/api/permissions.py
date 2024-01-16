@@ -75,6 +75,8 @@ class IsDistrictCommander(BasePermission):
     """
 
     def has_permission(self, request, view):
+        if request.method in ('PATCH', 'PUT'):
+            return self.has_object_permission(request, view, view.get_object())
         return any([
             is_safe_method(request),
             is_stuff_or_central_commander(request),
@@ -108,6 +110,8 @@ class IsRegionalCommander(BasePermission):
     """
 
     def has_permission(self, request, view):
+        if request.method in ('PATCH', 'PUT'):
+            return self.has_object_permission(request, view, view.get_object())
         headquarters = [
             DistrictHeadquarter,
             RegionalHeadquarter
@@ -154,6 +158,8 @@ class IsLocalCommander(BasePermission):
     """
 
     def has_permission(self, request, view):
+        if request.method in ('PATCH', 'PUT'):
+            return self.has_object_permission(request, view, view.get_object())
         headquarters = [
             LocalHeadquarter,
             RegionalHeadquarter,
@@ -204,6 +210,8 @@ class IsEducationalCommander(BasePermission):
     """
 
     def has_permission(self, request, view):
+        if request.method in ('PATCH', 'PUT'):
+            return self.has_object_permission(request, view, view.get_object())
         headquarters = [
             EducationalHeadquarter,
             LocalHeadquarter,
@@ -297,6 +305,8 @@ class IsDetachmentCommander(BasePermission):
         ])
 
     def has_permission(self, request, view):
+        if request.method in ('PATCH', 'PUT'):
+            return self.has_object_permission(request, view, view.get_object())
         headquarters = [
             Detachment,
             EducationalHeadquarter,

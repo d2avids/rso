@@ -87,7 +87,7 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              UserMediaSerializer,
                              UserPrivacySettingsSerializer,
                              UserProfessionalEducationSerializer,
-                             UserRegionSerializer, UsersParentSerializer,
+                             UserRegionSerializer, UserTrustedSerializer, UsersParentSerializer,
                              UserStatementDocumentsSerializer,
                              UserDetachmentApplicationReadSerializer,
                              UserVerificationReadSerializer,
@@ -168,6 +168,21 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
         if request.method == 'GET':
             serializer = UserCommanderSerializer(request.user)
             return Response(serializer.data)
+
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor,),
+        serializer_class=UserCommanderSerializer
+    )
+    def me_trusted(self, request, pk=None):
+        """
+        Представляет айди структурных единиц, в которых пользователь
+        является доверенным.
+        """
+
+        serializer = UserTrustedSerializer(request.user)
+        return Response(serializer.data)
 
 
 class EducationalInstitutionViewSet(ListRetrieveViewSet):

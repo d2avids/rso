@@ -14,7 +14,7 @@ from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                            EVENT_TIME_DATA_RAW_EXISTS, MEDIA_RAW_EXISTS,
                            PRIVACY_RAW_EXISTS, REGION_RAW_EXISTS,
                            STATEMENT_RAW_EXISTS, TOO_MANY_EDUCATIONS)
-from api.utils import create_first_or_exception
+from api.utils import create_first_or_exception, get_is_trusted
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocument, EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
@@ -582,7 +582,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
             regional_headquarter_id = (
                     UserRegionalHeadquarterPosition.objects.get(
                         user_id=instance.id
-                ).id
+                    ).id
             )
         except UserRegionalHeadquarterPosition.DoesNotExist:
             regional_headquarter_id = None
@@ -624,6 +624,8 @@ class RSOUserSerializer(serializers.ModelSerializer):
 
 
 class UserCommanderSerializer(serializers.ModelSerializer):
+    """Сериализатор для вывода отрядов где юзер коммандир."""
+
     centralheadquarter_commander = serializers.PrimaryKeyRelatedField(
         queryset=CentralHeadquarter.objects.all()
     )
@@ -652,6 +654,64 @@ class UserCommanderSerializer(serializers.ModelSerializer):
             'localheadquarter_commander',
             'educationalheadquarter_commander',
             'detachment_commander'
+        )
+
+
+class UserTrustedSerializer(serializers.ModelSerializer):
+    """Сериализатор для вывода отрядов где юзер доверенный."""
+
+    centralheadquarter_trusted = serializers.SerializerMethodField()
+    districtheadquarter_trusted = serializers.SerializerMethodField()
+    regionalheadquarter_trusted = serializers.SerializerMethodField()
+    localheadquarter_trusted = serializers.SerializerMethodField()
+    educationalheadquarter_trusted = serializers.SerializerMethodField()
+    detachment_trusted = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RSOUser
+        fields = (
+            'centralheadquarter_trusted',
+            'districtheadquarter_trusted',
+            'regionalheadquarter_trusted',
+            'localheadquarter_trusted',
+            'educationalheadquarter_trusted',
+            'detachment_trusted'
+        )
+
+    def get_centralheadquarter_trusted(self, obj):
+        return get_is_trusted(
+            obj=obj,
+            model=UserCentralHeadquarterPosition
+        )
+
+    def get_districtheadquarter_trusted(self, obj):
+        return get_is_trusted(
+            obj=obj,
+            model=UserDistrictHeadquarterPosition
+        )
+
+    def get_regionalheadquarter_trusted(self, obj):
+        return get_is_trusted(
+            obj=obj,
+            model=UserRegionalHeadquarterPosition
+        )
+
+    def get_localheadquarter_trusted(self, obj):
+        return get_is_trusted(
+            obj=obj,
+            model=UserLocalHeadquarterPosition
+        )
+
+    def get_educationalheadquarter_trusted(self, obj):
+        return get_is_trusted(
+            obj=obj,
+            model=UserEducationalHeadquarterPosition
+        )
+
+    def get_detachment_trusted(self, obj):
+        return get_is_trusted(
+            obj=obj,
+            model=UserDetachmentPosition
         )
 
 
