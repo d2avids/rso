@@ -984,12 +984,12 @@ class EventViewSet(viewsets.ModelViewSet):
     search_fields = ('name', 'address', 'description',)
 
     PERMISSIONS_MAPPING = {
-        'central': IsStuffOrCentralCommander,
-        'districts': IsDistrictCommander,
-        'regionals': IsRegionalCommander,
-        'locals': IsLocalCommander,
-        'educationals': IsEducationalCommander,
-        'detachments': IsDetachmentCommander,
+        'Всероссийское': IsStuffOrCentralCommander,
+        'Окружное': IsDistrictCommander,
+        'Региональное': IsRegionalCommander,
+        'Городское': IsLocalCommander,
+        'Образовательное': IsEducationalCommander,
+        'Отрядное': IsDetachmentCommander,
     }
 
     def get_permissions(self):
