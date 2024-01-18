@@ -5,7 +5,7 @@ from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventOrganizationData, EventParticipants,
                            EventTimeData, EventUserDocument,
                            MultiEventApplication,
-                           EventIssueAnswer)
+                           СompetitionApplications, СompetitionParticipants)
 
 
 class EventTimeDataInline(admin.TabularInline):
@@ -56,3 +56,5 @@ class EventAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Event, EventAdmin)
+admin.site.register(СompetitionApplications)
+admin.site.register(СompetitionParticipants)
