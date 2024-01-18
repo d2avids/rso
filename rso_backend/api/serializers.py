@@ -1077,7 +1077,11 @@ class CentralHeadquarterSerializer(BaseUnitSerializer):
 
     class Meta:
         model = CentralHeadquarter
-        fields = BaseUnitSerializer.Meta.fields + ('working_years',)
+        fields = BaseUnitSerializer.Meta.fields + (
+            'working_years',
+            'detachments_appearance_year',
+            'rso_founding_congress_date',
+        )
 
     @staticmethod
     def get_working_years(instance):

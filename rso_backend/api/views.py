@@ -757,8 +757,17 @@ class BasePositionViewSet(viewsets.ModelViewSet):
 
     def get_object(self):
         queryset = self.get_queryset()
-        member_pk = self.kwargs.get('member_pk')
-        obj = queryset.get(pk=member_pk)
+        member_pk = self.kwargs.get('membership_pk')
+        try:
+            obj = queryset.get(pk=member_pk)
+        # TODO:
+        # это не лучшая практика, но пока не вижу более правильного решения
+        # в действительности мы отлавливаем DoesNotExist для дочерних классов
+        except Exception as e:
+            return Response(
+                {'detail': 'Не найден участник по заданному айди членства.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         return obj
 
 
