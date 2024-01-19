@@ -40,7 +40,8 @@ from api.permissions import (IsApplicantOrOrganizer,
                              IsRegStuffOrDetCommander, IsStuffOrAuthor,
                              IsStuffOrCentralCommander,
                              IsStuffOrCentralCommanderOrTrusted,
-                             IsVerifiedPermission, MembershipFeePermission)
+                             IsVerifiedPermission, MembershipFeePermission,
+                             IsUserModelPositionCommander)
 from api.serializers import (AnswerSerializer, AreaSerializer,
                              CentralHeadquarterSerializer,
                              CentralPositionSerializer,
@@ -87,7 +88,8 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              UserMediaSerializer,
                              UserPrivacySettingsSerializer,
                              UserProfessionalEducationSerializer,
-                             UserRegionSerializer, UserTrustedSerializer, UsersParentSerializer,
+                             UserRegionSerializer, UserTrustedSerializer,
+                             UsersParentSerializer,
                              UserStatementDocumentsSerializer,
                              UserDetachmentApplicationReadSerializer,
                              UserVerificationReadSerializer,
@@ -764,7 +766,7 @@ class BasePositionViewSet(viewsets.ModelViewSet):
         # TODO:
         # это не лучшая практика, но пока не вижу более правильного решения
         # в действительности мы отлавливаем DoesNotExist для дочерних классов
-        except Exception as e:
+        except Exception:
             return Response(
                 {'detail': 'Не найден участник по заданному айди членства.'},
                 status=status.HTTP_404_NOT_FOUND
@@ -796,7 +798,7 @@ class DistrictPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = DistrictPositionSerializer
-    permission_classes = (IsDistrictCommander,)
+    permission_classes = (IsUserModelPositionCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -813,7 +815,7 @@ class RegionalPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = RegionalPositionSerializer
-    permission_classes = (IsRegionalCommander,)
+    permission_classes = (IsUserModelPositionCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -830,7 +832,7 @@ class LocalPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = LocalPositionSerializer
-    permission_classes = (IsLocalCommander,)
+    permission_classes = (IsUserModelPositionCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -847,7 +849,7 @@ class EducationalPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = EducationalPositionSerializer
-    permission_classes = (IsEducationalCommander,)
+    permission_classes = (IsUserModelPositionCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -864,7 +866,7 @@ class DetachmentPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = DetachmentPositionSerializer
-    permission_classes = (IsDetachmentCommander,)
+    permission_classes = (IsUserModelPositionCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
