@@ -93,7 +93,8 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              UserVerificationReadSerializer,
                              UserCommanderSerializer)
 from api.swagger_schemas import (EventSwaggerSerializer, applications_response,
-                                 application_me_response, answer_response)
+                                 application_me_response, answer_response,
+                                 participant_me_response)
 from api.utils import (create_and_return_archive, download_file,
                        get_headquarter_users_positions_queryset, get_user,
                        get_user_by_id, text_to_lines)
@@ -1929,6 +1930,7 @@ class EventParticipantsViewSet(ListRetrieveDestroyViewSet):
             url_path='me',
             serializer_class=EventParticipantsSerializer,
             permission_classes=(permissions.IsAuthenticated,))
+    @swagger_auto_schema(responses=participant_me_response)
     def me(self, request, event_pk):
         """Action для получения всей информации по профилю участника
         мероприятия.
@@ -2115,12 +2117,12 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
     DELETE(destroy): Удаляет одну структурную единицу из заявки (по pk).
     """
     _STRUCTURAL_MAPPING = {
-        'central': ShortCentralHeadquarterSerializerME,
-        'districts': ShortDistrictHeadquarterSerializerME,
-        'regionals': ShortRegionalHeadquarterSerializerME,
-        'locals': ShortLocalHeadquarterSerializerME,
-        'educationals': ShortEducationalHeadquarterSerializerME,
-        'detachments': ShortDetachmentSerializerME
+        'Центральные штабы': ShortCentralHeadquarterSerializerME,
+        'Окружные штабы': ShortDistrictHeadquarterSerializerME,
+        'Региональные штабы': ShortRegionalHeadquarterSerializerME,
+        'Местные штабы': ShortLocalHeadquarterSerializerME,
+        'Образовательные штабы': ShortEducationalHeadquarterSerializerME,
+        'Отряды': ShortDetachmentSerializerME
     }
     serializer_class = MultiEventApplicationSerializer
     queryset = MultiEventApplication.objects.all()
