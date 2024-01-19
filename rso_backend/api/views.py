@@ -93,7 +93,7 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              UserVerificationReadSerializer,
                              UserCommanderSerializer)
 from api.swagger_schemas import (EventSwaggerSerializer, applications_response,
-                                 answer_response)
+                                 application_me_response, answer_response)
 from api.utils import (create_and_return_archive, download_file,
                        get_headquarter_users_positions_queryset, get_user,
                        get_user_by_id, text_to_lines)
@@ -1879,6 +1879,7 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
             url_path='me',
             serializer_class=EventApplicationsSerializer,
             permission_classes=(permissions.IsAuthenticated,))
+    @swagger_auto_schema(responses=application_me_response)
     def me(self, request, event_pk):
         """Action для получения всей информации по поданной текущим
         пользователем заявке на участие в мероприятии.

@@ -180,6 +180,16 @@ class EventSerializer(serializers.ModelSerializer):
         )
 
 
+class ShortEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        fields = (
+            'id',
+            'name',
+            'banner',
+        )
+
+
 class UserEducationSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserEducation
@@ -1507,6 +1517,8 @@ class AnswerSerializer(serializers.ModelSerializer):
 class EventApplicationsSerializer(serializers.ModelSerializer):
     answers = serializers.SerializerMethodField()
     documents = serializers.SerializerMethodField()
+    user = ShortUserSerializer(read_only=True)
+    event = ShortEventSerializer(read_only=True)
 
     class Meta:
         model = EventApplications
@@ -1540,6 +1552,8 @@ class EventApplicationsSerializer(serializers.ModelSerializer):
 class EventParticipantsSerializer(serializers.ModelSerializer):
     answers = serializers.SerializerMethodField()
     documents = serializers.SerializerMethodField()
+    user = ShortUserSerializer(read_only=True)
+    event = ShortEventSerializer(read_only=True)
 
     class Meta:
         model = EventParticipants
@@ -1585,6 +1599,9 @@ class EventParticipantsSerializer(serializers.ModelSerializer):
 
 
 class EventUserDocumentSerializer(serializers.ModelSerializer):
+    user = ShortUserSerializer(read_only=True)
+    event = ShortEventSerializer(read_only=True)
+
     class Meta:
         model = EventUserDocument
         fields = '__all__'
