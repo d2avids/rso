@@ -19,7 +19,7 @@ from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocument, EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
                            EventTimeData, EventUserDocument,
-                           MultiEventApplication)
+                           MultiEventApplication, СompetitionParticipants)
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -1327,6 +1327,8 @@ class DetachmentSerializer(BaseUnitSerializer):
     area = serializers.PrimaryKeyRelatedField(
         queryset=Area.objects.all()
     )
+    nomination = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = Detachment
@@ -1344,6 +1346,8 @@ class DetachmentSerializer(BaseUnitSerializer):
             'photo4',
             'city',
             'founding_date',
+            'nomination',
+            'status'
         )
 
     def validate(self, data):
@@ -1358,6 +1362,32 @@ class DetachmentSerializer(BaseUnitSerializer):
         except ValidationError as e:
             raise serializers.ValidationError(e.message_dict)
         return data
+
+    def get_status(self, obj):
+        if not СompetitionParticipants.objects.filter(
+            Q(detachment=obj) & Q(junior_detachment__isnull=False) |
+            Q(detachment__isnull=False) & Q(junior_detachment=obj)
+        ).exists():
+            return None
+        if СompetitionParticipants.objects.filter(
+            Q(detachment=obj) & Q(junior_detachment__isnull=False)
+        ).exists():
+            return 'Насавник'
+        return 'Старт'
+
+    def get_nomination(self, obj):
+        if not СompetitionParticipants.objects.filter(
+            Q(detachment=obj) & Q(junior_detachment__isnull=False) |
+            Q(detachment__isnull=False) & Q(junior_detachment=obj) |
+            Q(detachment=obj)
+        ).exists():
+            return None
+        if СompetitionParticipants.objects.filter(
+            Q(detachment=obj) & Q(junior_detachment__isnull=False) |
+            Q(detachment__isnull=False) & Q(junior_detachment=obj)
+        ).exists():
+            return 'Тандем'
+        return 'Индивидуальная заявка'
 
 
 class MemberCertSerializer(serializers.ModelSerializer):

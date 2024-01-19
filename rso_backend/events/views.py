@@ -70,7 +70,7 @@ class CompetitionViewSet(viewsets.ModelViewSet):
             url_path='start_page',
             permission_classes=(permissions.AllowAny,))
     @swagger_auto_schema(responses=response_start_page_competitions)
-    def start_page(self, request, pk):
+    def start_page(self, request, *args, **kwargs):
         """Action для получения всей информации для страницы конкурса
 
         Доступ - все пользователи.
