@@ -41,13 +41,13 @@ from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
 class PositionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Area
-        fields = ('id', 'name', )
+        fields = ('id', 'name',)
 
 
 class AreaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Area
-        fields = ('id', 'name', )
+        fields = ('id', 'name',)
 
 
 class RegionSerializer(serializers.ModelSerializer):
@@ -67,7 +67,6 @@ class EducationalInstitutionSerializer(serializers.ModelSerializer):
 
 
 class EventTimeDataSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = EventTimeData
         fields = (
@@ -90,7 +89,6 @@ class EventTimeDataSerializer(serializers.ModelSerializer):
 
 
 class EventDocumentDataSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = EventDocumentData
         fields = (
@@ -457,6 +455,7 @@ class UserRegionSerializer(serializers.ModelSerializer):
 
 class UsersParentSerializer(serializers.ModelSerializer):
     """Сериализатор законного представителя."""
+
     class Meta:
         model = UserParent
         fields = (
@@ -574,9 +573,9 @@ class RSOUserSerializer(serializers.ModelSerializer):
             today = date.today()
             age = (today.year - obj.date_of_birth.year
                    - (
-                       (today.month, today.day) < (
-                           obj.date_of_birth.month, obj.date_of_birth.day
-                       )
+                           (today.month, today.day) < (
+                       obj.date_of_birth.month, obj.date_of_birth.day
+                   )
                    ))
             return age >= 18
 
@@ -604,9 +603,9 @@ class RSOUserSerializer(serializers.ModelSerializer):
     def get_regional_headquarter_id(instance):
         try:
             regional_headquarter_id = (
-                    UserRegionalHeadquarterPosition.objects.get(
-                        user_id=instance.id
-                    ).headquarter_id
+                UserRegionalHeadquarterPosition.objects.get(
+                    user_id=instance.id
+                ).headquarter_id
             )
         except UserRegionalHeadquarterPosition.DoesNotExist:
             regional_headquarter_id = None
@@ -1150,6 +1149,9 @@ class DistrictHeadquarterSerializer(BaseUnitSerializer):
         read_only=True
     )
     regional_headquarters = serializers.SerializerMethodField(read_only=True)
+    local_headquarters = serializers.SerializerMethodField(read_only=True)
+    educational_headquarters = serializers.SerializerMethodField(read_only=True)
+    detachments = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = DistrictHeadquarter
@@ -1158,12 +1160,55 @@ class DistrictHeadquarterSerializer(BaseUnitSerializer):
             'founding_date',
             'members',
             'regional_headquarters',
+            'local_headquarters',
+            'educational_headquarters',
+            'detachments',
         )
-        read_only_fields = ('regional_headquarters', )
+        read_only_fields = ('regional_headquarters',)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._cached_units = None
+
+    def _get_units(self, obj):
+        """
+        Сохраняем юниты в кэш и отдаем их. Если есть в кэше, берем оттуда.
+        """
+        if self._cached_units is None:
+            self._cached_units = obj.get_related_units()
+        return self._cached_units
 
     def get_regional_headquarters(self, obj):
         hqs = RegionalHeadquarter.objects.filter(district_headquarter=obj)
         return ShortRegionalHeadquarterSerializer(hqs, many=True).data
+
+    def get_educational_headquarters(self, obj):
+        units = self._get_units(obj)
+        educational_headquarters_serializer = (
+            ShortEducationalHeadquarterSerializer(
+                units['educational_headquarters'], many=True
+            )
+        ).data
+        return educational_headquarters_serializer
+
+    def get_local_headquarters(self, obj):
+        units = self._get_units(obj)
+        local_headquarters_serializer = ShortLocalHeadquarterSerializer(
+            units['local_headquarters'], many=True
+        ).data
+        return local_headquarters_serializer
+
+    def get_detachments(self, obj):
+        units = self._get_units(obj)
+        detachment_serializer = ShortDetachmentSerializer(
+            units['detachments'], many=True
+        ).data
+        return detachment_serializer
+
+    def to_representation(self, obj):
+        """Для очищения кэша перед началом сериализации."""
+        self._cached_units = None
+        return super().to_representation(obj)
 
 
 class RegionalHeadquarterSerializer(BaseUnitSerializer):
@@ -1300,7 +1345,7 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
             'founding_date',
             'detachments'
         )
-        read_only_fields = ('detachments', )
+        read_only_fields = ('detachments',)
 
     def validate(self, data):
         """
@@ -1435,7 +1480,6 @@ class DetachmentSerializer(BaseUnitSerializer):
 
 
 class MemberCertSerializer(serializers.ModelSerializer):
-
     users = ShortUserSerializer(
         many=True,
         read_only=True
@@ -1557,7 +1601,7 @@ class AnswerSerializer(serializers.ModelSerializer):
                     'Всего вопросов: {}'.format(len_questions)
                 )
             if EventIssueAnswer.objects.filter(
-                event=event, user=request.user
+                    event=event, user=request.user
             ).exists():
                 raise serializers.ValidationError(
                     'Вы уже отвечали на вопросы данного мероприятия'
@@ -1637,7 +1681,7 @@ class EventParticipantsSerializer(serializers.ModelSerializer):
             event_id = request.parser_context.get('kwargs').get('event_pk')
             event = get_object_or_404(Event, id=event_id)
             if EventParticipants.objects.filter(
-                event=event, user=user
+                    event=event, user=user
             ).exists():
                 raise serializers.ValidationError(
                     'Пользователь уже участвует в этом мероприятии. '

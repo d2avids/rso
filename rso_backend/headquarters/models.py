@@ -180,6 +180,25 @@ class DistrictHeadquarter(Unit):
             self.central_headquarter = CentralHeadquarter.objects.first()
         super().save(*args, **kwargs)
 
+    def get_related_units(self):
+        regional_headquarters = self.regional_headquarters.all()
+
+        educational_headquarters = EducationalHeadquarter.objects.filter(
+            regional_headquarter__in=regional_headquarters
+        )
+        local_headquarters = LocalHeadquarter.objects.filter(
+            regional_headquarter__in=regional_headquarters
+        )
+        detachments = Detachment.objects.filter(
+            regional_headquarter__in=regional_headquarters
+        )
+
+        return {
+            'educational_headquarters': educational_headquarters,
+            'local_headquarters': local_headquarters,
+            'detachments': detachments
+        }
+
 
 class RegionalHeadquarter(Unit):
     region = models.ForeignKey(
