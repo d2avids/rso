@@ -26,6 +26,7 @@ from api.views import (AnswerDetailViewSet, AreaViewSet,
                        UserPrivacySettingsViewSet,
                        UserProfessionalEducationViewSet, UserRegionViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
+                       CustomUserViewSet,
                        apply_for_verification, change_membership_fee_status,
                        create_answers, get_structural_units, verify_user)
 
@@ -288,5 +289,6 @@ user_nested_urls = [
 
 urlpatterns = [
     path('register/', UserViewSet.as_view(CREATE_METHOD), name='user-create'),
+    path('reset_password/', CustomUserViewSet.as_view({'post': 'reset_password'}), name='reset_password'),
     path('', include(router.urls)),
 ] + user_nested_urls

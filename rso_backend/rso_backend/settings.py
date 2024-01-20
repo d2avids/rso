@@ -24,6 +24,8 @@ ALLOWED_HOSTS = os.getenv(
     default='127.0.0.1,localhost,0.0.0.0'
 ).split(',')
 
+DEFAULT_SITE_URL = os.getenv('DEFAULT_SITE_URL', default='127.0.0.1:8000')
+
 DATABASE = os.getenv('DATABASE', default='sqlite')
 
 # RUN TYPES:
@@ -339,17 +341,13 @@ DJOSER = {
     'USERNAME_FIELD': 'username',
     'USER_CREATE_PASSWORD_RETYPE': True,
     'SEND_ACTIVATION_EMAIL': False,
-    'PASSWORD_CHANGE_EMAIL_CONFIRMATION': True,
+    'PASSWORD_CHANGED_EMAIL_CONFIRMATION': False,
+    'PASSWORD_RESET_CONFIRM_RETYPE': False,
     'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
     'SERIALIZERS': {
         'user_create_password_retype': 'api.serializers.UserCreateSerializer',
     },
-    # 'EMAIL': {
-    #     'activation': 'api.tasks.send_activation_email',
-    # }
-    # 'EMAIL': {
-    #     'activation': 'djoser.email.ActivationEmail',
-    # }
+    
 }
 
 SWAGGER_SETTINGS = {

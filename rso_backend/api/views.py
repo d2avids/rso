@@ -8,9 +8,11 @@ import pdfrw
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
+from django.conf import settings
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from djoser.views import UserViewSet
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from pdfrw.buildxobj import pagexobj
@@ -47,7 +49,7 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              DistrictPositionSerializer,
                              EducationalHeadquarterSerializer,
                              EducationalInstitutionSerializer,
-                             EducationalPositionSerializer,
+                             EducationalPositionSerializer, EmailSerializer,
                              EventAdditionalIssueSerializer,
                              EventApplicationsSerializer,
                              EventApplicationsCreateSerializer,
@@ -97,12 +99,50 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
+from api.tasks import send_reset_password_email
 from rso_backend.settings import BASE_DIR
 from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
                           UserForeignDocuments, UserMedia, UserMemberCertLogs,
                           UserMembershipLogs, UserParent, UserPrivacySettings,
                           UserProfessionalEducation, UserRegion,
                           UserStatementDocuments, UserVerificationRequest)
+
+
+class CustomUserViewSet(UserViewSet):
+    """Кастомный вьюсет для изменения метода reset_password."""
+
+    @action(
+            methods=['post'],
+            detail=False,
+            permission_classes=(permissions.IsAuthenticated,),
+            serializer_class=EmailSerializer,
+    )
+    def reset_password(self, request, *args, **kwargs):
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.get_user()
+
+        if user:
+
+            host = request.get_host() if request else None
+
+            site_url = f'http://{host}' if host else settings.DEFAULT_SITE_URL
+
+            send_reset_password_email.delay(
+                context={
+                    'user_id': user.id,
+                    'domain': site_url,
+                    'protocol': 'https' if request.is_secure() else 'http',
+                    'site_name': 'RSO',
+                    'site_url': site_url,
+                    'expiration_days': 1,
+                },
+                email=user.email,
+                data=request.data
+            )
+
+        return Response(status=status.HTTP_200_OK)
 
 
 class RSOUserViewSet(ListRetrieveUpdateViewSet):

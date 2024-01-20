@@ -1501,3 +1501,9 @@ class EventUserDocumentSerializer(serializers.ModelSerializer):
             'event',
             'user'
         )
+
+
+class EmailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RSOUser
+        fields = ('email',)
