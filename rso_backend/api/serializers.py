@@ -44,14 +44,6 @@ class PositionSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', )
 
 
-class EducationalInstitutionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EducationalInstitution
-        fields = (
-            'id', 'short_name', 'name', 'rector', 'rector_email', 'region'
-        )
-
-
 class AreaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Area
@@ -62,6 +54,16 @@ class RegionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Region
         fields = ('id', 'name',)
+
+
+class EducationalInstitutionSerializer(serializers.ModelSerializer):
+    region = RegionSerializer()
+
+    class Meta:
+        model = EducationalInstitution
+        fields = (
+            'id', 'short_name', 'name', 'rector', 'rector_email', 'region'
+        )
 
 
 class EventTimeDataSerializer(serializers.ModelSerializer):
@@ -543,6 +545,18 @@ class RSOUserSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('membership_fee', 'is_verified')
 
+    def to_representation(self, instance):
+        """
+        Вызывает родительский метод to_representation,
+        а также изменяем вывод region.
+        """
+        serialized_data = super().to_representation(instance)
+        region = instance.region
+        if region:
+            serialized_data['region'] = region.name
+
+        return serialized_data
+
     def get_professional_education(self, obj):
         return UserProfessionalEducationSerializer(
             UserProfessionalEducation.objects.filter(user=obj),
@@ -752,6 +766,7 @@ class ShortUserSerializer(serializers.ModelSerializer):
             'patronymic_name',
             'date_of_birth',
             'membership_fee',
+            'is_verified',
         )
 
 
@@ -812,7 +827,10 @@ class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
 
 
 class BasePositionSerializer(serializers.ModelSerializer):
-    """Для вывода участников при получении штаба."""
+    """
+    Базовый класс для вывода участников и их должностей
+    при получении структурных единиц.
+    """
 
     position = serializers.PrimaryKeyRelatedField(
         queryset=Position.objects.all(),
@@ -829,6 +847,13 @@ class BasePositionSerializer(serializers.ModelSerializer):
             'is_trusted',
         )
         read_only_fields = ('user',)
+
+    def to_representation(self, instance):
+        serialized_data = super().to_representation(instance)
+        position = instance.position
+        if position:
+            serialized_data['position'] = position.name
+        return serialized_data
 
 
 class CentralPositionSerializer(BasePositionSerializer):
@@ -979,7 +1004,6 @@ class BaseUnitSerializer(serializers.ModelSerializer):
     members_count = serializers.SerializerMethodField(read_only=True)
     participants_count = serializers.SerializerMethodField(read_only=True)
     leadership = serializers.SerializerMethodField(read_only=True)
-    leadership = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = None
@@ -997,8 +1021,15 @@ class BaseUnitSerializer(serializers.ModelSerializer):
             'members_count',
             'participants_count',
             'leadership',
-            'leadership',
         )
+
+    def to_representation(self, instance):
+        """Переопределяем представление данных для полей commader."""
+        serialized_data = super().to_representation(instance)
+        commander = instance.commander
+        if commander:
+            serialized_data['commander'] = ShortUserSerializer(commander).data
+        return serialized_data
 
     def _get_position_instance(self):
         if isinstance(self.instance, QuerySet):
@@ -1177,6 +1208,17 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
             'local_headquarters',
             'educational_headquarters',
         )
+
+    def to_representation(self, instance):
+        """
+        Вызывает родительский метод to_representation,
+        а также изменяем вывод region.
+        """
+        serialized_data = super().to_representation(instance)
+        region = instance.region
+        if region:
+            serialized_data['region'] = region.name
+        return serialized_data
 
     def get_detachments(self, obj):
         hqs = Detachment.objects.filter(regional_headquarter=obj)
@@ -1361,6 +1403,22 @@ class DetachmentSerializer(BaseUnitSerializer):
             'city',
             'founding_date',
         )
+
+    def to_representation(self, instance):
+        """
+        Вызывает родительский метод to_representation,
+        а также изменяет вывод area, educational_institution и region.
+        """
+        serialized_data = super().to_representation(instance)
+        area = instance.area
+        educational_institution = instance.educational_institution
+        region = instance.region
+        serialized_data['area'] = area.name
+        serialized_data['educational_institution'] = (
+            EducationalInstitutionSerializer(educational_institution).data
+        )
+        serialized_data['region'] = region.name
+        return serialized_data
 
     def validate(self, data):
         """
