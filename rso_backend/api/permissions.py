@@ -670,7 +670,7 @@ class IsUserModelPositionCommander(permissions.BasePermission):
     }
 
     def prepare_data_commander(self, request):
-        """Метод создает словарь с штабами/отрядами где юзер коммандир."""
+        """Метод создает словарь со штабами/отрядами, где юзер - командир."""
 
         data = UserCommanderSerializer(request.user).data
         prepared_data = {}
@@ -680,7 +680,7 @@ class IsUserModelPositionCommander(permissions.BasePermission):
         return prepared_data
 
     def prepare_data_trusted(self, request):
-        """Метод создает словарь с штабами/отрядами где юзер доверенный."""
+        """Метод создает словарь со штабами/отрядами, где юзер - доверенный."""
 
         data = UserTrustedSerializer(request.user).data
         prepared_data = {}
@@ -711,4 +711,17 @@ class IsUserModelPositionCommander(permissions.BasePermission):
                     if isinstance(obj, model_position):
                         if headquarter_id == prepared_value:
                             return True
+        return False
+
+
+class IsCommanderOrTrustedAnywhere(BasePermission):
+    """
+    Возвращает True, если пользователь является командиром или доверенным
+    лицом хотя бы где-либо.
+    """
+    def has_permission(self, request, view):
+        commander_data = UserCommanderSerializer(request.user).data
+        trusted_data = UserTrustedSerializer(request.user).data
+        if any(commander_data.values()) or any(trusted_data.values()):
+            return True
         return False

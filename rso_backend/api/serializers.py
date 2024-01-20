@@ -1921,3 +1921,47 @@ class ShortMultiEventApplicationSerializer(serializers.ModelSerializer):
             organizer_id=instance.id
         ).first()
         return first_application.is_approved
+
+
+class DjoserUserSerializer(RSOUserSerializer):
+    """Для сериализации безопасной части данных пользователя.
+
+    Для использования в дефолтном джосеровском /users/.
+    """
+
+    avatar = UserAvatarSerializer(source='media', read_only=True)
+
+    class Meta:
+        model = RSOUser
+        fields = (
+            'id',
+            'username',
+            'avatar',
+            'email',
+            'first_name',
+            'last_name',
+            'patronymic_name',
+            'date_of_birth',
+            'is_adult',
+            'last_name_lat',
+            'first_name_lat',
+            'patronymic_lat',
+            'phone_number',
+            'gender',
+            'region',
+            'address',
+            'bio',
+            'social_vk',
+            'social_tg',
+            'membership_fee',
+            'is_verified',
+            'media',
+            'education',
+            'privacy',
+            'central_headquarter_id',
+            'district_headquarter_id',
+            'regional_headquarter_id',
+            'local_headquarter_id',
+            'educational_headquarter_id',
+            'detachment_id',
+        )

@@ -29,7 +29,8 @@ from api.filters import EventFilter
 from api.mixins import (CreateDeleteViewSet, CreateListRetrieveDestroyViewSet,
                         CreateRetrieveUpdateViewSet,
                         ListRetrieveDestroyViewSet, ListRetrieveUpdateViewSet,
-                        ListRetrieveViewSet, RetrieveUpdateViewSet)
+                        ListRetrieveViewSet, RetrieveUpdateViewSet,
+                        RetrieveViewSet)
 from api.permissions import (IsApplicantOrOrganizer,
                              IsAuthorMultiEventApplication,
                              IsAuthorPermission, IsCommander,
@@ -41,7 +42,8 @@ from api.permissions import (IsApplicantOrOrganizer,
                              IsStuffOrCentralCommander,
                              IsStuffOrCentralCommanderOrTrusted,
                              IsVerifiedPermission, MembershipFeePermission,
-                             IsUserModelPositionCommander)
+                             IsUserModelPositionCommander,
+                             IsCommanderOrTrustedAnywhere)
 from api.serializers import (AnswerSerializer, AreaSerializer,
                              CentralHeadquarterSerializer,
                              CentralPositionSerializer,
@@ -124,7 +126,7 @@ from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
                           UserStatementDocuments, UserVerificationRequest)
 
 
-class RSOUserViewSet(ListRetrieveUpdateViewSet):
+class RSOUserViewSet(RetrieveViewSet):
     """
     Представляет пользователей. Доступны операции чтения.
     Пользователь имеет возможность изменять собственные данные
@@ -137,7 +139,12 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
     serializer_class = RSOUserSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username', 'first_name', 'last_name')
-    permission_classes = [permissions.AllowAny,]
+    # TODO: переписать пермишены, чтобы получить данные можно было
+    # TODO: только тех пользователей, что состоят в той же стр. ед., где
+    # TODO: запрашивающий пользователь и является командиром/доверенным
+    permission_classes = (
+        permissions.IsAuthenticated, IsCommanderOrTrustedAnywhere,
+    )
 
     @action(
         detail=False,
@@ -740,7 +747,7 @@ class DetachmentViewSet(viewsets.ModelViewSet):
 class BasePositionViewSet(viewsets.ModelViewSet):
     """Базовый вьюсет для просмотра/изменения участников штабов.
 
-    Необходимо переопределять метод get_queryset и атрибут serializer_class
+    Необходимо переопределять метод get_queryset и атрибут serializer_class.
     """
 
     serializer_class = None
@@ -763,9 +770,9 @@ class BasePositionViewSet(viewsets.ModelViewSet):
         member_pk = self.kwargs.get('membership_pk')
         try:
             obj = queryset.get(pk=member_pk)
-        # TODO:
-        # это не лучшая практика, но пока не вижу более правильного решения
-        # в действительности мы отлавливаем DoesNotExist для дочерних классов
+        # TODO: это не лучшая практика, но пока не вижу более правильного решения
+        # TODO: в действительности мы отлавливаем DoesNotExist для дочерних классов
+        # TODO: edit - можно добавить маппинг. Сделать позднее.
         except Exception:
             return Response(
                 {'detail': 'Не найден участник по заданному айди членства.'},

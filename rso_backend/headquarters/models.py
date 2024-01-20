@@ -481,8 +481,7 @@ class Position(models.Model):
     name = models.CharField(
         verbose_name='Должность',
         max_length=43,
-        blank=True,
-        null=True
+        unique=True,
     )
 
     def __str__(self):
@@ -535,6 +534,7 @@ class UserUnitPosition(models.Model):
         нового объекта (не вызывается для центрального штаба).
         """
         if self._state.adding:
+            default_position, _ = Position.objects.get_or_create(name='Боец')
             headquarter = kwargs.pop('headquarter', None)
             class_above = kwargs.pop('class_above', None)
             if headquarter and class_above:
@@ -545,7 +545,8 @@ class UserUnitPosition(models.Model):
                     )
                 class_above.objects.create(
                     user_id=user_id,
-                    headquarter=headquarter
+                    headquarter=headquarter,
+                    position=default_position
                 )
             else:
                 raise ValueError(
@@ -723,6 +724,9 @@ class UserDetachmentPosition(UserUnitPosition):
         return self.headquarter.regional_headquarter
 
     def save(self, *args, **kwargs):
+        if not self.position:
+            default_position, _ = Position.objects.get_or_create(name='Боец')
+            self.position = default_position
         if self._state.adding:
             headquarter = self.get_first_filled_headquarter()
             kwargs['headquarter'] = headquarter

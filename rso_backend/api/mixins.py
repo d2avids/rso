@@ -2,6 +2,12 @@ from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 
 
+class RetrieveViewSet(mixins.RetrieveModelMixin,
+                      GenericViewSet):
+    """Миксин, разрешающий методы чтения только у конкретного юзера."""
+    pass
+
+
 class ListRetrieveViewSet(mixins.RetrieveModelMixin,
                           mixins.ListModelMixin,
                           GenericViewSet):
