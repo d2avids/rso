@@ -695,6 +695,8 @@ class IsUserModelPositionCommander(permissions.BasePermission):
             and request.user.is_authenticated
         ):
             return self.has_object_permission(request, view, view.get_object())
+        if request.method in permissions.SAFE_METHODS:
+            return True
         return False
 
     def has_object_permission(self, request, view, obj):
