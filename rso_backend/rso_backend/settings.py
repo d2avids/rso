@@ -344,6 +344,12 @@ DJOSER = {
     'SERIALIZERS': {
         'user_create_password_retype': 'api.serializers.UserCreateSerializer',
     },
+    # 'EMAIL': {
+    #     'activation': 'api.tasks.send_activation_email',
+    # }
+    # 'EMAIL': {
+    #     'activation': 'djoser.email.ActivationEmail',
+    # }
 }
 
 SWAGGER_SETTINGS = {
