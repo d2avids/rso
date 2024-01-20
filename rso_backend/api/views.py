@@ -986,7 +986,7 @@ class EventViewSet(viewsets.ModelViewSet):
     filterset_class = EventFilter
     search_fields = ('name', 'address', 'description',)
 
-    PERMISSIONS_MAPPING = {
+    _PERMISSIONS_MAPPING = {
         'Всероссийское': IsStuffOrCentralCommander,
         'Окружное': IsDistrictCommander,
         'Региональное': IsRegionalCommander,
@@ -1005,7 +1005,7 @@ class EventViewSet(viewsets.ModelViewSet):
             event_unit = self.request.data.get('scale')
             permission_classes = [permissions.IsAuthenticated]
             permission_classes += [
-                self.PERMISSIONS_MAPPING.get(
+                self._PERMISSIONS_MAPPING.get(
                     event_unit, permissions.IsAuthenticated
                 )
             ]

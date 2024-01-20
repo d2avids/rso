@@ -580,7 +580,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
             district_headquarter_id = (
                 UserDistrictHeadquarterPosition.objects.get(
                     user_id=instance.id
-                ).id
+                ).headquarter_id
             )
         except UserDistrictHeadquarterPosition.DoesNotExist:
             district_headquarter_id = None
@@ -592,7 +592,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
             regional_headquarter_id = (
                     UserRegionalHeadquarterPosition.objects.get(
                         user_id=instance.id
-                    ).id
+                    ).headquarter_id
             )
         except UserRegionalHeadquarterPosition.DoesNotExist:
             regional_headquarter_id = None
@@ -604,7 +604,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
             local_headquarter_id = (
                 UserLocalHeadquarterPosition.objects.get(
                     user_id=instance.id
-                ).id
+                ).headquarter_id
             )
         except UserLocalHeadquarterPosition.DoesNotExist:
             local_headquarter_id = None
@@ -616,7 +616,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
             educational_headquarter_id = (
                 UserEducationalHeadquarterPosition.objects.get(
                     user_id=instance.id
-                ).id
+                ).headquarter_id
             )
         except UserEducationalHeadquarterPosition.DoesNotExist:
             educational_headquarter_id = None
@@ -626,7 +626,9 @@ class RSOUserSerializer(serializers.ModelSerializer):
     def get_detachment_id(instance):
         try:
             detachment_id = (
-                UserDetachmentPosition.objects.get(user_id=instance.id).id
+                UserDetachmentPosition.objects.get(
+                    user_id=instance.id
+                ).headquarter_id
             )
         except UserDetachmentPosition.DoesNotExist:
             detachment_id = None
