@@ -1373,7 +1373,6 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
         )
         return serialized_data
 
-
     def get_detachments(self, obj):
         hqs = Detachment.objects.filter(educational_headquarter=obj)
         return ShortDetachmentSerializer(hqs, many=True).data
