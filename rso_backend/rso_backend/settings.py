@@ -309,6 +309,7 @@ CORS_ORIGIN_WHITELIST = [
     'http://localhost',
     'https://d2avids.sytes.net',
     'https://rso.sprint.1t.ru',
+    'https://лк.трудкрут.рф',
     'http://213.139.208.147',
     'https://213.139.208.147',
 ]
@@ -321,6 +322,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost'
     'https://127.0.0.1',
     'https://rso.sprint.1t.ru',
+    'https://лк.трудкрут.рф',
     'http://213.139.208.147',
     'https://213.139.208.147',
 ]
