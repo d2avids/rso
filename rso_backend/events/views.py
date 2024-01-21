@@ -16,132 +16,138 @@ from events.serializers import (
     СompetitionApplicationsSerializer, СompetitionParticipantsSerializer
 )
 from api.serializers import ShortDetachmentSerializer
-from api.permissions import IsRegionalCommander, IsLocalCommander
+from api.permissions import IsRegionalCommander, IsLocalCommander, IsRegionalCommanderOrAdmin, IsRegionalCommanderOrAdminOrAuthor
 from api.mixins import CreateListRetrieveDestroyViewSet, ListRetrieveDestroyViewSet
 from api.swagger_schemas import (
     request_update_application, response_create_application,
     response_competitions_applications, response_competitions_participants,
-    response_start_page_competitions
+    response_junior_detachments
 )
-from headquarters.models import Detachment
+from headquarters.models import Detachment, RegionalHeadquarter
 
 
 class CompetitionViewSet(viewsets.ModelViewSet):
     queryset = Сompetition.objects.all()
     serializer_class = СompetitionSerializer
-    permission_classes = (permissions.IsAuthenticated,) # TODO: change to AdminOnly for creation...
+    permission_classes = (permissions.IsAdminUser,) # TODO: change to AdminOnly for creation...
+
+    def get_detachment(self):
+        """
+        Возвращает отряд, созданный после 25 января 2024 года
+        """
+        return Detachment.objects.filter(
+            Q(founding_date__lt=date(2023, 1, 25))
+            & Q(commander=self.request.user)
+        ).first()
+
+    def get_free_junior_detachments_ids(self):
+        """
+        Возвращает список ID младших отрядов, которые
+        не подали заявки или не участвуют в текущем конкурсе.
+        """
+        competition_id = self.get_object().id
+        in_applications_junior_detachment_ids = list(
+            СompetitionApplications.objects.filter(
+                competition__id=competition_id
+                ).values_list(
+                'junior_detachment__id', flat=True
+            )
+        )
+        participants_junior_detachment_ids = list(
+            СompetitionParticipants.objects.filter(
+                competition__id=competition_id
+                ).values_list(
+                'junior_detachment__id', flat=True
+            )
+        )
+        return list(Detachment.objects.exclude(
+                id__in=in_applications_junior_detachment_ids
+                + participants_junior_detachment_ids
+            ).values_list('id', flat=True)
+        )
 
     def get_junior_detachments(self):
+        """
+        Возвращает экземпляры свободных младших отрядов.
+        """
+        user_detacment = self.get_detachment()
+        if not user_detacment:
+            return None
+        free_junior_detachments_ids = (
+            self.get_free_junior_detachments_ids()
+        )
         detachments = Detachment.objects.filter(
-            founding_date__gte=date(2023, 1, 25)
+            Q(founding_date__gte=date(2023, 1, 25)) &
+            Q(region=user_detacment.region) &
+            Q(id__in=free_junior_detachments_ids)
         )
         return detachments
 
-    def get_detachment(self):
-        user = self.request.user
-        return Detachment.objects.filter(
-            Q(founding_date__lt=date(2023, 1, 25))
-            & Q(commander=user)
-        ).first()
-
-    def get_application_info(self, detachment):
-        _STATUS_MAPPING = {
-            True: 'Ждет верификации',
-            False: 'Ждет подтверждения младшего отряда',
-        }
-        application = СompetitionApplications.objects.filter(
-            detachment=detachment
-        ).first()
-        if not application:
-            return None, False
-        application_status = _STATUS_MAPPING.get(
-            application.is_confirmed_by_junior
-        )
-        is_application = True if application else False
-        return application_status, is_application
-
-    def get_is_participant(self, detachment):
-        return СompetitionParticipants.objects.filter(
-            detachment=detachment
-        ).exists()
-
     @action(detail=True,
             methods=['get'],
-            url_path='start_page',
-            permission_classes=(permissions.AllowAny,))
-    @swagger_auto_schema(responses=response_start_page_competitions)
-    def start_page(self, request, *args, **kwargs):
-        """Action для получения всей информации для страницы конкурса
+            url_path='junour_detachments',
+            permission_classes=(permissions.IsAuthenticated,))
+    @swagger_auto_schema(responses=response_junior_detachments)
+    def junior_detachments(self, request, pk):
+        """Action для получения списка младших отрядов.
 
-        Доступ - все пользователи.
+        Выводит свободные младшие отряды этого региона доступные к
+        подаче в тандем заявку.
 
-        Для снижения нагрузки на БД вывод дробный:
-        - если пользователь не авторизован, вернется `{'is_auth': False}`.
-
-        - если пользователь не командир старого отряда, вернется
-        `{'is_auth': True,
-        'is_commander_and_not_junior': False}`.
-
-        - если пользователь уже участвует в конкурсе, вернется
-        `{'is_auth': True,
-        'is_commander_and_not_junior': True,
-        'is_participant': True}`.
-
-        В остальных случаях вернется полный комплект строк.
+        Доступ - только авторизированные пользователи.
+        Если юзер не командир старшего отряда - возвращает пустой массив.
         """
-        user = request.user
-        if not user.is_authenticated:
-            return Response(
-                {'is_auth': False},
-                status=status.HTTP_200_OK
-            )
-        detachment = self.get_detachment()
-        if not detachment:
-            return Response(
-                {'is_auth': True,
-                 'is_commander_and_not_junior': False},
-                status=status.HTTP_200_OK
-            )
-
-        is_participant = self.get_is_participant(detachment)
-        if is_participant:
-            return Response(
-                {'is_auth': True,
-                 'is_commander_and_not_junior': True,
-                 'is_participant': True},
-                status=status.HTTP_200_OK
-            )
-        application_status, is_application = self.get_application_info(
-            detachment
-        )
         junior_detachments = self.get_junior_detachments()
         serializer = ShortDetachmentSerializer(
             junior_detachments, many=True
         )
-        return Response(
-            {
-                'is_auth': True,
-                'is_commander_and_not_junior': True,
-                'is_participant': is_participant,
-                'is_application': is_application,
-                'application_status': application_status,
-                'detachment_list': serializer.data
-            },
-            status=status.HTTP_200_OK
-        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
+    """Представление заявок на конкурс.
+
+    Доступ:
+        - чтение(list) - региональный командир или админ.
+          В первом случае выводятся заявки этого региона,
+          во втором - все заявки.
+        - чтение(retrieve) - региональный командир, админ или
+          один из отрядов этой заявки.
+        - удаление - региональный командир, админ или один из
+          отрядов этой заявки.
+        - обновление - только командир младшего отряда,
+          изменить можно только поле is_confirmed_by_junior
+          (функционал подтверждения заявки младшим отрядом).
+    """
     queryset = СompetitionApplications.objects.all()
     serializer_class = СompetitionApplicationsSerializer
     permission_classes = (permissions.IsAuthenticated,)
-    # TODO: чтение поставить только админам + кто подтверждать будет(уточнить регионы).
-    # TODO: на удаление дописать, что может командир любого отряда из заявки (отказ)
 
     def get_queryset(self):
+        if self.action == 'list':
+            regional_headquarter = RegionalHeadquarter.objects.filter(
+                commander=self.request.user
+            )
+            if regional_headquarter:
+                user_region = regional_headquarter.first().region
+                return СompetitionApplications.objects.filter(
+                    junior_detachment__region=user_region
+                )
+            return СompetitionApplications.objects.filter(
+                competition_id=self.kwargs.get('competition_pk')
+            )
         return СompetitionApplications.objects.filter(
             competition_id=self.kwargs.get('competition_pk')
         )
+
+    def get_permissions(self):
+        if self.action == 'destroy' or self.action == 'retrieve':
+            return [permissions.IsAuthenticated(),
+                    IsRegionalCommanderOrAdminOrAuthor()]
+        if self.action == 'list':
+            return [permissions.IsAuthenticated(),
+                    IsRegionalCommanderOrAdmin()]
+        return super().get_permissions()
 
     def get_detachment(self, user):
         """Возвращает отряд, в котором юзер командир.
@@ -172,15 +178,22 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
         Если передается junior_detachment: id, то создается заявка-тандем,
         если нет - индивидуальная заявка.
 
-        Доступ - только командир старшего отряда, созданного ранее 25.01.2023.
+        Доступ - только командир отряда.
         """
-        detachment = self.get_detachment(request.user)
-        competition = get_object_or_404(Сompetition,
-                                        pk=self.kwargs.get('competition_pk'))
-        if detachment is None:
+        current_detachment = self.get_detachment(request.user)
+        if current_detachment is None:
             return Response({'error': 'Пользователь не является командиром'},
                             status=status.HTTP_400_BAD_REQUEST)
-        junior_detachment = self.get_junior_detachment(request.data)
+
+        if current_detachment.founding_date < date(2023, 1, 25):
+            detachment = current_detachment
+            junior_detachment = self.get_junior_detachment(request.data)
+        else:
+            junior_detachment = current_detachment
+            detachment = None
+        competition = get_object_or_404(Сompetition,
+                                        pk=self.kwargs.get('competition_pk'))
+
         serializer = self.get_serializer(
             data=request.data,
             context={'detachment': detachment,
@@ -246,7 +259,7 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
             url_path='me',
             permission_classes=[permissions.IsAuthenticated])
     @swagger_auto_schema(responses=response_competitions_applications)
-    def me(self, request, competition_pk):
+    def me(self, request, *args, **kwargs):
         """Получение заявки на мероприятие отряда текущего пользователя.
 
         Доступ - все авторизованные пользователи.
@@ -268,13 +281,12 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
     @action(detail=True,
             methods=['post'],
             url_path='confirm',
-            serializer_class=СompetitionParticipantsSerializer,
-            permission_classes=(permissions.IsAuthenticated,))  # TODO: Добавить пермишены админы и регионы
+            permission_classes=(IsRegionalCommanderOrAdmin,))
     def confirm(self, request, *args, **kwargs):
         """Подтверждение заявки на участие в мероприятии и создание участника.
 
         После подтверждения заявка удаляется.
-        Доступ - ??? админы и регионы?
+        Доступ: администраторы и командиры региональных штабов.
         """
         instance = self.get_object()
         serializer = СompetitionParticipantsSerializer(
@@ -294,17 +306,26 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class СompetitionParticipantsViewSet(ListRetrieveDestroyViewSet): # Заменить на чтение и удаление
+class СompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
+    """ Вьюсет для участников мероприятия.
+
+    Доступ:
+        - чтение: все
+        - удаление: только админы и командиры региональных штабов.
+    """
     queryset = СompetitionParticipants.objects.all()
     serializer_class = СompetitionParticipantsSerializer
-    permission_classes = (permissions.IsAuthenticated,)
-    # TODO: Поставить пермишены гет-все.
-    # TODO: Удаление - только админы и командиры отрядов.(надо отрядам вообще?)
+    permission_classes = (permissions.AllowAny,)
 
     def get_queryset(self):
         return СompetitionParticipants.objects.filter(
             competition_id=self.kwargs.get('competition_pk')
         )
+
+    def get_permissions(self):
+        if self.action == 'destroy':
+            return [permissions.IsAuthenticated(), IsRegionalCommanderOrAdmin()]
+        return super().get_permissions()
 
     def get_detachment(self, user):
         """Возвращает отряд, в котором юзер командир.
@@ -324,10 +345,9 @@ class СompetitionParticipantsViewSet(ListRetrieveDestroyViewSet): # Замен�
     @action(detail=False,
             methods=['get'],
             url_path='me',
-            serializer_class=СompetitionParticipantsSerializer,
             permission_classes=(permissions.IsAuthenticated,))
     @swagger_auto_schema(responses=response_competitions_participants)
-    def me(self, request, competition_pk):
+    def me(self, request, *args, **kwargs):
         """Action для получения всей информации по верифицированной заявке.
 
         Доступен всем авторизованным пользователям.

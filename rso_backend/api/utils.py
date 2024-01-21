@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.permissions import SAFE_METHODS
 
-from headquarters.models import (CentralHeadquarter, UserDetachmentPosition,
+from headquarters.models import (CentralHeadquarter, RegionalHeadquarter, UserDetachmentPosition,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
@@ -570,3 +570,17 @@ def get_is_trusted(obj, model):
     if is_trusted:
         return model_id
     return is_trusted
+
+
+def is_regional_commander(user):
+    """Проверяет, является ли пользователь командировам
+    регионального штаба или администратором.
+    """
+    check_regional_commander = RegionalHeadquarter.objects.filter(
+        commander=user
+    ).exists()
+    return (user.is_authenticated
+            and any([
+                check_regional_commander,
+                user.is_staff
+            ]))

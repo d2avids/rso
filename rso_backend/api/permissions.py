@@ -8,7 +8,7 @@ from api.utils import (check_roles_for_edit, check_trusted_for_detachments,
                        check_trusted_for_districthead,
                        check_trusted_for_eduhead, check_trusted_for_localhead,
                        check_trusted_for_regionalhead,
-                       check_trusted_in_headquarters, check_trusted_user,
+                       check_trusted_in_headquarters, check_trusted_user, is_regional_commander,
                        is_safe_method, is_stuff_or_central_commander,
                        check_trusted_for_centralhead, check_commander_or_not)
 from events.models import Event, EventOrganizationData
@@ -632,3 +632,29 @@ class IsVerifiedPermission(BasePermission):
     """Проверяет, верифицирован ли пользователь."""
     def has_permission(self, request, view):
         return request.user.is_verified
+
+
+class IsRegionalCommanderOrAdmin(BasePermission):
+    """Проверяет, является ли пользователь командиром
+    регионального штаба или администратором.
+    """
+
+    def has_permission(self, request, view):
+        return is_regional_commander(request.user)
+
+    def has_object_permission(self, request, view, obj):
+        return is_regional_commander(request.user)
+
+
+class IsRegionalCommanderOrAdminOrAuthor(BasePermission):
+    """Для операций с одним обектом. 
+    Проверяет, является ли пользователь командиром
+    регионального штаба, администратором или отрядом из заявки в конкурс.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        application = obj
+        current_detachment = view.get_detachment(request.user)
+        return (application.detachment == current_detachment or
+                application.junior_detachment == current_detachment or
+                is_regional_commander(request.user))

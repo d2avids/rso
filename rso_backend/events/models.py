@@ -664,15 +664,15 @@ class СompetitionApplications(models.Model):
         to='headquarters.Detachment',
         on_delete=models.CASCADE,
         related_name='competition_applications',
-        verbose_name='Отряд'
+        verbose_name='Отряд',
+        null=True,
+        blank=True
     )
     junior_detachment = models.ForeignKey(
         to='headquarters.Detachment',
         on_delete=models.CASCADE,
         related_name='junior_competition_applications',
         verbose_name='Младший отряд',
-        null=True,
-        blank=True
     )
     created_at = models.DateTimeField(
         verbose_name='Дата и время создания заявки',
@@ -713,17 +713,17 @@ class СompetitionParticipants(models.Model):
         related_name='competition_participants',
         verbose_name='Конкурс',
     )
-    detachment = models.ForeignKey(
-        to='headquarters.Detachment',
-        on_delete=models.CASCADE,
-        related_name='competition_participants',
-        verbose_name='Отряд'
-    )
     junior_detachment = models.ForeignKey(
         to='headquarters.Detachment',
         on_delete=models.CASCADE,
         related_name='junior_competition_participants',
         verbose_name='Младший отряд',
+    )
+    detachment = models.ForeignKey(
+        to='headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='competition_participants',
+        verbose_name='Отряд',
         null=True,
         blank=True
     )

@@ -2,7 +2,6 @@ from rest_framework import serializers
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework import status
-from api.serializers import ShortDetachmentSerializer
 from events.models import Event
 
 
@@ -34,10 +33,7 @@ applications_response = {
     )
 }
 
-answer_response = {
-    status.HTTP_200_OK: openapi.Schema(
-        type=openapi.TYPE_OBJECT,
-        properties={
+answer = {
             'id': openapi.Schema(
                 type=openapi.TYPE_INTEGER, read_only=True, title='ID'
             ),
@@ -53,6 +49,153 @@ answer_response = {
             'user': openapi.Schema(
                 type=openapi.TYPE_INTEGER, read_only=True, title='Пользователь'
             ),
+        }
+
+short_user = {
+    'id': openapi.Schema(
+        type=openapi.TYPE_INTEGER, read_only=True, title='ID'
+    ),
+    'username': openapi.Schema(
+        type=openapi.TYPE_STRING, read_only=True, title='Логин'
+    ),
+    'avatar': openapi.Schema(
+        type=openapi.TYPE_OBJECT, read_only=True, title='Аватар'
+    ),
+    'email': openapi.Schema(
+        type=openapi.TYPE_STRING, read_only=True, title='Email'
+    ),
+    'first_name': openapi.Schema(
+        type=openapi.TYPE_STRING, read_only=True, title='Имя'
+    ),
+    'last_name': openapi.Schema(
+        type=openapi.TYPE_STRING, read_only=True, title='Фамилия'
+    ),
+    'patronymic_name': openapi.Schema(
+        type=openapi.TYPE_STRING, read_only=True, title='Отчество'
+    ),
+    'date_of_birth': openapi.Schema(
+        type=openapi.TYPE_STRING, read_only=True, title='Дата рождения'
+    ),
+    'membership_fee': openapi.Schema(
+        type=openapi.TYPE_BOOLEAN, read_only=True, title='Членский взнос оплачен'
+    ),
+}
+
+short_event = {
+    'id': openapi.Schema(
+        type=openapi.TYPE_INTEGER, read_only=True, title='ID'
+    ),
+    'name': openapi.Schema(
+        type=openapi.TYPE_STRING, read_only=True, title='Название'
+    ),
+    'banner': openapi.Schema(
+        type=openapi.TYPE_STRING, read_only=True, title='Баннер'
+    )
+}
+
+document = {
+    'id': openapi.Schema(
+        type=openapi.TYPE_INTEGER, read_only=True, title='ID'
+    ),
+    'user': openapi.Schema(
+        type=openapi.TYPE_OBJECT, title='Пользователь'
+    ),
+    'event': openapi.Schema(
+        type=openapi.TYPE_OBJECT, title='Мероприятие'
+    ),
+    'document': openapi.Schema(
+        type=openapi.TYPE_STRING, title='Документ'
+    ),
+}
+
+answer_response = {
+    status.HTTP_200_OK: openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties=answer
+    )
+}
+
+application_me_response = {
+    status.HTTP_200_OK: openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'id': openapi.Schema(
+                type=openapi.TYPE_INTEGER, read_only=True, title='ID'
+            ),
+            'user': openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                read_only=True,
+                title='Пользователь',
+                properties=short_user
+            ),
+            'event': openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                read_only=True,
+                properties=short_event,
+                title='Мероприятие'
+            ),
+            'answers': openapi.Schema(
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(
+                    type=openapi.TYPE_OBJECT,
+                    title='Ответы',
+                    properties=answer
+                )
+            ),
+            'documents': openapi.Schema(
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(
+                    type=openapi.TYPE_OBJECT,
+                    title='Документы',
+                    properties=document
+                )
+            ),
+            'created_at': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                format='date-time',
+                read_only=True,
+                title='Дата создания заявки'
+            ),
+        }
+    )
+}
+
+
+participant_me_response = {
+    status.HTTP_200_OK: openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'id': openapi.Schema(
+                type=openapi.TYPE_INTEGER, read_only=True, title='ID'
+            ),
+            'event': openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                read_only=True,
+                properties=short_event,
+                title='Мероприятие'
+            ),
+            'user': openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                read_only=True,
+                title='Пользователь',
+                properties=short_user
+            ),
+            'answers': openapi.Schema(
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(
+                    type=openapi.TYPE_OBJECT,
+                    title='Ответы',
+                    properties=answer
+                )
+            ),
+            'documents': openapi.Schema(
+                type=openapi.TYPE_ARRAY,
+                items=openapi.Items(
+                    type=openapi.TYPE_OBJECT,
+                    title='Документы',
+                    properties=document
+                )
+            )
         }
     )
 }
@@ -153,53 +296,28 @@ response_competitions_participants = {
     )
 }
 
-response_start_page_competitions = {
+short_detachment = {
+    'id': openapi.Schema(
+        type=openapi.TYPE_INTEGER,
+        title='ID',
+    ),
+    'name': openapi.Schema(
+        type=openapi.TYPE_STRING,
+        title='Название',
+    ),
+    'banner': openapi.Schema(
+        type=openapi.TYPE_STRING,
+        title='Путь к баннеру',
+    ),
+}
+
+response_junior_detachments = {
     status.HTTP_200_OK: openapi.Schema(
-        type=openapi.TYPE_OBJECT,
-        properties={
-            'is_auth': openapi.Schema(
-                type=openapi.TYPE_BOOLEAN,
-                title='Авторизирован ли пользователь',
-            ),
-            'is_commander_and_not_junior': openapi.Schema(
-                type=openapi.TYPE_BOOLEAN,
-                title='Является ли пользователь командиром старого отряда',
-            ),
-            'is_participant': openapi.Schema(
-                type=openapi.TYPE_BOOLEAN,
-                title='Участвует ли уже пользователь в конкурсе',
-            ),
-            'is_application': openapi.Schema(
-                type=openapi.TYPE_BOOLEAN,
-                title='Подал ли пользователь уже заявку',
-            ),
-            'application_status': openapi.Schema(
-                type=openapi.TYPE_STRING,
-                title=('Статус заявки, варианты: '
-                       '"Ждет верификации", '
-                       '"Ждет подтверждения младшего отряда"')
-            ),
-            'detachment_list': openapi.Schema(
-                type=openapi.TYPE_ARRAY,
-                items=openapi.Items(
-                    type='object',
-                    properties={
-                        'id': openapi.Schema(
-                            type=openapi.TYPE_INTEGER,
-                            title='ID',
-                        ),
-                        'name': openapi.Schema(
-                            type=openapi.TYPE_STRING,
-                            title='Название',
-                        ),
-                        'banner': openapi.Schema(
-                            type=openapi.TYPE_STRING,
-                            title='Путь к баннеру',
-                        ),
-                    },
-                    title='Список свободных отрядов-новичков',
-                )
-            ),
-        }
+        type=openapi.TYPE_ARRAY,
+        items=openapi.Items(
+            type=openapi.TYPE_OBJECT,
+            properties=short_detachment,
+            title='Младшие отряды'
+        )
     )
 }
