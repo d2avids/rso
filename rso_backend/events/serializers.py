@@ -13,6 +13,22 @@ class СompetitionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class СompetitionApplicationsObjectSerializer(serializers.ModelSerializer):
+    junior_detachment = ShortDetachmentSerializer()
+    detachment = ShortDetachmentSerializer()
+
+    class Meta:
+        model = СompetitionApplications
+        fields = (
+            'id',
+            'competition',
+            'junior_detachment',
+            'detachment',
+            'created_at',
+            'is_confirmed_by_junior'
+        )
+
+
 class СompetitionApplicationsSerializer(serializers.ModelSerializer):
     class Meta:
         model = СompetitionApplications
@@ -78,6 +94,20 @@ class СompetitionApplicationsSerializer(serializers.ModelSerializer):
                 )
         return attrs
 
+
+class СompetitionParticipantsObjectSerializer(serializers.ModelSerializer):
+    detachment = ShortDetachmentSerializer()
+    junior_detachment = ShortDetachmentSerializer()
+
+    class Meta:
+        model = СompetitionParticipants
+        fields = (
+            'id',
+            'competition',
+            'detachment',
+            'junior_detachment',
+            'created_at'
+        )
 
 class СompetitionParticipantsSerializer(serializers.ModelSerializer):
     class Meta:

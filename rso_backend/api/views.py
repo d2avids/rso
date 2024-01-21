@@ -2105,12 +2105,12 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
     DELETE(destroy): Удаляет одну структурную единицу из заявки (по pk).
     """
     _STRUCTURAL_MAPPING = {
-        'central': ShortCentralHeadquarterSerializerME,
-        'districts': ShortDistrictHeadquarterSerializerME,
-        'regionals': ShortRegionalHeadquarterSerializerME,
-        'locals': ShortLocalHeadquarterSerializerME,
-        'educationals': ShortEducationalHeadquarterSerializerME,
-        'detachments': ShortDetachmentSerializerME
+        'Центральные штабы': ShortCentralHeadquarterSerializerME,
+        'Окружные штабы': ShortDistrictHeadquarterSerializerME,
+        'Региональные штабы': ShortRegionalHeadquarterSerializerME,
+        'Местные штабы': ShortLocalHeadquarterSerializerME,
+        'Образовательные штабы': ShortEducationalHeadquarterSerializerME,
+        'Отряды': ShortDetachmentSerializerME
     }
     serializer_class = MultiEventApplicationSerializer
     queryset = MultiEventApplication.objects.all()

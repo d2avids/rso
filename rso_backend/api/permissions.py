@@ -602,12 +602,12 @@ class IsCommander(BasePermission):
     Дополнительно проверяет верифицирован ли пользователь.
     """
     _STRUCTURAL_MAPPING = {
-        'central': CentralHeadquarter,
-        'districts': DistrictHeadquarter,
-        'regionals': RegionalHeadquarter,
-        'locals': LocalHeadquarter,
-        'educationals': EducationalHeadquarter,
-        'detachments': Detachment
+        'Центральные штабы': CentralHeadquarter,
+        'Окружные штабы': DistrictHeadquarter,
+        'Региональные штабы': RegionalHeadquarter,
+        'Местные штабы': LocalHeadquarter,
+        'Образовательные штабы': EducationalHeadquarter,
+        'Отряды': Detachment
     }
 
     def has_permission(self, request, view):

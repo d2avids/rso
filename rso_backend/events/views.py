@@ -12,12 +12,14 @@ from drf_yasg.utils import swagger_auto_schema
 
 from events.models import Сompetition, СompetitionApplications, СompetitionParticipants
 from events.serializers import (
+    СompetitionApplicationsObjectSerializer,
+    СompetitionParticipantsObjectSerializer,
     СompetitionSerializer,
     СompetitionApplicationsSerializer, СompetitionParticipantsSerializer
 )
 from api.serializers import ShortDetachmentSerializer
-from api.permissions import IsRegionalCommander, IsLocalCommander, IsRegionalCommanderOrAdmin, IsRegionalCommanderOrAdminOrAuthor
-from api.mixins import CreateListRetrieveDestroyViewSet, ListRetrieveDestroyViewSet
+from api.permissions import IsRegionalCommanderOrAdmin, IsRegionalCommanderOrAdminOrAuthor
+from api.mixins import ListRetrieveDestroyViewSet
 from api.swagger_schemas import (
     request_update_application, response_create_application,
     response_competitions_applications, response_competitions_participants,
@@ -27,9 +29,20 @@ from headquarters.models import Detachment, RegionalHeadquarter
 
 
 class CompetitionViewSet(viewsets.ModelViewSet):
+    """Представление конкурсов.
+
+    Доступ:
+        - чтение: все пользователи
+        - запись/удаление/редактирование: только администраторы
+    """
     queryset = Сompetition.objects.all()
     serializer_class = СompetitionSerializer
-    permission_classes = (permissions.IsAdminUser,) # TODO: change to AdminOnly for creation...
+    permission_classes = (permissions.IsAdminUser,)
+
+    def get_permissions(self):
+        if self.action == 'list' or self.action == 'retrieve':
+            return (permissions.AllowAny(),)
+        return super().get_permissions()
 
     def get_detachment(self):
         """
@@ -139,6 +152,11 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
         return СompetitionApplications.objects.filter(
             competition_id=self.kwargs.get('competition_pk')
         )
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve' or self.action == 'list':
+            return СompetitionApplicationsObjectSerializer
+        return super().get_serializer_class()
 
     def get_permissions(self):
         if self.action == 'destroy' or self.action == 'retrieve':
@@ -272,7 +290,7 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
         ).first()
         if application is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = СompetitionApplicationsSerializer(
+        serializer = СompetitionApplicationsObjectSerializer(
             application,
             context={'request': request}
         )
@@ -281,7 +299,11 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
     @action(detail=True,
             methods=['post'],
             url_path='confirm',
-            permission_classes=(IsRegionalCommanderOrAdmin,))
+            permission_classes=(permissions.IsAuthenticated,
+                                IsRegionalCommanderOrAdmin,))
+    @swagger_auto_schema(request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+    ))
     def confirm(self, request, *args, **kwargs):
         """Подтверждение заявки на участие в мероприятии и создание участника.
 
@@ -303,7 +325,7 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
                 instance.delete()
         except Exception as e:
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(status=status.HTTP_201_CREATED)
 
 
 class СompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
@@ -321,6 +343,11 @@ class СompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
         return СompetitionParticipants.objects.filter(
             competition_id=self.kwargs.get('competition_pk')
         )
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve' or self.action == 'list':
+            return СompetitionParticipantsObjectSerializer
+        return super().get_serializer_class()
 
     def get_permissions(self):
         if self.action == 'destroy':
@@ -362,5 +389,5 @@ class СompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
         ).first()
         if participant_unit is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = СompetitionParticipantsSerializer(participant_unit)
+        serializer = СompetitionParticipantsObjectSerializer(participant_unit)
         return Response(serializer.data)

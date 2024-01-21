@@ -108,6 +108,21 @@ document = {
     ),
 }
 
+short_detachment = {
+    'id': openapi.Schema(
+        type=openapi.TYPE_INTEGER,
+        title='ID',
+    ),
+    'name': openapi.Schema(
+        type=openapi.TYPE_STRING,
+        title='Название',
+    ),
+    'banner': openapi.Schema(
+        type=openapi.TYPE_STRING,
+        title='Путь к баннеру',
+    ),
+}
+
 answer_response = {
     status.HTTP_200_OK: openapi.Schema(
         type=openapi.TYPE_OBJECT,
@@ -238,14 +253,15 @@ response_competitions_applications = {
                 read_only=True
             ),
             'detachment': openapi.Schema(
-                type=openapi.TYPE_INTEGER,
+                type=openapi.TYPE_OBJECT,
+                properties=short_detachment,
                 title='Отряд',
                 read_only=True
             ),
             'junior_detachment': openapi.Schema(
-                type=[openapi.TYPE_INTEGER],
+                type=openapi.TYPE_OBJECT,
+                properties=short_detachment,
                 title='Младший отряд',
-                x_nullable=True
             ),
             'created_at': openapi.Schema(
                 type=openapi.TYPE_STRING,
@@ -276,12 +292,14 @@ response_competitions_participants = {
                 read_only=True
             ),
             'detachment': openapi.Schema(
-                type=openapi.TYPE_INTEGER,
+                type=openapi.TYPE_OBJECT,
+                properties=short_detachment,
                 title='Отряд',
                 read_only=True
             ),
             'junior_detachment': openapi.Schema(
-                type=[openapi.TYPE_INTEGER],
+                type=openapi.TYPE_OBJECT,
+                properties=short_detachment,
                 title='Младший отряд',
                 read_only=True,
                 x_nullable=True
@@ -294,21 +312,6 @@ response_competitions_participants = {
             ),
         }
     )
-}
-
-short_detachment = {
-    'id': openapi.Schema(
-        type=openapi.TYPE_INTEGER,
-        title='ID',
-    ),
-    'name': openapi.Schema(
-        type=openapi.TYPE_STRING,
-        title='Название',
-    ),
-    'banner': openapi.Schema(
-        type=openapi.TYPE_STRING,
-        title='Путь к баннеру',
-    ),
 }
 
 response_junior_detachments = {
