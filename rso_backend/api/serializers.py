@@ -1,6 +1,7 @@
 import datetime as dt
+from drf_yasg import openapi
 from datetime import date
-
+from drf_yasg.utils import swagger_serializer_method
 from django.conf import settings
 from django.db.models import Q
 from django.db.models.query import QuerySet
@@ -1359,6 +1360,19 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
         except ValidationError as e:
             raise serializers.ValidationError(e.message_dict)
         return data
+
+    def to_representation(self, instance):
+        """
+        Вызывает родительский метод to_representation,
+        а также изменяет вывод educational_institution.
+        """
+        serialized_data = super().to_representation(instance)
+        educational_institution = instance.educational_institution
+        serialized_data['educational_institution'] = (
+            EducationalInstitutionSerializer(educational_institution).data
+        )
+        return serialized_data
+
 
     def get_detachments(self, obj):
         hqs = Detachment.objects.filter(educational_headquarter=obj)
