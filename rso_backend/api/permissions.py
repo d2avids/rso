@@ -8,9 +8,10 @@ from api.utils import (check_roles_for_edit, check_trusted_for_detachments,
                        check_trusted_for_districthead,
                        check_trusted_for_eduhead, check_trusted_for_localhead,
                        check_trusted_for_regionalhead,
-                       check_trusted_in_headquarters, check_trusted_user, is_regional_commander,
+                       check_trusted_in_headquarters, check_trusted_user,
                        is_safe_method, is_stuff_or_central_commander,
-                       check_trusted_for_centralhead, check_commander_or_not)
+                       check_trusted_for_centralhead, check_commander_or_not,
+                       is_regional_commander,)
 from events.models import Event, EventOrganizationData
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  EducationalHeadquarter, LocalHeadquarter,

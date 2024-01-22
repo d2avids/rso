@@ -963,24 +963,7 @@ class BaseUnitSerializer(serializers.ModelSerializer):
     Предназначен для использования как родительский класс для всех
     сериализаторов штабов, обеспечивая наследование общих полей и методов.
     """
-    _POSITIONS_MAPPING = {
-        CentralHeadquarter: (
-            UserCentralHeadquarterPosition, CentralPositionSerializer
-        ),
-        DistrictHeadquarter: (
-            UserDistrictHeadquarterPosition, DistrictPositionSerializer
-        ),
-        RegionalHeadquarter: (
-            UserRegionalHeadquarterPosition, RegionalPositionSerializer
-        ),
-        LocalHeadquarter: (
-            UserLocalHeadquarterPosition, LocalPositionSerializer
-        ),
-        EducationalHeadquarter: (
-            UserEducationalHeadquarterPosition, EducationalPositionSerializer
-        ),
-        Detachment: (UserDetachmentPosition, DetachmentPositionSerializer),
-    }
+
     _POSITIONS_MAPPING = {
         CentralHeadquarter: (
             UserCentralHeadquarterPosition, CentralPositionSerializer
@@ -1759,6 +1742,12 @@ class EventUserDocumentSerializer(serializers.ModelSerializer):
             'event',
             'user'
         )
+
+
+class EmailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RSOUser
+        fields = ('email',)
 
 
 class MultiEventApplicationSerializer(serializers.ModelSerializer):

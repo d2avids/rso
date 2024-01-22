@@ -39,6 +39,7 @@ UPDATE_DELETE = {
         'delete': 'destroy',
 }
 CREATE_METHOD = {'post': 'create', }
+POST_RESET_PASSWORD = {'post': 'reset_password'}
 DOWNLOAD_MEMBERSHIP_FILE = {'get': 'download_membership_file'}
 DOWNLOAD_CONSENT_PD = {'get': 'download_consent_personal_data'}
 DOWNLOAD_PARENT_CONSENT_PD = {'get': 'download_parent_consent_personal_data'}

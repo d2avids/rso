@@ -20,10 +20,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', default='key')
 
 DEBUG = os.getenv('DEBUG', default=False) == 'True'
+
 ALLOWED_HOSTS = os.getenv(
     'ALLOWED_HOSTS',
     default='127.0.0.1,localhost,0.0.0.0'
 ).split(',')
+
+DEFAULT_SITE_URL = os.getenv('DEFAULT_SITE_URL', default='127.0.0.1:8000')
 
 DATABASE = os.getenv('DATABASE', default='sqlite')
 
@@ -342,13 +345,15 @@ DJOSER = {
     'USERNAME_FIELD': 'username',
     'USER_CREATE_PASSWORD_RETYPE': True,
     'SEND_ACTIVATION_EMAIL': False,
-    'PASSWORD_CHANGE_EMAIL_CONFIRMATION': True,
+    'PASSWORD_CHANGED_EMAIL_CONFIRMATION': False,
+    'PASSWORD_RESET_CONFIRM_RETYPE': False,
     'HIDE_USERS': False,
     'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
     'SERIALIZERS': {
         'user': 'api.serializers.DjoserUserSerializer',
         'user_create_password_retype': 'api.serializers.UserCreateSerializer',
     },
+    
 }
 
 SWAGGER_SETTINGS = {

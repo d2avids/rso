@@ -1,5 +1,6 @@
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
+from djoser.signals import user_updated
 
 from users.models import UserMedia, UserStatementDocuments
 from users.utils import user_image_folder_delete, user_statement_folder_delete

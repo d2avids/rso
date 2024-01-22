@@ -4,7 +4,7 @@ from rest_framework.routers import DefaultRouter
 
 from api.constants import (CREATE_DELETE, CREATE_METHOD, DELETE,
                            DOWNLOAD_ALL_FORMS, DOWNLOAD_CONSENT_PD,
-                           DOWNLOAD_MEMBERSHIP_FILE,
+                           DOWNLOAD_MEMBERSHIP_FILE, POST_RESET_PASSWORD,
                            DOWNLOAD_PARENT_CONSENT_PD, LIST, LIST_CREATE,
                            RETRIEVE_CREATE, UPDATE_DELETE, UPDATE_RETRIEVE)
 from api.views import (AnswerDetailViewSet, AreaViewSet,
@@ -28,6 +28,7 @@ from api.views import (AnswerDetailViewSet, AreaViewSet,
                        UserPrivacySettingsViewSet,
                        UserProfessionalEducationViewSet, UserRegionViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
+                       CustomUserViewSet,
                        apply_for_verification, change_membership_fee_status,
                        create_answers, get_structural_units, verify_user)
 
@@ -314,5 +315,10 @@ user_nested_urls = [
 
 urlpatterns = [
     path('register/', UserViewSet.as_view(CREATE_METHOD), name='user-create'),
+    path(
+        'reset_password/',
+        CustomUserViewSet.as_view(POST_RESET_PASSWORD),
+        name='reset_password'
+    ),
     path('', include(router.urls)),
 ] + user_nested_urls
