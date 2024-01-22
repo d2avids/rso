@@ -10,6 +10,8 @@ from api.constants import (CREATE_DELETE, CREATE_METHOD,
                            RETRIEVE_CREATE, UPDATE_DELETE, UPDATE_RETRIEVE)
 from api.views import (AnswerDetailViewSet, AreaViewSet,
                        CentralPositionViewSet, CentralViewSet,
+                       CompetitionViewSet, CompetitionApplicationsViewSet,
+                       СompetitionParticipantsViewSet,
                        DetachmentAcceptViewSet, DetachmentApplicationViewSet,
                        DetachmentPositionViewSet, DetachmentViewSet,
                        DistrictPositionViewSet, DistrictViewSet,
@@ -19,7 +21,7 @@ from api.views import (AnswerDetailViewSet, AreaViewSet,
                        EventOrganizationDataViewSet, EventParticipantsViewSet,
                        EventUserDocumentViewSet, EventViewSet,
                        ForeignUserDocumentsViewSet, LocalPositionViewSet,
-                       LocalViewSet, MemberCertViewSet, MultiEventViewSet, 
+                       LocalViewSet, MemberCertViewSet, MultiEventViewSet,
                        PositionViewSet, RegionalPositionViewSet,
                        RegionalViewSet, RegionViewSet,
                        RSOUserViewSet, UserDocumentsViewSet,
@@ -29,7 +31,6 @@ from api.views import (AnswerDetailViewSet, AreaViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
                        apply_for_verification, change_membership_fee_status,
                        create_answers, get_structural_units, verify_user)
-from events.views import CompetitionViewSet, CompetitionApplicationsViewSet, СompetitionParticipantsViewSet
 
 
 app_name = 'api'
