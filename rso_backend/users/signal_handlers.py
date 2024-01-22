@@ -4,7 +4,6 @@ from djoser.signals import user_updated
 
 from users.models import UserMedia, UserStatementDocuments
 from users.utils import user_image_folder_delete, user_statement_folder_delete
-# from api.tasks import send_change_password_email
 
 
 @receiver(pre_delete, sender=UserMedia)
@@ -25,13 +24,3 @@ def delete_image_with_object_user_statement_docs(sender, instance, **kwargs):
     """
 
     user_statement_folder_delete(instance)
-
-
-# @receiver(user_updated)
-# def handle_user_updated(sender, user, request, **kwargs):
-#     """Отправка письма подтверждения смены пароля.
-
-#     Функция использует таску для Celery.
-#     """
-#     print('сигнал сработал')
-#     send_change_password_email.delay(user.id, request.data)

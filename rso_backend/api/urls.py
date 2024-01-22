@@ -2,10 +2,9 @@ from django.urls import include, path
 from djoser.views import UserViewSet
 from rest_framework.routers import DefaultRouter
 
-from api.constants import (CREATE_DELETE, CREATE_METHOD,
-                           CRUD_METHODS_WITHOUT_LIST, DELETE,
+from api.constants import (CREATE_DELETE, CREATE_METHOD, DELETE,
                            DOWNLOAD_ALL_FORMS, DOWNLOAD_CONSENT_PD,
-                           DOWNLOAD_MEMBERSHIP_FILE,
+                           DOWNLOAD_MEMBERSHIP_FILE, POST_RESET_PASSWORD,
                            DOWNLOAD_PARENT_CONSENT_PD, LIST, LIST_CREATE,
                            RETRIEVE_CREATE, UPDATE_DELETE, UPDATE_RETRIEVE)
 from api.views import (AnswerDetailViewSet, AreaViewSet,
@@ -74,7 +73,9 @@ UserEduVS = UserEducationViewSet.as_view(UPDATE_RETRIEVE)
 UserProfEduRetrieveCreateVS = UserProfessionalEducationViewSet.as_view(
     RETRIEVE_CREATE
 )
-UserProfEduPUDVS = UserProfessionalEducationViewSet.as_view(UPDATE_RETRIEVE | DELETE)
+UserProfEduPUDVS = UserProfessionalEducationViewSet.as_view(
+    UPDATE_RETRIEVE | DELETE
+)
 UserDocVS = UserDocumentsViewSet.as_view(UPDATE_RETRIEVE)
 UserRegVS = UserRegionViewSet.as_view(UPDATE_RETRIEVE)
 UserPrivacyVS = UserPrivacySettingsViewSet.as_view(UPDATE_RETRIEVE)
@@ -104,7 +105,9 @@ DetachmentApplicationVS = DetachmentApplicationViewSet.as_view(CREATE_DELETE)
 DetachmentPositionListVS = DetachmentPositionViewSet.as_view(LIST)
 DetachmentPositionUpdateVS = DetachmentPositionViewSet.as_view(UPDATE_RETRIEVE)
 EducationalPositionListVS = EducationalPositionViewSet.as_view(LIST)
-EducationalPositionUpdateVS = EducationalPositionViewSet.as_view(UPDATE_RETRIEVE)
+EducationalPositionUpdateVS = EducationalPositionViewSet.as_view(
+    UPDATE_RETRIEVE
+)
 LocalPositionListVS = LocalPositionViewSet.as_view(LIST)
 LocalPositionUpdateVS = LocalPositionViewSet.as_view(UPDATE_RETRIEVE)
 RegionalPositionListVS = RegionalPositionViewSet.as_view(LIST)
@@ -289,6 +292,10 @@ user_nested_urls = [
 
 urlpatterns = [
     path('register/', UserViewSet.as_view(CREATE_METHOD), name='user-create'),
-    path('reset_password/', CustomUserViewSet.as_view({'post': 'reset_password'}), name='reset_password'),
+    path(
+        'reset_password/',
+        CustomUserViewSet.as_view(POST_RESET_PASSWORD),
+        name='reset_password'
+    ),
     path('', include(router.urls)),
 ] + user_nested_urls
