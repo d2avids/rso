@@ -2868,6 +2868,23 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_201_CREATED)
 
+    @action(detail=False,
+            methods=['get'],
+            url_path='all',
+            permission_classes=(permissions.AllowAny,))
+    def all(self, request, *args, **kwargs):
+        """Получение всех неверифицированных заявок на участие в конкурсе.
+
+        Доступ: любой пользователь.
+        """
+        queryset = СompetitionApplications.objects.all()
+        serializer = СompetitionApplicationsObjectSerializer(
+            queryset,
+            many=True,
+            context={'request': request}
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class СompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
     """ Вьюсет для участников мероприятия.
