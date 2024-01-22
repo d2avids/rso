@@ -8,11 +8,11 @@ from api.utils import (check_roles_for_edit, check_trusted_for_detachments,
                        check_trusted_for_districthead,
                        check_trusted_for_eduhead, check_trusted_for_localhead,
                        check_trusted_for_regionalhead,
-                       check_trusted_in_headquarters, check_trusted_user,
+                       check_trusted_in_headquarters, check_trusted_user, is_regional_commander,
                        is_safe_method, is_stuff_or_central_commander,
                        check_trusted_for_centralhead, check_commander_or_not)
 from events.models import Event, EventOrganizationData
-from headquarters.models import (Detachment, DistrictHeadquarter,
+from headquarters.models import (CentralHeadquarter, Detachment,
                                  EducationalHeadquarter, LocalHeadquarter,
                                  RegionalHeadquarter,
                                  UserCentralHeadquarterPosition,
@@ -20,7 +20,9 @@ from headquarters.models import (Detachment, DistrictHeadquarter,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition)
+                                 UserRegionalHeadquarterPosition,
+                                 DistrictHeadquarter)
+from api.serializers import UserCommanderSerializer, UserTrustedSerializer
 from users.models import RSOUser
 
 
@@ -75,6 +77,8 @@ class IsDistrictCommander(BasePermission):
     """
 
     def has_permission(self, request, view):
+        if request.method in ('PATCH', 'PUT'):
+            return self.has_object_permission(request, view, view.get_object())
         return any([
             is_safe_method(request),
             is_stuff_or_central_commander(request),
@@ -108,6 +112,8 @@ class IsRegionalCommander(BasePermission):
     """
 
     def has_permission(self, request, view):
+        if request.method in ('PATCH', 'PUT'):
+            return self.has_object_permission(request, view, view.get_object())
         headquarters = [
             DistrictHeadquarter,
             RegionalHeadquarter
@@ -154,6 +160,8 @@ class IsLocalCommander(BasePermission):
     """
 
     def has_permission(self, request, view):
+        if request.method in ('PATCH', 'PUT'):
+            return self.has_object_permission(request, view, view.get_object())
         headquarters = [
             LocalHeadquarter,
             RegionalHeadquarter,
@@ -204,6 +212,8 @@ class IsEducationalCommander(BasePermission):
     """
 
     def has_permission(self, request, view):
+        if request.method in ('PATCH', 'PUT'):
+            return self.has_object_permission(request, view, view.get_object())
         headquarters = [
             EducationalHeadquarter,
             LocalHeadquarter,
@@ -297,6 +307,8 @@ class IsDetachmentCommander(BasePermission):
         ])
 
     def has_permission(self, request, view):
+        if request.method in ('PATCH', 'PUT'):
+            return self.has_object_permission(request, view, view.get_object())
         headquarters = [
             Detachment,
             EducationalHeadquarter,
@@ -531,7 +543,7 @@ class IsEventAuthor(BasePermission):
 
 class IsEventOrganizer(BasePermission):
     """
-    Проверяет, является ли пользователем автором
+    Проверяет, является ли пользователь автором
     мероприятия при чтении или редактировании одного или нескольких
     объектов связанных с мероприятием.
     """
@@ -583,3 +595,159 @@ class IsApplicantOrOrganizer(BasePermission):
         ).exists():
             return True
         return obj.user == request.user
+
+
+class IsCommander(BasePermission):
+    """Проверяет, является ли пользователь командиром
+    структурной единицы, типу которых разрешена подача
+    заявок на многоэтапное мероприятие.
+    Дополнительно проверяет верифицирован ли пользователь.
+    """
+    _STRUCTURAL_MAPPING = {
+        'Центральные штабы': CentralHeadquarter,
+        'Окружные штабы': DistrictHeadquarter,
+        'Региональные штабы': RegionalHeadquarter,
+        'Местные штабы': LocalHeadquarter,
+        'Образовательные штабы': EducationalHeadquarter,
+        'Отряды': Detachment
+    }
+
+    def has_permission(self, request, view):
+        event = get_object_or_404(Event, pk=view.kwargs.get('event_pk'))
+        available_structural_model = self._STRUCTURAL_MAPPING.get(
+            event.available_structural_units
+        )
+        return available_structural_model.objects.filter(
+            commander=request.user
+        ).exists() and request.user.is_verified
+
+
+class IsAuthorMultiEventApplication(BasePermission):
+    """Проверяет, является ли пользователь автором
+    заявки на многоэтапное мероприятие.
+    """
+    def has_object_permission(self, request, view, obj):
+        return obj.organizer_id == request.user.id
+
+
+class IsVerifiedPermission(BasePermission):
+    """Проверяет, верифицирован ли пользователь."""
+    def has_permission(self, request, view):
+        return request.user.is_verified
+
+
+class IsUserModelPositionCommander(permissions.BasePermission):
+    """
+    Проверка является ли юзер коммандиром штаба/отряда
+    при обращении к эндпоинтам членов штабов.
+    """
+
+    POSITIONS = {
+        UserCentralHeadquarterPosition: [
+            'centralheadquarter_commander',
+            'centralheadquarter_trusted'
+        ],
+        UserDistrictHeadquarterPosition: [
+            'districtheadquarter_commander',
+            'districtheadquarter_trusted'
+        ],
+        UserRegionalHeadquarterPosition: [
+            'regionalheadquarter_commander',
+            'regionalheadquarter_trusted'
+        ],
+        UserLocalHeadquarterPosition: [
+            'localheadquarter_commander',
+            'localheadquarter_trusted'
+        ],
+        UserEducationalHeadquarterPosition: [
+            'educationalheadquarter_commander',
+            'educationalheadquarter_trusted'
+        ],
+        UserDetachmentPosition: [
+            'detachment_commander',
+            'detachment_trusted'
+        ]
+    }
+
+    def prepare_data_commander(self, request):
+        """Метод создает словарь со штабами/отрядами, где юзер - командир."""
+
+        data = UserCommanderSerializer(request.user).data
+        prepared_data = {}
+        for key, value in data.items():
+            if value is not None:
+                prepared_data[key] = value
+        return prepared_data
+
+    def prepare_data_trusted(self, request):
+        """Метод создает словарь со штабами/отрядами, где юзер - доверенный."""
+
+        data = UserTrustedSerializer(request.user).data
+        prepared_data = {}
+        for key, value in data.items():
+            if value is not None:
+                prepared_data[key] = value
+        return prepared_data
+
+    def has_permission(self, request, view):
+        if (
+            request.method in ['PUT', 'PATCH']
+            and request.user.is_authenticated
+        ):
+            return self.has_object_permission(request, view, view.get_object())
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return False
+
+    def has_object_permission(self, request, view, obj):
+        headquarter_id = obj.headquarter.id
+        prepared_data = (
+            self.prepare_data_commander(request)
+            | self.prepare_data_trusted(request)
+        )
+        for prepared_key, prepared_value in prepared_data.items():
+            for model_position, commander_or_trusted in self.POSITIONS.items():
+                if prepared_key in commander_or_trusted:
+                    if isinstance(obj, model_position):
+                        if headquarter_id == prepared_value:
+                            return True
+        return False
+
+
+class IsCommanderOrTrustedAnywhere(BasePermission):
+    """
+    Возвращает True, если пользователь является командиром или доверенным
+    лицом хотя бы где-либо.
+    """
+    def has_permission(self, request, view):
+        commander_data = UserCommanderSerializer(request.user).data
+        trusted_data = UserTrustedSerializer(request.user).data
+        if any(commander_data.values()) or any(trusted_data.values()):
+            return True
+        return False
+
+
+class IsRegionalCommanderOrAdmin(BasePermission):
+    """Проверяет, является ли пользователь командиром
+    регионального штаба или администратором.
+    """
+
+    def has_permission(self, request, view):
+        return is_regional_commander(request.user)
+
+    def has_object_permission(self, request, view, obj):
+        return is_regional_commander(request.user)
+
+
+class IsRegionalCommanderOrAdminOrAuthor(BasePermission):
+    """Для операций с одним обектом.
+    Проверяет, является ли пользователь командиром
+    регионального штаба, администратором или отрядом из заявки в конкурс.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        application = obj
+        current_detachment = view.get_detachment(request.user)
+        return (application.detachment == current_detachment or
+                application.junior_detachment == current_detachment or
+                is_regional_commander(request.user))

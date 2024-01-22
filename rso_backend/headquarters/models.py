@@ -180,6 +180,25 @@ class DistrictHeadquarter(Unit):
             self.central_headquarter = CentralHeadquarter.objects.first()
         super().save(*args, **kwargs)
 
+    def get_related_units(self):
+        regional_headquarters = self.regional_headquarters.all()
+
+        educational_headquarters = EducationalHeadquarter.objects.filter(
+            regional_headquarter__in=regional_headquarters
+        )
+        local_headquarters = LocalHeadquarter.objects.filter(
+            regional_headquarter__in=regional_headquarters
+        )
+        detachments = Detachment.objects.filter(
+            regional_headquarter__in=regional_headquarters
+        )
+
+        return {
+            'educational_headquarters': educational_headquarters,
+            'local_headquarters': local_headquarters,
+            'detachments': detachments
+        }
+
 
 class RegionalHeadquarter(Unit):
     region = models.ForeignKey(
@@ -481,8 +500,7 @@ class Position(models.Model):
     name = models.CharField(
         verbose_name='Должность',
         max_length=43,
-        blank=True,
-        null=True
+        unique=True,
     )
 
     def __str__(self):
@@ -535,6 +553,9 @@ class UserUnitPosition(models.Model):
         нового объекта (не вызывается для центрального штаба).
         """
         if self._state.adding:
+            default_position, _ = Position.objects.get_or_create(
+                name=settings.DEFAULT_POSITION_NAME
+            )
             headquarter = kwargs.pop('headquarter', None)
             class_above = kwargs.pop('class_above', None)
             if headquarter and class_above:
@@ -545,7 +566,8 @@ class UserUnitPosition(models.Model):
                     )
                 class_above.objects.create(
                     user_id=user_id,
-                    headquarter=headquarter
+                    headquarter=headquarter,
+                    position=default_position
                 )
             else:
                 raise ValueError(
@@ -723,6 +745,11 @@ class UserDetachmentPosition(UserUnitPosition):
         return self.headquarter.regional_headquarter
 
     def save(self, *args, **kwargs):
+        if not self.position:
+            default_position, _ = Position.objects.get_or_create(
+                name=settings.DEFAULT_POSITION_NAME
+            )
+            self.position = default_position
         if self._state.adding:
             headquarter = self.get_first_filled_headquarter()
             kwargs['headquarter'] = headquarter

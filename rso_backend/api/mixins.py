@@ -2,6 +2,12 @@ from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 
 
+class RetrieveViewSet(mixins.RetrieveModelMixin,
+                      GenericViewSet):
+    """Миксин, разрешающий методы чтения только у конкретного юзера."""
+    pass
+
+
 class ListRetrieveViewSet(mixins.RetrieveModelMixin,
                           mixins.ListModelMixin,
                           GenericViewSet):
@@ -54,8 +60,8 @@ class ListRetrieveDestroyViewSet(mixins.ListModelMixin,
 
 
 class RetrieveUpdateViewSet(mixins.RetrieveModelMixin,
-                                   mixins.UpdateModelMixin,
-                                   GenericViewSet):
+                            mixins.UpdateModelMixin,
+                            GenericViewSet):
     """
     Миксин для эндпоинта /events/<event_pk>/answers/
     разрешающий только методы чтения(retrieve) и обновления.
@@ -64,9 +70,9 @@ class RetrieveUpdateViewSet(mixins.RetrieveModelMixin,
 
 
 class CreateRetrieveUpdateViewSet(mixins.CreateModelMixin,
-                                         mixins.RetrieveModelMixin,
-                                         mixins.UpdateModelMixin,
-                                         GenericViewSet):
+                                  mixins.RetrieveModelMixin,
+                                  mixins.UpdateModelMixin,
+                                  GenericViewSet):
     """
     Миксин для эндпоинта /events/<event_pk>/user_documents/
     разрешающий только все методы, кроме чтения (list) и удаления.
