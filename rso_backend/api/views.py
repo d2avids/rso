@@ -8,7 +8,7 @@ from datetime import date, datetime
 import pdfrw
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -25,7 +25,9 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
 from api import constants
-from api.filters import EventFilter
+from api.filters import (EducationalHeadquarterFilter, EventFilter,
+                         LocalHeadquarterFilter, RSOUserFilter,
+                         DetachmentFilter, RegionalHeadquarterFilter)
 from api.mixins import (CreateDeleteViewSet, CreateListRetrieveDestroyViewSet,
                         CreateRetrieveUpdateViewSet,
                         ListRetrieveDestroyViewSet, ListRetrieveUpdateViewSet,
@@ -145,14 +147,27 @@ class RSOUserViewSet(RetrieveViewSet):
     Представляет пользователей. Доступны операции чтения.
     Пользователь имеет возможность изменять собственные данные
     по id или по эндпоинту /users/me.
-    Доступен поиск по username, first_name и last_name при передачи
-    search query-параметра.
+    Доступен поиск по username, first_name, last_name, patronymic_name
+    при передаче search query-параметра.
+    По умолчанию сортируются по last_name.
+    Доступна фильтрация по полям:
+    - district_headquarter__name,
+    - regional_headquarter__name,
+    - local_headquarter__name,
+    - educational_headquarter__name,
+    - detachment__name,
+    - gender,
+    - is_verified,
+    - membership_fee,
+    - date_of_birth.
     """
 
     queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('username', 'first_name', 'last_name')
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
+    search_fields = ('username', 'first_name', 'last_name', 'patronymic_name')
+    filterset_class = RSOUserFilter
+    ordering_fields = ('last_name')
     # TODO: переписать пермишены, чтобы получить данные можно было
     # TODO: только тех пользователей, что состоят в той же стр. ед., где
     # TODO: запрашивающий пользователь и является командиром/доверенным
@@ -215,6 +230,7 @@ class EducationalInstitutionViewSet(ListRetrieveViewSet):
 
     queryset = EducationalInstitution.objects.all()
     serializer_class = EducationalInstitutionSerializer
+    ordering = ('name',)
 
 
 class RegionViewSet(ListRetrieveViewSet):
@@ -223,6 +239,7 @@ class RegionViewSet(ListRetrieveViewSet):
     queryset = Region.objects.all()
     serializer_class = RegionSerializer
     permission_classes = [IsStuffOrCentralCommander,]
+    ordering = ('name',)
 
 
 class AreaViewSet(ListRetrieveViewSet):
@@ -234,6 +251,7 @@ class AreaViewSet(ListRetrieveViewSet):
     queryset = Area.objects.all()
     serializer_class = AreaSerializer
     permission_classes = [IsStuffOrCentralCommander,]
+    ordering_fields = ('name',)
 
 
 class PositionViewSet(ListRetrieveViewSet):
@@ -244,6 +262,7 @@ class PositionViewSet(ListRetrieveViewSet):
 
     queryset = Position.objects.all()
     serializer_class = PositionSerializer
+    ordering = ('name',)
 
 
 class BaseUserViewSet(viewsets.ModelViewSet):
@@ -324,6 +343,7 @@ class UserEducationViewSet(BaseUserViewSet):
     queryset = UserEducation.objects.all()
     serializer_class = UserEducationSerializer
     permission_classes = [IsStuffOrAuthor,]
+    ordering_fields = ('study_specialty',)
 
     def get_object(self):
         """Определяет instance для операций с объектом (get, upd, del)."""
@@ -339,6 +359,7 @@ class UserProfessionalEducationViewSet(BaseUserViewSet):
 
     queryset = UserProfessionalEducation.objects.all()
     permission_classes = [IsStuffOrAuthor,]
+    ordering = ('qualification',)
 
     def get_object(self):
         return UserProfessionalEducation.objects.filter(
@@ -587,12 +608,16 @@ class DistrictViewSet(viewsets.ModelViewSet):
     единице по ключу members_count, а также список всех участников по ключу
     members.
     Доступен поиск по name при передаче ?search=<value> query-параметра.
+    Сортировка по умолчанию - количество участников
     """
 
-    queryset = DistrictHeadquarter.objects.all()
+    queryset = DistrictHeadquarter.objects.annotate(
+        count_related=Count('members')
+    )
     serializer_class = DistrictHeadquarterSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+    ordering = ('count_related',)
 
     def get_permissions(self):
         if self.action == 'create':
@@ -614,12 +639,20 @@ class RegionalViewSet(viewsets.ModelViewSet):
     верификацию и относящихся к тому же региону, что и текущий региональный
     штаб, по ключу users_for_verification.
     Доступен поиск по name при передаче ?search=<value> query-параметра.
+    Доступна сортировка по ключам name, founding_date, count_related.
+    Сортировка по умолчанию - количество участников.
+    Доступна фильтрация по Окружным Штабам. Ключ - district_headquarter__name.
     """
 
-    queryset = RegionalHeadquarter.objects.all()
+    queryset = RegionalHeadquarter.objects.annotate(
+        count_related=Count('members')
+    )
     serializer_class = RegionalHeadquarterSerializer
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
+    ordering_fields = ('name', 'founding_date', 'count_related')
+    ordering = ('count_related', )
+    filterset_class = RegionalHeadquarterFilter
 
     def get_permissions(self):
         if self.action == 'create':
@@ -652,12 +685,20 @@ class LocalViewSet(viewsets.ModelViewSet):
     единице по ключу members_count, а также список всех участников по ключу
     members.
     Доступен поиск по name при передаче ?search=<value> query-параметра.
+    Доступна сортировка по ключам name, founding_date, count_related.
+    Доступна фильтрация по РШ и ОШ. Ключи - regional_headquarter__name,
+    district_headquarter__name.
     """
 
-    queryset = LocalHeadquarter.objects.all()
+    queryset = LocalHeadquarter.objects.annotate(
+        count_related=Count('members')
+    )
     serializer_class = LocalHeadquarterSerializer
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
+    ordering_fields = ('name', 'founding_date', 'count_related')
+    ordering = ('count_related', )
+    filterset_class = LocalHeadquarterFilter
 
     def get_permissions(self):
         if self.action == 'create':
@@ -680,12 +721,20 @@ class EducationalViewSet(viewsets.ModelViewSet):
     единице по ключу members_count, а также список всех участников по ключу
     members.
     Доступен поиск по name при передаче ?search=<value> query-параметра.
+    Доступна сортировка по ключам name, founding_date, count_related.
+    Доступна фильтрация по РШ, ОШ и ОИ. Ключи - regional_headquarter__name,
+    district_headquarter__name, local_headquarter__name.
     """
 
-    queryset = EducationalHeadquarter.objects.all()
+    queryset = EducationalHeadquarter.objects.annotate(
+        count_related=Count('members')
+    )
     serializer_class = EducationalHeadquarterSerializer
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
+    filterset_class = EducationalHeadquarterFilter
+    ordering_fields = ('name', 'founding_date', 'count_related')
+    ordering = ('count_related', )
 
     def get_permissions(self):
         if self.action == 'create':
@@ -714,12 +763,19 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     При операции чтения доступен список пользователей, подавших заявку на
     вступление в отряд по эндпоинту /applications/.
     Доступен поиск по name при передаче ?search=<value> query-параметра.
+    Доступна сортировка по ключам name, founding_date, count_related.
+    Доступна фильтрация по ключам area__name, educational_institution__name,
     """
 
-    queryset = Detachment.objects.all()
+    queryset = Detachment.objects.annotate(
+        count_related=Count('members')
+    )
     serializer_class = DetachmentSerializer
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
+    filterset_class = DetachmentFilter
+    ordering_fields = ('name', 'founding_date', 'count_related')
+    ordering = ('count_related', )
 
     def get_permissions(self):
         if self.action == 'create':
@@ -1030,7 +1086,6 @@ class EventViewSet(viewsets.ModelViewSet):
                     event_unit, permissions.IsAuthenticated
                 )
             ]
-            print(permission_classes)
         if self.action in (
                 'update', 'update_time_data', 'update_document_data'
         ):
