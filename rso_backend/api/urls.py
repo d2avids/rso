@@ -10,6 +10,8 @@ from api.constants import (CREATE_DELETE, CREATE_METHOD,
                            RETRIEVE_CREATE, UPDATE_DELETE, UPDATE_RETRIEVE)
 from api.views import (AnswerDetailViewSet, AreaViewSet,
                        CentralPositionViewSet, CentralViewSet,
+                       CompetitionViewSet, CompetitionApplicationsViewSet,
+                       СompetitionParticipantsViewSet,
                        DetachmentAcceptViewSet, DetachmentApplicationViewSet,
                        DetachmentPositionViewSet, DetachmentViewSet,
                        DistrictPositionViewSet, DistrictViewSet,
@@ -19,7 +21,7 @@ from api.views import (AnswerDetailViewSet, AreaViewSet,
                        EventOrganizationDataViewSet, EventParticipantsViewSet,
                        EventUserDocumentViewSet, EventViewSet,
                        ForeignUserDocumentsViewSet, LocalPositionViewSet,
-                       LocalViewSet, MemberCertViewSet, MultiEventViewSet, 
+                       LocalViewSet, MemberCertViewSet, MultiEventViewSet,
                        PositionViewSet, RegionalPositionViewSet,
                        RegionalViewSet, RegionViewSet,
                        RSOUserViewSet, UserDocumentsViewSet,
@@ -72,6 +74,21 @@ router.register(
     r'events/(?P<event_pk>\d+)/multi_applications',
     MultiEventViewSet,
     basename='multi-applications'
+)
+router.register(
+    r'competitions',
+    CompetitionViewSet,
+    basename='competition'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/applications',
+    CompetitionApplicationsViewSet,
+    basename='competition-applications'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/participants',
+    СompetitionParticipantsViewSet,
+    basename='competition-participants'
 )
 
 

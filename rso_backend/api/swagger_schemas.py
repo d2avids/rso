@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework import status
 from events.models import Event
@@ -77,7 +76,8 @@ short_user = {
         type=openapi.TYPE_STRING, read_only=True, title='Дата рождения'
     ),
     'membership_fee': openapi.Schema(
-        type=openapi.TYPE_BOOLEAN, read_only=True, title='Членский взнос оплачен'
+        type=openapi.TYPE_BOOLEAN, read_only=True,
+        title='Членский взнос оплачен'
     ),
 }
 
@@ -105,6 +105,21 @@ document = {
     ),
     'document': openapi.Schema(
         type=openapi.TYPE_STRING, title='Документ'
+    ),
+}
+
+short_detachment = {
+    'id': openapi.Schema(
+        type=openapi.TYPE_INTEGER,
+        title='ID',
+    ),
+    'name': openapi.Schema(
+        type=openapi.TYPE_STRING,
+        title='Название',
+    ),
+    'banner': openapi.Schema(
+        type=openapi.TYPE_STRING,
+        title='Путь к баннеру',
     ),
 }
 
@@ -197,5 +212,115 @@ participant_me_response = {
                 )
             )
         }
+    )
+}
+
+request_update_application = (
+    openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'is_confirmed_by_junior': openapi.Schema(
+                    type=openapi.TYPE_BOOLEAN,
+                    title='Подтверждено младшим отрядом')
+            }
+    )
+)
+
+response_create_application = (
+    openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'junior_detachment': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    title='ID младшего отряда',
+                )
+            }
+    )
+)
+
+response_competitions_applications = {
+    status.HTTP_200_OK: openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'id': openapi.Schema(
+                type=openapi.TYPE_INTEGER,
+                title='ID',
+                read_only=True
+            ),
+            'competition': openapi.Schema(
+                type=openapi.TYPE_INTEGER,
+                title='Конкурс',
+                read_only=True
+            ),
+            'detachment': openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties=short_detachment,
+                title='Отряд',
+                read_only=True
+            ),
+            'junior_detachment': openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties=short_detachment,
+                title='Младший отряд',
+            ),
+            'created_at': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                format=openapi.FORMAT_DATETIME,
+                title='Дата и время создания заявки',
+                read_only=True
+            ),
+            'is_confirmed_by_junior': openapi.Schema(
+                type=openapi.TYPE_BOOLEAN,
+                title='Подтверждено младшим отрядом'
+            ),
+        }
+    )
+}
+
+response_competitions_participants = {
+    status.HTTP_200_OK: openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'id': openapi.Schema(
+                type=openapi.TYPE_INTEGER,
+                title='ID',
+                read_only=True
+            ),
+            'competition': openapi.Schema(
+                type=openapi.TYPE_INTEGER,
+                title='Конкурс',
+                read_only=True
+            ),
+            'detachment': openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties=short_detachment,
+                title='Отряд',
+                read_only=True
+            ),
+            'junior_detachment': openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties=short_detachment,
+                title='Младший отряд',
+                read_only=True,
+                x_nullable=True
+            ),
+            'created_at': openapi.Schema(
+                type=openapi.TYPE_STRING,
+                format=openapi.FORMAT_DATETIME,
+                title='Дата и время создания заявки',
+                read_only=True
+            ),
+        }
+    )
+}
+
+response_junior_detachments = {
+    status.HTTP_200_OK: openapi.Schema(
+        type=openapi.TYPE_ARRAY,
+        items=openapi.Items(
+            type=openapi.TYPE_OBJECT,
+            properties=short_detachment,
+            title='Младшие отряды'
+        )
     )
 }

@@ -16,7 +16,9 @@ from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                            PRIVACY_RAW_EXISTS, REGION_RAW_EXISTS,
                            STATEMENT_RAW_EXISTS, TOO_MANY_EDUCATIONS)
 from api.utils import create_first_or_exception, get_is_trusted
-from events.models import (Event, EventAdditionalIssue, EventApplications,
+from events.models import (Сompetition, СompetitionApplications,
+                           СompetitionParticipants, Event,
+                           EventAdditionalIssue, EventApplications,
                            EventDocument, EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
                            EventTimeData, EventUserDocument,
@@ -1443,6 +1445,8 @@ class DetachmentSerializer(BaseUnitSerializer):
     area = serializers.PrimaryKeyRelatedField(
         queryset=Area.objects.all()
     )
+    nomination = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = Detachment
@@ -1460,6 +1464,8 @@ class DetachmentSerializer(BaseUnitSerializer):
             'photo4',
             'city',
             'founding_date',
+            'nomination',
+            'status'
         )
 
     def to_representation(self, instance):
@@ -1490,6 +1496,32 @@ class DetachmentSerializer(BaseUnitSerializer):
         except ValidationError as e:
             raise serializers.ValidationError(e.message_dict)
         return data
+
+    def get_status(self, obj):
+        if not СompetitionParticipants.objects.filter(
+            Q(detachment=obj) & Q(junior_detachment__isnull=False) |
+            Q(detachment__isnull=False) & Q(junior_detachment=obj)
+        ).exists():
+            return None
+        if СompetitionParticipants.objects.filter(
+            Q(detachment=obj) & Q(junior_detachment__isnull=False)
+        ).exists():
+            return 'Наставник'
+        return 'Дебют'
+
+    def get_nomination(self, obj):
+        if not СompetitionParticipants.objects.filter(
+            Q(detachment=obj) & Q(junior_detachment__isnull=False) |
+            Q(detachment__isnull=False) & Q(junior_detachment=obj) |
+            Q(junior_detachment=obj)
+        ).exists():
+            return None
+        if СompetitionParticipants.objects.filter(
+            Q(detachment=obj) & Q(junior_detachment__isnull=False) |
+            Q(detachment__isnull=False) & Q(junior_detachment=obj)
+        ).exists():
+            return 'Тандем'
+        return 'Старт'
 
 
 class MemberCertSerializer(serializers.ModelSerializer):
@@ -2022,3 +2054,136 @@ class DjoserUserSerializer(RSOUserSerializer):
             'educational_headquarter_id',
             'detachment_id',
         )
+
+
+class СompetitionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Сompetition
+        fields = '__all__'
+
+
+class СompetitionApplicationsObjectSerializer(serializers.ModelSerializer):
+    junior_detachment = ShortDetachmentSerializer()
+    detachment = ShortDetachmentSerializer()
+
+    class Meta:
+        model = СompetitionApplications
+        fields = (
+            'id',
+            'competition',
+            'junior_detachment',
+            'detachment',
+            'created_at',
+            'is_confirmed_by_junior'
+        )
+
+
+class СompetitionApplicationsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = СompetitionApplications
+        fields = (
+            'id',
+            'competition',
+            'junior_detachment',
+            'detachment',
+            'created_at',
+            'is_confirmed_by_junior'
+        )
+        read_only_fields = (
+            'id',
+            'created_at',
+            'competition',
+            'junior_detachment',
+        )
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        applications = СompetitionApplications.objects.all()
+        participants = СompetitionParticipants.objects.all()
+        if request.method == 'POST':
+            competition = self.context.get('competition')
+            detachment = self.context.get('detachment')
+            junior_detachment = self.context.get('junior_detachment')
+
+            if detachment:
+                if not request.data.get('junior_detachment'):
+                    raise serializers.ValidationError(
+                        'Не указан младший отряд'
+                    )
+                if detachment.founding_date >= date(2023, 1, 25):
+                    raise serializers.ValidationError(
+                        'Отряд-наставник должен быть основан до 25.01.2024'
+                    )
+                if applications.filter(
+                    competition=competition,
+                    detachment=detachment
+                ).exists() or participants.filter(
+                    competition=competition,
+                    detachment=detachment
+                ).exists():
+                    raise serializers.ValidationError(
+                        'Вы уже подали заявку или участвуете в этом конкурсе'
+                    )
+
+            if junior_detachment.founding_date < date(2023, 1, 25):
+                raise serializers.ValidationError(
+                    'junior_detachment основан ранее 25.01.2024,'
+                    'подать заявку невозможно'
+                )
+            if applications.filter(
+                competition=competition,
+                junior_detachment=junior_detachment
+                ).exists() or participants.filter(
+                    competition=competition,
+                    junior_detachment=junior_detachment
+                    ).exists():
+                raise serializers.ValidationError(
+                    'junior_detachment уже подал заявку или участвует '
+                    'в этом конкурсе'
+                )
+        return attrs
+
+
+class СompetitionParticipantsObjectSerializer(serializers.ModelSerializer):
+    detachment = ShortDetachmentSerializer()
+    junior_detachment = ShortDetachmentSerializer()
+
+    class Meta:
+        model = СompetitionParticipants
+        fields = (
+            'id',
+            'competition',
+            'detachment',
+            'junior_detachment',
+            'created_at'
+        )
+
+
+class СompetitionParticipantsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = СompetitionParticipants
+        fields = (
+            'id',
+            'competition',
+            'detachment',
+            'junior_detachment',
+            'created_at'
+        )
+        read_only_fields = (
+            'id',
+            'competition',
+            'detachment',
+            'junior_detachment',
+            'created_at'
+        )
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if request.method == 'POST':
+            application = self.context.get('application')
+            if (application.detachment and not
+                    application.is_confirmed_by_junior):
+                raise serializers.ValidationError(
+                    'Заявка еще не подтверждена младшим отрядом.'
+                )
+        return attrs
