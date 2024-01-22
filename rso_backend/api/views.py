@@ -172,33 +172,6 @@ class CustomUserViewSet(UserViewSet):
         return Response(status=status.HTTP_200_OK)
 
 
-class CustomUserViewSet(UserViewSet):
-    """Кастомный вьюсет для изменения метода reset_password."""
-
-    @action(
-            methods=['post'],
-            detail=False,
-            permission_classes=(permissions.IsAuthenticated,),
-            serializer_class=EmailSerializer,
-    )
-    def reset_password(self, request, *args, **kwargs):
-        """
-        POST-запрос с адресом почты в json`е 
-        высылает ссылку на почту на подтвеждение смены пароля.
-        Вид ссылки в почте:
-        'http://лк.трудкрут.рф/password/reset/confirm/{uid}/{token}'
-        """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.get_user()
-        if user:
-            send_reset_password_email.delay(
-                user_id=user.id,
-                data=request.data
-            )
-        return Response(status=status.HTTP_200_OK)
-
-
 class RSOUserViewSet(RetrieveViewSet):
     """
     Представляет пользователей. Доступны операции чтения.
