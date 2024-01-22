@@ -2934,7 +2934,7 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
 
         Доступ: любой пользователь.
         """
-        queryset = СompetitionApplications.objects.all()
+        queryset = self.get_queryset()
         serializer = СompetitionApplicationsObjectSerializer(
             queryset,
             many=True,
