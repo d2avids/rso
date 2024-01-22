@@ -1507,7 +1507,7 @@ class DetachmentSerializer(BaseUnitSerializer):
             Q(detachment=obj) & Q(junior_detachment__isnull=False)
         ).exists():
             return 'Наставник'
-        return 'Дебют'
+        return 'Старт'
 
     def get_nomination(self, obj):
         if not СompetitionParticipants.objects.filter(
@@ -1521,7 +1521,7 @@ class DetachmentSerializer(BaseUnitSerializer):
             Q(detachment__isnull=False) & Q(junior_detachment=obj)
         ).exists():
             return 'Тандем'
-        return 'Старт'
+        return 'Дебют'
 
 
 class MemberCertSerializer(serializers.ModelSerializer):
