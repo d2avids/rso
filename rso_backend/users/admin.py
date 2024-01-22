@@ -51,6 +51,22 @@ class UserStatementDocumentsInLine(admin.StackedInline):
 @admin.register(RSOUser)
 class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
     resource_class = RSOUserResource
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': (
+                'username',
+                'email',
+                'first_name',
+                'last_name',
+                'patronymic_name',
+                'gender',
+                'region',
+                'password1',
+                'password2'
+            ),
+        }),
+    )
     inlines = [
         UserRegionInline,
         UserMediaInline,
@@ -86,6 +102,10 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
     filter_horizontal = ()
     list_filter = ()
     fieldsets = ()
+
+    def get_form(self, request, obj=None, **kwargs):
+        self.inlines = [] if obj is None else self.inlines
+        return super(UserAdmin, self).get_form(request, obj, **kwargs)
 
 
 @admin.register(UserMembershipLogs)

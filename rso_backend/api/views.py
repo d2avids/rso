@@ -1,8 +1,9 @@
 import io
+import itertools
 import mimetypes
 import os
 import zipfile
-from datetime import datetime
+from datetime import date, datetime
 
 import pdfrw
 from django.core.exceptions import ValidationError
@@ -19,7 +20,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
-from rest_framework import filters, permissions, status, viewsets
+from rest_framework import filters, permissions, serializers, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
@@ -30,19 +31,31 @@ from api.filters import (EducationalHeadquarterFilter, EventFilter,
 from api.mixins import (CreateDeleteViewSet, CreateListRetrieveDestroyViewSet,
                         CreateRetrieveUpdateViewSet,
                         ListRetrieveDestroyViewSet, ListRetrieveUpdateViewSet,
-                        ListRetrieveViewSet, RetrieveUpdateViewSet)
-from api.permissions import (IsApplicantOrOrganizer, IsAuthorPermission,
+                        ListRetrieveViewSet, RetrieveUpdateViewSet,
+                        RetrieveViewSet)
+from api.permissions import (IsApplicantOrOrganizer,
+                             IsAuthorMultiEventApplication,
+                             IsAuthorPermission, IsCommander,
                              IsDetachmentCommander, IsDistrictCommander,
                              IsEducationalCommander, IsEventAuthor,
                              IsEventOrganizer, IsLocalCommander,
                              IsRegionalCommander, IsRegionalCommanderForCert,
+                             IsRegionalCommanderOrAdmin,
+                             IsRegionalCommanderOrAdminOrAuthor,
                              IsRegStuffOrDetCommander, IsStuffOrAuthor,
                              IsStuffOrCentralCommander,
-                             MembershipFeePermission,
-                             IsStuffOrCentralCommanderOrTrusted)
+                             IsStuffOrCentralCommanderOrTrusted,
+                             IsVerifiedPermission, MembershipFeePermission,
+                             IsUserModelPositionCommander,
+                             IsCommanderOrTrustedAnywhere)
 from api.serializers import (AnswerSerializer, AreaSerializer,
                              CentralHeadquarterSerializer,
                              CentralPositionSerializer,
+                             СompetitionSerializer,
+                             СompetitionApplicationsSerializer,
+                             СompetitionApplicationsObjectSerializer,
+                             СompetitionParticipantsSerializer,
+                             СompetitionParticipantsObjectSerializer,
                              DetachmentPositionSerializer,
                              DetachmentSerializer,
                              DistrictHeadquarterSerializer,
@@ -61,32 +74,55 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              ForeignUserDocumentsSerializer,
                              LocalHeadquarterSerializer,
                              LocalPositionSerializer, MemberCertSerializer,
+                             MultiEventApplicationSerializer,
+                             MultiEventParticipantsSerializer,
                              PositionSerializer,
                              ProfessionalEductionSerializer,
                              RegionalHeadquarterSerializer,
                              RegionalPositionSerializer, RegionSerializer,
-                             RSOUserSerializer, ShortDetachmentSerializer,
+                             RSOUserSerializer,
+                             ShortCentralHeadquarterSerializerME,
+                             ShortDetachmentSerializer,
+                             ShortDetachmentSerializerME,
                              ShortDistrictHeadquarterSerializer,
+                             ShortDistrictHeadquarterSerializerME,
                              ShortEducationalHeadquarterSerializer,
+                             ShortEducationalHeadquarterSerializerME,
                              ShortLocalHeadquarterSerializer,
+                             ShortLocalHeadquarterSerializerME,
+                             ShortMultiEventApplicationSerializer,
                              ShortRegionalHeadquarterSerializer,
+                             ShortRegionalHeadquarterSerializerME,
+                             ShortUserSerializer,
                              UserDetachmentApplicationSerializer,
                              UserDocumentsSerializer, UserEducationSerializer,
                              UserMediaSerializer,
                              UserPrivacySettingsSerializer,
                              UserProfessionalEducationSerializer,
-                             UserRegionSerializer, UsersParentSerializer,
+                             UserRegionSerializer, UserTrustedSerializer,
+                             UsersParentSerializer,
                              UserStatementDocumentsSerializer,
                              UserDetachmentApplicationReadSerializer,
-                             UserVerificationReadSerializer,)
-from api.swagger_schemas import EventSwaggerSerializer, applications_response
+                             UserVerificationReadSerializer,
+                             UserCommanderSerializer)
+from api.swagger_schemas import (EventSwaggerSerializer, applications_response,
+                                 application_me_response, answer_response,
+                                 participant_me_response,
+                                 request_update_application,
+                                 response_competitions_applications,
+                                 response_competitions_participants,
+                                 response_create_application,
+                                 response_junior_detachments)
 from api.utils import (create_and_return_archive, download_file,
                        get_headquarter_users_positions_queryset, get_user,
                        get_user_by_id, text_to_lines)
-from events.models import (Event, EventAdditionalIssue, EventApplications,
+from events.models import (Сompetition, СompetitionApplications,
+                           СompetitionParticipants,
+                           Event, EventAdditionalIssue, EventApplications,
                            EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
-                           EventTimeData, EventUserDocument)
+                           EventTimeData, EventUserDocument,
+                           MultiEventApplication)
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -106,7 +142,7 @@ from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
                           UserStatementDocuments, UserVerificationRequest)
 
 
-class RSOUserViewSet(ListRetrieveUpdateViewSet):
+class RSOUserViewSet(RetrieveViewSet):
     """
     Представляет пользователей. Доступны операции чтения.
     Пользователь имеет возможность изменять собственные данные
@@ -132,17 +168,21 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
     search_fields = ('username', 'first_name', 'last_name', 'patronymic_name')
     filterset_class = RSOUserFilter
     ordering_fields = ('last_name')
-    permission_classes = [permissions.AllowAny,]
+    # TODO: переписать пермишены, чтобы получить данные можно было
+    # TODO: только тех пользователей, что состоят в той же стр. ед., где
+    # TODO: запрашивающий пользователь и является командиром/доверенным
+    permission_classes = (
+        permissions.IsAuthenticated, IsCommanderOrTrustedAnywhere,
+    )
 
     @action(
         detail=False,
         methods=['get', 'patch'],
-        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor),
+        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor,),
         serializer_class=RSOUserSerializer,
     )
     def me(self, request, pk=None):
         """Представляет текущего авторизованного пользователя."""
-
         if request.method == 'PATCH':
             serializer = self.get_serializer(
                 request.user,
@@ -153,6 +193,36 @@ class RSOUserViewSet(ListRetrieveUpdateViewSet):
             serializer.save()
 
         return Response(self.get_serializer(request.user).data)
+
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor,),
+        serializer_class=UserCommanderSerializer
+    )
+    def me_commander(self, request, pk=None):
+        """
+        Представляет айди структурных единиц, в которых пользователь
+        является командиром.
+        """
+        if request.method == 'GET':
+            serializer = UserCommanderSerializer(request.user)
+            return Response(serializer.data)
+
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor,),
+        serializer_class=UserCommanderSerializer
+    )
+    def me_trusted(self, request, pk=None):
+        """
+        Представляет айди структурных единиц, в которых пользователь
+        является доверенным.
+        """
+
+        serializer = UserTrustedSerializer(request.user)
+        return Response(serializer.data)
 
 
 class EducationalInstitutionViewSet(ListRetrieveViewSet):
@@ -730,8 +800,10 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     def get_verifications(self, request, pk=None):
         """Получить список членов отряда, подавших заявку на верификацию."""
         detachment = self.get_object()
-        user_ids_in_verification_request = UserVerificationRequest.objects.values_list(
-            'user_id', flat=True
+        user_ids_in_verification_request = (
+            UserVerificationRequest.objects.values_list(
+                'user_id', flat=True
+            )
         )
         members_to_verify = detachment.members.filter(
             user__id__in=user_ids_in_verification_request
@@ -745,7 +817,7 @@ class DetachmentViewSet(viewsets.ModelViewSet):
 class BasePositionViewSet(viewsets.ModelViewSet):
     """Базовый вьюсет для просмотра/изменения участников штабов.
 
-    Необходимо переопределять метод get_queryset и атрибут serializer_class
+    Необходимо переопределять метод get_queryset и атрибут serializer_class.
     """
 
     serializer_class = None
@@ -765,8 +837,17 @@ class BasePositionViewSet(viewsets.ModelViewSet):
 
     def get_object(self):
         queryset = self.get_queryset()
-        member_pk = self.kwargs.get('member_pk')
-        obj = queryset.get(pk=member_pk)
+        member_pk = self.kwargs.get('membership_pk')
+        try:
+            obj = queryset.get(pk=member_pk)
+        # TODO: это не лучшая практика, но пока не вижу более правильного решения
+        # TODO: в действительности мы отлавливаем DoesNotExist для дочерних классов
+        # TODO: edit - можно добавить маппинг. Сделать позднее.
+        except Exception:
+            return Response(
+                {'detail': 'Не найден участник по заданному айди членства.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         return obj
 
 
@@ -794,7 +875,7 @@ class DistrictPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = DistrictPositionSerializer
-    permission_classes = (IsDistrictCommander,)
+    permission_classes = (IsUserModelPositionCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -811,7 +892,7 @@ class RegionalPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = RegionalPositionSerializer
-    permission_classes = (IsRegionalCommander,)
+    permission_classes = (IsUserModelPositionCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -828,7 +909,7 @@ class LocalPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = LocalPositionSerializer
-    permission_classes = (IsLocalCommander,)
+    permission_classes = (IsUserModelPositionCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -845,7 +926,7 @@ class EducationalPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = EducationalPositionSerializer
-    permission_classes = (IsEducationalCommander,)
+    permission_classes = (IsUserModelPositionCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -862,7 +943,7 @@ class DetachmentPositionViewSet(BasePositionViewSet):
     """
 
     serializer_class = DetachmentPositionSerializer
-    permission_classes = (IsDetachmentCommander,)
+    permission_classes = (IsUserModelPositionCommander,)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -982,13 +1063,13 @@ class EventViewSet(viewsets.ModelViewSet):
     filterset_class = EventFilter
     search_fields = ('name', 'address', 'description',)
 
-    PERMISSIONS_MAPPING = {
-        'central': IsStuffOrCentralCommander,
-        'districts': IsDistrictCommander,
-        'regionals': IsRegionalCommander,
-        'locals': IsLocalCommander,
-        'educationals': IsEducationalCommander,
-        'detachments': IsDetachmentCommander,
+    _PERMISSIONS_MAPPING = {
+        'Всероссийское': IsStuffOrCentralCommander,
+        'Окружное': IsDistrictCommander,
+        'Региональное': IsRegionalCommander,
+        'Городское': IsLocalCommander,
+        'Образовательное': IsEducationalCommander,
+        'Отрядное': IsDetachmentCommander,
     }
 
     def get_permissions(self):
@@ -1001,7 +1082,7 @@ class EventViewSet(viewsets.ModelViewSet):
             event_unit = self.request.data.get('scale')
             permission_classes = [permissions.IsAuthenticated]
             permission_classes += [
-                self.PERMISSIONS_MAPPING.get(
+                self._PERMISSIONS_MAPPING.get(
                     event_unit, permissions.IsAuthenticated
                 )
             ]
@@ -1781,7 +1862,7 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
 
     def get_permissions(self):
         if self.action == 'create':
-            return [permissions.IsAuthenticated()]
+            return [permissions.IsAuthenticated(), IsVerifiedPermission()]
         elif self.action in ['retrieve', 'destroy']:
             return [permissions.IsAuthenticated(), IsApplicantOrOrganizer()]
         else:
@@ -1852,6 +1933,7 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
             serializer_class=AnswerSerializer,
             permission_classes=(permissions.IsAuthenticated,
                                 IsEventOrganizer,))
+    @swagger_auto_schema(responses=answer_response)
     def answers(self, request, event_pk, pk):
         """Action для получения (GET) или удаления ответов (DELETE)
         на вопросы мероприятия по данной заявке.
@@ -1861,7 +1943,9 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
         answers = EventIssueAnswer.objects.filter(user=request.user,
                                                   event__id=event_pk)
         if request.method == 'GET':
-            serializer = AnswerSerializer(answers, many=True)
+            serializer = AnswerSerializer(answers,
+                                          many=True,
+                                          context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
         try:
             answers.delete()
@@ -1874,6 +1958,7 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
             url_path='me',
             serializer_class=EventApplicationsSerializer,
             permission_classes=(permissions.IsAuthenticated,))
+    @swagger_auto_schema(responses=application_me_response)
     def me(self, request, event_pk):
         """Action для получения всей информации по поданной текущим
         пользователем заявке на участие в мероприятии.
@@ -1888,7 +1973,8 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
         ).first()
         if application is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = EventApplicationsSerializer(application)
+        serializer = EventApplicationsSerializer(application,
+                                                 context={'request': request})
         return Response(serializer.data)
 
 
@@ -1922,6 +2008,7 @@ class EventParticipantsViewSet(ListRetrieveDestroyViewSet):
             url_path='me',
             serializer_class=EventParticipantsSerializer,
             permission_classes=(permissions.IsAuthenticated,))
+    @swagger_auto_schema(responses=participant_me_response)
     def me(self, request, event_pk):
         """Action для получения всей информации по профилю участника
         мероприятия.
@@ -1984,7 +2071,6 @@ class AnswerDetailViewSet(RetrieveUpdateViewSet):
           либо пользователи из модели организаторов.
         - чтение - автор заявки, либо пользователи из модели организаторов.
     """
-    permission_classes = (permissions.IsAuthenticated,)
     queryset = EventIssueAnswer.objects.all()
     serializer_class = AnswerSerializer
     permission_classes = (permissions.IsAuthenticated, IsApplicantOrOrganizer)
@@ -2001,11 +2087,16 @@ class AnswerDetailViewSet(RetrieveUpdateViewSet):
                 return [permissions.IsAuthenticated(), IsEventOrganizer()]
         return super().get_permissions()
 
+    @swagger_auto_schema(responses=answer_response)
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
     @action(detail=False,
             methods=['get'],
             url_path='me',
             serializer_class=AnswerSerializer,
             permission_classes=(permissions.IsAuthenticated,))
+    @swagger_auto_schema(responses=answer_response)
     def me(self, request, event_pk):
         """Action для получения сохраненных ответов пользователя по
         текущему мероприятию.
@@ -2018,7 +2109,9 @@ class AnswerDetailViewSet(RetrieveUpdateViewSet):
         user_documents = EventIssueAnswer.objects.filter(
             user=request.user, event__id=event_pk
         ).all()
-        serializer = AnswerSerializer(user_documents, many=True)
+        serializer = AnswerSerializer(user_documents,
+                                      many=True,
+                                      context={'request': request})
         return Response(serializer.data)
 
 
@@ -2089,4 +2182,753 @@ class EventUserDocumentViewSet(CreateRetrieveUpdateViewSet):
             user=request.user, event__id=event_pk
         ).all()
         serializer = EventUserDocumentSerializer(user_documents, many=True)
+        return Response(serializer.data)
+
+
+class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
+    """Вьюсет для многоэтапной заявки на мероприятие.
+
+    GET(list): Выводит список подвластных структурных единиц
+               доступных к подаче в заявке.
+    GET(retrieve): Выводит одну структурную единицу из заявки (по pk).
+    POST(create): Создает заявку на мероприятие.
+    DELETE(destroy): Удаляет одну структурную единицу из заявки (по pk).
+    """
+    _STRUCTURAL_MAPPING = {
+        'Центральные штабы': ShortCentralHeadquarterSerializerME,
+        'Окружные штабы': ShortDistrictHeadquarterSerializerME,
+        'Региональные штабы': ShortRegionalHeadquarterSerializerME,
+        'Местные штабы': ShortLocalHeadquarterSerializerME,
+        'Образовательные штабы': ShortEducationalHeadquarterSerializerME,
+        'Отряды': ShortDetachmentSerializerME
+    }
+    serializer_class = MultiEventApplicationSerializer
+    queryset = MultiEventApplication.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            event_pk = self.kwargs.get('event_pk')
+            event = get_object_or_404(Event, pk=event_pk)
+            return self._STRUCTURAL_MAPPING.get(
+                event.available_structural_units
+            )
+        return super().get_serializer_class()
+
+    def get_queryset(self):
+        event_pk = self.kwargs.get('event_pk')
+        event = get_object_or_404(Event, pk=event_pk)
+        if self.action == 'list':
+            return self.get_serializer_class().Meta.model.objects.filter(
+                commander=self.request.user
+            )
+        return MultiEventApplication.objects.filter(event=event)
+
+    def get_permissions(self):
+        if self.action == 'list' or self.action == 'create':
+            return [
+                permissions.IsAuthenticated(), IsCommander()
+            ]
+        if self.action == 'destroy' or self.action == 'retrieve':
+            return [
+                permissions.IsAuthenticated(), IsAuthorMultiEventApplication()
+            ]
+        return super().get_permissions()
+
+    def list(self, request, *args, **kwargs):
+        """Выводит список подвластных структурных единиц
+        доступных к подаче в заявке.
+
+        Доступ:
+            - только командир структурной единицы, типу которых
+              разрешена подача заявок.
+            - командир должен быть верифицирован.
+        """
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+            request_body=MultiEventApplicationSerializer(many=True)
+    )
+    def create(self, request, event_pk, *args, **kwargs):
+        """Создание многоэтапной заявки на мероприятие.
+
+        Принимает список с структурными единицами. Формат:
+        ```
+        [
+            {
+                "название_одной_из_структурных_единиц": id,
+                "emblem": эмблема структурной единицы (необязательное поле),
+                "participants_count": members_count
+            },
+            ...
+        ]
+        ```
+        Доступ:
+            - только командир структурной единицы, типу которых
+              разрешена подача заявок.
+
+        Дубли и структурные единицы без хотя бы одного участника игнорируются.
+        """
+        event = get_object_or_404(Event, id=event_pk)
+        if MultiEventApplication.objects.filter(
+            event=event, organizer_id=request.user.id
+        ).exists():
+            raise serializers.ValidationError(
+                'Вы уже подали заявку на участие в этом мероприятии.'
+            )
+
+        data_set = []
+        for item in request.data:
+            if item in data_set:
+                continue
+            if item.get('participants_count') == 0:
+                continue
+            data_set.append(item)
+
+        total_participants = sum(
+           int(item.get('participants_count', 0)) for item in data_set
+        )
+
+        if (event.participants_number and
+                total_participants > event.participants_number):
+            raise serializers.ValidationError(
+                'Общее количество поданых участников превышает общее'
+                'разрешенное количество участников мероприятя.'
+            )
+
+        serializer = self.get_serializer(data=data_set,
+                                         many=True)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save(event=event,
+                            organizer_id=request.user.id,
+                            is_approved=False)
+            return Response(status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='me',
+            serializer_class=MultiEventApplicationSerializer,
+            permission_classes=(permissions.IsAuthenticated,))
+    def me(self, request, event_pk):
+        """Выводит список структурных единиц, поданных текущим пользователем
+        в многоэтапной заявке на мероприятие.
+
+        Доступ:
+            - все авторизованные пользователи.
+        """
+        queryset = self.get_queryset().filter(organizer_id=request.user.id)
+        if not len(queryset):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False,
+            methods=['delete'],
+            url_path='me/delete',
+            serializer_class=MultiEventApplicationSerializer,
+            permission_classes=(permissions.IsAuthenticated,))
+    def delete_me_application(self, request, event_pk):
+        """Удаление многоэтапной заявки на мероприятие поданной
+        текущим пользователем.
+
+        Доступ:
+            - все авторизованные пользователи.
+        """
+        queryset = self.get_queryset().filter(organizer_id=request.user.id)
+        if not len(queryset):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        queryset.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False,
+            methods=['delete'],
+            url_path=r'delete/(?P<organizer_id>\d+)',
+            serializer_class=MultiEventApplicationSerializer,
+            permission_classes=(permissions.IsAuthenticated, IsEventOrganizer))
+    def delete_all_applications(self, request, event_pk, organizer_id):
+        """Удаление многоэтапной заявки на мероприятие поданной
+        пользователем, id которого был передан в эндпоинте.
+
+        Доступ:
+            - пользователи из модели организаторов мероприятий.
+        """
+        queryset = self.get_queryset().filter(organizer_id=organizer_id)
+        if not len(queryset):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        queryset.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={})
+    )
+    @action(detail=False,
+            methods=['post'],
+            url_path=r'confirm/(?P<organizer_id>\d+)',
+            serializer_class=MultiEventApplicationSerializer,
+            permission_classes=(permissions.IsAuthenticated, IsEventOrganizer))
+    def confirm(self, request, event_pk, organizer_id):
+        """Подтверждение многоэтапной заявки на мероприятие поданной
+        пользователем, id которого был передан в эндпоинте.
+
+        Доступ:
+            - пользователи из модели организаторов мероприятий.
+        """
+        queryset = self.get_queryset().filter(organizer_id=organizer_id)
+        if not len(queryset):
+            return Response({"error": "Заявка не найдена"},
+                            status=status.HTTP_404_NOT_FOUND)
+        queryset = queryset.filter(
+            is_approved=False
+        )
+        if not len(queryset):
+            return Response({"message": "Заявка уже подтверждена"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        queryset.update(is_approved=True)
+        return Response(status=status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(method='POST',
+                         request_body=MultiEventParticipantsSerializer(
+                             many=True))
+    @action(detail=False,
+            methods=['get', 'post'],
+            url_path='compile_lists',
+            serializer_class=MultiEventParticipantsSerializer,
+            permission_classes=(permissions.IsAuthenticated,))
+    def compile_lists(self, request, event_pk):
+        """Action для формирования списков участников мероприятия.
+
+        GET():Выводит список бойцов структурных единиц из одобренной
+              заявки на мероприятие.
+        POST(): Заносит полученных пользователей в бд как участников
+                мероприятия, дополнительно удаляя заявку на многоэтапное
+                мероприятие.
+
+        Доступ:
+            - чтение - все авторизованные. Если пользователь не имеет
+              заявки на мероприятие - выводится HTTP_404_NOT_FOUND.
+            - запись - все авторизованные. Если пользователь не имеет
+              подтвержденной заявки на мероприятие - выводится
+              HTTP_404_NOT_FOUND.
+        """
+        queryset = self.get_queryset().filter(organizer_id=request.user.id)
+        if not len(queryset):
+            return Response({'error': 'Заявка не существует'},
+                            status=status.HTTP_404_NOT_FOUND)
+        queryset = queryset.filter(is_approved=True)
+        if not len(queryset):
+            return Response({'error': 'Ваша заявка еще не подтверждена'},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        if request.method == 'POST':
+            event = get_object_or_404(Event, pk=event_pk)
+            serializer = MultiEventParticipantsSerializer(
+                data=request.data,
+                many=True
+            )
+            serializer.is_valid(raise_exception=True)
+            participants_to_create = []
+            for participant in serializer.data:
+                participants_to_create.append(
+                    EventParticipants(
+                        user_id=participant.get('user'),
+                        event_id=event_pk
+                    )
+                )
+            if not len(participants_to_create):
+                return Response(
+                    {'message': 'Нужно подать хотя бы 1 участника'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            available_participants = (event.participants_number
+                                      - event.event_participants.count())
+            if len(participants_to_create) > (available_participants):
+                return Response(
+                    {'message': f'Слишком много участников, в мероприятии '
+                                f'осталось {available_participants} мест'},
+                    status=status.HTTP_200_OK
+                )
+            try:
+                with transaction.atomic():
+                    EventParticipants.objects.bulk_create(
+                        participants_to_create
+                    )
+                    queryset.delete()
+            except Exception as e:
+                return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+            return Response(status=status.HTTP_201_CREATED)
+
+        central_headquarter_members = (
+            queryset.filter(central_headquarter__isnull=False)
+                    .values_list('central_headquarter__members__user__id',
+                                 flat=True)
+        )
+        district_headquarter_members = (
+            queryset.filter(district_headquarter__isnull=False)
+                    .values_list('district_headquarter__members__user__id',
+                                 flat=True)
+        )
+        regional_headquarter_members = (
+            queryset.filter(regional_headquarter__isnull=False)
+                    .values_list('regional_headquarter__members__user__id',
+                                 flat=True)
+        )
+        local_headquarter_members = (
+            queryset.filter(local_headquarter__isnull=False)
+                    .values_list('local_headquarter__members__user__id',
+                                 flat=True)
+        )
+        educational_headquarter_members = (
+            queryset.filter(educational_headquarter__isnull=False)
+                    .values_list('educational_headquarter__members__user__id',
+                                 flat=True)
+        )
+        detachment_members = (
+            queryset.filter(detachment__isnull=False)
+                    .values_list('detachment__members__user__id',
+                                 flat=True)
+        )
+        all_members_ids = set(itertools.chain(
+            central_headquarter_members,
+            district_headquarter_members,
+            regional_headquarter_members,
+            local_headquarter_members,
+            educational_headquarter_members,
+            detachment_members
+        ))
+        users_already_participating = EventParticipants.objects.filter(
+            event__id=event_pk
+        )
+        if users_already_participating.exists():
+            all_members_ids = list(
+                all_members_ids -
+                set(users_already_participating.values_list('user', flat=True))
+            )
+        all_members = RSOUser.objects.filter(id__in=all_members_ids,
+                                             is_verified=True)
+        if not len(all_members) or all_members is None:
+            return Response(
+                {"error":
+                    "В поданых структурных единицах нет доступных бойцов. "
+                    "Возможно они уже участники этого мероприятия"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = ShortUserSerializer(all_members, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False,
+            methods=['get'],
+            url_path=r'detail/(?P<organizer_id>\d+)',
+            permission_classes=(permissions.IsAuthenticated, IsEventOrganizer))
+    def get_detail(self, request, event_pk, organizer_id):
+        """Выводит список структурных единиц, поданных пользователем
+        (id которого равен organizer_id) в многоэтапную заявку на мероприятие.
+
+        Доступ:
+            - пользователи из модели организаторов мероприятий.
+        """
+        queryset = self.get_queryset().filter(organizer_id=organizer_id)
+        if not len(queryset):
+            return Response({'error': 'Заявка не существует'},
+                            status=status.HTTP_404_NOT_FOUND)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='all',
+            serializer_class=ShortMultiEventApplicationSerializer,
+            permission_classes=(permissions.IsAuthenticated, IsEventOrganizer))
+    def all_applications(self, request, event_pk):
+        """Выводит список новых заявок по этому эвенту.
+
+        Выводит новые заявки и заявки по которым заявители
+        еще не сформировали списки.
+
+        Доступ:
+            - пользователи из модели организаторов мероприятий.
+        """
+        queryset = self.get_queryset()
+        if not len(queryset):
+            return Response({'message': 'Заявок пока нет'},
+                            status=status.HTTP_200_OK)
+        users = RSOUser.objects.filter(
+            id__in=queryset.values_list('organizer_id', flat=True)
+        ).all()
+        event = get_object_or_404(Event, pk=event_pk)
+        headquarter_model = self._STRUCTURAL_MAPPING.get(
+                event.available_structural_units
+            ).Meta.model
+        serializer = self.get_serializer(
+            users,
+            context={'headquarter_model': headquarter_model},
+            many=True
+        )
+        return Response(serializer.data)
+
+
+class CompetitionViewSet(viewsets.ModelViewSet):
+    """Представление конкурсов.
+
+    Доступ:
+        - чтение: все пользователи
+        - запись/удаление/редактирование: только администраторы
+    """
+    queryset = Сompetition.objects.all()
+    serializer_class = СompetitionSerializer
+    permission_classes = (permissions.IsAdminUser,)
+
+    def get_permissions(self):
+        if self.action == 'list' or self.action == 'retrieve':
+            return (permissions.AllowAny(),)
+        return super().get_permissions()
+
+    def get_detachment(self):
+        """
+        Возвращает отряд, созданный после 25 января 2024 года
+        """
+        return Detachment.objects.filter(
+            Q(founding_date__lt=date(2023, 1, 25))
+            & Q(commander=self.request.user)
+        ).first()
+
+    def get_free_junior_detachments_ids(self):
+        """
+        Возвращает список ID младших отрядов, которые
+        не подали заявки или не участвуют в текущем конкурсе.
+        """
+        competition_id = self.get_object().id
+        in_applications_junior_detachment_ids = list(
+            СompetitionApplications.objects.filter(
+                competition__id=competition_id
+                ).values_list(
+                'junior_detachment__id', flat=True
+            )
+        )
+        participants_junior_detachment_ids = list(
+            СompetitionParticipants.objects.filter(
+                competition__id=competition_id
+                ).values_list(
+                'junior_detachment__id', flat=True
+            )
+        )
+        return list(Detachment.objects.exclude(
+                id__in=in_applications_junior_detachment_ids
+                + participants_junior_detachment_ids
+            ).values_list('id', flat=True)
+        )
+
+    def get_junior_detachments(self):
+        """
+        Возвращает экземпляры свободных младших отрядов.
+        """
+        user_detacment = self.get_detachment()
+        if not user_detacment:
+            return None
+        free_junior_detachments_ids = (
+            self.get_free_junior_detachments_ids()
+        )
+        detachments = Detachment.objects.filter(
+            Q(founding_date__gte=date(2023, 1, 25)) &
+            Q(region=user_detacment.region) &
+            Q(id__in=free_junior_detachments_ids)
+        )
+        return detachments
+
+    @action(detail=True,
+            methods=['get'],
+            url_path='junour_detachments',
+            permission_classes=(permissions.IsAuthenticated,))
+    @swagger_auto_schema(responses=response_junior_detachments)
+    def junior_detachments(self, request, pk):
+        """Action для получения списка младших отрядов.
+
+        Выводит свободные младшие отряды этого региона доступные к
+        подаче в тандем заявку.
+
+        Доступ - только авторизированные пользователи.
+        Если юзер не командир старшего отряда - возвращает пустой массив.
+        """
+        junior_detachments = self.get_junior_detachments()
+        serializer = ShortDetachmentSerializer(
+            junior_detachments, many=True
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
+    """Представление заявок на конкурс.
+
+    Доступ:
+        - чтение(list) - региональный командир или админ.
+          В первом случае выводятся заявки этого региона,
+          во втором - все заявки.
+        - чтение(retrieve) - региональный командир, админ или
+          один из отрядов этой заявки.
+        - удаление - региональный командир, админ или один из
+          отрядов этой заявки.
+        - обновление - только командир младшего отряда,
+          изменить можно только поле is_confirmed_by_junior
+          (функционал подтверждения заявки младшим отрядом).
+    """
+    queryset = СompetitionApplications.objects.all()
+    serializer_class = СompetitionApplicationsSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self):
+        if self.action == 'list':
+            regional_headquarter = RegionalHeadquarter.objects.filter(
+                commander=self.request.user
+            )
+            if regional_headquarter:
+                user_region = regional_headquarter.first().region
+                return СompetitionApplications.objects.filter(
+                    junior_detachment__region=user_region
+                )
+            return СompetitionApplications.objects.filter(
+                competition_id=self.kwargs.get('competition_pk')
+            )
+        return СompetitionApplications.objects.filter(
+            competition_id=self.kwargs.get('competition_pk')
+        )
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve' or self.action == 'list':
+            return СompetitionApplicationsObjectSerializer
+        return super().get_serializer_class()
+
+    def get_permissions(self):
+        if self.action == 'destroy' or self.action == 'retrieve':
+            return [permissions.IsAuthenticated(),
+                    IsRegionalCommanderOrAdminOrAuthor()]
+        if self.action == 'list':
+            return [permissions.IsAuthenticated(),
+                    IsRegionalCommanderOrAdmin()]
+        return super().get_permissions()
+
+    def get_detachment(self, user):
+        """Возвращает отряд, в котором юзер командир.
+
+        Если юзер не командир, то возвращает None
+        """
+        try:
+            detachment = Detachment.objects.get(commander=user)
+            return detachment
+        except Detachment.DoesNotExist:
+            return None
+        except Detachment.MultipleObjectsReturned:
+            return Response({'error':
+                             'Пользователь командир нескольких отрядов'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+    def get_junior_detachment(self, request_data):
+        if 'junior_detachment' in request_data:
+            return get_object_or_404(Detachment,
+                                     id=request_data['junior_detachment'])
+
+    @swagger_auto_schema(
+        request_body=response_create_application
+    )
+    def create(self, request, *args, **kwargs):
+        """Создание заявки на мероприятие
+
+        Если передается junior_detachment: id, то создается заявка-тандем,
+        если нет - индивидуальная заявка.
+
+        Доступ - только командир отряда.
+        """
+        current_detachment = self.get_detachment(request.user)
+        if current_detachment is None:
+            return Response({'error': 'Пользователь не является командиром'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if current_detachment.founding_date < date(2023, 1, 25):
+            detachment = current_detachment
+            junior_detachment = self.get_junior_detachment(request.data)
+        else:
+            junior_detachment = current_detachment
+            detachment = None
+        competition = get_object_or_404(Сompetition,
+                                        pk=self.kwargs.get('competition_pk'))
+
+        serializer = self.get_serializer(
+            data=request.data,
+            context={'detachment': detachment,
+                     'junior_detachment': junior_detachment,
+                     'competition': competition,
+                     'request': request})
+        if serializer.is_valid(raise_exception=True):
+            serializer.save(competition=competition,
+                            detachment=detachment,
+                            junior_detachment=junior_detachment,
+                            is_confirmed_by_junior=False)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def is_commander_of_junior_detachment(self, user, instance):
+        junior_detachment = instance.junior_detachment
+        if not junior_detachment:
+            return False
+        return user == junior_detachment.commander
+
+    def handle_junior_detachment_update(self, request, instance):
+        if self.is_commander_of_junior_detachment(request.user, instance):
+            data = {
+                'is_confirmed_by_junior':
+                request.data.get('is_confirmed_by_junior')
+            }
+            serializer = self.get_serializer(instance,
+                                             data=data,
+                                             partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            return Response({'error': 'Доступ запрещен'},
+                            status=status.HTTP_403_FORBIDDEN)
+
+    @swagger_auto_schema(
+        request_body=request_update_application
+    )
+    def update(self, request, *args, **kwargs):
+        """Изменение заявки на мероприятие
+
+        Изменить можно только поле is_confirmed_by_junior.
+        Доступ - только командир младшего отряда.
+        """
+        instance = self.get_object()
+        return self.handle_junior_detachment_update(request, instance)
+
+    @swagger_auto_schema(
+        request_body=request_update_application
+    )
+    def partial_update(self, request, *args, **kwargs):
+        """Изменение заявки на мероприятие
+
+        Изменить можно только поле is_confirmed_by_junior.
+        Доступ - только командир младшего отряда.
+        """
+        instance = self.get_object()
+        return self.handle_junior_detachment_update(request, instance)
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='me',
+            permission_classes=[permissions.IsAuthenticated])
+    @swagger_auto_schema(responses=response_competitions_applications)
+    def me(self, request, *args, **kwargs):
+        """Получение заявки на мероприятие отряда текущего пользователя.
+
+        Доступ - все авторизованные пользователи.
+        Если пользователь не является командиром отряда, либо
+        у его отряда нет заявки на участие - запрос вернет ошибку 404.
+        """
+        detachment = self.get_detachment(request.user)
+        application = self.get_queryset().filter(
+            Q(detachment=detachment) | Q(junior_detachment=detachment)
+        ).first()
+        if application is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = СompetitionApplicationsObjectSerializer(
+            application,
+            context={'request': request}
+        )
+        return Response(serializer.data)
+
+    @action(detail=True,
+            methods=['post'],
+            url_path='confirm',
+            permission_classes=(permissions.IsAuthenticated,
+                                IsRegionalCommanderOrAdmin,))
+    @swagger_auto_schema(request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+    ))
+    def confirm(self, request, *args, **kwargs):
+        """Подтверждение заявки на участие в мероприятии и создание участника.
+
+        После подтверждения заявка удаляется.
+        Доступ: администраторы и командиры региональных штабов.
+        """
+        instance = self.get_object()
+        serializer = СompetitionParticipantsSerializer(
+            data=request.data,
+            context={'request': request,
+                     'application': instance}
+        )
+        serializer.is_valid(raise_exception=True)
+        try:
+            with transaction.atomic():
+                serializer.save(detachment=instance.detachment,
+                                junior_detachment=instance.junior_detachment,
+                                competition=instance.competition)
+                instance.delete()
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_201_CREATED)
+
+
+class СompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
+    """ Вьюсет для участников мероприятия.
+
+    Доступ:
+        - чтение: все
+        - удаление: только админы и командиры региональных штабов.
+    """
+    queryset = СompetitionParticipants.objects.all()
+    serializer_class = СompetitionParticipantsSerializer
+    permission_classes = (permissions.AllowAny,)
+
+    def get_queryset(self):
+        return СompetitionParticipants.objects.filter(
+            competition_id=self.kwargs.get('competition_pk')
+        )
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve' or self.action == 'list':
+            return СompetitionParticipantsObjectSerializer
+        return super().get_serializer_class()
+
+    def get_permissions(self):
+        if self.action == 'destroy':
+            return [permissions.IsAuthenticated(), IsRegionalCommanderOrAdmin()]
+        return super().get_permissions()
+
+    def get_detachment(self, user):
+        """Возвращает отряд, в котором юзер командир.
+
+        Если юзер не командир, то возвращает None
+        """
+        try:
+            detachment = Detachment.objects.get(commander=user)
+            return detachment
+        except Detachment.DoesNotExist:
+            return None
+        except Detachment.MultipleObjectsReturned:
+            return Response({'error':
+                             'Пользователь командир нескольких отрядов'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='me',
+            permission_classes=(permissions.IsAuthenticated,))
+    @swagger_auto_schema(responses=response_competitions_participants)
+    def me(self, request, *args, **kwargs):
+        """Action для получения всей информации по верифицированной заявке.
+
+        Доступен всем авторизованным пользователям.
+
+        Если текущий пользователь не является командиром,
+        или его отряд не участвует в мероприятии -
+        выводится HTTP_404_NOT_FOUND.
+        """
+        detachment = self.get_detachment(request.user)
+        participant_unit = self.get_queryset().filter(
+            Q(detachment=detachment) | Q(junior_detachment=detachment)
+        ).first()
+        if participant_unit is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = СompetitionParticipantsObjectSerializer(participant_unit)
         return Response(serializer.data)

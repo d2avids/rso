@@ -1,21 +1,34 @@
 import datetime
 
-from import_export import resources
+from import_export import resources, fields
 
 from headquarters.models import (DistrictHeadquarter, EducationalInstitution,
                                  Region, RegionalHeadquarter)
 from users.models import RSOUser
 
 
+class RegionWidget(resources.widgets.ForeignKeyWidget):
+    def clean(self, value, row=None, **kwargs):
+
+        try:
+            return self.model.objects.get(name=value)
+        except self.model.DoesNotExist:
+            return None
+
+
 class RegionalHeadquarterResource(resources.ModelResource):
+    region = fields.Field(
+        column_name='region',
+        attribute='region',
+        widget=RegionWidget(Region, 'name')
+    )
+
     def before_import_row(self, row, **kwargs):
         """Ставит для обязательных полей дефолтные значения."""
         if 'conference_date' not in row or not row['conference_date']:
             row['conference_date'] = datetime.datetime.now().date()
         if 'founding_date' not in row or not row['founding_date']:
             row['founding_date'] = 1970
-        if 'commander' not in row or not row['commander']:
-            row['commander'] = RSOUser.objects.first().id
 
     def skip_row(self, instance, original, row, import_validation_errors=None):
         """Пропускает определенные строки."""
