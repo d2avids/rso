@@ -196,7 +196,7 @@ user_nested_urls = [
         name='user-membership-fee'
     ),
     path(
-        'detachments/<int:pk>/applications/',
+        'detachments/<int:pk>/apply/',
         DetachmentApplicationVS,
         name='detachment-application'
     ),

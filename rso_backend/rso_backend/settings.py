@@ -12,6 +12,7 @@ MIN_FOUNDING_DATE = 1000
 MAX_FOUNDING_DATE = 9999
 MASTER_METHODIST_POSITION_NAME = 'Мастер (методист)'
 COMMISSIONER_POSITION_NAME = 'Комиссар'
+DEFAULT_POSITION_NAME = 'Боец'
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -309,6 +310,7 @@ CORS_ORIGIN_WHITELIST = [
     'http://localhost',
     'https://d2avids.sytes.net',
     'https://rso.sprint.1t.ru',
+    'https://лк.трудкрут.рф',
     'http://213.139.208.147',
     'https://213.139.208.147',
 ]
@@ -321,6 +323,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost'
     'https://127.0.0.1',
     'https://rso.sprint.1t.ru',
+    'https://лк.трудкрут.рф',
     'http://213.139.208.147',
     'https://213.139.208.147',
 ]
@@ -340,8 +343,10 @@ DJOSER = {
     'USER_CREATE_PASSWORD_RETYPE': True,
     'SEND_ACTIVATION_EMAIL': False,
     'PASSWORD_CHANGE_EMAIL_CONFIRMATION': True,
+    'HIDE_USERS': False,
     'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
     'SERIALIZERS': {
+        'user': 'api.serializers.DjoserUserSerializer',
         'user_create_password_retype': 'api.serializers.UserCreateSerializer',
     },
 }

@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from rest_framework import status
 from events.models import Event
@@ -77,7 +76,8 @@ short_user = {
         type=openapi.TYPE_STRING, read_only=True, title='Дата рождения'
     ),
     'membership_fee': openapi.Schema(
-        type=openapi.TYPE_BOOLEAN, read_only=True, title='Членский взнос оплачен'
+        type=openapi.TYPE_BOOLEAN, read_only=True,
+        title='Членский взнос оплачен'
     ),
 }
 
