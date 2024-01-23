@@ -2100,6 +2100,9 @@ class СompetitionApplicationsSerializer(serializers.ModelSerializer):
         applications = СompetitionApplications.objects.all()
         participants = СompetitionParticipants.objects.all()
         if request.method == 'POST':
+            MIN_DATE = (f'{settings.DATE_JUNIOR_SQUAD[2]}'
+                        f'.{settings.DATE_JUNIOR_SQUAD[1]}.'
+                        f'{settings.DATE_JUNIOR_SQUAD[0]} года')
             competition = self.context.get('competition')
             detachment = self.context.get('detachment')
             junior_detachment = self.context.get('junior_detachment')
@@ -2107,11 +2110,13 @@ class СompetitionApplicationsSerializer(serializers.ModelSerializer):
             if detachment:
                 if not request.data.get('junior_detachment'):
                     raise serializers.ValidationError(
-                        'Не указан младший отряд'
+                        f'- дата основания основания отряда ранее {MIN_DATE}'
                     )
-                if detachment.founding_date >= date(2023, 1, 25):
+                if detachment.founding_date >= date(
+                    *settings.DATE_JUNIOR_SQUAD
+                ):
                     raise serializers.ValidationError(
-                        'Отряд-наставник должен быть основан до 25.01.2024'
+                        f'- отряд-наставник должен быть основан до {MIN_DATE}'
                     )
                 if applications.filter(
                     competition=competition,
@@ -2124,10 +2129,15 @@ class СompetitionApplicationsSerializer(serializers.ModelSerializer):
                         'Вы уже подали заявку или участвуете в этом конкурсе'
                     )
 
-            if junior_detachment.founding_date < date(2023, 1, 25):
+            if junior_detachment.founding_date < date(
+                *settings.DATE_JUNIOR_SQUAD
+            ):
                 raise serializers.ValidationError(
-                    'junior_detachment основан ранее 25.01.2024,'
-                    'подать заявку невозможно'
+                    f'- дата основания отряда ранее {MIN_DATE}'
+                )
+            if request.data.get('junior_detachment'):
+                raise serializers.ValidationError(
+                    f'- дата основания отряда позже {MIN_DATE}'
                 )
             if applications.filter(
                 competition=competition,
@@ -2137,7 +2147,7 @@ class СompetitionApplicationsSerializer(serializers.ModelSerializer):
                     junior_detachment=junior_detachment
                     ).exists():
                 raise serializers.ValidationError(
-                    'junior_detachment уже подал заявку или участвует '
+                    '- отряд уже подал заявку или участвует '
                     'в этом конкурсе'
                 )
         return attrs

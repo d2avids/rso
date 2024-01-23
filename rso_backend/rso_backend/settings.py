@@ -13,6 +13,7 @@ MAX_FOUNDING_DATE = 9999
 MASTER_METHODIST_POSITION_NAME = 'Мастер (методист)'
 COMMISSIONER_POSITION_NAME = 'Комиссар'
 DEFAULT_POSITION_NAME = 'Боец'
+DATE_JUNIOR_SQUAD = (2023, 1, 25)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
