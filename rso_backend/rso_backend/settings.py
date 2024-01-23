@@ -354,7 +354,10 @@ DJOSER = {
         'user': 'api.serializers.DjoserUserSerializer',
         'user_create_password_retype': 'api.serializers.UserCreateSerializer',
     },
-    
+    'PERMISSIONS': {
+        'user_list': ['rest_framework.permissions.IsAuthenticated'],
+        'user': ['rest_framework.permissions.IsAuthenticated'],
+    }
 }
 
 SWAGGER_SETTINGS = {
