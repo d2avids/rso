@@ -2045,6 +2045,16 @@ class DjoserUserSerializer(RSOUserSerializer):
         )
 
 
+class ShortDetachmentCompititionSerializer(BaseShortUnitSerializer):
+    area = serializers.CharField(source='area.name')
+
+    class Meta:
+        model = Detachment
+        fields = BaseShortUnitSerializer.Meta.fields + (
+            'area',
+        )
+
+
 class СompetitionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Сompetition
@@ -2052,8 +2062,8 @@ class СompetitionSerializer(serializers.ModelSerializer):
 
 
 class СompetitionApplicationsObjectSerializer(serializers.ModelSerializer):
-    junior_detachment = ShortDetachmentSerializer()
-    detachment = ShortDetachmentSerializer()
+    junior_detachment = ShortDetachmentCompititionSerializer()
+    detachment = ShortDetachmentCompititionSerializer()
 
     class Meta:
         model = СompetitionApplications
@@ -2134,8 +2144,8 @@ class СompetitionApplicationsSerializer(serializers.ModelSerializer):
 
 
 class СompetitionParticipantsObjectSerializer(serializers.ModelSerializer):
-    detachment = ShortDetachmentSerializer()
-    junior_detachment = ShortDetachmentSerializer()
+    detachment = ShortDetachmentCompititionSerializer()
+    junior_detachment = ShortDetachmentCompititionSerializer()
 
     class Meta:
         model = СompetitionParticipants

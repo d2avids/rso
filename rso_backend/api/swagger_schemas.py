@@ -121,6 +121,10 @@ short_detachment = {
         type=openapi.TYPE_STRING,
         title='Путь к баннеру',
     ),
+    'area': openapi.Schema(
+        type=openapi.TYPE_STRING,
+        title='Направление',
+    ),
 }
 
 answer_response = {
