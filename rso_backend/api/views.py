@@ -2620,7 +2620,7 @@ class CompetitionViewSet(viewsets.ModelViewSet):
         Возвращает отряд, созданный после 25 января 2024 года
         """
         return Detachment.objects.filter(
-            Q(founding_date__lt=date(2023, 1, 25))
+            Q(founding_date__lt=date(*settings.DATE_JUNIOR_SQUAD))
             & Q(commander=self.request.user)
         ).first()
 
@@ -2661,7 +2661,7 @@ class CompetitionViewSet(viewsets.ModelViewSet):
             self.get_free_junior_detachments_ids()
         )
         detachments = Detachment.objects.filter(
-            Q(founding_date__gte=date(2023, 1, 25)) &
+            Q(founding_date__gte=date(*settings.DATE_JUNIOR_SQUAD)) &
             Q(region=user_detacment.region) &
             Q(id__in=free_junior_detachments_ids)
         )
@@ -2686,6 +2686,50 @@ class CompetitionViewSet(viewsets.ModelViewSet):
             junior_detachments, many=True
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True,
+            methods=['get'],
+            url_path='check_detachment_status',
+            permission_classes=(permissions.IsAuthenticated,))
+    def status(self, request, pk):
+        """Action для получения статуса отряда пользователя в конкурсе.
+
+        Доступ:
+            - только командиры отрядов.
+
+        Если отряд участвует в конкурсе - возвращает "Вы участник".
+        Если отряд не участвует в конкурсе - возвращает "Еще не участвуете".
+        Если отряд подал заявку на конкурс - возвращает
+            "Заявка на рассмотрении".
+        """
+        detachment = Detachment.objects.filter(
+            commander=request.user
+        ).first()
+        if not detachment:
+            return Response(
+                {'error': 'Пользователь не командир отряда'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        if СompetitionApplications.objects.filter(
+            Q(junior_detachment=detachment) |
+            Q(detachment=detachment)
+        ).exists():
+            return Response(
+                {'status': 'Заявка на рассмотрении'},
+                status=status.HTTP_200_OK
+            )
+        if СompetitionParticipants.objects.filter(
+            Q(junior_detachment=detachment) |
+            Q(detachment=detachment)
+        ).exists():
+            return Response(
+                {'status': 'Вы участник'},
+                status=status.HTTP_200_OK
+            )
+        return Response(
+            {'status': 'Еще не участвуете'},
+            status=status.HTTP_200_OK
+        )
 
 
 class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
@@ -2774,7 +2818,9 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Пользователь не является командиром'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        if current_detachment.founding_date < date(2023, 1, 25):
+        if current_detachment.founding_date < date(
+            *settings.DATE_JUNIOR_SQUAD
+        ):
             detachment = current_detachment
             junior_detachment = self.get_junior_detachment(request.data)
         else:
