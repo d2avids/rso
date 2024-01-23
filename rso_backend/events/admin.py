@@ -4,7 +4,7 @@ from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocument, EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
                            EventTimeData, EventUserDocument,
-                           MultiEventApplication,
+                           MultiEventApplication, Сompetition,
                            СompetitionApplications, СompetitionParticipants)
 
 
@@ -60,3 +60,6 @@ admin.site.register(EventParticipants)
 admin.site.register(EventApplications)
 admin.site.register(EventIssueAnswer)
 admin.site.register(EventUserDocument)
+admin.site.register(Сompetition)
+admin.site.register(СompetitionParticipants)
+admin.site.register(СompetitionApplications)
