@@ -1432,7 +1432,6 @@ class DetachmentSerializer(BaseUnitSerializer):
     status = serializers.SerializerMethodField()
     tandem_partner_id = serializers.SerializerMethodField()
 
-
     class Meta:
         model = Detachment
         fields = BaseUnitSerializer.Meta.fields + (
@@ -1514,8 +1513,8 @@ class DetachmentSerializer(BaseUnitSerializer):
             Q(detachment=obj) | Q(junior_detachment=obj)
         ).first()
         if participants:
-            if participants.junior_detachment == obj:
-                return participants.detachment.id
+            if participants.detachment == obj:
+                return participants.junior_detachment.id
             return participants.junior_detachment.id
 
 
