@@ -1430,6 +1430,8 @@ class DetachmentSerializer(BaseUnitSerializer):
     )
     nomination = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
+    tandem_partner_id = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Detachment
@@ -1448,7 +1450,8 @@ class DetachmentSerializer(BaseUnitSerializer):
             'city',
             'founding_date',
             'nomination',
-            'status'
+            'status',
+            'tandem_partner_id',
         )
 
     def to_representation(self, instance):
@@ -1505,6 +1508,15 @@ class DetachmentSerializer(BaseUnitSerializer):
         ).exists():
             return 'Тандем'
         return 'Дебют'
+
+    def get_tandem_partner_id(self, obj):
+        participants = СompetitionParticipants.objects.filter(
+            Q(detachment=obj) | Q(junior_detachment=obj)
+        ).first()
+        if participants:
+            if participants.junior_detachment == obj:
+                return participants.detachment.id
+            return participants.junior_detachment.id
 
 
 class MemberCertSerializer(serializers.ModelSerializer):
