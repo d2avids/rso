@@ -2078,6 +2078,7 @@ class СompetitionSerializer(serializers.ModelSerializer):
 
 
 class СompetitionApplicationsObjectSerializer(serializers.ModelSerializer):
+    competition = СompetitionSerializer()
     junior_detachment = ShortDetachmentCompititionSerializer()
     detachment = ShortDetachmentCompititionSerializer()
 
