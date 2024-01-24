@@ -2151,10 +2151,6 @@ class СompetitionApplicationsSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     f'- дата основания отряда ранее {MIN_DATE}'
                 )
-            if request.data.get('junior_detachment'):
-                raise serializers.ValidationError(
-                    f'- дата основания отряда позже {MIN_DATE}'
-                )
             if applications.filter(
                 competition=competition,
                 junior_detachment=junior_detachment

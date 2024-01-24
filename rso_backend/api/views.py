@@ -2801,7 +2801,7 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
         request_body=response_create_application
     )
     def create(self, request, *args, **kwargs):
-        """Создание заявки на мероприятие
+        """Создание заявки в конкурс
 
         Если передается junior_detachment: id, то создается заявка-тандем,
         если нет - индивидуальная заявка.
@@ -2813,12 +2813,20 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Пользователь не является командиром'},
                             status=status.HTTP_400_BAD_REQUEST)
 
+        MIN_DATE = (f'{settings.DATE_JUNIOR_SQUAD[2]}'
+                    f'.{settings.DATE_JUNIOR_SQUAD[1]}.'
+                    f'{settings.DATE_JUNIOR_SQUAD[0]} года')
         if current_detachment.founding_date < date(
             *settings.DATE_JUNIOR_SQUAD
         ):
             detachment = current_detachment
             junior_detachment = self.get_junior_detachment(request.data)
         else:
+            if 'junior_detachment' in request.data:
+                return Response(
+                    {'error': f'- дата основания отряда позднее {MIN_DATE}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             junior_detachment = current_detachment
             detachment = None
         competition = get_object_or_404(Сompetition,
