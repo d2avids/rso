@@ -9,11 +9,9 @@ import pdfrw
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q, Count
-from django.conf import settings
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from djoser.views import UserViewSet
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from pdfrw.buildxobj import pagexobj
@@ -64,7 +62,7 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              DistrictPositionSerializer,
                              EducationalHeadquarterSerializer,
                              EducationalInstitutionSerializer,
-                             EducationalPositionSerializer, EmailSerializer,
+                             EducationalPositionSerializer,
                              EventAdditionalIssueSerializer,
                              EventApplicationsSerializer,
                              EventApplicationsCreateSerializer,
@@ -105,6 +103,10 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              UsersParentSerializer,
                              UserStatementDocumentsSerializer,
                              UserDetachmentApplicationReadSerializer,
+<<<<<<< HEAD
+                             UserVerificationReadSerializer,)
+from api.swagger_schemas import EventSwaggerSerializer, applications_response
+=======
                              UserVerificationReadSerializer,
                              UserCommanderSerializer)
 from api.swagger_schemas import (EventSwaggerSerializer, applications_response,
@@ -115,6 +117,7 @@ from api.swagger_schemas import (EventSwaggerSerializer, applications_response,
                                  response_competitions_participants,
                                  response_create_application,
                                  response_junior_detachments)
+>>>>>>> master
 from api.utils import (create_and_return_archive, download_file,
                        get_headquarter_users_positions_queryset, get_user,
                        get_user_by_id, text_to_lines)
@@ -136,35 +139,12 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
-from api.tasks import send_reset_password_email_without_user
 from rso_backend.settings import BASE_DIR
 from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
                           UserForeignDocuments, UserMedia, UserMemberCertLogs,
                           UserMembershipLogs, UserParent, UserPrivacySettings,
                           UserProfessionalEducation, UserRegion,
                           UserStatementDocuments, UserVerificationRequest)
-
-
-class CustomUserViewSet(UserViewSet):
-    """Кастомный вьюсет для изменения метода reset_password."""
-
-    @action(
-            methods=['post'],
-            detail=False,
-            permission_classes=(permissions.IsAuthenticated,),
-            serializer_class=EmailSerializer,
-    )
-    def reset_password(self, request, *args, **kwargs):
-        """
-        POST-запрос с адресом почты в json`е 
-        высылает ссылку на почту на подтвеждение смены пароля.
-        Вид ссылки в почте:
-        'http://лк.трудкрут.рф/password/reset/confirm/{uid}/{token}'
-        """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        send_reset_password_email_without_user.delay(data=request.data)
-        return Response(status=status.HTTP_200_OK)
 
 
 class RSOUserViewSet(RetrieveViewSet):
@@ -189,16 +169,22 @@ class RSOUserViewSet(RetrieveViewSet):
 
     queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
+<<<<<<< HEAD
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('username', 'first_name', 'last_name', 'patronymic_name')
     filterset_class = RSOUserFilter
     ordering_fields = ('last_name')
+    permission_classes = [permissions.AllowAny,]
+=======
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('username', 'first_name', 'last_name')
     # TODO: переписать пермишены, чтобы получить данные можно было
     # TODO: только тех пользователей, что состоят в той же стр. ед., где
     # TODO: запрашивающий пользователь и является командиром/доверенным
     permission_classes = (
         permissions.IsAuthenticated, IsCommanderOrTrustedAnywhere,
     )
+>>>>>>> master
 
     @action(
         detail=False,
@@ -2615,7 +2601,7 @@ class CompetitionViewSet(viewsets.ModelViewSet):
         Возвращает отряд, созданный после 25 января 2024 года
         """
         return Detachment.objects.filter(
-            Q(founding_date__lt=date(*settings.DATE_JUNIOR_SQUAD))
+            Q(founding_date__lt=date(2023, 1, 25))
             & Q(commander=self.request.user)
         ).first()
 
@@ -2656,7 +2642,7 @@ class CompetitionViewSet(viewsets.ModelViewSet):
             self.get_free_junior_detachments_ids()
         )
         detachments = Detachment.objects.filter(
-            Q(founding_date__gte=date(*settings.DATE_JUNIOR_SQUAD)) &
+            Q(founding_date__gte=date(2023, 1, 25)) &
             Q(region=user_detacment.region) &
             Q(id__in=free_junior_detachments_ids)
         )
@@ -2681,50 +2667,6 @@ class CompetitionViewSet(viewsets.ModelViewSet):
             junior_detachments, many=True
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-    @action(detail=True,
-            methods=['get'],
-            url_path='check_detachment_status',
-            permission_classes=(permissions.IsAuthenticated,))
-    def status(self, request, pk):
-        """Action для получения статуса отряда пользователя в конкурсе.
-
-        Доступ:
-            - только командиры отрядов.
-
-        Если отряд участвует в конкурсе - возвращает "Вы участник".
-        Если отряд не участвует в конкурсе - возвращает "Еще не участвуете".
-        Если отряд подал заявку на конкурс - возвращает
-            "Заявка на рассмотрении".
-        """
-        detachment = Detachment.objects.filter(
-            commander=request.user
-        ).first()
-        if not detachment:
-            return Response(
-                {'error': 'Пользователь не командир отряда'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        if СompetitionApplications.objects.filter(
-            Q(junior_detachment=detachment) |
-            Q(detachment=detachment)
-        ).exists():
-            return Response(
-                {'status': 'Заявка на рассмотрении'},
-                status=status.HTTP_200_OK
-            )
-        if СompetitionParticipants.objects.filter(
-            Q(junior_detachment=detachment) |
-            Q(detachment=detachment)
-        ).exists():
-            return Response(
-                {'status': 'Вы участник'},
-                status=status.HTTP_200_OK
-            )
-        return Response(
-            {'status': 'Еще не участвуете'},
-            status=status.HTTP_200_OK
-        )
 
 
 class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
@@ -2813,9 +2755,7 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Пользователь не является командиром'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        if current_detachment.founding_date < date(
-            *settings.DATE_JUNIOR_SQUAD
-        ):
+        if current_detachment.founding_date < date(2023, 1, 25):
             detachment = current_detachment
             junior_detachment = self.get_junior_detachment(request.data)
         else:
@@ -2938,23 +2878,6 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_201_CREATED)
-
-    @action(detail=False,
-            methods=['get'],
-            url_path='all',
-            permission_classes=(permissions.AllowAny,))
-    def all(self, request, *args, **kwargs):
-        """Получение всех неверифицированных заявок на участие в конкурсе.
-
-        Доступ: любой пользователь.
-        """
-        queryset = self.get_queryset()
-        serializer = СompetitionApplicationsObjectSerializer(
-            queryset,
-            many=True,
-            context={'request': request}
-        )
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class СompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
