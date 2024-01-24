@@ -506,6 +506,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
         read_only=True
     )
     detachment_id = serializers.SerializerMethodField(read_only=True)
+    sent_verification = serializers.SerializerMethodField()
 
     class Meta:
         model = RSOUser
@@ -544,6 +545,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
             'local_headquarter_id',
             'educational_headquarter_id',
             'detachment_id',
+            'sent_verification',
         )
         read_only_fields = ('membership_fee', 'is_verified')
 
@@ -649,6 +651,11 @@ class RSOUserSerializer(serializers.ModelSerializer):
         except UserDetachmentPosition.DoesNotExist:
             detachment_id = None
         return detachment_id
+
+    @staticmethod
+    def get_sent_verification(instance):
+        verification_status = UserVerificationRequest.objects.filter(user_id=instance.id).exists() or instance.is_verified
+        return verification_status
 
 
 class UserCommanderSerializer(serializers.ModelSerializer):
