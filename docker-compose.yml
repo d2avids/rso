@@ -14,6 +14,7 @@ services:
   db:
     image: postgres:13
     env_file: .env
+    restart: on-failure
     ports:
       - "5432:5432"
     volumes:
@@ -22,6 +23,7 @@ services:
       - internal
   redis:
     image: redis:alpine
+    restart: on-failure
     ports:
       - "6379:6379"
     networks:
@@ -29,6 +31,7 @@ services:
   backend:
     image: d2avids/rso_backend:latest
     env_file: .env
+    restart: on-failure
     ports:
       - "8080:8080"
     depends_on:
@@ -42,6 +45,7 @@ services:
       - internal
   celery_worker:
     image: d2avids/rso_backend:latest
+    restart: on-failure
     env_file: .env
     command: celery -A rso_backend worker --loglevel=info
     volumes:
@@ -52,6 +56,7 @@ services:
       - internal
   celery_beat:
     image: d2avids/rso_backend:latest
+    restart: on-failure
     env_file: .env
     command: celery -A rso_backend beat -l info
     volumes:
@@ -71,6 +76,7 @@ services:
       - internal
   nginx:
     image: nginx:alpine
+    restart: on-failure
     depends_on:
       - frontend
     ports:
