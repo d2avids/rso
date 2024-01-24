@@ -126,6 +126,7 @@ class EducationalInstAdmin(ImportExportModelAdmin):
 
 @admin.register(Region)
 class RegionAdmin(ImportExportModelAdmin):
+    list_display = ('id', 'name',)
     search_fields = ('name',)
     resource_class = RegionResource
 
