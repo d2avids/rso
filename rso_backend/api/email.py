@@ -18,8 +18,9 @@ class CustomPasswordResetEmail(PasswordResetEmail):
         self.user = user
         self.context = {
             'user': self.user,
-            'site_name': 'RSO',
+            'site_name': 'лк.трудкрут.рф',
             'domain': site_url,
             'site_url': site_url,
             'expiration_days': 1,
+            'protocol': 'https'
         } if context is None else context

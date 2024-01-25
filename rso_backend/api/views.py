@@ -159,7 +159,7 @@ class CustomUserViewSet(UserViewSet):
         POST-запрос с адресом почты в json`е 
         высылает ссылку на почту на подтвеждение смены пароля.
         Вид ссылки в почте:
-        'http://лк.трудкрут.рф/password/reset/confirm/{uid}/{token}'
+        'https://лк.трудкрут.рф/password/reset/confirm/{uid}/{token}'
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
