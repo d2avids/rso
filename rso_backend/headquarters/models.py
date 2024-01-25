@@ -49,6 +49,11 @@ class Region(models.Model):
         db_index=True,
         verbose_name='Название'
     )
+    code = models.SmallIntegerField(
+        blank=True,
+        null=True,
+        verbose_name='Код региона'
+    )
 
     class Meta:
         verbose_name_plural = 'Регионы'

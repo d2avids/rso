@@ -56,7 +56,7 @@ class AreaSerializer(serializers.ModelSerializer):
 class RegionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Region
-        fields = ('id', 'name',)
+        fields = ('id', 'name', 'code')
 
 
 class EducationalInstitutionSerializer(serializers.ModelSerializer):
@@ -917,6 +917,107 @@ class DetachmentPositionSerializer(BasePositionSerializer):
         model = UserDetachmentPosition
         fields = BasePositionSerializer.Meta.fields
         read_only_fields = BasePositionSerializer.Meta.read_only_fields
+
+
+class BasePositionOnlySerializer(serializers.ModelSerializer):
+    """
+    Базовый класс для вывода должностей
+    пользователя в /rsousers/{id}/positions/
+    """
+
+    position = serializers.SlugRelatedField(
+        queryset=Position.objects.all(),
+        slug_field='name'
+    )
+
+    class Meta:
+        model = None
+        fields = ('id', 'position', 'is_trusted')
+
+
+class CentralPositionOnlySerializer(BasePositionOnlySerializer):
+    headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=CentralHeadquarter.objects.all(),
+    )
+
+    class Meta:
+        model = UserCentralHeadquarterPosition
+        fields = BasePositionSerializer.Meta.fields + ('headquarter',)
+
+
+class DistrictPositionOnlySerializer(BasePositionOnlySerializer):
+    headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=DistrictHeadquarter.objects.all(),
+    )
+
+    class Meta:
+        model = UserDistrictHeadquarterPosition
+        fields = BasePositionSerializer.Meta.fields + ('headquarter',)
+
+
+class RegionalPositionOnlySerializer(BasePositionOnlySerializer):
+    headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=RegionalHeadquarter.objects.all(),
+    )
+
+    class Meta:
+        model = UserRegionalHeadquarterPosition
+        fields = BasePositionSerializer.Meta.fields + ('headquarter',)
+
+
+class LocalPositionOnlySerializer(BasePositionOnlySerializer):
+    headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=LocalHeadquarter.objects.all(),
+    )
+
+    class Meta:
+        model = UserLocalHeadquarterPosition
+        fields = BasePositionSerializer.Meta.fields + ('headquarter',)
+
+
+class EducationalPositionOnlySerializer(BasePositionOnlySerializer):
+    headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=EducationalHeadquarter.objects.all(),
+    )
+
+    class Meta:
+        model = UserEducationalHeadquarterPosition
+        fields = BasePositionSerializer.Meta.fields + ('headquarter',)
+
+
+class DetachmentPositionOnlySerializer(BasePositionOnlySerializer):
+    headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=Detachment.objects.all(),
+    )
+
+    class Meta:
+        model = UserDetachmentPosition
+        fields = BasePositionSerializer.Meta.fields + ('headquarter',)
+
+
+class UserHeadquarterPositionSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для вывода объектов должностей в структурных
+    единицах, в которых состоит юзер.
+    """
+
+    usercentralheadquarterposition = CentralPositionOnlySerializer()
+    userdistrictheadquarterposition = DistrictPositionOnlySerializer()
+    userregionalheadquarterposition = RegionalPositionOnlySerializer()
+    userlocalheadquarterposition = LocalPositionOnlySerializer()
+    usereducationalheadquarterposition = EducationalPositionOnlySerializer()
+    userdetachmentposition = DetachmentPositionOnlySerializer()
+
+    class Meta:
+        model = RSOUser
+        fields = (
+            'usercentralheadquarterposition',
+            'userdistrictheadquarterposition',
+            'userregionalheadquarterposition',
+            'userlocalheadquarterposition',
+            'usereducationalheadquarterposition',
+            'userdetachmentposition'
+        )
 
 
 class BaseShortUnitSerializer(serializers.ModelSerializer):

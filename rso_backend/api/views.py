@@ -106,7 +106,7 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              UserStatementDocumentsSerializer,
                              UserDetachmentApplicationReadSerializer,
                              UserVerificationReadSerializer,
-                             UserCommanderSerializer)
+                             UserCommanderSerializer, UserHeadquarterPositionSerializer)
 from api.swagger_schemas import (EventSwaggerSerializer, applications_response,
                                  application_me_response, answer_response,
                                  participant_me_response,
@@ -245,9 +245,39 @@ class RSOUserViewSet(RetrieveViewSet):
         Представляет айди структурных единиц, в которых пользователь
         является доверенным.
         """
+        if request.method == 'GET':
+            serializer = UserTrustedSerializer(request.user)
+            return Response(serializer.data)
 
-        serializer = UserTrustedSerializer(request.user)
-        return Response(serializer.data)
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor,),
+        serializer_class=UserCommanderSerializer
+    )
+    def me_positions(self, request, pk=None):
+        """
+        Представляет должности текущего юзера на каждом структурном уровне.
+        """
+        if request.method == 'GET':
+            serializer = UserHeadquarterPositionSerializer(request.user)
+            return Response(serializer.data)
+
+
+    @action(
+        detail=True,
+        methods=['get'],
+        permission_classes=(permissions.AllowAny,),
+        serializer_class=UserCommanderSerializer
+    )
+    def positions(self, request, pk=None):
+        """
+        Представляет должности юзера по pk на каждом структурном уровне.
+        """
+        if request.method == 'GET':
+            user = get_object_or_404(RSOUser, id=pk)
+            serializer = UserHeadquarterPositionSerializer(user)
+            return Response(serializer.data)
 
 
 class EducationalInstitutionViewSet(ListRetrieveViewSet):
@@ -263,6 +293,8 @@ class RegionViewSet(ListRetrieveViewSet):
 
     queryset = Region.objects.all()
     serializer_class = RegionSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name', 'code')
     permission_classes = [IsStuffOrCentralCommander,]
     ordering = ('name',)
 

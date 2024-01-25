@@ -121,23 +121,22 @@ class UserDetachmentPositionAdmin(BaseCentralPositionAdmin):
 
 @admin.register(EducationalInstitution)
 class EducationalInstAdmin(ImportExportModelAdmin):
+    search_fields = ('name',)
     resource_class = EducationalInstitutionResource
 
 
 @admin.register(Region)
 class RegionAdmin(ImportExportModelAdmin):
-    list_display = ('id', 'name',)
-    search_fields = ('name',)
+    list_display = ('id', 'name', 'code')
+    search_fields = ('name', 'code')
     resource_class = RegionResource
 
 
 @admin.register(Area)
 class AreaAdmin(admin.ModelAdmin):
     search_fields = ('name',)
-    pass
 
 
 @admin.register(Position)
 class PositionAdmin(admin.ModelAdmin):
     search_fields = ('name',)
-    pass
