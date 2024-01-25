@@ -820,6 +820,16 @@ class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
 
         return super().create(validated_data)
 
+    def validate(self, attrs):
+        if self.context.get('request').method == 'POST':
+            if RSOUser.objects.filter(
+                email=attrs.get('email'),
+            ).exists():
+                raise serializers.ValidationError(
+                    'Пользователь с таким email уже существует.'
+                )
+        return super().validate(attrs)
+
     class Meta:
         model = RSOUser
         fields = (

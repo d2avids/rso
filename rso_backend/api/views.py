@@ -2762,10 +2762,10 @@ class CompetitionViewSet(viewsets.ModelViewSet):
     def download_file_сompetitions(filepath, filename):
         with open(filepath, 'rb') as file:
             response = HttpResponse(
-                file.read(), content_type='application/pdf'
+                file.read(), content_type='application/pdf; charset=utf-8'
             )
             response['Content-Disposition'] = (
-                f'attachment; filename="{filename}"'
+                'inline; filename="{}"'.format(filename)
             )
             return response
 
@@ -3046,7 +3046,8 @@ class СompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
 
     def get_permissions(self):
         if self.action == 'destroy':
-            return [permissions.IsAuthenticated(), IsRegionalCommanderOrAdmin()]
+            return [permissions.IsAuthenticated(),
+                    IsRegionalCommanderOrAdmin()]
         return super().get_permissions()
 
     def get_detachment(self, user):
