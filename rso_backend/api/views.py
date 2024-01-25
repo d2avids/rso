@@ -706,7 +706,7 @@ class RegionalViewSet(viewsets.ModelViewSet):
     )
     serializer_class = RegionalHeadquarterSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
-    search_fields = ('name',)
+    search_fields = ('name', 'region__name',)
     ordering_fields = ('name', 'founding_date', 'count_related')
     ordering = ('count_related', )
     filterset_class = RegionalHeadquarterFilter
