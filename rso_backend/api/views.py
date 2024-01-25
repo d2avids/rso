@@ -2758,6 +2758,32 @@ class CompetitionViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK
         )
 
+    @staticmethod
+    def download_file_сompetitions(filepath, filename):
+        with open(filepath, 'rb') as file:
+            response = HttpResponse(
+                file.read(), content_type='application/pdf'
+            )
+            response['Content-Disposition'] = (
+                f'attachment; filename="{filename}"'
+            )
+            return response
+
+    @action(
+        detail=False,
+        methods=('get',),
+        url_path='download_regulation_file',
+        permission_classes=(permissions.AllowAny,)
+    )
+    def download_regulation_file(self, request):
+        """Скачивание положения конкурса РСО.
+
+        Доступ - все пользователи.
+        """
+        filename = 'Regulation_on_the_best_LSO_2024.pdf'
+        filepath = str(BASE_DIR) + '/templates/competitions/' + filename
+        return self.download_file_сompetitions(filepath, filename)
+
 
 class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
     """Представление заявок на конкурс.
