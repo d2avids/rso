@@ -2762,10 +2762,10 @@ class CompetitionViewSet(viewsets.ModelViewSet):
     def download_file_сompetitions(filepath, filename):
         with open(filepath, 'rb') as file:
             response = HttpResponse(
-                file.read(), content_type='application/pdf; charset=utf-8'
+                file.read(), content_type='application/pdf'
             )
             response['Content-Disposition'] = (
-                'inline; filename="{}"'.format(filename)
+                f'attachment; filename="{filename}"'
             )
             return response
 
