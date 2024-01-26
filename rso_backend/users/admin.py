@@ -84,6 +84,8 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         'first_name',
         'last_name',
         'patronymic_name',
+        'is_verified',
+        'membership_fee',
         'is_staff',
         'date_joined',
         'last_login'
@@ -110,7 +112,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
 
 @admin.register(UserMembershipLogs)
 class UserMembershipLogsAdmin(admin.ModelAdmin):
-    list_display = ('user', 'status_changed_by', 'date', 'period', 'status')
+    list_display = ('user', 'status_changed_by', 'date', 'period', 'status',)
     readonly_fields = ('user', 'status_changed_by', 'date', 'period', 'status', 'description')
     list_filter = ('date', 'period', 'status')
 
