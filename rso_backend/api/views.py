@@ -285,6 +285,9 @@ class EducationalInstitutionViewSet(ListRetrieveViewSet):
 
     queryset = EducationalInstitution.objects.all()
     serializer_class = EducationalInstitutionSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+
     ordering = ('name',)
 
 
@@ -307,6 +310,8 @@ class AreaViewSet(ListRetrieveViewSet):
 
     queryset = Area.objects.all()
     serializer_class = AreaSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
     permission_classes = [IsStuffOrCentralCommander,]
     ordering_fields = ('name',)
 
@@ -319,6 +324,8 @@ class PositionViewSet(ListRetrieveViewSet):
 
     queryset = Position.objects.all()
     serializer_class = PositionSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
     ordering = ('name',)
 
 
