@@ -1,15 +1,18 @@
 import io
 import mimetypes
+import os
 import zipfile
 from datetime import datetime
 
 from django.db import IntegrityError
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.permissions import SAFE_METHODS
+from rest_framework.response import Response
 
-from headquarters.models import (CentralHeadquarter, RegionalHeadquarter, UserDetachmentPosition,
+from headquarters.models import (CentralHeadquarter, RegionalHeadquarter,
+                                 UserDetachmentPosition,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
@@ -35,11 +38,17 @@ def download_file(filepath, filename):
     На вход получает путь до файла и имя файла.
     """
 
-    path = open(filepath, 'r')
-    mime_type, _ = mimetypes.guess_type(filepath)
-    response = HttpResponse(path, content_type=mime_type)
-    response['Content-Disposition'] = 'attachment; filename=%s' % filename
-    return response
+    if os.path.exists(filepath):
+        path = open(filepath, 'r')
+        mime_type, _ = mimetypes.guess_type(filepath)
+        response = HttpResponse(path, content_type=mime_type)
+        response['Content-Disposition'] = 'attachment; filename=%s' % filename
+        return response
+    else:
+        return Response(
+            {'detail': 'Файл не найден.'},
+            status=status.HTTP_204_NO_CONTENT
+        )
 
 
 def is_safe_method(request):
