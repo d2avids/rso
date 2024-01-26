@@ -106,7 +106,8 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              UserStatementDocumentsSerializer,
                              UserDetachmentApplicationReadSerializer,
                              UserVerificationReadSerializer,
-                             UserCommanderSerializer, UserHeadquarterPositionSerializer)
+                             UserCommanderSerializer,
+                             UserHeadquarterPositionSerializer)
 from api.swagger_schemas import (EventSwaggerSerializer, applications_response,
                                  application_me_response, answer_response,
                                  participant_me_response,
@@ -156,15 +157,35 @@ class CustomUserViewSet(UserViewSet):
     )
     def reset_password(self, request, *args, **kwargs):
         """
-        POST-запрос с адресом почты в json`е 
+        POST-запрос с адресом почты в json`е
         высылает ссылку на почту на подтвеждение смены пароля.
         Вид ссылки в почте:
         'https://лк.трудкрут.рф/password/reset/confirm/{uid}/{token}'
         """
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        send_reset_password_email_without_user.delay(data=request.data)
-        return Response(status=status.HTTP_200_OK)
+        data = serializer.data
+        try:
+            user = RSOUser.objects.get(email=data.get('email'))
+            send_reset_password_email_without_user.delay(data=data)
+            return Response(status=status.HTTP_200_OK)
+        except (RSOUser.DoesNotExist, AttributeError):
+            return Response(
+                {'detail': (
+                    'Нет пользователя с введенным email или опечатка в адресе.'
+                )},
+                status=status.HTTP_204_NO_CONTENT
+            )
+        except RSOUser.MultipleObjectsReturned:
+            return Response(
+                {'detail': (
+                    'В БД несколько юзеров с одним адресом почты.'
+                    ' Отредактируйте дубликаты и повторите попытку.'
+                )},
+                status=status.HTTP_409_CONFLICT
+            )
+
 
 
 class RSOUserViewSet(RetrieveViewSet):
@@ -262,7 +283,6 @@ class RSOUserViewSet(RetrieveViewSet):
         if request.method == 'GET':
             serializer = UserHeadquarterPositionSerializer(request.user)
             return Response(serializer.data)
-
 
     @action(
         detail=True,
@@ -560,7 +580,7 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         /users/me/statement/download_membership_statement_file/
         """
 
-        filename = 'rso_membership_statement.docx'
+        filename = 'rso_membership_statement.rtf'
         filepath = str(BASE_DIR) + '/templates/membership/' + filename
         return download_file(filepath, filename)
 
@@ -576,7 +596,7 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         /users/me/statement/download_consent_to_the_processing_of_personal_data/
         """
 
-        filename = 'consent_to_the_processing_of_personal_data.docx'
+        filename = 'consent_to_the_processing_of_personal_data.rtf'
         filepath = str(BASE_DIR) + '/templates/membership/' + filename
         return download_file(filepath, filename)
 
@@ -594,7 +614,7 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         """
 
         filename = (
-            'download_parent_consent_to_the_processing_of_personal_data.docx'
+            'download_parent_consent_to_the_processing_of_personal_data.rtf'
         )
         filepath = str(BASE_DIR) + '/templates/membership/' + filename
         return download_file(filepath, filename)
@@ -904,8 +924,8 @@ class BasePositionViewSet(viewsets.ModelViewSet):
         member_pk = self.kwargs.get('membership_pk')
         try:
             obj = queryset.get(pk=member_pk)
-        # TODO: это не лучшая практика, но пока не вижу более правильного решения
-        # TODO: в действительности мы отлавливаем DoesNotExist для дочерних классов
+        # TODO: не лучшая практика, но пока не вижу более правильного решения
+        # TODO: в действительности мы ловим DoesNotExist для дочерних классов
         # TODO: edit - можно добавить маппинг. Сделать позднее.
         except Exception:
             return Response(
@@ -2767,14 +2787,20 @@ class CompetitionViewSet(viewsets.ModelViewSet):
 
     @staticmethod
     def download_file_сompetitions(filepath, filename):
-        with open(filepath, 'rb') as file:
-            response = HttpResponse(
-                file.read(), content_type='application/pdf'
+        if os.path.exists(filepath):
+            with open(filepath, 'rb') as file:
+                response = HttpResponse(
+                    file.read(), content_type='application/pdf'
+                )
+                response['Content-Disposition'] = (
+                    f'attachment; filename="{filename}"'
+                )
+                return response
+        else:
+            return Response(
+                {'detail': 'Файл не найден.'},
+                status=status.HTTP_204_NO_CONTENT
             )
-            response['Content-Disposition'] = (
-                f'attachment; filename="{filename}"'
-            )
-            return response
 
     @action(
         detail=False,
