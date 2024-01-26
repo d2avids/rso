@@ -165,8 +165,27 @@ class CustomUserViewSet(UserViewSet):
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        send_reset_password_email_without_user.delay(data=serializer.data)
-        return Response(status=status.HTTP_200_OK)
+        data = serializer.data
+        try:
+            user = RSOUser.objects.get(email=data.get('email'))
+            send_reset_password_email_without_user.delay(data=data)
+            return Response(status=status.HTTP_200_OK)
+        except (RSOUser.DoesNotExist, AttributeError):
+            return Response(
+                {'detail': (
+                    'Нет пользователя с введенным email или опечатка в адресе.'
+                )},
+                status=status.HTTP_204_NO_CONTENT
+            )
+        except RSOUser.MultipleObjectsReturned:
+            return Response(
+                {'detail': (
+                    'В БД несколько юзеров с одним адресом почты.'
+                    ' Отредактируйте дубликаты и повторите попытку.'
+                )},
+                status=status.HTTP_409_CONFLICT
+            )
+
 
 
 class RSOUserViewSet(RetrieveViewSet):
@@ -554,7 +573,7 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         /users/me/statement/download_membership_statement_file/
         """
 
-        filename = 'rso_membership_statement.docx'
+        filename = 'rso_membership_statement.rtf'
         filepath = str(BASE_DIR) + '/templates/membership/' + filename
         return download_file(filepath, filename)
 
@@ -570,7 +589,7 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         /users/me/statement/download_consent_to_the_processing_of_personal_data/
         """
 
-        filename = 'consent_to_the_processing_of_personal_data.docx'
+        filename = 'consent_to_the_processing_of_personal_data.rtf'
         filepath = str(BASE_DIR) + '/templates/membership/' + filename
         return download_file(filepath, filename)
 
@@ -588,7 +607,7 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         """
 
         filename = (
-            'download_parent_consent_to_the_processing_of_personal_data.docx'
+            'download_parent_consent_to_the_processing_of_personal_data.rtf'
         )
         filepath = str(BASE_DIR) + '/templates/membership/' + filename
         return download_file(filepath, filename)
