@@ -825,9 +825,9 @@ class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
             if RSOUser.objects.filter(
                 email=attrs.get('email'),
             ).exists():
-                raise serializers.ValidationError(
-                    'Пользователь с таким email уже существует.'
-                )
+                raise serializers.ValidationError({
+                    'email': 'Пользователь с таким email уже существует.'
+                })
         return super().validate(attrs)
 
     class Meta:
