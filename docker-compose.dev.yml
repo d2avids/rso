@@ -66,7 +66,7 @@ services:
     networks:
       - internal_dev
   frontend:
-    image: nem1zida/rso_frontend:dev
+    image: nem1zida/rso_frontend:${FRONTEND_TAG:-latest}
     restart: always
     env_file: .env
     depends_on:
