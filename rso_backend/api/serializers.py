@@ -587,7 +587,8 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_central_headquarter_id(instance):
         try:
-            central_headquarter_id = CentralHeadquarter.objects.first().id
+            central_headquarter = CentralHeadquarter.objects.first()
+            central_headquarter_id = central_headquarter.id
         except CentralHeadquarter.DoesNotExist:
             central_headquarter_id = None
         return central_headquarter_id
@@ -595,11 +596,12 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_district_headquarter_id(instance):
         try:
-            district_headquarter_id = (
+            district_headquarter = (
                 UserDistrictHeadquarterPosition.objects.get(
                     user_id=instance.id
-                ).headquarter_id
+                )
             )
+            district_headquarter_id = district_headquarter.headquarter_id
         except UserDistrictHeadquarterPosition.DoesNotExist:
             district_headquarter_id = None
         return district_headquarter_id
@@ -607,11 +609,12 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_regional_headquarter_id(instance):
         try:
-            regional_headquarter_id = (
+            regional_headquarter = (
                 UserRegionalHeadquarterPosition.objects.get(
                     user_id=instance.id
                 ).headquarter_id
             )
+            regional_headquarter_id = regional_headquarter.headquarter_id
         except UserRegionalHeadquarterPosition.DoesNotExist:
             regional_headquarter_id = None
         return regional_headquarter_id
@@ -619,11 +622,12 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_local_headquarter_id(instance):
         try:
-            local_headquarter_id = (
+            local_headquarter = (
                 UserLocalHeadquarterPosition.objects.get(
                     user_id=instance.id
-                ).headquarter_id
+                )
             )
+            local_headquarter_id = local_headquarter.headquarter_id
         except UserLocalHeadquarterPosition.DoesNotExist:
             local_headquarter_id = None
         return local_headquarter_id
@@ -631,11 +635,12 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_educational_headquarter_id(instance):
         try:
-            educational_headquarter_id = (
+            educational_headquarter = (
                 UserEducationalHeadquarterPosition.objects.get(
                     user_id=instance.id
-                ).headquarter_id
+                )
             )
+            educational_headquarter_id = educational_headquarter.headquarter_id
         except UserEducationalHeadquarterPosition.DoesNotExist:
             educational_headquarter_id = None
         return educational_headquarter_id
@@ -643,18 +648,21 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_detachment_id(instance):
         try:
-            detachment_id = (
+            detachment = (
                 UserDetachmentPosition.objects.get(
                     user_id=instance.id
-                ).headquarter_id
+                )
             )
+            detachment_id = detachment.headquarter_id
         except UserDetachmentPosition.DoesNotExist:
             detachment_id = None
         return detachment_id
 
     @staticmethod
     def get_sent_verification(instance):
-        verification_status = UserVerificationRequest.objects.filter(user_id=instance.id).exists() or instance.is_verified
+        verification_status = UserVerificationRequest.objects.filter(
+            user_id=instance.id
+        ).exists() or instance.is_verified
         return verification_status
 
 
