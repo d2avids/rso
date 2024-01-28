@@ -27,7 +27,7 @@ services:
     ports:
       - "6380:6379"
     networks:
-      - internal
+      - internal_dev
   backend:
     image: d2avids/rso_backend:dev
     env_file: .env
@@ -64,7 +64,7 @@ services:
     depends_on:
       - celery_worker
     networks:
-      - internal
+      - internal_dev
   frontend:
     image: nem1zida/rso_frontend:dev
     restart: always
