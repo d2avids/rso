@@ -667,7 +667,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
 
 
 class UserCommanderSerializer(serializers.ModelSerializer):
-    """Сериализатор для вывода отрядов где юзер коммандир."""
+    """Сериализатор для вывода отрядов, где юзер коммандир."""
 
     centralheadquarter_commander = serializers.PrimaryKeyRelatedField(
         queryset=CentralHeadquarter.objects.all()
