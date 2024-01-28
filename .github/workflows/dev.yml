@@ -22,7 +22,7 @@ jobs:
         with:
           context: ./rso_backend/
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/rso_backend:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/rso_backend:dev
   deploy:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev'
