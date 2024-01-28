@@ -1,2 +1,2 @@
-# dev Deploy status
+# Dev Deploy status
 ![RSO Deploy Badge](https://github.com/d2avids/rso/actions/workflows/dev.yml/badge.svg)
