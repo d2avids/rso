@@ -1,0 +1,48 @@
+name: dev RSO backend CD
+on:
+  push:
+    branches:
+      - dev
+jobs:
+  build_backend_and_push_to_docker_hub:
+    name: Push backend Docker image to DockerHub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to Docker
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Push to DockerHub
+        uses: docker/build-push-action@v4
+        with:
+          context: ./rso_backend/
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/rso_backend:latest
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev'
+    needs:
+      - build_backend_and_push_to_docker_hub
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Executing remote ssh commands to deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script: |
+            cd rso_dev
+            sudo docker compose down
+            sudo docker system prune
+            sudo docker image prune
+            sudo docker compose pull
+            sudo docker compose up -d
+            sudo docker compose exec backend python manage.py migrate

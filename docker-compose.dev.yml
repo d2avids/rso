@@ -1,0 +1,91 @@
+version: '3'
+
+volumes:
+  static_dev:
+  media_dev:
+  pg_data_dev:
+  frontend_dist_dev:
+
+networks:
+  internal_dev:
+    driver: bridge
+
+services:
+  db:
+    image: postgres:13
+    env_file: .env
+    restart: always
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_data_dev:/var/lib/postgresql/data
+    networks:
+      - internal_dev
+  redis:
+    image: redis:alpine
+    restart: always
+    ports:
+      - "6380:6379"
+    networks:
+      - internal
+  backend:
+    image: d2avids/rso_backend:dev
+    env_file: .env
+    restart: always
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./logs:/app/logs
+      - static_dev:/backend_static/static
+      - media_dev:/app/media
+    networks:
+      - internal_dev
+  celery_worker:
+    image: d2avids/rso_backend:dev
+    restart: always
+    env_file: .env
+    command: celery -A rso_backend worker --loglevel=info
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      - backend
+    networks:
+      - internal_dev
+  celery_beat:
+    image: d2avids/rso_backend:dev
+    restart: always
+    env_file: .env
+    command: celery -A rso_backend beat -l info
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      - celery_worker
+    networks:
+      - internal
+  frontend:
+    image: nem1zida/rso_frontend:dev
+    restart: always
+    env_file: .env
+    depends_on:
+      - backend
+    volumes:
+      - frontend_dist_dev:/app/src/app/dist
+    networks:
+      - internal_dev
+  nginx:
+    image: nginx:alpine
+    restart: always
+    depends_on:
+      - frontend
+    ports:
+      - "8001:80"
+    volumes:
+      - static_dev:/static/
+      - media_dev:/media/
+      - frontend_dist_dev:/usr/src/app/src/app/dist
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - internal_dev
