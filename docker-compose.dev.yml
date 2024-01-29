@@ -39,7 +39,7 @@ services:
       - redis
     volumes:
       - ./logs:/app/logs
-      - static_dev:/app/collected_static
+      - static:/backend_static/static
       - media_dev:/app/media
     networks:
       - internal_dev
