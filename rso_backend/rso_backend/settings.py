@@ -24,7 +24,7 @@ DEBUG = os.getenv('DEBUG', default=False) == 'True'
 
 ALLOWED_HOSTS = os.getenv(
     'ALLOWED_HOSTS',
-    default='127.0.0.1,localhost,0.0.0.0'
+    default='127.0.0.1,localhost,0.0.0.0,testserver'
 ).split(',')
 
 DEFAULT_SITE_URL = os.getenv('DEFAULT_SITE_URL', default='127.0.0.1:8000')

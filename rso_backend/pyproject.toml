@@ -28,6 +28,7 @@ django-import-export = "^3.3.4"
 pdfrw = "^0.4"
 reportlab = "^4.0.8"
 eventlet = "^0.34.3"
+coverage = "^7.4.1"
 
 
 [build-system]

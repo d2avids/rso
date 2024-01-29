@@ -220,3 +220,8 @@ media/
 collected_static/
 rso_frontend/NewRSO
 
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover 
