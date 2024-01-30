@@ -1144,12 +1144,9 @@ class BaseUnitSerializer(serializers.ModelSerializer):
 
     def _get_position_instance(self):
         if isinstance(self.instance, QuerySet):
-            print('УСЛОВИЕ СРАБОТАЛО')
             instance_type = type(self.instance.first())
         else:
-            print('УСЛОВИЕ НЕ СРАБОТАЛО')
             instance_type = type(self.instance)
-        print(instance_type)
 
         for model_class, (
                 position_model, _
@@ -1159,12 +1156,9 @@ class BaseUnitSerializer(serializers.ModelSerializer):
 
     def _get_position_serializer(self):
         if isinstance(self.instance, QuerySet):
-            print('УСЛОВИЕ СРАБОТАЛО')
             instance_type = type(self.instance.first())
         else:
-            print('УСЛОВИЕ НЕ СРАБОТАЛО')
             instance_type = type(self.instance)
-        print(instance_type)
 
         for model_class, (
                 _, serializer_class
@@ -1188,11 +1182,23 @@ class BaseUnitSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def get_members_count(instance):
-        return instance.members.filter(user__membership_fee=True).count()
+        if isinstance(instance, QuerySet):
+            instance_type = type(instance.first())
+        else:
+            instance_type = type(instance)
+        if issubclass(instance_type, CentralHeadquarter):
+            return RSOUser.objects.filter(membership_fee=True).count()
+        return instance.members.filter(user__membership_fee=True).count() + 1
 
     @staticmethod
     def get_participants_count(instance):
-        return instance.members.count()
+        if isinstance(instance, QuerySet):
+            instance_type = type(instance.first())
+        else:
+            instance_type = type(instance)
+        if issubclass(instance_type, CentralHeadquarter):
+            return RSOUser.objects.count()
+        return instance.members.count() + 1
 
     def validate(self, attrs):
         """
