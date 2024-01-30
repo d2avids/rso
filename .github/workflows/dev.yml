@@ -46,5 +46,6 @@ jobs:
             sudo docker compose pull
             sudo docker compose up -d
             sudo docker compose exec backend python manage.py migrate events 0013_merge_20240116_1534
+            sudo docker compose exec backend rm events/migrations/0014_сompetition_сompetitionparticipants_and_more.py
             sudo docker compose exec backend python manage.py migrate events
             sudo docker compose exec backend python manage.py migrate
