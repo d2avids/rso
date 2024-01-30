@@ -924,8 +924,13 @@ class BasePositionViewSet(viewsets.ModelViewSet):
         member_pk = self.kwargs.get('membership_pk')
         try:
             obj = queryset.get(pk=member_pk)
+<<<<<<< Updated upstream
         # TODO: не лучшая практика, но пока не вижу более правильного решения
         # TODO: в действительности мы ловим DoesNotExist для дочерних классов
+=======
+ это не лучшая практика, но пока не вижу более правильного решения
+        # TODO: в действительности мы отлавливаем DoesNotExist для дочерних классов
+>>>>>>> Stashed changes
         # TODO: edit - можно добавить маппинг. Сделать позднее.
         except Exception:
             return Response(
