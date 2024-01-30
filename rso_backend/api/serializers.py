@@ -1245,7 +1245,9 @@ class CentralHeadquarterSerializer(BaseUnitSerializer):
 
     @staticmethod
     def get_working_years(instance):
-        return dt.datetime.now().year - 1958
+        return (
+            dt.datetime.now().year - settings.CENTRAL_HEADQUARTER_FOUNDING_DATE
+        )
 
 
 class DistrictHeadquarterSerializer(BaseUnitSerializer):
@@ -1266,10 +1268,10 @@ class DistrictHeadquarterSerializer(BaseUnitSerializer):
         many=True,
         read_only=True
     )
-    regional_headquarters = serializers.SerializerMethodField(read_only=True)
-    local_headquarters = serializers.SerializerMethodField(read_only=True)
-    educational_headquarters = serializers.SerializerMethodField(read_only=True)
-    detachments = serializers.SerializerMethodField(read_only=True)
+    regional_headquarters = serializers.SerializerMethodField()
+    local_headquarters = serializers.SerializerMethodField()
+    educational_headquarters = serializers.SerializerMethodField()
+    detachments = serializers.SerializerMethodField()
 
     class Meta:
         model = DistrictHeadquarter
