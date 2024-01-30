@@ -119,9 +119,8 @@ from api.swagger_schemas import (EventSwaggerSerializer, applications_response,
 from api.utils import (create_and_return_archive, download_file,
                        get_headquarter_users_positions_queryset, get_user,
                        get_user_by_id, text_to_lines)
-from events.models import (Сompetition, СompetitionApplications,
-                           СompetitionParticipants,
-                           Event, EventAdditionalIssue, EventApplications,
+from competitions.models import CompetitionParticipants, CompetitionApplications, Competitions
+from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
                            EventTimeData, EventUserDocument,
@@ -185,7 +184,6 @@ class CustomUserViewSet(UserViewSet):
                 )},
                 status=status.HTTP_409_CONFLICT
             )
-
 
 
 class RSOUserViewSet(RetrieveViewSet):
@@ -2660,7 +2658,7 @@ class CompetitionViewSet(viewsets.ModelViewSet):
         - чтение: все пользователи
         - запись/удаление/редактирование: только администраторы
     """
-    queryset = Сompetition.objects.all()
+    queryset = Competitions.objects.all()
     serializer_class = СompetitionSerializer
     permission_classes = (permissions.IsAdminUser,)
 
@@ -2685,14 +2683,14 @@ class CompetitionViewSet(viewsets.ModelViewSet):
         """
         competition_id = self.get_object().id
         in_applications_junior_detachment_ids = list(
-            СompetitionApplications.objects.filter(
+            CompetitionApplications.objects.filter(
                 competition__id=competition_id
                 ).values_list(
                 'junior_detachment__id', flat=True
             )
         )
         participants_junior_detachment_ids = list(
-            СompetitionParticipants.objects.filter(
+            CompetitionParticipants.objects.filter(
                 competition__id=competition_id
                 ).values_list(
                 'junior_detachment__id', flat=True
@@ -2764,7 +2762,7 @@ class CompetitionViewSet(viewsets.ModelViewSet):
                 {'error': 'Пользователь не командир отряда'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        if СompetitionApplications.objects.filter(
+        if CompetitionApplications.objects.filter(
             Q(junior_detachment=detachment) |
             Q(detachment=detachment)
         ).exists():
@@ -2772,7 +2770,7 @@ class CompetitionViewSet(viewsets.ModelViewSet):
                 {'status': 'Заявка на рассмотрении'},
                 status=status.HTTP_200_OK
             )
-        if СompetitionParticipants.objects.filter(
+        if CompetitionParticipants.objects.filter(
             Q(junior_detachment=detachment) |
             Q(detachment=detachment)
         ).exists():
@@ -2833,7 +2831,7 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
           изменить можно только поле is_confirmed_by_junior
           (функционал подтверждения заявки младшим отрядом).
     """
-    queryset = СompetitionApplications.objects.all()
+    queryset = CompetitionApplications.objects.all()
     serializer_class = СompetitionApplicationsSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -2844,13 +2842,13 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
             )
             if regional_headquarter:
                 user_region = regional_headquarter.first().region
-                return СompetitionApplications.objects.filter(
+                return CompetitionApplications.objects.filter(
                     junior_detachment__region=user_region
                 )
-            return СompetitionApplications.objects.filter(
+            return CompetitionApplications.objects.filter(
                 competition_id=self.kwargs.get('competition_pk')
             )
-        return СompetitionApplications.objects.filter(
+        return CompetitionApplications.objects.filter(
             competition_id=self.kwargs.get('competition_pk')
         )
 
@@ -2920,7 +2918,7 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
                 )
             junior_detachment = current_detachment
             detachment = None
-        competition = get_object_or_404(Сompetition,
+        competition = get_object_or_404(Competitions,
                                         pk=self.kwargs.get('competition_pk'))
 
         serializer = self.get_serializer(
@@ -3063,12 +3061,12 @@ class СompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
         - чтение: все
         - удаление: только админы и командиры региональных штабов.
     """
-    queryset = СompetitionParticipants.objects.all()
+    queryset = CompetitionParticipants.objects.all()
     serializer_class = СompetitionParticipantsSerializer
     permission_classes = (permissions.AllowAny,)
 
     def get_queryset(self):
-        return СompetitionParticipants.objects.filter(
+        return CompetitionParticipants.objects.filter(
             competition_id=self.kwargs.get('competition_pk')
         )
 
