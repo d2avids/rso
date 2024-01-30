@@ -260,29 +260,29 @@ class UserDocuments(models.Model):
         default=True,
     )
     snils = models.CharField(
-        max_length=15, blank=True, null=True,
+        max_length=30, blank=True, null=True,
         verbose_name='СНИЛС'
     )
     inn = models.CharField(
         verbose_name='ИНН',
-        max_length=15,
+        max_length=30,
         blank=True,
         null=True,
     )
     pass_ser_num = models.CharField(
         verbose_name='Номер и серия паспорта',
-        max_length=15,
+        max_length=20,
         blank=True,
         null=True,
     )
     pass_town = models.CharField(
         verbose_name='Город рождения',
-        max_length=15,
+        max_length=200,
         blank=True,
         default='',
     )
     pass_whom = models.CharField(
-        max_length=15,
+        max_length=230,
         verbose_name='Кем выдан паспорт',
         blank=True,
         null=True,
@@ -300,19 +300,19 @@ class UserDocuments(models.Model):
     )
     pass_address = models.CharField(
         verbose_name='Место регистрации по паспорту',
-        max_length=15,
+        max_length=100,
         blank=True,
         null=True,
     )
     work_book_num = models.CharField(
         verbose_name='Трудовая книжка номер',
-        max_length=15,
+        max_length=30,
         blank=True,
         null=True,
     )
     international_pass = models.CharField(
         verbose_name='Загранпаспорт номер',
-        max_length=15,
+        max_length=30,
         blank=True,
         null=True,
     )
@@ -325,7 +325,7 @@ class UserDocuments(models.Model):
     )
     mil_reg_doc_ser_num = models.CharField(
         verbose_name='Номер и серия документа воинского учета',
-        max_length=15,
+        max_length=30,
         blank=True,
         null=True,
     )
@@ -355,18 +355,18 @@ class UserForeignDocuments(models.Model):
         related_name='foreign_documents',
     )
     name = models.CharField(
-        max_length=15,
+        max_length=30,
         verbose_name='Документ, удостоверяющий личность'
     )
     snils = models.CharField(
-        max_length=15,
+        max_length=30,
         blank=True,
         null=True,
         verbose_name='СНИЛС'
     )
     inn = models.CharField(
         verbose_name='ИНН',
-        max_length=15,
+        max_length=30,
         blank=True,
         null=True,
     )
@@ -377,7 +377,7 @@ class UserForeignDocuments(models.Model):
         null=True,
     )
     foreign_pass_whom = models.CharField(
-        max_length=15,
+        max_length=230,
         verbose_name='Кем выдан',
         blank=True,
         null=True,
