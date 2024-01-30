@@ -53,11 +53,11 @@ from api.permissions import (IsApplicantOrOrganizer,
 from api.serializers import (AnswerSerializer, AreaSerializer,
                              CentralHeadquarterSerializer,
                              CentralPositionSerializer,
-                             СompetitionSerializer,
-                             СompetitionApplicationsSerializer,
-                             СompetitionApplicationsObjectSerializer,
-                             СompetitionParticipantsSerializer,
-                             СompetitionParticipantsObjectSerializer,
+                             CompetitionSerializer,
+                             CompetitionApplicationsSerializer,
+                             CompetitionApplicationsObjectSerializer,
+                             CompetitionParticipantsSerializer,
+                             CompetitionParticipantsObjectSerializer,
                              DetachmentPositionSerializer,
                              DetachmentSerializer,
                              DistrictHeadquarterSerializer,
@@ -358,7 +358,7 @@ class BaseUserViewSet(viewsets.ModelViewSet):
     связанных с пользователем.
 
     Атрибуты:
-    - permission_classes: используется permissions.IsAuthenticated для
+    - permission_classes: используется permissions. IsAuthenticated для
     проверки, что пользователь аутентифицирован.
 
     Методы:
@@ -2336,7 +2336,7 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
     def create(self, request, event_pk, *args, **kwargs):
         """Создание многоэтапной заявки на мероприятие.
 
-        Принимает список с структурными единицами. Формат:
+        Принимает список со структурными единицами. Формат:
         ```
         [
             {
@@ -2659,7 +2659,7 @@ class CompetitionViewSet(viewsets.ModelViewSet):
         - запись/удаление/редактирование: только администраторы
     """
     queryset = Competitions.objects.all()
-    serializer_class = СompetitionSerializer
+    serializer_class = CompetitionSerializer
     permission_classes = (permissions.IsAdminUser,)
 
     def get_permissions(self):
@@ -2706,15 +2706,15 @@ class CompetitionViewSet(viewsets.ModelViewSet):
         """
         Возвращает экземпляры свободных младших отрядов.
         """
-        user_detacment = self.get_detachment()
-        if not user_detacment:
+        user_detachment = self.get_detachment()
+        if not user_detachment:
             return None
         free_junior_detachments_ids = (
             self.get_free_junior_detachments_ids()
         )
         detachments = Detachment.objects.filter(
             Q(founding_date__gte=date(*settings.DATE_JUNIOR_SQUAD)) &
-            Q(region=user_detacment.region) &
+            Q(region=user_detachment.region) &
             Q(id__in=free_junior_detachments_ids)
         )
         return detachments
@@ -2784,7 +2784,7 @@ class CompetitionViewSet(viewsets.ModelViewSet):
         )
 
     @staticmethod
-    def download_file_сompetitions(filepath, filename):
+    def download_file_competitions(filepath, filename):
         if os.path.exists(filepath):
             with open(filepath, 'rb') as file:
                 response = HttpResponse(
@@ -2813,7 +2813,7 @@ class CompetitionViewSet(viewsets.ModelViewSet):
         """
         filename = 'Regulation_on_the_best_LSO_2024.pdf'
         filepath = str(BASE_DIR) + '/templates/competitions/' + filename
-        return self.download_file_сompetitions(filepath, filename)
+        return self.download_file_competitions(filepath, filename)
 
 
 class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
@@ -2832,7 +2832,7 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
           (функционал подтверждения заявки младшим отрядом).
     """
     queryset = CompetitionApplications.objects.all()
-    serializer_class = СompetitionApplicationsSerializer
+    serializer_class = CompetitionApplicationsSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
@@ -2854,7 +2854,7 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action == 'retrieve' or self.action == 'list':
-            return СompetitionApplicationsObjectSerializer
+            return CompetitionApplicationsObjectSerializer
         return super().get_serializer_class()
 
     def get_permissions(self):
@@ -2999,7 +2999,7 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
         ).first()
         if application is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = СompetitionApplicationsObjectSerializer(
+        serializer = CompetitionApplicationsObjectSerializer(
             application,
             context={'request': request}
         )
@@ -3020,7 +3020,7 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
         Доступ: администраторы и командиры региональных штабов.
         """
         instance = self.get_object()
-        serializer = СompetitionParticipantsSerializer(
+        serializer = CompetitionParticipantsSerializer(
             data=request.data,
             context={'request': request,
                      'application': instance}
@@ -3041,12 +3041,12 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
             url_path='all',
             permission_classes=(permissions.AllowAny,))
     def all(self, request, *args, **kwargs):
-        """Получение всех неверифицированных заявок на участие в конкурсе.
+        """Получение всех не верифицированных заявок на участие в конкурсе.
 
         Доступ: любой пользователь.
         """
         queryset = self.get_queryset()
-        serializer = СompetitionApplicationsObjectSerializer(
+        serializer = CompetitionApplicationsObjectSerializer(
             queryset,
             many=True,
             context={'request': request}
@@ -3054,15 +3054,15 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class СompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
-    """ Вьюсет для участников мероприятия.
+class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
+    """ Вью сет для участников мероприятия.
 
     Доступ:
         - чтение: все
         - удаление: только админы и командиры региональных штабов.
     """
     queryset = CompetitionParticipants.objects.all()
-    serializer_class = СompetitionParticipantsSerializer
+    serializer_class = CompetitionParticipantsSerializer
     permission_classes = (permissions.AllowAny,)
 
     def get_queryset(self):
@@ -3072,7 +3072,7 @@ class СompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
 
     def get_serializer_class(self):
         if self.action == 'retrieve' or self.action == 'list':
-            return СompetitionParticipantsObjectSerializer
+            return CompetitionParticipantsObjectSerializer
         return super().get_serializer_class()
 
     def get_permissions(self):
@@ -3116,5 +3116,5 @@ class СompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
         ).first()
         if participant_unit is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = СompetitionParticipantsObjectSerializer(participant_unit)
+        serializer = CompetitionParticipantsObjectSerializer(participant_unit)
         return Response(serializer.data)

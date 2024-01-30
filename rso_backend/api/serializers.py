@@ -2193,7 +2193,7 @@ class DjoserUserSerializer(RSOUserSerializer):
         )
 
 
-class ShortDetachmentCompititionSerializer(BaseShortUnitSerializer):
+class ShortDetachmentCompetitionSerializer(BaseShortUnitSerializer):
     area = serializers.CharField(source='area.name')
 
     class Meta:
@@ -2203,16 +2203,16 @@ class ShortDetachmentCompititionSerializer(BaseShortUnitSerializer):
         )
 
 
-class СompetitionSerializer(serializers.ModelSerializer):
+class CompetitionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Competitions
         fields = '__all__'
 
 
-class СompetitionApplicationsObjectSerializer(serializers.ModelSerializer):
-    competition = СompetitionSerializer()
-    junior_detachment = ShortDetachmentCompititionSerializer()
-    detachment = ShortDetachmentCompititionSerializer()
+class CompetitionApplicationsObjectSerializer(serializers.ModelSerializer):
+    competition = CompetitionSerializer()
+    junior_detachment = ShortDetachmentCompetitionSerializer()
+    detachment = ShortDetachmentCompetitionSerializer()
 
     class Meta:
         model = CompetitionApplications
@@ -2226,7 +2226,7 @@ class СompetitionApplicationsObjectSerializer(serializers.ModelSerializer):
         )
 
 
-class СompetitionApplicationsSerializer(serializers.ModelSerializer):
+class CompetitionApplicationsSerializer(serializers.ModelSerializer):
     class Meta:
         model = CompetitionApplications
         fields = (
@@ -2298,9 +2298,9 @@ class СompetitionApplicationsSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class СompetitionParticipantsObjectSerializer(serializers.ModelSerializer):
-    detachment = ShortDetachmentCompititionSerializer()
-    junior_detachment = ShortDetachmentCompititionSerializer()
+class CompetitionParticipantsObjectSerializer(serializers.ModelSerializer):
+    detachment = ShortDetachmentCompetitionSerializer()
+    junior_detachment = ShortDetachmentCompetitionSerializer()
 
     class Meta:
         model = CompetitionParticipants
@@ -2313,7 +2313,7 @@ class СompetitionParticipantsObjectSerializer(serializers.ModelSerializer):
         )
 
 
-class СompetitionParticipantsSerializer(serializers.ModelSerializer):
+class CompetitionParticipantsSerializer(serializers.ModelSerializer):
     class Meta:
         model = CompetitionParticipants
         fields = (
