@@ -16,8 +16,7 @@ from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                            PRIVACY_RAW_EXISTS, REGION_RAW_EXISTS,
                            STATEMENT_RAW_EXISTS, TOO_MANY_EDUCATIONS)
 from api.utils import create_first_or_exception, get_is_trusted
-from events.models import (Сompetition, СompetitionApplications,
-                           СompetitionParticipants, Event,
+from events.models import (Event,
                            EventAdditionalIssue, EventApplications,
                            EventDocument, EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
@@ -39,6 +38,7 @@ from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
                           UserPrivacySettings, UserProfessionalEducation,
                           UserRegion, UserStatementDocuments,
                           UserVerificationRequest)
+from competitions.models import CompetitionParticipants, CompetitionApplications, Competitions
 
 
 class PositionSerializer(serializers.ModelSerializer):
@@ -1617,25 +1617,25 @@ class DetachmentSerializer(BaseUnitSerializer):
         return data
 
     def get_status(self, obj):
-        if not СompetitionParticipants.objects.filter(
+        if not CompetitionParticipants.objects.filter(
             Q(detachment=obj) & Q(junior_detachment__isnull=False) |
             Q(detachment__isnull=False) & Q(junior_detachment=obj)
         ).exists():
             return None
-        if СompetitionParticipants.objects.filter(
+        if CompetitionParticipants.objects.filter(
             Q(detachment=obj) & Q(junior_detachment__isnull=False)
         ).exists():
             return 'Наставник'
         return 'Старт'
 
     def get_nomination(self, obj):
-        if not СompetitionParticipants.objects.filter(
+        if not CompetitionParticipants.objects.filter(
             Q(detachment=obj) & Q(junior_detachment__isnull=False) |
             Q(detachment__isnull=False) & Q(junior_detachment=obj) |
             Q(junior_detachment=obj)
         ).exists():
             return None
-        if СompetitionParticipants.objects.filter(
+        if CompetitionParticipants.objects.filter(
             Q(detachment=obj) & Q(junior_detachment__isnull=False) |
             Q(detachment__isnull=False) & Q(junior_detachment=obj)
         ).exists():
@@ -1643,7 +1643,7 @@ class DetachmentSerializer(BaseUnitSerializer):
         return 'Дебют'
 
     def get_tandem_partner(self, obj):
-        participants = СompetitionParticipants.objects.filter(
+        participants = CompetitionParticipants.objects.filter(
             Q(detachment=obj) | Q(junior_detachment=obj)
         ).first()
         if participants:
@@ -2195,7 +2195,7 @@ class DjoserUserSerializer(RSOUserSerializer):
         )
 
 
-class ShortDetachmentCompititionSerializer(BaseShortUnitSerializer):
+class ShortDetachmentCompetitionSerializer(BaseShortUnitSerializer):
     area = serializers.CharField(source='area.name')
 
     class Meta:
@@ -2205,19 +2205,19 @@ class ShortDetachmentCompititionSerializer(BaseShortUnitSerializer):
         )
 
 
-class СompetitionSerializer(serializers.ModelSerializer):
+class CompetitionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Сompetition
+        model = Competitions
         fields = '__all__'
 
 
-class СompetitionApplicationsObjectSerializer(serializers.ModelSerializer):
-    competition = СompetitionSerializer()
-    junior_detachment = ShortDetachmentCompititionSerializer()
-    detachment = ShortDetachmentCompititionSerializer()
+class CompetitionApplicationsObjectSerializer(serializers.ModelSerializer):
+    competition = CompetitionSerializer()
+    junior_detachment = ShortDetachmentCompetitionSerializer()
+    detachment = ShortDetachmentCompetitionSerializer()
 
     class Meta:
-        model = СompetitionApplications
+        model = CompetitionApplications
         fields = (
             'id',
             'competition',
@@ -2228,9 +2228,9 @@ class СompetitionApplicationsObjectSerializer(serializers.ModelSerializer):
         )
 
 
-class СompetitionApplicationsSerializer(serializers.ModelSerializer):
+class CompetitionApplicationsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = СompetitionApplications
+        model = CompetitionApplications
         fields = (
             'id',
             'competition',
@@ -2248,8 +2248,8 @@ class СompetitionApplicationsSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         request = self.context.get('request')
-        applications = СompetitionApplications.objects.all()
-        participants = СompetitionParticipants.objects.all()
+        applications = CompetitionApplications.objects.all()
+        participants = CompetitionParticipants.objects.all()
         if request.method == 'POST':
             MIN_DATE = (f'{settings.DATE_JUNIOR_SQUAD[2]}'
                         f'.{settings.DATE_JUNIOR_SQUAD[1]}.'
@@ -2300,12 +2300,12 @@ class СompetitionApplicationsSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class СompetitionParticipantsObjectSerializer(serializers.ModelSerializer):
-    detachment = ShortDetachmentCompititionSerializer()
-    junior_detachment = ShortDetachmentCompititionSerializer()
+class CompetitionParticipantsObjectSerializer(serializers.ModelSerializer):
+    detachment = ShortDetachmentCompetitionSerializer()
+    junior_detachment = ShortDetachmentCompetitionSerializer()
 
     class Meta:
-        model = СompetitionParticipants
+        model = CompetitionParticipants
         fields = (
             'id',
             'competition',
@@ -2315,9 +2315,9 @@ class СompetitionParticipantsObjectSerializer(serializers.ModelSerializer):
         )
 
 
-class СompetitionParticipantsSerializer(serializers.ModelSerializer):
+class CompetitionParticipantsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = СompetitionParticipants
+        model = CompetitionParticipants
         fields = (
             'id',
             'competition',
