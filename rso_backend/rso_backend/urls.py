@@ -7,18 +7,35 @@ from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 
-schema_view = get_schema_view(
-   openapi.Info(
-      title="Snippets API",
-      default_version='v1',
-      description="Test description",
-      terms_of_service="https://www.google.com/policies/terms/",
-      contact=openapi.Contact(email="contact@snippets.local"),
-      license=openapi.License(name="BSD License"),
-   ),
-   public=True,
-   permission_classes=(permissions.AllowAny,),
-)
+swagger_url = os.getenv('SWAGGER_URL')
+
+if swagger_url:
+    schema_view = get_schema_view(
+       openapi.Info(
+          title="RSO API",
+          default_version='v1',
+          description="Documentation",
+          terms_of_service="https://www.google.com/policies/terms/",
+          contact=openapi.Contact(email="rso.login@yandex.ru"),
+          license=openapi.License(name="BSD License"),
+       ),
+       public=True,
+       permission_classes=(permissions.AllowAny,),
+       url=swagger_url
+    )
+else:
+    schema_view = get_schema_view(
+       openapi.Info(
+          title="RSO API",
+          default_version='v1',
+          description="Documentation",
+          terms_of_service="https://www.google.com/policies/terms/",
+          contact=openapi.Contact(email="rso.login@yandex.ru"),
+          license=openapi.License(name="BSD License"),
+       ),
+       public=True,
+       permission_classes=(permissions.AllowAny,),
+    )
 
 urlpatterns = [
     path('admin/', admin.site.urls),
