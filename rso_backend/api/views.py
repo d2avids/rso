@@ -926,6 +926,7 @@ class BasePositionViewSet(viewsets.ModelViewSet):
             obj = queryset.get(pk=member_pk)
         # TODO: не лучшая практика, но пока не вижу более правильного решения
         # TODO: в действительности мы ловим DoesNotExist для дочерних классов
+        # TODO: в действительности мы отлавливаем DoesNotExist для дочерних классов
         # TODO: edit - можно добавить маппинг. Сделать позднее.
         except Exception:
             return Response(
