@@ -1,7 +1,5 @@
 import datetime as dt
-from drf_yasg import openapi
 from datetime import date
-from drf_yasg.utils import swagger_serializer_method
 from django.conf import settings
 from django.db.models import Q
 from django.db.models.query import QuerySet
@@ -38,7 +36,8 @@ from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
                           UserPrivacySettings, UserProfessionalEducation,
                           UserRegion, UserStatementDocuments,
                           UserVerificationRequest)
-from competitions.models import CompetitionParticipants, CompetitionApplications, Competitions
+from competitions.models import (CompetitionParticipants, Competitions,
+                                 CompetitionApplications)
 
 
 class PositionSerializer(serializers.ModelSerializer):
@@ -578,9 +577,9 @@ class RSOUserSerializer(serializers.ModelSerializer):
             today = date.today()
             age = (today.year - obj.date_of_birth.year
                    - (
-                           (today.month, today.day) < (
-                       obj.date_of_birth.month, obj.date_of_birth.day
-                   )
+                       (today.month, today.day) < (
+                           obj.date_of_birth.month, obj.date_of_birth.day
+                       )
                    ))
             return age >= 18
 
@@ -612,7 +611,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
             regional_headquarter = (
                 UserRegionalHeadquarterPosition.objects.get(
                     user_id=instance.id
-                ).headquarter_id
+                )
             )
             regional_headquarter_id = regional_headquarter.headquarter_id
         except UserRegionalHeadquarterPosition.DoesNotExist:
