@@ -15,7 +15,7 @@ logger = logging.getLogger('tasks')
 def send_reset_password_email_without_user(data: dict):
     """Отправка письма о смене пароля без токена."""
 
-    email = data.get('email')
+    email = data.get('email').lower()
     email_list = [email,]
     try:
         user = RSOUser.objects.get(email=email)
