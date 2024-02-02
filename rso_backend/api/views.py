@@ -961,8 +961,17 @@ class CentralPositionViewSet(BasePositionViewSet):
     """Просмотреть участников и изменить уровень доверенности/позиции.
 
     Доступно только командиру.
+
+    Доступен поиск по username, first_name, last_name, patronymic_name
     """
 
+    filter_backends = (filters.SearchFilter,)
+    search_fields = (
+        'user__username',
+        'user__first_name',
+        'user__last_name',
+        'user__patronymic_name'
+    )
     serializer_class = CentralPositionSerializer
     permission_classes = (IsStuffOrCentralCommander,)
 
@@ -978,8 +987,17 @@ class DistrictPositionViewSet(BasePositionViewSet):
     """Просмотреть участников и изменить уровень доверенности/позиции.
 
     Доступно только командиру.
+
+    Доступен поиск по username, first_name, last_name, patronymic_name
     """
 
+    filter_backends = (filters.SearchFilter,)
+    search_fields = (
+        'user__username',
+        'user__first_name',
+        'user__last_name',
+        'user__patronymic_name'
+    )
     serializer_class = DistrictPositionSerializer
     permission_classes = (IsUserModelPositionCommander,)
 
@@ -995,8 +1013,17 @@ class RegionalPositionViewSet(BasePositionViewSet):
     """Просмотреть участников и изменить уровень доверенности/позиции.
 
     Доступно только командиру.
+
+    Доступен поиск по username, first_name, last_name, patronymic_name
     """
 
+    filter_backends = (filters.SearchFilter,)
+    search_fields = (
+        'user__username',
+        'user__first_name',
+        'user__last_name',
+        'user__patronymic_name'
+    )
     serializer_class = RegionalPositionSerializer
     permission_classes = (IsUserModelPositionCommander,)
 
@@ -1012,8 +1039,17 @@ class LocalPositionViewSet(BasePositionViewSet):
     """Просмотреть участников и изменить уровень доверенности/позиции.
 
     Доступно только командиру.
+
+    Доступен поиск по username, first_name, last_name, patronymic_name
     """
 
+    filter_backends = (filters.SearchFilter,)
+    search_fields = (
+        'user__username',
+        'user__first_name',
+        'user__last_name',
+        'user__patronymic_name'
+    )
     serializer_class = LocalPositionSerializer
     permission_classes = (IsUserModelPositionCommander,)
 
@@ -1029,8 +1065,17 @@ class EducationalPositionViewSet(BasePositionViewSet):
     """Просмотреть участников и изменить уровень доверенности/позиции.
 
     Доступно только командиру.
+
+    Доступен поиск по username, first_name, last_name, patronymic_name
     """
 
+    filter_backends = (filters.SearchFilter,)
+    search_fields = (
+        'user__username',
+        'user__first_name',
+        'user__last_name',
+        'user__patronymic_name'
+    )
     serializer_class = EducationalPositionSerializer
     permission_classes = (IsUserModelPositionCommander,)
 
@@ -1046,8 +1091,18 @@ class DetachmentPositionViewSet(BasePositionViewSet):
     """Просмотреть участников и изменить уровень доверенности/позиции.
 
     Доступно только командиру.
+
+    Доступен поиск по username, first_name, last_name, patronymic_name
     """
 
+    filter_backends = (filters.SearchFilter,)
+    search_fields = (
+        'user__username',
+        'user__first_name',
+        'user__last_name',
+        'user__patronymic_name'
+    )
+    ordering_fields = ('last_name')
     serializer_class = DetachmentPositionSerializer
     permission_classes = (IsUserModelPositionCommander,)
 

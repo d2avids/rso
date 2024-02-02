@@ -4,7 +4,7 @@ from django_filters import rest_framework as filters
 from events.models import Event
 from users.models import RSOUser
 from headquarters.models import (Detachment, EducationalHeadquarter,
-                                 LocalHeadquarter, RegionalHeadquarter)
+                                 LocalHeadquarter, RegionalHeadquarter, UserDetachmentPosition)
 
 
 class EventFilter(filters.FilterSet):
