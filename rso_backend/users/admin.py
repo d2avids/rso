@@ -11,7 +11,7 @@ from rest_framework.authtoken.models import TokenProxy
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserMembershipLogs, UserParent, UserPrivacySettings,
                           UserRegion, UserStatementDocuments,
-                          UserMemberCertLogs)
+                          UserMemberCertLogs, UserVerificationLogs)
 from users.resources import RSOUserResource
 
 
@@ -115,15 +115,26 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
 @admin.register(UserMembershipLogs)
 class UserMembershipLogsAdmin(admin.ModelAdmin):
     list_display = ('user', 'status_changed_by', 'date', 'period', 'status',)
-    readonly_fields = ('user', 'status_changed_by', 'date', 'period', 'status', 'description')
+    readonly_fields = (
+        'user', 'status_changed_by', 'date', 'period', 'status', 'description'
+    )
     list_filter = ('date', 'period', 'status')
 
 
 @admin.register(UserMemberCertLogs)
 class UserMemberCertLogsAdmin(admin.ModelAdmin):
     list_display = ('user', 'cert_issued_by', 'date', 'cert_type')
-    readonly_fields = ('user', 'cert_issued_by', 'date', 'cert_type', 'description')
+    readonly_fields = (
+        'user', 'cert_issued_by', 'date', 'cert_type', 'description'
+    )
     list_filter = ('date', 'cert_type')
+
+
+@admin.register(UserVerificationLogs)
+class UserVerificationLogsAdmin(admin.ModelAdmin):
+    list_display = ('user', 'date', 'verification_by')
+    readonly_fields = ('user', 'date', 'verification_by')
+    list_filter = ('date',)
 
 
 admin.site.unregister(Group)

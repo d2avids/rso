@@ -142,7 +142,7 @@ from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
                           UserForeignDocuments, UserMedia, UserMemberCertLogs,
                           UserMembershipLogs, UserParent, UserPrivacySettings,
                           UserProfessionalEducation, UserRegion,
-                          UserStatementDocuments, UserVerificationRequest)
+                          UserStatementDocuments, UserVerificationLogs, UserVerificationRequest)
 
 
 class CustomUserViewSet(UserViewSet):
@@ -1402,6 +1402,11 @@ def verify_user(request, pk):
         user.is_verified = True
         user.save()
         application_for_verification.delete()
+        UserVerificationLogs.objects.create(
+            user=user,
+            date=datetime.now(),
+            verification_by=request.user,
+        )
         return Response(status=status.HTTP_202_ACCEPTED)
     application_for_verification = get_object_or_404(
         UserVerificationRequest, user=user
