@@ -8,7 +8,7 @@ from headquarters.utils import image_path
 
 class EducationalInstitution(models.Model):
     short_name = models.CharField(
-        max_length=50,
+        max_length=100,
         verbose_name='Короткое название образовательной '
                      'организации (например, РГГУ)'
     )
