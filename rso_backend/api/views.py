@@ -162,7 +162,8 @@ class CustomUserViewSet(UserViewSet):
     - gender,
     - is_verified,
     - membership_fee,
-    - date_of_birth.
+    - date_of_birth,
+    - region.
     """
 
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
