@@ -146,7 +146,29 @@ from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
 
 
 class CustomUserViewSet(UserViewSet):
-    """Кастомный вьюсет для изменения метода reset_password."""
+    """Кастомный вьюсет юзера.
+    Доступно изменение метода сброса пароля reset_password
+    на новом эндпоинте api/v1/reset_password/.
+    Эндпоинт списка юзеров /api/v1/rsousers.
+    Доступен поиск по username, first_name, last_name, patronymic_name
+    при передаче search query-параметра.
+    По умолчанию сортируются по last_name.
+    Доступна фильтрация по полям:
+    - district_headquarter__name,
+    - regional_headquarter__name,
+    - local_headquarter__name,
+    - educational_headquarter__name,
+    - detachment__name,
+    - gender,
+    - is_verified,
+    - membership_fee,
+    - date_of_birth.
+    """
+
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
+    search_fields = ('username', 'first_name', 'last_name', 'patronymic_name')
+    filterset_class = RSOUserFilter
+    ordering_fields = ('last_name')
 
     @action(
             methods=['post'],
