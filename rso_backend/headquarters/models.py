@@ -15,7 +15,7 @@ class EducationalInstitution(models.Model):
     name = models.CharField(
         max_length=300,
         unique=True,
-        verbose_name='Полное название образовательной организации'
+        verbose_name='Полное название образовательной организации',
     )
     rector = models.CharField(
         max_length=250,
