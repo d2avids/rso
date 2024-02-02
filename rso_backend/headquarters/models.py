@@ -13,7 +13,7 @@ class EducationalInstitution(models.Model):
                      'организации (например, РГГУ)'
     )
     name = models.CharField(
-        max_length=250,
+        max_length=300,
         unique=True,
         verbose_name='Полное название образовательной организации'
     )
