@@ -4,7 +4,7 @@ from django_filters import rest_framework as filters
 from events.models import Event
 from users.models import RSOUser
 from headquarters.models import (Detachment, EducationalHeadquarter,
-                                 LocalHeadquarter, RegionalHeadquarter)
+                                 LocalHeadquarter, RegionalHeadquarter, UserDetachmentPosition)
 
 
 class EventFilter(filters.FilterSet):
@@ -50,6 +50,11 @@ class RSOUserFilter(filters.FilterSet):
         lookup_expr='icontains',
         label='Название отряда'
     )
+    region = filters.CharFilter(
+        field_name='region__name',
+        lookup_expr='iexact',
+        label='Регион'
+    )
 
     class Meta:
         model = RSOUser
@@ -62,7 +67,8 @@ class RSOUserFilter(filters.FilterSet):
             'gender',
             'is_verified',
             'membership_fee',
-            'date_of_birth'
+            'date_of_birth',
+            'region',
         )
 
 

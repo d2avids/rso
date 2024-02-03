@@ -8,14 +8,14 @@ from headquarters.utils import image_path
 
 class EducationalInstitution(models.Model):
     short_name = models.CharField(
-        max_length=50,
+        max_length=100,
         verbose_name='Короткое название образовательной '
                      'организации (например, РГГУ)'
     )
     name = models.CharField(
-        max_length=250,
+        max_length=300,
         unique=True,
-        verbose_name='Полное название образовательной организации'
+        verbose_name='Полное название образовательной организации',
     )
     rector = models.CharField(
         max_length=250,

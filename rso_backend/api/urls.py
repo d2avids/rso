@@ -320,5 +320,8 @@ urlpatterns = [
         CustomUserViewSet.as_view(POST_RESET_PASSWORD),
         name='reset_password'
     ),
+    path(
+        'rsousers', CustomUserViewSet.as_view(LIST),
+    ),
     path('', include(router.urls)),
 ] + user_nested_urls
