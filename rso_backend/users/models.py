@@ -180,7 +180,7 @@ class UserEducation(models.Model):
     )
     study_specialty = models.CharField(
         verbose_name='Специальность',
-        max_length=40,
+        max_length=100,
         blank=True,
         null=True,
     )
