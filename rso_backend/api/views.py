@@ -53,17 +53,22 @@ from api.permissions import (IsApplicantOrOrganizer,
 from api.serializers import (AnswerSerializer, AreaSerializer,
                              CentralHeadquarterSerializer,
                              CentralPositionSerializer,
+                             CentralPositionListSerializer,
                              CompetitionSerializer,
                              CompetitionApplicationsSerializer,
                              CompetitionApplicationsObjectSerializer,
                              CompetitionParticipantsSerializer,
                              CompetitionParticipantsObjectSerializer,
+                             DetachmentListSerializer,
+                             DetachmentPositionListSerializer,
                              DetachmentPositionSerializer,
                              DetachmentSerializer,
                              DistrictHeadquarterSerializer,
+                             DistrictPositionListSerializer,
                              DistrictPositionSerializer,
                              EducationalHeadquarterSerializer,
                              EducationalInstitutionSerializer,
+                             EducationalPositionListSerializer,
                              EducationalPositionSerializer, EmailSerializer,
                              EventAdditionalIssueSerializer,
                              EventApplicationsSerializer,
@@ -75,12 +80,15 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              EventUserDocumentSerializer,
                              ForeignUserDocumentsSerializer,
                              LocalHeadquarterSerializer,
+                             LocalPositionListSerializer,
                              LocalPositionSerializer, MemberCertSerializer,
                              MultiEventApplicationSerializer,
                              MultiEventParticipantsSerializer,
                              PositionSerializer,
                              ProfessionalEductionSerializer,
                              RegionalHeadquarterSerializer,
+                             RegionalListSerializer,
+                             RegionalPositionListSerializer,
                              RegionalPositionSerializer, RegionSerializer,
                              RSOUserSerializer,
                              ShortCentralHeadquarterSerializerME,
@@ -119,7 +127,8 @@ from api.swagger_schemas import (EventSwaggerSerializer, applications_response,
 from api.utils import (create_and_return_archive, download_file,
                        get_headquarter_users_positions_queryset, get_user,
                        get_user_by_id, text_to_lines)
-from competitions.models import CompetitionParticipants, CompetitionApplications, Competitions
+from competitions.models import (CompetitionParticipants,
+                                 CompetitionApplications, Competitions)
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
@@ -752,7 +761,7 @@ class RegionalViewSet(viewsets.ModelViewSet):
     queryset = RegionalHeadquarter.objects.annotate(
         count_related=Count('members')
     )
-    serializer_class = RegionalHeadquarterSerializer
+    # serializer_class = RegionalHeadquarterSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name', 'region__name',)
     ordering_fields = ('name', 'founding_date', 'count_related')
@@ -765,6 +774,11 @@ class RegionalViewSet(viewsets.ModelViewSet):
         else:
             permission_classes = (IsRegionalCommander,)
         return [permission() for permission in permission_classes]
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return RegionalListSerializer
+        return RegionalHeadquarterSerializer
 
     @action(detail=True, methods=['get', ], url_path='verifications')
     def get_verifications(self, request, pk=None):
@@ -875,7 +889,7 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     queryset = Detachment.objects.annotate(
         count_related=Count('members')
     )
-    serializer_class = DetachmentSerializer
+    # serializer_class = DetachmentSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
     filterset_class = DetachmentFilter
@@ -887,6 +901,11 @@ class DetachmentViewSet(viewsets.ModelViewSet):
             permission_classes = (IsEducationalCommander,)
         permission_classes = (IsDetachmentCommander, )
         return [permission() for permission in permission_classes]
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return DetachmentListSerializer
+        return DetachmentSerializer
 
     @action(detail=True, methods=['get', ], url_path='applications')
     @swagger_auto_schema(responses=applications_response)
@@ -972,7 +991,6 @@ class CentralPositionViewSet(BasePositionViewSet):
         'user__last_name',
         'user__patronymic_name'
     )
-    serializer_class = CentralPositionSerializer
     permission_classes = (IsStuffOrCentralCommander,)
 
     def get_queryset(self):
@@ -981,6 +999,11 @@ class CentralPositionViewSet(BasePositionViewSet):
             CentralHeadquarter,
             UserCentralHeadquarterPosition
         )
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return CentralPositionListSerializer
+        return CentralPositionSerializer
 
 
 class DistrictPositionViewSet(BasePositionViewSet):
@@ -998,7 +1021,6 @@ class DistrictPositionViewSet(BasePositionViewSet):
         'user__last_name',
         'user__patronymic_name'
     )
-    serializer_class = DistrictPositionSerializer
     permission_classes = (IsUserModelPositionCommander,)
 
     def get_queryset(self):
@@ -1007,6 +1029,11 @@ class DistrictPositionViewSet(BasePositionViewSet):
             DistrictHeadquarter,
             UserDistrictHeadquarterPosition
         )
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return DistrictPositionListSerializer
+        return DistrictPositionSerializer
 
 
 class RegionalPositionViewSet(BasePositionViewSet):
@@ -1024,7 +1051,6 @@ class RegionalPositionViewSet(BasePositionViewSet):
         'user__last_name',
         'user__patronymic_name'
     )
-    serializer_class = RegionalPositionSerializer
     permission_classes = (IsUserModelPositionCommander,)
 
     def get_queryset(self):
@@ -1033,6 +1059,11 @@ class RegionalPositionViewSet(BasePositionViewSet):
             RegionalHeadquarter,
             UserRegionalHeadquarterPosition
         )
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return RegionalPositionListSerializer
+        return RegionalPositionSerializer
 
 
 class LocalPositionViewSet(BasePositionViewSet):
@@ -1050,7 +1081,6 @@ class LocalPositionViewSet(BasePositionViewSet):
         'user__last_name',
         'user__patronymic_name'
     )
-    serializer_class = LocalPositionSerializer
     permission_classes = (IsUserModelPositionCommander,)
 
     def get_queryset(self):
@@ -1059,6 +1089,11 @@ class LocalPositionViewSet(BasePositionViewSet):
             LocalHeadquarter,
             UserLocalHeadquarterPosition
         )
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return LocalPositionListSerializer
+        return LocalPositionSerializer
 
 
 class EducationalPositionViewSet(BasePositionViewSet):
@@ -1076,7 +1111,6 @@ class EducationalPositionViewSet(BasePositionViewSet):
         'user__last_name',
         'user__patronymic_name'
     )
-    serializer_class = EducationalPositionSerializer
     permission_classes = (IsUserModelPositionCommander,)
 
     def get_queryset(self):
@@ -1085,6 +1119,11 @@ class EducationalPositionViewSet(BasePositionViewSet):
             EducationalHeadquarter,
             UserEducationalHeadquarterPosition
         )
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return EducationalPositionListSerializer
+        return EducationalPositionSerializer
 
 
 class DetachmentPositionViewSet(BasePositionViewSet):
@@ -1103,7 +1142,6 @@ class DetachmentPositionViewSet(BasePositionViewSet):
         'user__patronymic_name'
     )
     ordering_fields = ('last_name')
-    serializer_class = DetachmentPositionSerializer
     permission_classes = (IsUserModelPositionCommander,)
 
     def get_queryset(self):
@@ -1112,6 +1150,11 @@ class DetachmentPositionViewSet(BasePositionViewSet):
             Detachment,
             UserDetachmentPosition
         )
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return DetachmentPositionListSerializer
+        return DetachmentPositionSerializer
 
 
 class DetachmentAcceptViewSet(CreateDeleteViewSet):
