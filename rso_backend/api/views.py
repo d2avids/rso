@@ -1406,6 +1406,7 @@ def verify_user(request, pk):
             user=user,
             date=datetime.now(),
             verification_by=request.user,
+            description='Верификация пользователем'
         )
         return Response(status=status.HTTP_202_ACCEPTED)
     application_for_verification = get_object_or_404(

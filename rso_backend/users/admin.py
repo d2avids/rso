@@ -132,9 +132,9 @@ class UserMemberCertLogsAdmin(admin.ModelAdmin):
 
 @admin.register(UserVerificationLogs)
 class UserVerificationLogsAdmin(admin.ModelAdmin):
-    list_display = ('user', 'date', 'verification_by')
-    readonly_fields = ('user', 'date', 'verification_by')
-    list_filter = ('date',)
+    list_display = ('user', 'date', 'description', 'verification_by')
+    readonly_fields = ('user', 'date', 'description', 'verification_by')
+    list_filter = ('date', 'description')
 
 
 admin.site.unregister(Group)
