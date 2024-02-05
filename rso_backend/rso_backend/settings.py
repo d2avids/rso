@@ -10,6 +10,7 @@ load_dotenv()
 
 MIN_FOUNDING_DATE = 1000
 MAX_FOUNDING_DATE = 9999
+CENTRAL_HEADQUARTER_FOUNDING_DATE = 1959
 MASTER_METHODIST_POSITION_NAME = 'Мастер (методист)'
 COMMISSIONER_POSITION_NAME = 'Комиссар'
 DEFAULT_POSITION_NAME = 'Боец'
@@ -77,6 +78,7 @@ INSTALLED_APPS += [
     'users.apps.UsersConfig',
     'headquarters.apps.HeadquartersConfig',
     'events.apps.EventsConfig',
+    'competitions.apps.CompetitionsConfig',
 ]
 
 MIDDLEWARE = [

@@ -56,37 +56,37 @@ def user_image_folder_delete(instance):
         banner_path = os.path.dirname(instance.banner.path)
         shutil.rmtree(banner_path)
         return
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         pass
     try:
         photo_path = os.path.dirname(instance.photo.path)
         shutil.rmtree(photo_path)
         return
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         pass
     try:
         photo1_path = os.path.dirname(instance.photo1.path)
         shutil.rmtree(photo1_path)
         return
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         pass
     try:
         photo2_path = os.path.dirname(instance.photo2.path)
         shutil.rmtree(photo2_path)
         return
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         pass
     try:
         photo3_path = os.path.dirname(instance.photo3.path)
         shutil.rmtree(photo3_path)
         return
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         pass
     try:
         photo4_path = os.path.dirname(instance.photo4.path)
         shutil.rmtree(photo4_path)
         return
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         pass
 
 
@@ -101,7 +101,7 @@ def user_statement_folder_delete(instance):
         statement_path = os.path.dirname(instance.statement.path)
         shutil.rmtree(statement_path)
         return
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         pass
     try:
         consent_personal_data_path = os.path.dirname(
@@ -109,7 +109,7 @@ def user_statement_folder_delete(instance):
         )
         shutil.rmtree(consent_personal_data_path)
         return
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         pass
     try:
         consent_personal_data_representative_path = os.path.dirname(
@@ -117,13 +117,13 @@ def user_statement_folder_delete(instance):
         )
         shutil.rmtree(consent_personal_data_representative_path)
         return
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         pass
     try:
         passport = os.path.dirname(instance.passport.path)
         shutil.rmtree(passport)
         return
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         pass
     try:
         passport_representative = os.path.dirname(
@@ -131,19 +131,19 @@ def user_statement_folder_delete(instance):
         )
         shutil.rmtree(passport_representative)
         return
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         pass
     try:
         snils_file = os.path.dirname(instance.snils_file.path)
         shutil.rmtree(snils_file)
         return
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         pass
     try:
         inn_file = os.path.dirname(instance.inn_file.path)
         shutil.rmtree(inn_file)
         return
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         pass
     try:
         employment_document = os.path.dirname(
@@ -151,13 +151,13 @@ def user_statement_folder_delete(instance):
         )
         shutil.rmtree(employment_document)
         return
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         pass
     try:
         military_document = os.path.dirname(instance.military_document.path)
         shutil.rmtree(military_document)
         return
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         pass
     try:
         international_passport = os.path.dirname(
@@ -165,7 +165,7 @@ def user_statement_folder_delete(instance):
         )
         shutil.rmtree(international_passport)
         return
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         pass
     try:
         additional_document = os.path.dirname(
@@ -173,5 +173,5 @@ def user_statement_folder_delete(instance):
         )
         shutil.rmtree(additional_document)
         return
-    except ValueError:
+    except (ValueError, FileNotFoundError):
         pass
