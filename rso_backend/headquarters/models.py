@@ -372,7 +372,9 @@ class Detachment(Unit):
         'EducationalInstitution',
         related_name='detachments',
         on_delete=models.PROTECT,
-        verbose_name='Привязка к учебному заведению'
+        verbose_name='Привязка к учебному заведению',
+        blank=True,
+        null=True,
     )
     area = models.ForeignKey(
         'Area',
