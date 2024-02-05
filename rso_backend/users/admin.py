@@ -1,10 +1,12 @@
 from django.contrib import admin
+from django.conf import settings
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
 from django_celery_beat.models import (ClockedSchedule, CrontabSchedule,
                                        IntervalSchedule, PeriodicTask,
                                        SolarSchedule)
 from import_export.admin import ImportExportModelAdmin
+from rest_framework.authtoken.models import TokenProxy
 
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserMembershipLogs, UserParent, UserPrivacySettings,
@@ -130,3 +132,6 @@ admin.site.unregister(IntervalSchedule)
 admin.site.unregister(CrontabSchedule)
 admin.site.unregister(ClockedSchedule)
 admin.site.unregister(SolarSchedule)
+
+if not settings.DEBUG:
+    admin.site.unregister(TokenProxy)

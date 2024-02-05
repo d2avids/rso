@@ -1,7 +1,5 @@
 import datetime as dt
-from drf_yasg import openapi
 from datetime import date
-from drf_yasg.utils import swagger_serializer_method
 from django.conf import settings
 from django.db.models import Q
 from django.db.models.query import QuerySet
@@ -16,8 +14,7 @@ from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                            PRIVACY_RAW_EXISTS, REGION_RAW_EXISTS,
                            STATEMENT_RAW_EXISTS, TOO_MANY_EDUCATIONS)
 from api.utils import create_first_or_exception, get_is_trusted
-from events.models import (Сompetition, СompetitionApplications,
-                           СompetitionParticipants, Event,
+from events.models import (Event,
                            EventAdditionalIssue, EventApplications,
                            EventDocument, EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
@@ -39,6 +36,8 @@ from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
                           UserPrivacySettings, UserProfessionalEducation,
                           UserRegion, UserStatementDocuments,
                           UserVerificationRequest)
+from competitions.models import (CompetitionParticipants, Competitions,
+                                 CompetitionApplications)
 
 
 class PositionSerializer(serializers.ModelSerializer):
@@ -578,16 +577,17 @@ class RSOUserSerializer(serializers.ModelSerializer):
             today = date.today()
             age = (today.year - obj.date_of_birth.year
                    - (
-                           (today.month, today.day) < (
-                       obj.date_of_birth.month, obj.date_of_birth.day
-                   )
+                       (today.month, today.day) < (
+                           obj.date_of_birth.month, obj.date_of_birth.day
+                       )
                    ))
             return age >= 18
 
     @staticmethod
     def get_central_headquarter_id(instance):
         try:
-            central_headquarter_id = CentralHeadquarter.objects.first().id
+            central_headquarter = CentralHeadquarter.objects.first()
+            central_headquarter_id = central_headquarter.id
         except CentralHeadquarter.DoesNotExist:
             central_headquarter_id = None
         return central_headquarter_id
@@ -595,11 +595,12 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_district_headquarter_id(instance):
         try:
-            district_headquarter_id = (
+            district_headquarter = (
                 UserDistrictHeadquarterPosition.objects.get(
                     user_id=instance.id
-                ).headquarter_id
+                )
             )
+            district_headquarter_id = district_headquarter.headquarter_id
         except UserDistrictHeadquarterPosition.DoesNotExist:
             district_headquarter_id = None
         return district_headquarter_id
@@ -607,11 +608,12 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_regional_headquarter_id(instance):
         try:
-            regional_headquarter_id = (
+            regional_headquarter = (
                 UserRegionalHeadquarterPosition.objects.get(
                     user_id=instance.id
-                ).headquarter_id
+                )
             )
+            regional_headquarter_id = regional_headquarter.headquarter_id
         except UserRegionalHeadquarterPosition.DoesNotExist:
             regional_headquarter_id = None
         return regional_headquarter_id
@@ -619,11 +621,12 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_local_headquarter_id(instance):
         try:
-            local_headquarter_id = (
+            local_headquarter = (
                 UserLocalHeadquarterPosition.objects.get(
                     user_id=instance.id
-                ).headquarter_id
+                )
             )
+            local_headquarter_id = local_headquarter.headquarter_id
         except UserLocalHeadquarterPosition.DoesNotExist:
             local_headquarter_id = None
         return local_headquarter_id
@@ -631,11 +634,12 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_educational_headquarter_id(instance):
         try:
-            educational_headquarter_id = (
+            educational_headquarter = (
                 UserEducationalHeadquarterPosition.objects.get(
                     user_id=instance.id
-                ).headquarter_id
+                )
             )
+            educational_headquarter_id = educational_headquarter.headquarter_id
         except UserEducationalHeadquarterPosition.DoesNotExist:
             educational_headquarter_id = None
         return educational_headquarter_id
@@ -643,23 +647,26 @@ class RSOUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_detachment_id(instance):
         try:
-            detachment_id = (
+            detachment = (
                 UserDetachmentPosition.objects.get(
                     user_id=instance.id
-                ).headquarter_id
+                )
             )
+            detachment_id = detachment.headquarter_id
         except UserDetachmentPosition.DoesNotExist:
             detachment_id = None
         return detachment_id
 
     @staticmethod
     def get_sent_verification(instance):
-        verification_status = UserVerificationRequest.objects.filter(user_id=instance.id).exists() or instance.is_verified
+        verification_status = UserVerificationRequest.objects.filter(
+            user_id=instance.id
+        ).exists() or instance.is_verified
         return verification_status
 
 
 class UserCommanderSerializer(serializers.ModelSerializer):
-    """Сериализатор для вывода отрядов где юзер коммандир."""
+    """Сериализатор для вывода отрядов, где юзер коммандир."""
 
     centralheadquarter_commander = serializers.PrimaryKeyRelatedField(
         queryset=CentralHeadquarter.objects.all()
@@ -1136,12 +1143,9 @@ class BaseUnitSerializer(serializers.ModelSerializer):
 
     def _get_position_instance(self):
         if isinstance(self.instance, QuerySet):
-            print('УСЛОВИЕ СРАБОТАЛО')
             instance_type = type(self.instance.first())
         else:
-            print('УСЛОВИЕ НЕ СРАБОТАЛО')
             instance_type = type(self.instance)
-        print(instance_type)
 
         for model_class, (
                 position_model, _
@@ -1151,12 +1155,9 @@ class BaseUnitSerializer(serializers.ModelSerializer):
 
     def _get_position_serializer(self):
         if isinstance(self.instance, QuerySet):
-            print('УСЛОВИЕ СРАБОТАЛО')
             instance_type = type(self.instance.first())
         else:
-            print('УСЛОВИЕ НЕ СРАБОТАЛО')
             instance_type = type(self.instance)
-        print(instance_type)
 
         for model_class, (
                 _, serializer_class
@@ -1180,11 +1181,23 @@ class BaseUnitSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def get_members_count(instance):
-        return instance.members.filter(user__membership_fee=True).count()
+        if isinstance(instance, QuerySet):
+            instance_type = type(instance.first())
+        else:
+            instance_type = type(instance)
+        if issubclass(instance_type, CentralHeadquarter):
+            return RSOUser.objects.filter(membership_fee=True).count()
+        return instance.members.filter(user__membership_fee=True).count() + 1
 
     @staticmethod
     def get_participants_count(instance):
-        return instance.members.count()
+        if isinstance(instance, QuerySet):
+            instance_type = type(instance.first())
+        else:
+            instance_type = type(instance)
+        if issubclass(instance_type, CentralHeadquarter):
+            return RSOUser.objects.count()
+        return instance.members.count() + 1
 
     def validate(self, attrs):
         """
@@ -1231,7 +1244,9 @@ class CentralHeadquarterSerializer(BaseUnitSerializer):
 
     @staticmethod
     def get_working_years(instance):
-        return dt.datetime.now().year - 1958
+        return (
+            dt.datetime.now().year - settings.CENTRAL_HEADQUARTER_FOUNDING_DATE
+        )
 
 
 class DistrictHeadquarterSerializer(BaseUnitSerializer):
@@ -1252,10 +1267,10 @@ class DistrictHeadquarterSerializer(BaseUnitSerializer):
         many=True,
         read_only=True
     )
-    regional_headquarters = serializers.SerializerMethodField(read_only=True)
-    local_headquarters = serializers.SerializerMethodField(read_only=True)
-    educational_headquarters = serializers.SerializerMethodField(read_only=True)
-    detachments = serializers.SerializerMethodField(read_only=True)
+    regional_headquarters = serializers.SerializerMethodField()
+    local_headquarters = serializers.SerializerMethodField()
+    educational_headquarters = serializers.SerializerMethodField()
+    detachments = serializers.SerializerMethodField()
 
     class Meta:
         model = DistrictHeadquarter
@@ -1601,25 +1616,25 @@ class DetachmentSerializer(BaseUnitSerializer):
         return data
 
     def get_status(self, obj):
-        if not СompetitionParticipants.objects.filter(
+        if not CompetitionParticipants.objects.filter(
             Q(detachment=obj) & Q(junior_detachment__isnull=False) |
             Q(detachment__isnull=False) & Q(junior_detachment=obj)
         ).exists():
             return None
-        if СompetitionParticipants.objects.filter(
+        if CompetitionParticipants.objects.filter(
             Q(detachment=obj) & Q(junior_detachment__isnull=False)
         ).exists():
             return 'Наставник'
         return 'Старт'
 
     def get_nomination(self, obj):
-        if not СompetitionParticipants.objects.filter(
+        if not CompetitionParticipants.objects.filter(
             Q(detachment=obj) & Q(junior_detachment__isnull=False) |
             Q(detachment__isnull=False) & Q(junior_detachment=obj) |
             Q(junior_detachment=obj)
         ).exists():
             return None
-        if СompetitionParticipants.objects.filter(
+        if CompetitionParticipants.objects.filter(
             Q(detachment=obj) & Q(junior_detachment__isnull=False) |
             Q(detachment__isnull=False) & Q(junior_detachment=obj)
         ).exists():
@@ -1627,7 +1642,7 @@ class DetachmentSerializer(BaseUnitSerializer):
         return 'Дебют'
 
     def get_tandem_partner(self, obj):
-        participants = СompetitionParticipants.objects.filter(
+        participants = CompetitionParticipants.objects.filter(
             Q(detachment=obj) | Q(junior_detachment=obj)
         ).first()
         if participants:
@@ -2179,7 +2194,7 @@ class DjoserUserSerializer(RSOUserSerializer):
         )
 
 
-class ShortDetachmentCompititionSerializer(BaseShortUnitSerializer):
+class ShortDetachmentCompetitionSerializer(BaseShortUnitSerializer):
     area = serializers.CharField(source='area.name')
 
     class Meta:
@@ -2189,19 +2204,19 @@ class ShortDetachmentCompititionSerializer(BaseShortUnitSerializer):
         )
 
 
-class СompetitionSerializer(serializers.ModelSerializer):
+class CompetitionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Сompetition
+        model = Competitions
         fields = '__all__'
 
 
-class СompetitionApplicationsObjectSerializer(serializers.ModelSerializer):
-    competition = СompetitionSerializer()
-    junior_detachment = ShortDetachmentCompititionSerializer()
-    detachment = ShortDetachmentCompititionSerializer()
+class CompetitionApplicationsObjectSerializer(serializers.ModelSerializer):
+    competition = CompetitionSerializer()
+    junior_detachment = ShortDetachmentCompetitionSerializer()
+    detachment = ShortDetachmentCompetitionSerializer()
 
     class Meta:
-        model = СompetitionApplications
+        model = CompetitionApplications
         fields = (
             'id',
             'competition',
@@ -2212,9 +2227,9 @@ class СompetitionApplicationsObjectSerializer(serializers.ModelSerializer):
         )
 
 
-class СompetitionApplicationsSerializer(serializers.ModelSerializer):
+class CompetitionApplicationsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = СompetitionApplications
+        model = CompetitionApplications
         fields = (
             'id',
             'competition',
@@ -2232,8 +2247,8 @@ class СompetitionApplicationsSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         request = self.context.get('request')
-        applications = СompetitionApplications.objects.all()
-        participants = СompetitionParticipants.objects.all()
+        applications = CompetitionApplications.objects.all()
+        participants = CompetitionParticipants.objects.all()
         if request.method == 'POST':
             MIN_DATE = (f'{settings.DATE_JUNIOR_SQUAD[2]}'
                         f'.{settings.DATE_JUNIOR_SQUAD[1]}.'
@@ -2284,12 +2299,12 @@ class СompetitionApplicationsSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class СompetitionParticipantsObjectSerializer(serializers.ModelSerializer):
-    detachment = ShortDetachmentCompititionSerializer()
-    junior_detachment = ShortDetachmentCompititionSerializer()
+class CompetitionParticipantsObjectSerializer(serializers.ModelSerializer):
+    detachment = ShortDetachmentCompetitionSerializer()
+    junior_detachment = ShortDetachmentCompetitionSerializer()
 
     class Meta:
-        model = СompetitionParticipants
+        model = CompetitionParticipants
         fields = (
             'id',
             'competition',
@@ -2299,9 +2314,9 @@ class СompetitionParticipantsObjectSerializer(serializers.ModelSerializer):
         )
 
 
-class СompetitionParticipantsSerializer(serializers.ModelSerializer):
+class CompetitionParticipantsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = СompetitionParticipants
+        model = CompetitionParticipants
         fields = (
             'id',
             'competition',

@@ -10,7 +10,7 @@ from api.constants import (CREATE_DELETE, CREATE_METHOD, DELETE,
 from api.views import (AnswerDetailViewSet, AreaViewSet,
                        CentralPositionViewSet, CentralViewSet,
                        CompetitionViewSet, CompetitionApplicationsViewSet,
-                       СompetitionParticipantsViewSet,
+                       CompetitionParticipantsViewSet,
                        DetachmentAcceptViewSet, DetachmentApplicationViewSet,
                        DetachmentPositionViewSet, DetachmentViewSet,
                        DistrictPositionViewSet, DistrictViewSet,
@@ -87,7 +87,7 @@ router.register(
 )
 router.register(
     r'competitions/(?P<competition_pk>\d+)/participants',
-    СompetitionParticipantsViewSet,
+    CompetitionParticipantsViewSet,
     basename='competition-participants'
 )
 
@@ -319,6 +319,9 @@ urlpatterns = [
         'reset_password/',
         CustomUserViewSet.as_view(POST_RESET_PASSWORD),
         name='reset_password'
+    ),
+    path(
+        'rsousers', CustomUserViewSet.as_view(LIST),
     ),
     path('', include(router.urls)),
 ] + user_nested_urls

@@ -1,7 +1,6 @@
 import logging
 
 from celery import shared_task
-from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -16,7 +15,7 @@ logger = logging.getLogger('tasks')
 def send_reset_password_email_without_user(data: dict):
     """Отправка письма о смене пароля без токена."""
 
-    email = data.get('email')
+    email = data.get('email').lower()
     email_list = [email,]
     try:
         user = RSOUser.objects.get(email=email)
