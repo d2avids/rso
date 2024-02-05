@@ -970,3 +970,33 @@ class UserMemberCertLogs(models.Model):
     class Meta:
         verbose_name_plural = 'Логи выдачи справок о членстве в РСО.'
         verbose_name = 'Лог выдачи справки о членстве в РСО.'
+
+
+class UserVerificationLogs(models.Model):
+    """Таблица для хранения логов верификации юзеров."""
+
+    user = models.ForeignKey(
+        to='RSOUser',
+        on_delete=models.CASCADE,
+        related_name='verification_logs',
+        verbose_name='Пользователь',
+    )
+    date = models.DateField(
+        verbose_name='Дата действия',
+        auto_now_add=True,
+    )
+    description = models.TextField(
+        verbose_name='Сообщение лога',
+        blank=True,
+        null=True
+    )
+    verification_by = models.ForeignKey(
+        to='RSOUser',
+        on_delete=models.CASCADE,
+        related_name='verificator_logs',
+        verbose_name='Верифицирующий пользователь',
+    )
+
+    class Meta:
+        verbose_name_plural = 'Логи верификации юзеров.'
+        verbose_name = 'Лог верификации юзеров.'

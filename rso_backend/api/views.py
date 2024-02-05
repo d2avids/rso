@@ -142,7 +142,7 @@ from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
                           UserForeignDocuments, UserMedia, UserMemberCertLogs,
                           UserMembershipLogs, UserParent, UserPrivacySettings,
                           UserProfessionalEducation, UserRegion,
-                          UserStatementDocuments, UserVerificationRequest)
+                          UserStatementDocuments, UserVerificationLogs, UserVerificationRequest)
 
 
 class CustomUserViewSet(UserViewSet):
@@ -885,7 +885,9 @@ class DetachmentViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action == 'create':
-            permission_classes = (IsEducationalCommander,)
+            #TODO: вернуть обратно после запрета юзерам создавать отряды
+            # permission_classes = (IsEducationalCommander,)
+            permission_classes = (permissions.IsAuthenticated,)
         permission_classes = (IsDetachmentCommander, )
         return [permission() for permission in permission_classes]
 
@@ -1450,6 +1452,14 @@ def verify_user(request, pk):
     (относящихся к тому же региону, что и юзер) и отрядов (в котором
     состоит юзер).
     """
+    if not request.user.is_verified:
+        return Response(
+            status=status.HTTP_403_FORBIDDEN,
+            data={'detail': (
+                'Пройдите верификацию,'
+                ' чтобы верифицировать других пользователей.'
+            )}
+        )
     user = get_object_or_404(RSOUser, id=pk)
     if request.method == 'POST':
         application_for_verification = get_object_or_404(
@@ -1458,6 +1468,12 @@ def verify_user(request, pk):
         user.is_verified = True
         user.save()
         application_for_verification.delete()
+        UserVerificationLogs.objects.create(
+            user=user,
+            date=datetime.now(),
+            verification_by=request.user,
+            description='Верификация пользователем'
+        )
         return Response(status=status.HTTP_202_ACCEPTED)
     application_for_verification = get_object_or_404(
         UserVerificationRequest, user=user
