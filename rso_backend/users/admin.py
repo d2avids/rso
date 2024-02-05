@@ -132,6 +132,8 @@ class UserMemberCertLogsAdmin(admin.ModelAdmin):
 
 @admin.register(UserVerificationLogs)
 class UserVerificationLogsAdmin(admin.ModelAdmin):
+    """Таблица логов верификации пользователей."""
+
     list_display = ('user', 'date', 'description', 'verification_by')
     readonly_fields = ('user', 'date', 'description', 'verification_by')
     list_filter = ('date', 'description')
