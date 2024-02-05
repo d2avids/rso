@@ -878,7 +878,7 @@ class BasePositionSerializer(serializers.ModelSerializer):
         serialized_data = super().to_representation(instance)
         position = instance.position
         if position:
-            serialized_data['position'] = position.name
+            serialized_data['position'] = PositionSerializer(position).data
         return serialized_data
 
 
@@ -929,78 +929,6 @@ class EducationalPositionSerializer(BasePositionSerializer):
 
 class DetachmentPositionSerializer(BasePositionSerializer):
     """Сериализаатор для добавления пользователя в отряд."""
-
-    class Meta:
-        model = UserDetachmentPosition
-        fields = BasePositionSerializer.Meta.fields
-        read_only_fields = BasePositionSerializer.Meta.read_only_fields
-
-
-class BasePositionListSerializer(BasePositionSerializer):
-    """
-    Базовый класс для вывода участников и их должностей
-    при получении списка структурных единиц.
-    """
-
-    class Meta:
-        model = UserCentralHeadquarterPosition
-        fields = BasePositionSerializer.Meta.fields
-
-    def to_representation(self, instance):
-        serialized_data = super().to_representation(instance)
-        position = instance.position
-        if position:
-            serialized_data['position'] = PositionSerializer(position).data
-        return serialized_data
-
-
-class CentralPositionListSerializer(BasePositionListSerializer):
-    """Для вывода участников ЦШ методом GET."""
-
-    class Meta:
-        model = UserCentralHeadquarterPosition
-        fields = BasePositionSerializer.Meta.fields
-        read_only_fields = BasePositionSerializer.Meta.read_only_fields
-
-
-class DistrictPositionListSerializer(BasePositionListSerializer):
-    """Для вывода участников ОкрШ методом GET."""
-
-    class Meta:
-        model = UserDistrictHeadquarterPosition
-        fields = BasePositionSerializer.Meta.fields
-        read_only_fields = BasePositionSerializer.Meta.read_only_fields
-
-
-class RegionalPositionListSerializer(BasePositionListSerializer):
-    """Для вывода участников РШ методом GET."""
-
-    class Meta:
-        model = UserRegionalHeadquarterPosition
-        fields = BasePositionSerializer.Meta.fields
-        read_only_fields = BasePositionSerializer.Meta.read_only_fields
-
-
-class LocalPositionListSerializer(BasePositionListSerializer):
-    """Для вывода участников МШ методом GET."""
-
-    class Meta:
-        model = UserLocalHeadquarterPosition
-        fields = BasePositionSerializer.Meta.fields
-        read_only_fields = BasePositionSerializer.Meta.read_only_fields
-
-
-class EducationalPositionListSerializer(BasePositionListSerializer):
-    """Для вывода участников ОШ методом GET."""
-
-    class Meta:
-        model = UserEducationalHeadquarterPosition
-        fields = BasePositionSerializer.Meta.fields
-        read_only_fields = BasePositionSerializer.Meta.read_only_fields
-
-
-class DetachmentPositionListSerializer(BasePositionListSerializer):
-    """Для вывода участников отряда методом GET."""
 
     class Meta:
         model = UserDetachmentPosition
@@ -1453,7 +1381,7 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
         serialized_data = super().to_representation(instance)
         region = instance.region
         if region:
-            serialized_data['region'] = region.name
+            serialized_data['region'] = RegionSerializer(region).data
         return serialized_data
 
     def get_detachments(self, obj):
@@ -1683,17 +1611,17 @@ class DetachmentSerializer(BaseUnitSerializer):
     def to_representation(self, instance):
         """
         Вызывает родительский метод to_representation,
-        а также изменяет вывод area, educational_institution и region.
+        а также изменяет вывод educational_institution.
         """
         serialized_data = super().to_representation(instance)
-        area = instance.area
         educational_institution = instance.educational_institution
+        area = instance.area
         region = instance.region
-        serialized_data['area'] = area.name
         serialized_data['educational_institution'] = (
             EducationalInstitutionSerializer(educational_institution).data
         )
-        serialized_data['region'] = region.name
+        serialized_data['area'] = AreaSerializer(area).data
+        serialized_data['region'] = RegionSerializer(region).data
         return serialized_data
 
     def validate(self, data):
@@ -1748,29 +1676,6 @@ class DetachmentSerializer(BaseUnitSerializer):
                 return ShortDetachmentSerializer(
                     participants.detachment
                 ).data
-
-
-class DetachmentListSerializer(DetachmentSerializer):
-
-    class Meta:
-        model = Detachment
-        fields = DetachmentSerializer.Meta.fields
-
-    def to_representation(self, instance):
-        """
-        Вызывает родительский метод to_representation,
-        а также изменяет вывод educational_institution.
-        """
-        serialized_data = super().to_representation(instance)
-        educational_institution = instance.educational_institution
-        area = instance.area
-        region = instance.region
-        serialized_data['educational_institution'] = (
-            EducationalInstitutionSerializer(educational_institution).data
-        )
-        serialized_data['area'] = AreaSerializer(area).data
-        serialized_data['region'] = RegionSerializer(region).data
-        return serialized_data
 
 
 class MemberCertSerializer(serializers.ModelSerializer):
