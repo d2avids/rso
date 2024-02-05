@@ -878,7 +878,7 @@ class BasePositionSerializer(serializers.ModelSerializer):
         serialized_data = super().to_representation(instance)
         position = instance.position
         if position:
-            serialized_data['position'] = position.name
+            serialized_data['position'] = PositionSerializer(position).data
         return serialized_data
 
 
@@ -1381,7 +1381,7 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
         serialized_data = super().to_representation(instance)
         region = instance.region
         if region:
-            serialized_data['region'] = region.name
+            serialized_data['region'] = RegionSerializer(region).data
         return serialized_data
 
     def get_detachments(self, obj):
@@ -1395,6 +1395,28 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
     def get_educational_headquarters(self, obj):
         hqs = EducationalHeadquarter.objects.filter(regional_headquarter=obj)
         return ShortEducationalHeadquarterSerializer(hqs, many=True).data
+
+
+class RegionalListSerializer(RegionalHeadquarterSerializer):
+    """Сериализатор для списка региональных штабов.
+
+    Изменяет только поле region. Используется для метода GET.
+    """
+
+    class Meta:
+        model = RegionalHeadquarter
+        fields = RegionalHeadquarterSerializer.Meta.fields
+
+    def to_representation(self, instance):
+        """
+        Вызывает родительский метод to_representation,
+        а также изменяем вывод region.
+        """
+        serialized_data = super().to_representation(instance)
+        region = instance.region
+        if region:
+            serialized_data['region'] = RegionSerializer(region).data
+        return serialized_data
 
 
 class LocalHeadquarterSerializer(BaseUnitSerializer):
@@ -1589,17 +1611,17 @@ class DetachmentSerializer(BaseUnitSerializer):
     def to_representation(self, instance):
         """
         Вызывает родительский метод to_representation,
-        а также изменяет вывод area, educational_institution и region.
+        а также изменяет вывод educational_institution.
         """
         serialized_data = super().to_representation(instance)
-        area = instance.area
         educational_institution = instance.educational_institution
+        area = instance.area
         region = instance.region
-        serialized_data['area'] = area.name
         serialized_data['educational_institution'] = (
             EducationalInstitutionSerializer(educational_institution).data
         )
-        serialized_data['region'] = region.name
+        serialized_data['area'] = AreaSerializer(area).data
+        serialized_data['region'] = RegionSerializer(region).data
         return serialized_data
 
     def validate(self, data):
