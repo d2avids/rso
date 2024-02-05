@@ -189,6 +189,7 @@ class CustomUserViewSet(UserViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.data
         try:
+            RSOUser.objects.get(email=data.get('email'))
             RSOUser.objects.get(email__iexact=data.get('email'))
             send_reset_password_email_without_user.delay(data=data)
             return Response(status=status.HTTP_200_OK)
@@ -947,7 +948,6 @@ class BasePositionViewSet(viewsets.ModelViewSet):
             obj = queryset.get(pk=member_pk)
         # TODO: не лучшая практика, но пока не вижу более правильного решения
         # TODO: в действительности мы ловим DoesNotExist для дочерних классов
-        # TODO: в действительности мы отлавливаем DoesNotExist для дочерних классов
         # TODO: edit - можно добавить маппинг. Сделать позднее.
         except Exception:
             return Response(
