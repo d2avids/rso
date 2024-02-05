@@ -190,7 +190,6 @@ class CustomUserViewSet(UserViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.data
         try:
-            RSOUser.objects.get(email=data.get('email'))
             RSOUser.objects.get(email__iexact=data.get('email'))
             send_reset_password_email_without_user.delay(data=data)
             return Response(status=status.HTTP_200_OK)
