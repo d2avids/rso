@@ -874,6 +874,7 @@ class DetachmentViewSet(viewsets.ModelViewSet):
             #TODO: вернуть обратно после запрета юзерам создавать отряды
             # permission_classes = (IsEducationalCommander,)
             permission_classes = (permissions.IsAuthenticated,)
+            return [permission() for permission in permission_classes]
         permission_classes = (IsDetachmentCommander, )
         return [permission() for permission in permission_classes]
 
