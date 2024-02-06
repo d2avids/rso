@@ -35,3 +35,27 @@ def headquarter_media_folder_delete(instance):
         shutil.rmtree(banner_path)
     except ValueError:
         pass
+
+
+def headquarter_image_delete(instance, model):
+    """Функция для удаления изображения.
+
+    Удаляет изображение для всех моделей - наследников Unit.
+    :param instance: Экземпляр модели.
+    """
+
+    if instance.pk:
+        try:
+            old_instance = model.objects.get(pk=instance.pk)
+            try:
+                if old_instance.banner != instance.banner:
+                    os.remove(old_instance.banner.path)
+            except (ValueError, FileNotFoundError):
+                pass
+            try:
+                if old_instance.emblem != instance.emblem:
+                    os.remove(old_instance.emblem.path)
+            except (ValueError, FileNotFoundError):
+                pass
+        except model.DoesNotExist:
+            pass

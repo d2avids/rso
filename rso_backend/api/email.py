@@ -1,3 +1,5 @@
+import os
+
 from django.conf import settings
 from djoser.email import PasswordResetEmail
 
@@ -7,6 +9,10 @@ class CustomPasswordResetEmail(PasswordResetEmail):
 
     Определен класс init для передачи контекста в шаблон письма.
     """
+
+    template_name = os.path.join(
+        settings.BASE_DIR, 'templates', 'email', 'password_reset.html'
+    )
 
     def __init__(self, email, user, context=None, *args, **kwargs):
         super().__init__(*args, **kwargs)

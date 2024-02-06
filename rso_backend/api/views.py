@@ -8,7 +8,7 @@ from datetime import date, datetime
 import pdfrw
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Q, Count
+from django.db.models import Q
 from django.conf import settings
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -119,7 +119,8 @@ from api.swagger_schemas import (EventSwaggerSerializer, applications_response,
 from api.utils import (create_and_return_archive, download_file,
                        get_headquarter_users_positions_queryset, get_user,
                        get_user_by_id, text_to_lines)
-from competitions.models import CompetitionParticipants, CompetitionApplications, Competitions
+from competitions.models import (CompetitionParticipants,
+                                 CompetitionApplications, Competitions)
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
@@ -142,7 +143,8 @@ from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
                           UserForeignDocuments, UserMedia, UserMemberCertLogs,
                           UserMembershipLogs, UserParent, UserPrivacySettings,
                           UserProfessionalEducation, UserRegion,
-                          UserStatementDocuments, UserVerificationRequest)
+                          UserStatementDocuments, UserVerificationLogs,
+                          UserVerificationRequest)
 
 
 class CustomUserViewSet(UserViewSet):
@@ -174,7 +176,7 @@ class CustomUserViewSet(UserViewSet):
     @action(
             methods=['post'],
             detail=False,
-            permission_classes=(permissions.IsAuthenticated,),
+            permission_classes=(permissions.AllowAny,),
             serializer_class=EmailSerializer,
     )
     def reset_password(self, request, *args, **kwargs):
@@ -716,13 +718,10 @@ class DistrictViewSet(viewsets.ModelViewSet):
     Сортировка по умолчанию - количество участников
     """
 
-    queryset = DistrictHeadquarter.objects.annotate(
-        count_related=Count('members')
-    )
+    queryset = DistrictHeadquarter.objects.all()
     serializer_class = DistrictHeadquarterSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
-    ordering = ('count_related',)
 
     def get_permissions(self):
         if self.action == 'create':
@@ -749,14 +748,11 @@ class RegionalViewSet(viewsets.ModelViewSet):
     Доступна фильтрация по Окружным Штабам. Ключ - district_headquarter__name.
     """
 
-    queryset = RegionalHeadquarter.objects.annotate(
-        count_related=Count('members')
-    )
-    serializer_class = RegionalHeadquarterSerializer
+    queryset = RegionalHeadquarter.objects.all()
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name', 'region__name',)
-    ordering_fields = ('name', 'founding_date', 'count_related')
-    ordering = ('count_related', )
+    ordering_fields = ('name', 'founding_date',)
+    serializer_class = RegionalHeadquarterSerializer
     filterset_class = RegionalHeadquarterFilter
 
     def get_permissions(self):
@@ -795,14 +791,11 @@ class LocalViewSet(viewsets.ModelViewSet):
     district_headquarter__name.
     """
 
-    queryset = LocalHeadquarter.objects.annotate(
-        count_related=Count('members')
-    )
+    queryset = LocalHeadquarter.objects.all()
     serializer_class = LocalHeadquarterSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
-    ordering_fields = ('name', 'founding_date', 'count_related')
-    ordering = ('count_related', )
+    ordering_fields = ('name', 'founding_date',)
     filterset_class = LocalHeadquarterFilter
 
     def get_permissions(self):
@@ -831,15 +824,12 @@ class EducationalViewSet(viewsets.ModelViewSet):
     district_headquarter__name, local_headquarter__name.
     """
 
-    queryset = EducationalHeadquarter.objects.annotate(
-        count_related=Count('members')
-    )
+    queryset = EducationalHeadquarter.objects.all()
     serializer_class = EducationalHeadquarterSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
     filterset_class = EducationalHeadquarterFilter
-    ordering_fields = ('name', 'founding_date', 'count_related')
-    ordering = ('count_related', )
+    ordering_fields = ('name', 'founding_date',)
 
     def get_permissions(self):
         if self.action == 'create':
@@ -872,19 +862,19 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     Доступна фильтрация по ключам area__name, educational_institution__name,
     """
 
-    queryset = Detachment.objects.annotate(
-        count_related=Count('members')
-    )
+    queryset = Detachment.objects.all()
     serializer_class = DetachmentSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
     filterset_class = DetachmentFilter
-    ordering_fields = ('name', 'founding_date', 'count_related')
-    ordering = ('count_related', )
+    ordering_fields = ('name', 'founding_date',)
 
     def get_permissions(self):
         if self.action == 'create':
-            permission_classes = (IsEducationalCommander,)
+            #TODO: вернуть обратно после запрета юзерам создавать отряды
+            # permission_classes = (IsEducationalCommander,)
+            permission_classes = (permissions.IsAuthenticated,)
+            return [permission() for permission in permission_classes]
         permission_classes = (IsDetachmentCommander, )
         return [permission() for permission in permission_classes]
 
@@ -947,7 +937,6 @@ class BasePositionViewSet(viewsets.ModelViewSet):
             obj = queryset.get(pk=member_pk)
         # TODO: не лучшая практика, но пока не вижу более правильного решения
         # TODO: в действительности мы ловим DoesNotExist для дочерних классов
-        # TODO: в действительности мы отлавливаем DoesNotExist для дочерних классов
         # TODO: edit - можно добавить маппинг. Сделать позднее.
         except Exception:
             return Response(
@@ -972,8 +961,8 @@ class CentralPositionViewSet(BasePositionViewSet):
         'user__last_name',
         'user__patronymic_name'
     )
-    serializer_class = CentralPositionSerializer
     permission_classes = (IsStuffOrCentralCommander,)
+    serializer_class = CentralPositionSerializer
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -998,8 +987,8 @@ class DistrictPositionViewSet(BasePositionViewSet):
         'user__last_name',
         'user__patronymic_name'
     )
-    serializer_class = DistrictPositionSerializer
     permission_classes = (IsUserModelPositionCommander,)
+    serializer_class = DistrictPositionSerializer
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -1024,8 +1013,8 @@ class RegionalPositionViewSet(BasePositionViewSet):
         'user__last_name',
         'user__patronymic_name'
     )
-    serializer_class = RegionalPositionSerializer
     permission_classes = (IsUserModelPositionCommander,)
+    serializer_class = RegionalPositionSerializer
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -1050,8 +1039,8 @@ class LocalPositionViewSet(BasePositionViewSet):
         'user__last_name',
         'user__patronymic_name'
     )
-    serializer_class = LocalPositionSerializer
     permission_classes = (IsUserModelPositionCommander,)
+    serializer_class = LocalPositionSerializer
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -1076,8 +1065,8 @@ class EducationalPositionViewSet(BasePositionViewSet):
         'user__last_name',
         'user__patronymic_name'
     )
-    serializer_class = EducationalPositionSerializer
     permission_classes = (IsUserModelPositionCommander,)
+    serializer_class = EducationalPositionSerializer
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -1103,8 +1092,8 @@ class DetachmentPositionViewSet(BasePositionViewSet):
         'user__patronymic_name'
     )
     ordering_fields = ('last_name')
-    serializer_class = DetachmentPositionSerializer
     permission_classes = (IsUserModelPositionCommander,)
+    serializer_class = DetachmentPositionSerializer
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -1450,6 +1439,14 @@ def verify_user(request, pk):
     (относящихся к тому же региону, что и юзер) и отрядов (в котором
     состоит юзер).
     """
+    if not request.user.is_verified:
+        return Response(
+            status=status.HTTP_403_FORBIDDEN,
+            data={'detail': (
+                'Пройдите верификацию,'
+                ' чтобы верифицировать других пользователей.'
+            )}
+        )
     user = get_object_or_404(RSOUser, id=pk)
     if request.method == 'POST':
         application_for_verification = get_object_or_404(
@@ -1458,6 +1455,12 @@ def verify_user(request, pk):
         user.is_verified = True
         user.save()
         application_for_verification.delete()
+        UserVerificationLogs.objects.create(
+            user=user,
+            date=datetime.now(),
+            verification_by=request.user,
+            description='Верификация пользователем'
+        )
         return Response(status=status.HTTP_202_ACCEPTED)
     application_for_verification = get_object_or_404(
         UserVerificationRequest, user=user
