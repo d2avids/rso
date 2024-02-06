@@ -8,7 +8,7 @@ from datetime import date, datetime
 import pdfrw
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Q, Count
+from django.db.models import Q
 from django.conf import settings
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -143,7 +143,8 @@ from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
                           UserForeignDocuments, UserMedia, UserMemberCertLogs,
                           UserMembershipLogs, UserParent, UserPrivacySettings,
                           UserProfessionalEducation, UserRegion,
-                          UserStatementDocuments, UserVerificationLogs, UserVerificationRequest)
+                          UserStatementDocuments, UserVerificationLogs,
+                          UserVerificationRequest)
 
 
 class CustomUserViewSet(UserViewSet):
@@ -175,7 +176,7 @@ class CustomUserViewSet(UserViewSet):
     @action(
             methods=['post'],
             detail=False,
-            permission_classes=(permissions.IsAuthenticated,),
+            permission_classes=(permissions.AllowAny,),
             serializer_class=EmailSerializer,
     )
     def reset_password(self, request, *args, **kwargs):
@@ -717,13 +718,10 @@ class DistrictViewSet(viewsets.ModelViewSet):
     Сортировка по умолчанию - количество участников
     """
 
-    queryset = DistrictHeadquarter.objects.annotate(
-        count_related=Count('members')
-    )
+    queryset = DistrictHeadquarter.objects.all()
     serializer_class = DistrictHeadquarterSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
-    ordering = ('count_related',)
 
     def get_permissions(self):
         if self.action == 'create':
@@ -750,14 +748,10 @@ class RegionalViewSet(viewsets.ModelViewSet):
     Доступна фильтрация по Окружным Штабам. Ключ - district_headquarter__name.
     """
 
-    queryset = RegionalHeadquarter.objects.annotate(
-        count_related=Count('members')
-    )
-    # serializer_class = RegionalHeadquarterSerializer
+    queryset = RegionalHeadquarter.objects.all()
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name', 'region__name',)
-    ordering_fields = ('name', 'founding_date', 'count_related')
-    ordering = ('count_related', )
+    ordering_fields = ('name', 'founding_date',)
     serializer_class = RegionalHeadquarterSerializer
     filterset_class = RegionalHeadquarterFilter
 
@@ -797,14 +791,11 @@ class LocalViewSet(viewsets.ModelViewSet):
     district_headquarter__name.
     """
 
-    queryset = LocalHeadquarter.objects.annotate(
-        count_related=Count('members')
-    )
+    queryset = LocalHeadquarter.objects.all()
     serializer_class = LocalHeadquarterSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
-    ordering_fields = ('name', 'founding_date', 'count_related')
-    ordering = ('count_related', )
+    ordering_fields = ('name', 'founding_date',)
     filterset_class = LocalHeadquarterFilter
 
     def get_permissions(self):
@@ -833,15 +824,12 @@ class EducationalViewSet(viewsets.ModelViewSet):
     district_headquarter__name, local_headquarter__name.
     """
 
-    queryset = EducationalHeadquarter.objects.annotate(
-        count_related=Count('members')
-    )
+    queryset = EducationalHeadquarter.objects.all()
     serializer_class = EducationalHeadquarterSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
     filterset_class = EducationalHeadquarterFilter
-    ordering_fields = ('name', 'founding_date', 'count_related')
-    ordering = ('count_related', )
+    ordering_fields = ('name', 'founding_date',)
 
     def get_permissions(self):
         if self.action == 'create':
@@ -874,15 +862,12 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     Доступна фильтрация по ключам area__name, educational_institution__name,
     """
 
-    queryset = Detachment.objects.annotate(
-        count_related=Count('members')
-    )
+    queryset = Detachment.objects.all()
     serializer_class = DetachmentSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
     filterset_class = DetachmentFilter
-    ordering_fields = ('name', 'founding_date', 'count_related')
-    ordering = ('count_related', )
+    ordering_fields = ('name', 'founding_date',)
 
     def get_permissions(self):
         if self.action == 'create':
