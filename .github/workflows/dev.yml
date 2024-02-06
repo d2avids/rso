@@ -41,19 +41,8 @@ jobs:
           script: |
             cd rso_dev
             sudo docker compose down
-            sudo docker system prune
-            sudo docker image prune
+            sudo docker system prune -f
+            sudo docker image prune -f
             sudo docker compose pull
             sudo docker compose up -d
-            sudo docker compose exec backend python manage.py migrate users 0021_alter_usereducation_study_specialty
-            sudo docker compose exec backend rm users/migrations/0021_userverificationlogs.py
-            sudo docker compose exec backend rm users/migrations/0022_merge_20240205_2303.py
-            sudo docker compose exec backend python manage.py migrate users
-            sudo docker compose exec backend python manage.py migrate headquarters 0027_alter_educationalinstitution_name
-            sudo docker compose exec backend rm headquarters/migrations/0026_alter_educationalinstitution_name_and_more.py
-            sudo docker compose exec backend rm headquarters/migrations/0027_alter_educationalinstitution_name_and_more.py
-            sudo docker compose exec backend rm headquarters/migrations/0028_alter_detachment_educational_institution.py
-            sudo docker compose exec backend rm headquarters/migrations/0029_merge_20240205_2303.py
-            sudo docker compose exec backend rm headquarters/migrations/0030_alter_educationalinstitution_name_and_more.py
-            sudo docker compose exec backend python manage.py migrate headquarters
             sudo docker compose exec backend python manage.py migrate
