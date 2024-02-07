@@ -27,7 +27,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
 from api import constants
-from api.filters import (DetachmentFilter, EducationalHeadquarterFilter,
+from api.filters import (DetachmentFilter, EducationalHeadquarterFilter, EducationalInstitutionFilter,
                          EventFilter, LocalHeadquarterFilter,
                          RegionalHeadquarterFilter, RSOUserFilter)
 from api.mixins import (CreateDeleteViewSet, CreateListRetrieveDestroyViewSet,
@@ -220,27 +220,10 @@ class RSOUserViewSet(RetrieveViewSet):
     Представляет пользователей. Доступны операции чтения.
     Пользователь имеет возможность изменять собственные данные
     по id или по эндпоинту /users/me.
-    Доступен поиск по username, first_name, last_name, patronymic_name
-    при передаче search query-параметра.
-    По умолчанию сортируются по last_name.
-    Доступна фильтрация по полям:
-    - district_headquarter__name,
-    - regional_headquarter__name,
-    - local_headquarter__name,
-    - educational_headquarter__name,
-    - detachment__name,
-    - gender,
-    - is_verified,
-    - membership_fee,
-    - date_of_birth.
     """
 
     queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
-    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
-    search_fields = ('username', 'first_name', 'last_name', 'patronymic_name')
-    filterset_class = RSOUserFilter
-    ordering_fields = ('last_name')
     # TODO: переписать пермишены, чтобы получить данные можно было
     # TODO: только тех пользователей, что состоят в той же стр. ед., где
     # TODO: запрашивающий пользователь и является командиром/доверенным
@@ -332,9 +315,9 @@ class EducationalInstitutionViewSet(ListRetrieveViewSet):
 
     queryset = EducationalInstitution.objects.all()
     serializer_class = EducationalInstitutionSerializer
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
-
+    filterset_class = EducationalInstitutionFilter
     ordering = ('name',)
 
 
@@ -3167,10 +3150,18 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
     Доступ:
         - чтение: все
         - удаление: только админы и командиры региональных штабов.
+    Поиск:
+        - ключ для поиска: ?search
+        - поле для поиска: name младшего отряда и отряда-наставника.
     """
     queryset = CompetitionParticipants.objects.all()
     serializer_class = CompetitionParticipantsSerializer
     permission_classes = (permissions.AllowAny,)
+    filter_backends = (filters.SearchFilter, )
+    search_fields = (
+        'detachment__name',
+        'junior_detachment__name'
+    )
 
     def get_queryset(self):
         return CompetitionParticipants.objects.filter(

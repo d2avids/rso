@@ -3,21 +3,24 @@ from django_filters import rest_framework as filters
 
 from events.models import Event
 from headquarters.models import (Detachment, EducationalHeadquarter,
-                                 LocalHeadquarter, RegionalHeadquarter,
-                                 UserDetachmentPosition)
+                                 LocalHeadquarter, RegionalHeadquarter)
 from users.models import RSOUser
 
 
 class EventFilter(filters.FilterSet):
-    format = filters.CharFilter(field_name='format', lookup_expr='iexact')
+    format = filters.CharFilter(
+        field_name='format', lookup_expr='icontains', label='Формат'
+    )
     direction = filters.CharFilter(
-        field_name='direction', lookup_expr='iexact'
+        field_name='direction', lookup_expr='icontains', label='Направление'
     )
     status = filters.CharFilter(
-        field_name='status', lookup_expr='iexact'
+        field_name='status', lookup_expr='icontains', label='Статус'
     )
     scale = filters.CharFilter(
-        field_name='scale', lookup_expr='iexact'
+        field_name='scale',
+        lookup_expr='icontains',
+        label='Масштаб мероприятия'
     )
 
     class Meta:
@@ -47,13 +50,13 @@ class RSOUserFilter(filters.FilterSet):
         label='Название образовательного штаба'
     )
     detachment__name = filters.CharFilter(
-        field_name='userdetachmentposition__detachment__name',
+        field_name='userdetachmentposition__headquarter__name',
         lookup_expr='icontains',
         label='Название отряда'
     )
-    region = filters.CharFilter(
+    region__name = filters.CharFilter(
         field_name='region__name',
-        lookup_expr='iexact',
+        lookup_expr='icontains',
         label='Регион'
     )
 
@@ -154,3 +157,12 @@ class DetachmentFilter(filters.FilterSet):
     class Meta:
         model = Detachment
         fields = ('area__name', 'educational_institution__name')
+
+
+class EducationalInstitutionFilter(filters.FilterSet):
+
+    region__name = filters.CharFilter(
+        field_name='region__name',
+        lookup_expr='icontains',
+        label='Название региона'
+    )
