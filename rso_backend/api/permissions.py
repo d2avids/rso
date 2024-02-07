@@ -3,7 +3,7 @@ from rest_framework import permissions, status
 from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 
-from api.serializers import UserCommanderSerializer, UserTrustedSerializer
+from users.serializers import UserCommanderSerializer, UserTrustedSerializer
 from api.utils import (check_commander_or_not, check_roles_for_edit,
                        check_trusted_for_centralhead,
                        check_trusted_for_detachments,
