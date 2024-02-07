@@ -271,7 +271,7 @@ class UserEducationViewSet(BaseUserViewSet):
 
     queryset = UserEducation.objects.all()
     serializer_class = UserEducationSerializer
-    permission_classes = [IsStuffOrAuthor,]
+    permission_classes = (permissions.IsAuthenticated, IsStuffOrAuthor,)
     ordering_fields = ('study_specialty',)
 
     def get_object(self):
@@ -351,7 +351,7 @@ class UserDocumentsViewSet(BaseUserViewSet):
 
     queryset = UserDocuments.objects.all()
     serializer_class = UserDocumentsSerializer
-    permission_classes = (IsStuffOrAuthor,)
+    permission_classes = (permissions.IsAuthenticated, IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(UserDocuments, user=self.request.user)
@@ -362,7 +362,7 @@ class ForeignUserDocumentsViewSet(BaseUserViewSet):
 
     queryset = UserForeignDocuments.objects.all()
     serializer_class = ForeignUserDocumentsSerializer
-    permission_classes = (IsStuffOrAuthor,)
+    permission_classes = (permissions.IsAuthenticated, IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(UserForeignDocuments, user=self.request.user)
@@ -373,7 +373,7 @@ class UserRegionViewSet(BaseUserViewSet):
 
     queryset = UserRegion.objects.all()
     serializer_class = UserRegionSerializer
-    permission_classes = (IsStuffOrAuthor,)
+    permission_classes = (permissions.IsAuthenticated, IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(UserRegion, user=self.request.user)
@@ -384,7 +384,7 @@ class UserPrivacySettingsViewSet(BaseUserViewSet):
 
     queryset = UserPrivacySettings.objects.all()
     serializer_class = UserPrivacySettingsSerializer
-    permission_classes = (IsStuffOrAuthor,)
+    permission_classes = (permissions.IsAuthenticated, IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(UserPrivacySettings, user=self.request.user)
@@ -395,7 +395,7 @@ class UserMediaViewSet(BaseUserViewSet):
 
     queryset = UserMedia.objects.all()
     serializer_class = UserMediaSerializer
-    permission_classes = (IsStuffOrAuthor,)
+    permission_classes = (permissions.IsAuthenticated, IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(UserMedia, user=self.request.user)
@@ -502,7 +502,7 @@ class UsersParentViewSet(BaseUserViewSet):
 
     queryset = UserParent.objects.all()
     serializer_class = UsersParentSerializer
-    permission_classes = (IsStuffOrAuthor,)
+    permission_classes = (permissions.IsAuthenticated, IsStuffOrAuthor,)
 
     def get_object(self):
         return get_object_or_404(UserParent, user=self.request.user)
