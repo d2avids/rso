@@ -1,17 +1,7 @@
-PERSONAL_TYPE = 'Персональная'
-GROUP_TYPE = 'Групповая'
-MULTI_STAGE_TYPE = 'Мультиэтапная'
-
-APPLICATION_TYPES = (
-    PERSONAL_TYPE,
-    GROUP_TYPE,
-    MULTI_STAGE_TYPE
+EVENT_TIME_DATA_RAW_EXISTS = (
+        'Информация о времени проведения данного мероприятия уже существует'
 )
-
-ONLINE_FORMAT = 'Онлайн'
-OFFLINE_FORMAT = 'Оффлайн'
-
-FORMAT_CHOICES = (
-    ONLINE_FORMAT,
-    OFFLINE_FORMAT,
+EVENT_DOCUMENT_DATA_RAW_EXISTS = (
+        'Информация о необходимых документах для данного мероприятия уже '
+        'существует'
 )

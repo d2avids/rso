@@ -1,76 +1,8 @@
 from django.db.models import Q
 from django_filters import rest_framework as filters
 
-from events.models import Event
 from headquarters.models import (Detachment, EducationalHeadquarter,
-                                 LocalHeadquarter, RegionalHeadquarter,
-                                 UserDetachmentPosition)
-from users.models import RSOUser
-
-
-class EventFilter(filters.FilterSet):
-    format = filters.CharFilter(field_name='format', lookup_expr='iexact')
-    direction = filters.CharFilter(
-        field_name='direction', lookup_expr='iexact'
-    )
-    status = filters.CharFilter(
-        field_name='status', lookup_expr='iexact'
-    )
-    scale = filters.CharFilter(
-        field_name='scale', lookup_expr='iexact'
-    )
-
-    class Meta:
-        model = Event
-        fields = ('format', 'direction', 'status', 'scale')
-
-
-class RSOUserFilter(filters.FilterSet):
-    district_headquarter__name = filters.CharFilter(
-        field_name='userdistrictheadquarterposition__headquarter__name',
-        lookup_expr='icontains',
-        label='Название окружного штаба'
-    )
-    regional_headquarter__name = filters.CharFilter(
-        field_name='userregionalheadquarterposition__headquarter__name',
-        lookup_expr='icontains',
-        label='Название регионального штаба'
-    )
-    local_headquarter__name = filters.CharFilter(
-        field_name='userlocalheadquarterposition__headquarter__name',
-        lookup_expr='icontains',
-        label='Название местного штаба'
-    )
-    educational_headquarter__name = filters.CharFilter(
-        field_name='usereducationalheadquarterposition__headquarter__name',
-        lookup_expr='icontains',
-        label='Название образовательного штаба'
-    )
-    detachment__name = filters.CharFilter(
-        field_name='userdetachmentposition__detachment__name',
-        lookup_expr='icontains',
-        label='Название отряда'
-    )
-    region = filters.CharFilter(
-        field_name='region__name',
-        lookup_expr='iexact',
-        label='Регион'
-    )
-
-    class Meta:
-        model = RSOUser
-        fields = (
-            'district_headquarter__name',
-            'regional_headquarter__name',
-            'local_headquarter__name',
-            'educational_headquarter__name',
-            'detachment__name',
-            'gender',
-            'is_verified',
-            'membership_fee',
-            'date_of_birth',
-            'region',
-        )
+                                 LocalHeadquarter, RegionalHeadquarter)
 
 
 class RegionalHeadquarterFilter(filters.FilterSet):
