@@ -1131,9 +1131,6 @@ class ShortDistrictHeadquarterListSerializer(BaseShortUnitListSerializer):
 
 
 class ShortRegionalHeadquarterListSerializer(BaseShortUnitListSerializer):
-    region = serializers.PrimaryKeyRelatedField(
-        queryset=Region.objects.all()
-    )
     district_headquarter = serializers.PrimaryKeyRelatedField(
         queryset=DistrictHeadquarter.objects.all(),
     )
@@ -1141,7 +1138,6 @@ class ShortRegionalHeadquarterListSerializer(BaseShortUnitListSerializer):
     class Meta:
         model = RegionalHeadquarter
         fields = BaseShortUnitListSerializer.Meta.fields + (
-            'region',
             'district_headquarter',
         )
 
