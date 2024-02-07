@@ -25,13 +25,13 @@ class RSOUserFilter(filters.FilterSet):
         label='Название образовательного штаба'
     )
     detachment__name = filters.CharFilter(
-        field_name='userdetachmentposition__detachment__name',
+        field_name='userdetachmentposition__headquarter__name',
         lookup_expr='icontains',
         label='Название отряда'
     )
     region = filters.CharFilter(
         field_name='region__name',
-        lookup_expr='iexact',
+        lookup_expr='icontains',
         label='Регион'
     )
 

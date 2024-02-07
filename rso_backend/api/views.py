@@ -4,6 +4,7 @@ from datetime import datetime
 
 import pdfrw
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from pdfrw.buildxobj import pagexobj
@@ -16,6 +17,7 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
+from api.filters import EducationalInstitutionFilter
 from api.mixins import ListRetrieveViewSet
 from api.permissions import (IsRegionalCommanderForCert,
                              IsRegStuffOrDetCommander,
@@ -36,13 +38,16 @@ from users.models import (MemberCert, RSOUser, UserDocuments,
 
 
 class EducationalInstitutionViewSet(ListRetrieveViewSet):
-    """Представляет учебные заведения. Доступны только операции чтения."""
+    """Представляет учебные заведения. Доступны только операции чтения.
+
+    Доступен фильтр по названию региона. Ключ region__name.
+    """
 
     queryset = EducationalInstitution.objects.all()
     serializer_class = EducationalInstitutionSerializer
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
-
+    filterset_class = EducationalInstitutionFilter
     ordering = ('name',)
 
 
