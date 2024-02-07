@@ -1,6 +1,6 @@
 import datetime
 
-from import_export import resources, fields
+from import_export import fields, resources
 
 from headquarters.models import (DistrictHeadquarter, EducationalInstitution,
                                  Region, RegionalHeadquarter)

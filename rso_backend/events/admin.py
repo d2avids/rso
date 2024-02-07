@@ -4,7 +4,7 @@ from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocument, EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
                            EventTimeData, EventUserDocument,
-                           MultiEventApplication,)
+                           MultiEventApplication)
 
 
 class EventTimeDataInline(admin.TabularInline):

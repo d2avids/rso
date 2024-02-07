@@ -1,9 +1,10 @@
 import datetime as dt
 from datetime import date
+
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.db.models.query import QuerySet
-from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreatePasswordRetypeSerializer
 from rest_framework import serializers
@@ -14,8 +15,9 @@ from api.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                            PRIVACY_RAW_EXISTS, REGION_RAW_EXISTS,
                            STATEMENT_RAW_EXISTS, TOO_MANY_EDUCATIONS)
 from api.utils import create_first_or_exception, get_is_trusted
-from events.models import (Event,
-                           EventAdditionalIssue, EventApplications,
+from competitions.models import (CompetitionApplications,
+                                 CompetitionParticipants, Competitions)
+from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocument, EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
                            EventTimeData, EventUserDocument,
@@ -36,8 +38,6 @@ from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
                           UserPrivacySettings, UserProfessionalEducation,
                           UserRegion, UserStatementDocuments,
                           UserVerificationRequest)
-from competitions.models import (CompetitionParticipants, Competitions,
-                                 CompetitionApplications)
 
 
 class PositionSerializer(serializers.ModelSerializer):
@@ -1038,8 +1038,8 @@ class UserHeadquarterPositionSerializer(serializers.ModelSerializer):
 
 
 class BaseShortUnitSerializer(serializers.ModelSerializer):
-    """Базовый сериализатор для хранения общей логики штабов.
-
+    """
+    Базовый сериализатор для хранения общих полей штабов для короткого вывода.
     Хранит только поля id, name и banner.
     """
 
@@ -1080,6 +1080,148 @@ class ShortDetachmentSerializer(BaseShortUnitSerializer):
     class Meta:
         model = Detachment
         fields = BaseShortUnitSerializer.Meta.fields
+
+
+class BaseShortUnitListSerializer(serializers.ModelSerializer):
+    """
+    Базовый сериализатор для хранения общих полей штабов для короткого вывода
+    при получении СПИСКА тех или иных структурных единиц.
+    Хранит только поля id, name и banner.
+    """
+
+    members_count = serializers.SerializerMethodField(read_only=True)
+    participants_count = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = None
+        fields = (
+            'id',
+            'name',
+            'banner',
+            'founding_date',
+            'members_count',
+            'participants_count',
+        )
+
+    @staticmethod
+    def get_members_count(instance):
+        if isinstance(instance, QuerySet):
+            instance_type = type(instance.first())
+        else:
+            instance_type = type(instance)
+        if issubclass(instance_type, CentralHeadquarter):
+            return RSOUser.objects.filter(membership_fee=True).count()
+        return instance.members.filter(user__membership_fee=True).count() + 1
+
+    @staticmethod
+    def get_participants_count(instance):
+        if isinstance(instance, QuerySet):
+            instance_type = type(instance.first())
+        else:
+            instance_type = type(instance)
+        if issubclass(instance_type, CentralHeadquarter):
+            return RSOUser.objects.count()
+        return instance.members.count() + 1
+
+
+class ShortDistrictHeadquarterListSerializer(BaseShortUnitListSerializer):
+    class Meta:
+        model = DistrictHeadquarter
+        fields = BaseShortUnitListSerializer.Meta.fields
+
+
+class ShortRegionalHeadquarterListSerializer(BaseShortUnitListSerializer):
+    district_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=DistrictHeadquarter.objects.all(),
+    )
+
+    class Meta:
+        model = RegionalHeadquarter
+        fields = BaseShortUnitListSerializer.Meta.fields + (
+            'district_headquarter',
+        )
+
+
+class ShortLocalHeadquarterListSerializer(BaseShortUnitListSerializer):
+    regional_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=RegionalHeadquarter.objects.all(),
+    )
+
+    class Meta:
+        model = LocalHeadquarter
+        fields = BaseShortUnitListSerializer.Meta.fields + (
+            'regional_headquarter',
+        )
+
+
+class ShortEducationalHeadquarterListSerializer(BaseShortUnitListSerializer):
+    educational_institution = serializers.PrimaryKeyRelatedField(
+        queryset=EducationalInstitution.objects.all(),
+    )
+    regional_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=RegionalHeadquarter.objects.all(),
+    )
+    local_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=LocalHeadquarter.objects.all(),
+        required=False,
+    )
+
+    class Meta:
+        model = EducationalHeadquarter
+        fields = BaseShortUnitListSerializer.Meta.fields + (
+            'educational_institution',
+            'local_headquarter',
+            'regional_headquarter',
+        )
+
+    def to_representation(self, instance):
+        serialized_data = super().to_representation(instance)
+        educational_institution = instance.educational_institution
+        serialized_data['educational_institution'] = (
+            EducationalInstitutionSerializer(educational_institution).data
+        )
+        return serialized_data
+
+
+class ShortDetachmentListSerializer(BaseShortUnitListSerializer):
+    educational_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=EducationalHeadquarter.objects.all(),
+        required=False,
+    )
+    local_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=LocalHeadquarter.objects.all(),
+        required=False
+    )
+    regional_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=RegionalHeadquarter.objects.all(),
+        required=False
+    )
+    area = serializers.PrimaryKeyRelatedField(
+        queryset=Area.objects.all()
+    )
+
+    class Meta:
+        model = Detachment
+        fields = BaseShortUnitListSerializer.Meta.fields + (
+            'educational_headquarter',
+            'local_headquarter',
+            'regional_headquarter',
+            'region',
+            'educational_institution',
+            'area',
+        )
+
+    def to_representation(self, instance):
+        serialized_data = super().to_representation(instance)
+        educational_institution = instance.educational_institution
+        area = instance.area
+        region = instance.region
+        serialized_data['educational_institution'] = (
+            EducationalInstitutionSerializer(educational_institution).data
+        )
+        serialized_data['area'] = AreaSerializer(area).data
+        serialized_data['region'] = RegionSerializer(region).data
+        return serialized_data
 
 
 class BaseUnitSerializer(serializers.ModelSerializer):
@@ -1395,28 +1537,6 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
     def get_educational_headquarters(self, obj):
         hqs = EducationalHeadquarter.objects.filter(regional_headquarter=obj)
         return ShortEducationalHeadquarterSerializer(hqs, many=True).data
-
-
-class RegionalListSerializer(RegionalHeadquarterSerializer):
-    """Сериализатор для списка региональных штабов.
-
-    Изменяет только поле region. Используется для метода GET.
-    """
-
-    class Meta:
-        model = RegionalHeadquarter
-        fields = RegionalHeadquarterSerializer.Meta.fields
-
-    def to_representation(self, instance):
-        """
-        Вызывает родительский метод to_representation,
-        а также изменяем вывод region.
-        """
-        serialized_data = super().to_representation(instance)
-        region = instance.region
-        if region:
-            serialized_data['region'] = RegionSerializer(region).data
-        return serialized_data
 
 
 class LocalHeadquarterSerializer(BaseUnitSerializer):

@@ -357,7 +357,7 @@ DJOSER = {
     'HIDE_USERS': False,
     'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
     'SERIALIZERS': {
-        'user': 'api.serializers.DjoserUserSerializer',
+        'user': 'api.serializers.ShortUserSerializer',
         'user_create_password_retype': 'api.serializers.UserCreateSerializer',
     },
     'PERMISSIONS': {
