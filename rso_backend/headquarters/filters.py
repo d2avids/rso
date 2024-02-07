@@ -86,3 +86,4 @@ class DetachmentFilter(filters.FilterSet):
     class Meta:
         model = Detachment
         fields = ('area__name', 'educational_institution__name')
+

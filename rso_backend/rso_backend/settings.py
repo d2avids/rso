@@ -357,8 +357,8 @@ DJOSER = {
     'HIDE_USERS': False,
     'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
     'SERIALIZERS': {
-        'user': 'api.serializers.ShortUserSerializer',
-        'user_create_password_retype': 'api.serializers.UserCreateSerializer',
+        'user': 'users.serializers.ShortUserSerializer',
+        'user_create_password_retype': 'users.serializers.UserCreateSerializer',
     },
     'PERMISSIONS': {
         'user_list': ['rest_framework.permissions.IsAuthenticated'],

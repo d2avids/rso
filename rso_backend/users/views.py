@@ -104,27 +104,10 @@ class RSOUserViewSet(RetrieveViewSet):
     Представляет пользователей. Доступны операции чтения.
     Пользователь имеет возможность изменять собственные данные
     по id или по эндпоинту /users/me.
-    Доступен поиск по username, first_name, last_name, patronymic_name
-    при передаче search query-параметра.
-    По умолчанию сортируются по last_name.
-    Доступна фильтрация по полям:
-    - district_headquarter__name,
-    - regional_headquarter__name,
-    - local_headquarter__name,
-    - educational_headquarter__name,
-    - detachment__name,
-    - gender,
-    - is_verified,
-    - membership_fee,
-    - date_of_birth.
     """
 
     queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
-    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
-    search_fields = ('username', 'first_name', 'last_name', 'patronymic_name')
-    filterset_class = RSOUserFilter
-    ordering_fields = ('last_name')
     # TODO: переписать пермишены, чтобы получить данные можно было
     # TODO: только тех пользователей, что состоят в той же стр. ед., где
     # TODO: запрашивающий пользователь и является командиром/доверенным

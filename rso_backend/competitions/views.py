@@ -8,7 +8,7 @@ from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import permissions, status, viewsets
+from rest_framework import permissions, status, viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -441,10 +441,18 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
     Доступ:
         - чтение: все
         - удаление: только админы и командиры региональных штабов.
+    Поиск:
+        - ключ для поиска: ?search
+        - поле для поиска: name младшего отряда и отряда-наставника.
     """
     queryset = CompetitionParticipants.objects.all()
     serializer_class = CompetitionParticipantsSerializer
     permission_classes = (permissions.AllowAny,)
+    filter_backends = (filters.SearchFilter, )
+    search_fields = (
+        'detachment__name',
+        'junior_detachment__name'
+    )
 
     def get_queryset(self):
         return CompetitionParticipants.objects.filter(
