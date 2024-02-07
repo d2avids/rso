@@ -311,7 +311,10 @@ class RSOUserViewSet(RetrieveViewSet):
 
 
 class EducationalInstitutionViewSet(ListRetrieveViewSet):
-    """Представляет учебные заведения. Доступны только операции чтения."""
+    """Представляет учебные заведения. Доступны только операции чтения.
+    
+    Доступен поиск по названию региона. Ключ region__name.
+    """
 
     queryset = EducationalInstitution.objects.all()
     serializer_class = EducationalInstitutionSerializer

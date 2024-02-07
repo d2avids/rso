@@ -54,7 +54,7 @@ class RSOUserFilter(filters.FilterSet):
         lookup_expr='icontains',
         label='Название отряда'
     )
-    region__name = filters.CharFilter(
+    region = filters.CharFilter(
         field_name='region__name',
         lookup_expr='icontains',
         label='Регион'
