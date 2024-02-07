@@ -4,17 +4,18 @@ from rest_framework.routers import DefaultRouter
 
 from api.constants import (CREATE_DELETE, CREATE_METHOD, DELETE,
                            DOWNLOAD_ALL_FORMS, DOWNLOAD_CONSENT_PD,
-                           DOWNLOAD_MEMBERSHIP_FILE, POST_RESET_PASSWORD,
+                           DOWNLOAD_MEMBERSHIP_FILE,
                            DOWNLOAD_PARENT_CONSENT_PD, LIST, LIST_CREATE,
-                           RETRIEVE_CREATE, UPDATE_DELETE, UPDATE_RETRIEVE)
+                           POST_RESET_PASSWORD, RETRIEVE_CREATE, UPDATE_DELETE,
+                           UPDATE_RETRIEVE)
 from api.views import (AnswerDetailViewSet, AreaViewSet,
                        CentralPositionViewSet, CentralViewSet,
-                       CompetitionViewSet, CompetitionApplicationsViewSet,
-                       CompetitionParticipantsViewSet,
-                       DetachmentAcceptViewSet, DetachmentApplicationViewSet,
-                       DetachmentPositionViewSet, DetachmentViewSet,
-                       DistrictPositionViewSet, DistrictViewSet,
-                       EducationalInstitutionViewSet,
+                       CompetitionApplicationsViewSet,
+                       CompetitionParticipantsViewSet, CompetitionViewSet,
+                       CustomUserViewSet, DetachmentAcceptViewSet,
+                       DetachmentApplicationViewSet, DetachmentPositionViewSet,
+                       DetachmentViewSet, DistrictPositionViewSet,
+                       DistrictViewSet, EducationalInstitutionViewSet,
                        EducationalPositionViewSet, EducationalViewSet,
                        EventAdditionalIssueViewSet, EventApplicationsViewSet,
                        EventOrganizationDataViewSet, EventParticipantsViewSet,
@@ -22,16 +23,13 @@ from api.views import (AnswerDetailViewSet, AreaViewSet,
                        ForeignUserDocumentsViewSet, LocalPositionViewSet,
                        LocalViewSet, MemberCertViewSet, MultiEventViewSet,
                        PositionViewSet, RegionalPositionViewSet,
-                       RegionalViewSet, RegionViewSet,
-                       RSOUserViewSet, UserDocumentsViewSet,
-                       UserEducationViewSet, UserMediaViewSet,
-                       UserPrivacySettingsViewSet,
+                       RegionalViewSet, RegionViewSet, RSOUserViewSet,
+                       UserDocumentsViewSet, UserEducationViewSet,
+                       UserMediaViewSet, UserPrivacySettingsViewSet,
                        UserProfessionalEducationViewSet, UserRegionViewSet,
                        UsersParentViewSet, UserStatementDocumentsViewSet,
-                       CustomUserViewSet,
                        apply_for_verification, change_membership_fee_status,
                        create_answers, get_structural_units, verify_user)
-
 
 app_name = 'api'
 

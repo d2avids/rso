@@ -12,12 +12,12 @@ from rest_framework.permissions import SAFE_METHODS
 from rest_framework.response import Response
 
 from headquarters.models import (CentralHeadquarter, RegionalHeadquarter,
+                                 UserCentralHeadquarterPosition,
                                  UserDetachmentPosition,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition,
-                                 UserCentralHeadquarterPosition)
+                                 UserRegionalHeadquarterPosition)
 from users.models import RSOUser
 
 

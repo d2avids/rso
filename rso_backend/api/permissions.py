@@ -1,29 +1,28 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import status
-from rest_framework import permissions
+from rest_framework import permissions, status
 from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 
-from api.utils import (check_roles_for_edit, check_trusted_for_detachments,
+from api.serializers import UserCommanderSerializer, UserTrustedSerializer
+from api.utils import (check_commander_or_not, check_roles_for_edit,
+                       check_trusted_for_centralhead,
+                       check_trusted_for_detachments,
                        check_trusted_for_districthead,
                        check_trusted_for_eduhead, check_trusted_for_localhead,
                        check_trusted_for_regionalhead,
                        check_trusted_in_headquarters, check_trusted_user,
-                       is_safe_method, is_stuff_or_central_commander,
-                       check_trusted_for_centralhead, check_commander_or_not,
-                       is_regional_commander,)
+                       is_regional_commander, is_safe_method,
+                       is_stuff_or_central_commander)
 from events.models import Event, EventOrganizationData
 from headquarters.models import (CentralHeadquarter, Detachment,
-                                 EducationalHeadquarter, LocalHeadquarter,
-                                 RegionalHeadquarter,
+                                 DistrictHeadquarter, EducationalHeadquarter,
+                                 LocalHeadquarter, RegionalHeadquarter,
                                  UserCentralHeadquarterPosition,
                                  UserDetachmentPosition,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition,
-                                 DistrictHeadquarter)
-from api.serializers import UserCommanderSerializer, UserTrustedSerializer
+                                 UserRegionalHeadquarterPosition)
 from users.models import RSOUser
 
 
@@ -720,7 +719,8 @@ class IsCommanderOrTrustedAnywhere(BasePermission):
     Возвращает True, если пользователь является командиром или доверенным
     лицом хотя бы где-либо.
     """
-    def has_permission(self, request, view):
+    def has_object_permission(self, request, view, obj):
+        print('Пермишен отработал')
         commander_data = UserCommanderSerializer(request.user).data
         trusted_data = UserTrustedSerializer(request.user).data
         if any(commander_data.values()) or any(trusted_data.values()):

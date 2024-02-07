@@ -6,10 +6,10 @@ import zipfile
 from datetime import date, datetime
 
 import pdfrw
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
-from django.conf import settings
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -27,17 +27,17 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
 from api import constants
-from api.filters import (EducationalHeadquarterFilter, EventFilter,
-                         LocalHeadquarterFilter, RSOUserFilter,
-                         DetachmentFilter, RegionalHeadquarterFilter)
+from api.filters import (DetachmentFilter, EducationalHeadquarterFilter,
+                         EventFilter, LocalHeadquarterFilter,
+                         RegionalHeadquarterFilter, RSOUserFilter)
 from api.mixins import (CreateDeleteViewSet, CreateListRetrieveDestroyViewSet,
                         CreateRetrieveUpdateViewSet,
                         ListRetrieveDestroyViewSet, ListRetrieveUpdateViewSet,
                         ListRetrieveViewSet, RetrieveUpdateViewSet,
                         RetrieveViewSet)
 from api.permissions import (IsApplicantOrOrganizer,
-                             IsAuthorMultiEventApplication,
-                             IsAuthorPermission, IsCommander,
+                             IsAuthorMultiEventApplication, IsAuthorPermission,
+                             IsCommander, IsCommanderOrTrustedAnywhere,
                              IsDetachmentCommander, IsDistrictCommander,
                              IsEducationalCommander, IsEventAuthor,
                              IsEventOrganizer, IsLocalCommander,
@@ -47,17 +47,16 @@ from api.permissions import (IsApplicantOrOrganizer,
                              IsRegStuffOrDetCommander, IsStuffOrAuthor,
                              IsStuffOrCentralCommander,
                              IsStuffOrCentralCommanderOrTrusted,
-                             IsVerifiedPermission, MembershipFeePermission,
                              IsUserModelPositionCommander,
-                             IsCommanderOrTrustedAnywhere)
+                             IsVerifiedPermission, MembershipFeePermission)
 from api.serializers import (AnswerSerializer, AreaSerializer,
                              CentralHeadquarterSerializer,
                              CentralPositionSerializer,
-                             CompetitionSerializer,
-                             CompetitionApplicationsSerializer,
                              CompetitionApplicationsObjectSerializer,
-                             CompetitionParticipantsSerializer,
+                             CompetitionApplicationsSerializer,
                              CompetitionParticipantsObjectSerializer,
+                             CompetitionParticipantsSerializer,
+                             CompetitionSerializer,
                              DetachmentPositionSerializer,
                              DetachmentSerializer,
                              DistrictHeadquarterSerializer,
@@ -66,8 +65,8 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              EducationalInstitutionSerializer,
                              EducationalPositionSerializer, EmailSerializer,
                              EventAdditionalIssueSerializer,
-                             EventApplicationsSerializer,
                              EventApplicationsCreateSerializer,
+                             EventApplicationsSerializer,
                              EventDocumentDataSerializer,
                              EventOrganizerDataSerializer,
                              EventParticipantsSerializer, EventSerializer,
@@ -84,43 +83,49 @@ from api.serializers import (AnswerSerializer, AreaSerializer,
                              RegionalPositionSerializer, RegionSerializer,
                              RSOUserSerializer,
                              ShortCentralHeadquarterSerializerME,
+                             ShortDetachmentListSerializer,
                              ShortDetachmentSerializer,
                              ShortDetachmentSerializerME,
+                             ShortDistrictHeadquarterListSerializer,
                              ShortDistrictHeadquarterSerializer,
                              ShortDistrictHeadquarterSerializerME,
+                             ShortEducationalHeadquarterListSerializer,
                              ShortEducationalHeadquarterSerializer,
                              ShortEducationalHeadquarterSerializerME,
+                             ShortLocalHeadquarterListSerializer,
                              ShortLocalHeadquarterSerializer,
                              ShortLocalHeadquarterSerializerME,
                              ShortMultiEventApplicationSerializer,
+                             ShortRegionalHeadquarterListSerializer,
                              ShortRegionalHeadquarterSerializer,
                              ShortRegionalHeadquarterSerializerME,
-                             ShortUserSerializer,
+                             ShortUserSerializer, UserCommanderSerializer,
+                             UserDetachmentApplicationReadSerializer,
                              UserDetachmentApplicationSerializer,
                              UserDocumentsSerializer, UserEducationSerializer,
+                             UserHeadquarterPositionSerializer,
                              UserMediaSerializer,
                              UserPrivacySettingsSerializer,
                              UserProfessionalEducationSerializer,
-                             UserRegionSerializer, UserTrustedSerializer,
-                             UsersParentSerializer,
+                             UserRegionSerializer, UsersParentSerializer,
                              UserStatementDocumentsSerializer,
-                             UserDetachmentApplicationReadSerializer,
-                             UserVerificationReadSerializer,
-                             UserCommanderSerializer,
-                             UserHeadquarterPositionSerializer)
-from api.swagger_schemas import (EventSwaggerSerializer, applications_response,
-                                 application_me_response, answer_response,
+                             UserTrustedSerializer,
+                             UserVerificationReadSerializer)
+from api.swagger_schemas import (EventSwaggerSerializer, answer_response,
+                                 application_me_response,
+                                 applications_response,
                                  participant_me_response,
                                  request_update_application,
                                  response_competitions_applications,
                                  response_competitions_participants,
                                  response_create_application,
                                  response_junior_detachments)
+from api.tasks import send_reset_password_email_without_user
 from api.utils import (create_and_return_archive, download_file,
                        get_headquarter_users_positions_queryset, get_user,
                        get_user_by_id, text_to_lines)
-from competitions.models import (CompetitionParticipants,
-                                 CompetitionApplications, Competitions)
+from competitions.models import (CompetitionApplications,
+                                 CompetitionParticipants, Competitions)
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
@@ -137,7 +142,6 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
-from api.tasks import send_reset_password_email_without_user
 from rso_backend.settings import BASE_DIR
 from users.models import (MemberCert, RSOUser, UserDocuments, UserEducation,
                           UserForeignDocuments, UserMedia, UserMemberCertLogs,
@@ -723,6 +727,11 @@ class DistrictViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
 
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ShortDistrictHeadquarterListSerializer
+        return DistrictHeadquarterSerializer
+
     def get_permissions(self):
         if self.action == 'create':
             permission_classes = (IsStuffOrCentralCommanderOrTrusted,)
@@ -752,8 +761,12 @@ class RegionalViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name', 'region__name',)
     ordering_fields = ('name', 'founding_date',)
-    serializer_class = RegionalHeadquarterSerializer
     filterset_class = RegionalHeadquarterFilter
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ShortRegionalHeadquarterListSerializer
+        return RegionalHeadquarterSerializer
 
     def get_permissions(self):
         if self.action == 'create':
@@ -792,11 +805,15 @@ class LocalViewSet(viewsets.ModelViewSet):
     """
 
     queryset = LocalHeadquarter.objects.all()
-    serializer_class = LocalHeadquarterSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
     ordering_fields = ('name', 'founding_date',)
     filterset_class = LocalHeadquarterFilter
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ShortLocalHeadquarterListSerializer
+        return LocalHeadquarterSerializer
 
     def get_permissions(self):
         if self.action == 'create':
@@ -825,11 +842,15 @@ class EducationalViewSet(viewsets.ModelViewSet):
     """
 
     queryset = EducationalHeadquarter.objects.all()
-    serializer_class = EducationalHeadquarterSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
     filterset_class = EducationalHeadquarterFilter
     ordering_fields = ('name', 'founding_date',)
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ShortEducationalHeadquarterListSerializer
+        return EducationalHeadquarterSerializer
 
     def get_permissions(self):
         if self.action == 'create':
@@ -863,11 +884,15 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Detachment.objects.all()
-    serializer_class = DetachmentSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
     filterset_class = DetachmentFilter
     ordering_fields = ('name', 'founding_date',)
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ShortDetachmentListSerializer
+        return DetachmentSerializer
 
     def get_permissions(self):
         if self.action == 'create':

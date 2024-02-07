@@ -2,9 +2,10 @@ from django.db.models import Q
 from django_filters import rest_framework as filters
 
 from events.models import Event
-from users.models import RSOUser
 from headquarters.models import (Detachment, EducationalHeadquarter,
-                                 LocalHeadquarter, RegionalHeadquarter, UserDetachmentPosition)
+                                 LocalHeadquarter, RegionalHeadquarter,
+                                 UserDetachmentPosition)
+from users.models import RSOUser
 
 
 class EventFilter(filters.FilterSet):
