@@ -1097,7 +1097,7 @@ class BaseShortUnitListSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'name',
-            'banner',
+            'emblem',
             'founding_date',
             'members_count',
             'participants_count',
