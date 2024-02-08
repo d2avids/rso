@@ -43,7 +43,7 @@ def test_login_user(client, user):
 
 
 @pytest.mark.django_db
-def test_get_me(authenticated_client, region, central_headquarter):
+def test_get_me(authenticated_client, central_headquarter):
     response = authenticated_client.get('/api/v1/rsousers/me/')
     assert response.status_code == 200, 'Response status code is not 200'
     data = response.data
@@ -80,37 +80,49 @@ def test_get_me(authenticated_client, region, central_headquarter):
 
 
 @pytest.mark.django_db
-def test_get_me_anonymous(client, region, central_headquarter):
+def test_get_me_anonymous(client, central_headquarter):
     response = client.get('/api/v1/rsousers/me/')
     assert response.status_code == 401, 'Response status code is not 401'
 
 
 @pytest.mark.django_db
-def test_get_me_documents(authenticated_client, region, central_headquarter):
+def test_get_me_documents(authenticated_client, central_headquarter):
     response = authenticated_client.get('/api/v1/rsousers/me/documents/')
     assert response.status_code == 200, 'Response status code is not 200'
 
 
 @pytest.mark.django_db
-def test_get_me_documents_anonymous(client, region, central_headquarter):
+def test_get_me_documents_anonymous(client, central_headquarter):
     response = client.get('/api/v1/rsousers/me/documents/')
     assert response.status_code == 401, 'Response status code is not 401'
 
 
 @pytest.mark.django_db
-def test_get_me_education(authenticated_client, region, central_headquarter):
+def test_get_me_statement(authenticated_client, central_headquarter):
+    response = authenticated_client.get('/api/v1/rsousers/me/statement/')
+    assert response.status_code == 200, 'Response status code is not 200'
+
+
+@pytest.mark.django_db
+def test_get_me_statement_anonymous(client, central_headquarter):
+    response = client.get('/api/v1/rsousers/me/statement/')
+    assert response.status_code == 401, 'Response status code is not 401'
+
+
+@pytest.mark.django_db
+def test_get_me_education(authenticated_client, central_headquarter):
     response = authenticated_client.get('/api/v1/rsousers/me/education/')
     assert response.status_code == 200, 'Response status code is not 200'
 
 
 @pytest.mark.django_db
-def test_get_me_education_anonymous(client, region, central_headquarter):
+def test_get_me_education_anonymous(client, central_headquarter):
     response = client.get('/api/v1/rsousers/me/education/')
     assert response.status_code == 401, 'Response status code is not 401'
 
 
 @pytest.mark.django_db
-def test_get_me_foreign_documents(authenticated_client, region,
+def test_get_me_foreign_documents(authenticated_client,
                                   central_headquarter):
     response = authenticated_client.get(
         '/api/v1/rsousers/me/foreign_documents/')
@@ -118,26 +130,26 @@ def test_get_me_foreign_documents(authenticated_client, region,
 
 
 @pytest.mark.django_db
-def test_get_me_foreign_documents_anonymous(client, region,
+def test_get_me_foreign_documents_anonymous(client,
                                             central_headquarter):
     response = client.get('/api/v1/rsousers/me/foreign_documents/')
     assert response.status_code == 401, 'Response status code is not 401'
 
 
 @pytest.mark.django_db
-def test_get_me_media(authenticated_client, region, central_headquarter):
+def test_get_me_media(authenticated_client, central_headquarter):
     response = authenticated_client.get('/api/v1/rsousers/me/media/')
     assert response.status_code == 200, 'Response status code is not 200'
 
 
 @pytest.mark.django_db
-def test_get_me_media_anonymous(client, region, central_headquarter):
+def test_get_me_media_anonymous(client, central_headquarter):
     response = client.get('/api/v1/rsousers/me/media/')
     assert response.status_code == 401, 'Response status code is not 401'
 
 
 @pytest.mark.django_db
-def test_get_me_professional_education(authenticated_client, region,
+def test_get_me_professional_education(authenticated_client,
                                        central_headquarter):
     response = authenticated_client.get(
         '/api/v1/rsousers/me/professional_education/')
@@ -146,7 +158,7 @@ def test_get_me_professional_education(authenticated_client, region,
 
 
 @pytest.mark.django_db
-def test_get_me_professional_education_anonymous(client, region,
+def test_get_me_professional_education_anonymous(client,
                                                  central_headquarter):
     response = client.get('/api/v1/rsousers/me/professional_education/')
     assert response.status_code == 404, 'Response status code is not 404'
@@ -154,73 +166,73 @@ def test_get_me_professional_education_anonymous(client, region,
 
 
 @pytest.mark.django_db
-def test_get_me_privacy(authenticated_client, region, central_headquarter):
+def test_get_me_privacy(authenticated_client, central_headquarter):
     response = authenticated_client.get('/api/v1/rsousers/me/privacy/')
     assert response.status_code == 200, 'Response status code is not 200'
 
 
 @pytest.mark.django_db
-def test_get_me_privacy_anonymous(client, region, central_headquarter):
+def test_get_me_privacy_anonymous(client, central_headquarter):
     response = client.get('/api/v1/rsousers/me/privacy/')
     assert response.status_code == 401, 'Response status code is not 401'
 
 
 @pytest.mark.django_db
-def test_get_me_parent(authenticated_client, region, central_headquarter):
+def test_get_me_parent(authenticated_client, central_headquarter):
     response = authenticated_client.get('/api/v1/rsousers/me/parent/')
     assert response.status_code == 200, 'Response status code is not 200'
 
 
 @pytest.mark.django_db
-def test_get_me_parent_anonymous(client, region, central_headquarter):
+def test_get_me_parent_anonymous(client, central_headquarter):
     response = client.get('/api/v1/rsousers/me/parent/')
     assert response.status_code == 401, 'Response status code is not 401'
 
 
 @pytest.mark.django_db
-def test_get_me_region(authenticated_client, region, central_headquarter):
+def test_get_me_region(authenticated_client, central_headquarter):
     response = authenticated_client.get('/api/v1/rsousers/me/region/')
     assert response.status_code == 200, 'Response status code is not 200'
 
 
 @pytest.mark.django_db
-def test_get_me_region_anonymous(client, region, central_headquarter):
+def test_get_me_region_anonymous(client, central_headquarter):
     response = client.get('/api/v1/rsousers/me/region/')
     assert response.status_code == 401, 'Response status code is not 401'
 
 
 @pytest.mark.django_db
-def test_get_me_commander(authenticated_client, region, central_headquarter):
+def test_get_me_commander(authenticated_client, central_headquarter):
     response = authenticated_client.get('/api/v1/rsousers/me_commander/')
     assert response.status_code == 200, 'Response status code is not 200'
 
 
 @pytest.mark.django_db
-def test_get_me_commander_anonymous(client, region, central_headquarter):
+def test_get_me_commander_anonymous(client, central_headquarter):
     response = client.get('/api/v1/rsousers/me_commander/')
     assert response.status_code == 401, 'Response status code is not 401'
 
 
 @pytest.mark.django_db
-def test_get_me_trusted(authenticated_client, region, central_headquarter):
+def test_get_me_trusted(authenticated_client, central_headquarter):
     response = authenticated_client.get('/api/v1/rsousers/me_trusted/')
     assert response.status_code == 200, 'Response status code is not 200'
 
 
 @pytest.mark.django_db
-def test_get_me_trusted_anonymous(client, region, central_headquarter):
+def test_get_me_trusted_anonymous(client, central_headquarter):
     response = client.get('/api/v1/rsousers/me_trusted/')
     assert response.status_code == 401, 'Response status code is not 401'
 
 
 @pytest.mark.django_db
-def test_get_me_positions(authenticated_client, region, central_headquarter):
+def test_get_me_positions(authenticated_client, central_headquarter):
     response = authenticated_client.get('/api/v1/rsousers/me_positions/')
     assert response.status_code == 200, 'Response status code is not 200'
 
 
 @pytest.mark.django_db
-def test_get_me_positions_anonymous(client, region, central_headquarter):
+def test_get_me_positions_anonymous(client, central_headquarter):
     response = client.get('/api/v1/rsousers/me_positions/')
     assert response.status_code == 401, 'Response status code is not 401'
 

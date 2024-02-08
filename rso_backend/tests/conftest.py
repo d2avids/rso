@@ -4,7 +4,8 @@ import pytest
 from django.conf import settings
 from rest_framework.test import APIClient
 
-from headquarters.models import CentralHeadquarter, Region
+from headquarters.models import (CentralHeadquarter, EducationalInstitution,
+                                 Region)
 from users.models import RSOUser
 
 USER_FIRST_NAME = 'Дмитрий'
@@ -24,9 +25,15 @@ CENTRAL_HEADQUARTER_NAME = 'Центральный штаб'
 DETACHMENTS_APPEARANCE_YEAR = settings.CENTRAL_HEADQUARTER_FOUNDING_DATE
 RSO_FOUNDING_CONGRESS_DATE = '1990-01-01'
 
+EDUCATIONAL_INSTITUTION_NAME = 'Образовательная организация'
+EDUCATIONAL_INSTITUTION_SHORT_NAME = 'Образов. организация'
+SECOND_EDUCATIONAL_INSTITUTION_NAME = 'Другая образовательная организация'
+SECOND_EDUCATIONAL_INSTITUTION_SHORT_NAME = 'Др'
+
 
 @pytest.fixture
 def client():
+    """Неавторизованный клиент."""
     return APIClient()
 
 
@@ -46,6 +53,21 @@ def region():
     region = Region.objects.create(name=REGION_MOJAISK)
     region_2 = Region.objects.create(name=REGION_MOSCOW)
     return region, region_2
+
+
+@pytest.fixture
+def educational_institution(region):
+    edu_1 = EducationalInstitution.objects.create(
+        name=EDUCATIONAL_INSTITUTION_NAME,
+        short_name=EDUCATIONAL_INSTITUTION_SHORT_NAME,
+        region=region[0]
+    )
+    edu_2 = EducationalInstitution.objects.create(
+        name=SECOND_EDUCATIONAL_INSTITUTION_NAME,
+        short_name=EDUCATIONAL_INSTITUTION_SHORT_NAME,
+        region=region[1]
+    )
+    return edu_1, edu_2
 
 
 @pytest.fixture
@@ -69,6 +91,7 @@ def central_headquarter():
 
 @pytest.fixture
 def authenticated_client(client, user):
+    """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
     login_payload = {
         'username': user.username,
         'password': USER_PASSWORD,
