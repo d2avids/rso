@@ -1,5 +1,6 @@
 import itertools
 
+from dal import autocomplete
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -942,3 +943,13 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
             many=True
         )
         return Response(serializer.data)
+
+
+class EventAutoComplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = Event.objects.all()
+
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+
+        return qs

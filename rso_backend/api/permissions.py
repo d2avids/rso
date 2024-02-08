@@ -3,7 +3,6 @@ from rest_framework import permissions, status
 from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 
-from users.serializers import UserCommanderSerializer, UserTrustedSerializer
 from api.utils import (check_commander_or_not, check_roles_for_edit,
                        check_trusted_for_centralhead,
                        check_trusted_for_detachments,
@@ -24,6 +23,7 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
 from users.models import RSOUser
+from users.serializers import UserCommanderSerializer, UserTrustedSerializer
 
 
 class IsStuffOrCentralCommander(BasePermission):

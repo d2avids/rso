@@ -28,6 +28,9 @@ django-import-export = "^3.3.4"
 pdfrw = "^0.4"
 reportlab = "^4.0.8"
 eventlet = "^0.34.3"
+pytest = "^8.0.0"
+pytest-django = "^4.8.0"
+django-autocomplete-light = "^3.9.7"
 
 
 [build-system]

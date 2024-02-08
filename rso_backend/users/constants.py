@@ -31,7 +31,7 @@ class PrivacyOption(models.TextChoices):
     """Настройки приватности пользователя."""
 
     ALL = 'Все', 'Все'
-    DETACHMENT_MEMBERS = 'Члены отрядаs', 'Члены отряда',
+    DETACHMENT_MEMBERS = 'Члены отряда', 'Члены отряда',
     MANAGEMENT_MEMBERS = 'Руководство', 'Руководство'
 
 

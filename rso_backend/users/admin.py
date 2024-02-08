@@ -8,6 +8,7 @@ from django_celery_beat.models import (ClockedSchedule, CrontabSchedule,
 from import_export.admin import ImportExportModelAdmin
 from rest_framework.authtoken.models import TokenProxy
 
+from users.forms import RSOUserForm
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserMemberCertLogs, UserMembershipLogs, UserParent,
                           UserPrivacySettings, UserRegion,
@@ -17,37 +18,37 @@ from users.resources import RSOUserResource
 
 class UserRegionInline(admin.StackedInline):
     model = UserRegion
-    extra = 1
+    extra = 0
 
 
 class UserMediaInline(admin.StackedInline):
     model = UserMedia
-    extra = 1
+    extra = 0
 
 
 class UserEducationInline(admin.StackedInline):
     model = UserEducation
-    extra = 1
+    extra = 0
 
 
 class UserDocumentsInline(admin.StackedInline):
     model = UserDocuments
-    extra = 1
+    extra = 0
 
 
 class UserPrivacySettingsInline(admin.StackedInline):
     model = UserPrivacySettings
-    extra = 1
+    extra = 0
 
 
 class UsersParentInline(admin.StackedInline):
     model = UserParent
-    extra = 1
+    extra = 0
 
 
 class UserStatementDocumentsInLine(admin.StackedInline):
     model = UserStatementDocuments
-    extra = 1
+    extra = 0
 
 
 @admin.register(RSOUser)
@@ -106,10 +107,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
     filter_horizontal = ()
     list_filter = ()
     fieldsets = ()
-
-    def get_form(self, request, obj=None, **kwargs):
-        self.inlines = [] if obj is None else self.inlines
-        return super(UserAdmin, self).get_form(request, obj, **kwargs)
+    form = RSOUserForm
 
 
 @admin.register(UserMembershipLogs)
