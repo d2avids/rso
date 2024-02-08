@@ -2,6 +2,8 @@ import mimetypes
 import os
 import zipfile
 
+from dal import autocomplete
+from django.db.models import Q
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -531,3 +533,17 @@ def apply_for_verification(request):
             user=user
         )
         return Response(status=status.HTTP_201_CREATED)
+
+
+class UserAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = RSOUser.objects.all()
+
+        if self.q:
+            qs = qs.filter(
+                Q(username__icontains=self.q) |
+                Q(first_name__icontains=self.q) |
+                Q(last_name__icontains=self.q) |
+                Q(patronymic_name__icontains=self.q)
+            )
+        return qs

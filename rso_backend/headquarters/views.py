@@ -1,3 +1,4 @@
+from dal import autocomplete
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -21,8 +22,8 @@ from headquarters.filters import (DetachmentFilter,
                                   RegionalHeadquarterFilter)
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
-                                 LocalHeadquarter, Position,
-                                 RegionalHeadquarter,
+                                 EducationalInstitution, LocalHeadquarter,
+                                 Position, Region, RegionalHeadquarter,
                                  UserCentralHeadquarterPosition,
                                  UserDetachmentApplication,
                                  UserDetachmentPosition,
@@ -46,7 +47,7 @@ from headquarters.serializers import (
     UserDetachmentApplicationReadSerializer,
     UserDetachmentApplicationSerializer)
 from headquarters.swagger_schemas import applications_response
-from users.models import UserVerificationRequest
+from users.models import RSOUser, UserVerificationRequest
 from users.serializers import UserVerificationReadSerializer
 
 
@@ -641,3 +642,52 @@ def get_structural_units(request):
     }
 
     return Response(response)
+
+
+class RegionAutoComplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = Region.objects.all()
+
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+        return qs
+
+
+class EducationalAutoComplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = EducationalHeadquarter.objects.all()
+
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+
+        return qs
+
+
+class LocalAutoComplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = LocalHeadquarter.objects.all()
+
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+
+        return qs
+
+
+class RegionalAutoComplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = RegionalHeadquarter.objects.all()
+
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+
+        return qs
+
+
+class EducationalInstitutionAutoComplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = EducationalInstitution.objects.all()
+
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+
+        return qs

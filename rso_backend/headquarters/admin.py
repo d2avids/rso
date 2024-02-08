@@ -2,6 +2,8 @@ from django.contrib import admin
 from django.core.exceptions import ValidationError
 from import_export.admin import ImportExportModelAdmin
 
+from headquarters.forms import (CentralForm, DetachmentForm, DistrictForm,
+                                EducationalForm, LocalForm, RegionalForm)
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -25,7 +27,7 @@ class BaseUnitAdmin(admin.ModelAdmin):
 
 @admin.register(CentralHeadquarter)
 class CentralHeadquarterAdmin(BaseUnitAdmin):
-    pass
+    form = CentralForm
 
 
 @admin.register(DistrictHeadquarter)
@@ -33,6 +35,7 @@ class DistrictHeadquarterAdmin(ImportExportModelAdmin):
     resource_class = DistrictHeadquarterResource
     list_display = ('id', 'name', 'commander', 'city',)
     search_fields = ('name', 'city')
+    form = DistrictForm
 
 
 @admin.register(RegionalHeadquarter)
@@ -40,20 +43,23 @@ class RegionalHeadquarterAdmin(ImportExportModelAdmin):
     resource_class = RegionalHeadquarterResource
     list_display = ('id', 'name', 'commander', 'city',)
     search_fields = ('name', 'city')
+    form = RegionalForm
 
 
 @admin.register(LocalHeadquarter)
 class LocalHeadquarterAdmin(BaseUnitAdmin):
-    pass
+    form = LocalForm
 
 
 @admin.register(EducationalHeadquarter)
 class EducationalHeadquarterAdmin(BaseUnitAdmin):
-    pass
+    form = EducationalForm
 
 
 @admin.register(Detachment)
 class DetachmentAdmin(BaseUnitAdmin):
+    form = DetachmentForm
+
     def save_model(self, request, obj, form, change):
         """
         Валидируем создание отряда с регионом несуществующего РШ.
