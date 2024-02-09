@@ -2,6 +2,8 @@ from http import HTTPStatus
 
 import pytest
 
+from rso_backend import settings
+
 
 @pytest.mark.django_db(transaction=True)
 class TestCompetitionViewSet:
@@ -49,6 +51,7 @@ class TestCompetitionViewSet:
         assert response.status_code == HTTPStatus.FORBIDDEN, (
             'Response code is not 403'
         )
+
     def test_create_competition_admin(self, admin_client):
         """Создание конкурса администратором"""
         response = admin_client.post(self.competition_url, {'name': 'test'})
@@ -94,13 +97,13 @@ class TestCompetitionViewSet:
         assert 'id' in data[0], 'Not found id-key in response'
         assert 'name' in data[0], 'Not found name-key in response'
         assert 'banner' in data[0], 'Not found banner-key in response'
-        # assert 'area' in data[0], 'Not found area-key in response'
+        assert 'area' in data[0], 'Not found area-key in response'
         assert data[0]['id'] == junior_detachment.id, 'Incorrect id'
         assert data[0]['name'] == junior_detachment.name, 'Incorrect name'
-        assert data[0]['banner'] == junior_detachment.banner, (
+        assert data[0]['banner'] == f'{settings.MEDIA_URL}{junior_detachment.banner}', (
             'Incorrect banner'
         )
-        # assert data[0]['area'] == junior_detachment.area, 'Incorrect area'
+        assert data[0]['area'] == str(junior_detachment.area), 'Incorrect area'
 
     def test_junior_detachments_commander_with_false_region(
             self, authenticated_client, competition, detachment,

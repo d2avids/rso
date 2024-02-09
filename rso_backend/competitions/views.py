@@ -21,7 +21,7 @@ from competitions.serializers import (CompetitionApplicationsObjectSerializer,
                                       CompetitionApplicationsSerializer,
                                       CompetitionParticipantsObjectSerializer,
                                       CompetitionParticipantsSerializer,
-                                      CompetitionSerializer)
+                                      CompetitionSerializer, ShortDetachmentCompetitionSerializer)
 from competitions.swagger_schemas import (request_update_application,
                                           response_competitions_applications,
                                           response_competitions_participants,
@@ -115,7 +115,7 @@ class CompetitionViewSet(viewsets.ModelViewSet):
         Если юзер не командир старшего отряда - возвращает пустой массив.
         """
         junior_detachments = self.get_junior_detachments()
-        serializer = ShortDetachmentSerializer(
+        serializer = ShortDetachmentCompetitionSerializer(
             junior_detachments, many=True
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
