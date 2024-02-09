@@ -50,7 +50,7 @@ class EventAdmin(admin.ModelAdmin):
         EventAdditionalIssuesInline,
     ]
     fieldsets = [
-        ('Basic Information', {'fields': ['name', 'author', 'format', 'direction', 'status']}),
+        ('Basic Information', {'fields': ['name', 'author', 'format', 'direction', 'scale', 'status']}),
         ('Time Information', {'fields': ['participants_number', 'description']}),
         ('Location Information', {'fields': ['address', 'conference_link']}),
         ('Application Information', {'fields': ['application_type', 'available_structural_units']}),

@@ -161,7 +161,7 @@ def test_get_me_professional_education(authenticated_client,
 def test_get_me_professional_education_anonymous(client,
                                                  central_headquarter):
     response = client.get('/api/v1/rsousers/me/professional_education/')
-    assert response.status_code == 404, 'Response status code is not 404'
+    assert response.status_code == 401, 'Response status code is not 401'
     assert 'detail' in response.data, 'No detail key in response data'
 
 
