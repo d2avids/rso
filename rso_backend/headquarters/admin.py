@@ -52,7 +52,7 @@ class RegionalHeadquarterAdmin(ImportExportModelAdmin):
         'region',
         'conference_date',
         'founding_date',
-        'district_headquarter' 
+        'district_headquarter',
         'city',
     )
     search_fields = ('name', 'city')
