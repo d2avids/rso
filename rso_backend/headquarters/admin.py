@@ -1,9 +1,11 @@
 from django.contrib import admin
 from django.core.exceptions import ValidationError
-from import_export.admin import ImportExportModelAdmin
-
-from headquarters.forms import (CentralForm, DetachmentForm, DistrictForm,
-                                EducationalForm, LocalForm, RegionalForm)
+from headquarters.forms import (CentralForm, CentralPositionForm,
+                                DetachmentForm, DetachmentPositionForm,
+                                DistrictForm, DistrictPositionForm,
+                                EducationalForm, EducationalPositionForm,
+                                LocalForm, LocalPositionForm, RegionalForm,
+                                RegionalPositionForm)
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -18,6 +20,7 @@ from headquarters.resources import (DistrictHeadquarterResource,
                                     EducationalInstitutionResource,
                                     RegionalHeadquarterResource,
                                     RegionResource)
+from import_export.admin import ImportExportModelAdmin
 
 
 class BaseUnitAdmin(admin.ModelAdmin):
@@ -33,31 +36,104 @@ class CentralHeadquarterAdmin(BaseUnitAdmin):
 @admin.register(DistrictHeadquarter)
 class DistrictHeadquarterAdmin(ImportExportModelAdmin):
     resource_class = DistrictHeadquarterResource
-    list_display = ('id', 'name', 'commander', 'city',)
-    search_fields = ('name', 'city')
+    list_display = ('id', 'name', 'commander', 'founding_date', 'city',)
+    search_fields = ('name', 'city', 'founding_date',)
     form = DistrictForm
 
 
 @admin.register(RegionalHeadquarter)
 class RegionalHeadquarterAdmin(ImportExportModelAdmin):
     resource_class = RegionalHeadquarterResource
-    list_display = ('id', 'name', 'commander', 'city',)
-    search_fields = ('name', 'city')
+    list_display = (
+        'id',
+        'name',
+        'commander',
+        'region',
+        'conference_date',
+        'founding_date',
+        'district_headquarter',
+        'city',
+    )
+    search_fields = (
+        'name',
+        'city',
+        'district_headquarter__name',
+        'region__name',
+        'founding_date',
+    )
     form = RegionalForm
+    list_filter = ('district_headquarter',)
 
 
 @admin.register(LocalHeadquarter)
 class LocalHeadquarterAdmin(BaseUnitAdmin):
+    list_display = (
+        'id',
+        'name',
+        'commander',
+        'regional_headquarter',
+        'founding_date',
+        'city',
+    )
+    list_filter = ('regional_headquarter',)
+    search_fields = (
+        'name', 'city', 'founding_date', 'regional_headquarter__name'
+    )
     form = LocalForm
 
 
 @admin.register(EducationalHeadquarter)
 class EducationalHeadquarterAdmin(BaseUnitAdmin):
+    list_display = (
+        'id',
+        'name',
+        'commander',
+        'local_headquarter',
+        'regional_headquarter',
+        'educational_institution',
+        'founding_date',
+        'city',
+    )
+    list_filter = ('local_headquarter', 'regional_headquarter',)
+    search_fields = (
+        'name',
+        'city',
+        'educational_institution__name',
+        'regional_headquarter__name',
+        'founding_date'
+    )
     form = EducationalForm
 
 
 @admin.register(Detachment)
 class DetachmentAdmin(BaseUnitAdmin):
+    list_display = (
+        'id',
+        'name',
+        'commander',
+        'educational_headquarter',
+        'local_headquarter',
+        'regional_headquarter',
+        'region',
+        'educational_institution',
+        'area',
+        'founding_date',
+        'city',
+    )
+    list_filter = (
+        'area',
+        'educational_headquarter',
+        'local_headquarter',
+        'regional_headquarter',
+    )
+    search_fields = (
+        'name',
+        'city',
+        'educational_headquarter__name',
+        'local_headquarter__name',
+        'region__name',
+        'educational_institution__name',
+    )
     form = DetachmentForm
 
     def save_model(self, request, obj, form, change):
@@ -80,6 +156,8 @@ class DetachmentAdmin(BaseUnitAdmin):
 
 class BaseCentralPositionAdmin(admin.ModelAdmin):
     list_display = ('user', 'position', 'headquarter',)
+    list_filter = ('headquarter',)
+    search_fields = ('user__username', 'name')
 
     def delete_queryset(self, request, queryset):
         """
@@ -95,31 +173,33 @@ class BaseCentralPositionAdmin(admin.ModelAdmin):
 
 @admin.register(UserCentralHeadquarterPosition)
 class UserCentralHeadquarterPositionAdmin(BaseCentralPositionAdmin):
-    pass
+    form = CentralPositionForm
 
 
 @admin.register(UserDistrictHeadquarterPosition)
 class UserDistrictHeadquarterPositionAdmin(BaseCentralPositionAdmin):
-    pass
+    form = DistrictPositionForm
 
 
 @admin.register(UserRegionalHeadquarterPosition)
 class UserRegionalHeadquarterPositionAdmin(BaseCentralPositionAdmin):
-    pass
+    form = RegionalPositionForm
 
 
 @admin.register(UserLocalHeadquarterPosition)
 class UserLocalHeadquarterPositionAdmin(BaseCentralPositionAdmin):
-    pass
+    form = LocalPositionForm
 
 
 @admin.register(UserEducationalHeadquarterPosition)
 class UserEducationalHeadquarterPositionAdmin(BaseCentralPositionAdmin):
-    pass
+    form = EducationalPositionForm
 
 
 @admin.register(UserDetachmentPosition)
 class UserDetachmentPositionAdmin(BaseCentralPositionAdmin):
+    form = DetachmentPositionForm
+
     def has_add_permission(self, request, obj=None):
         """Разрешаем добавление участника в отряд через админку."""
         return True

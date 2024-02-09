@@ -1,7 +1,6 @@
 import logging
 
 from celery import shared_task
-
 from users.models import RSOUser
 
 logger = logging.getLogger('tasks')

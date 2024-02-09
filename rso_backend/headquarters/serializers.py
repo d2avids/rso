@@ -1,14 +1,12 @@
 import datetime as dt
 
+from api.serializers import (AreaSerializer, EducationalInstitutionSerializer,
+                             RegionSerializer)
+from competitions.models import CompetitionParticipants
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.db.models.query import QuerySet
-from rest_framework import serializers
-
-from api.serializers import (AreaSerializer, EducationalInstitutionSerializer,
-                             RegionSerializer)
-from competitions.models import CompetitionParticipants
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -20,8 +18,9 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
+from rest_framework import serializers
 from users.models import RSOUser
-from users.serializers import ShortUserSerializer
+from users.short_serializers import ShortUserSerializer
 
 
 class PositionSerializer(serializers.ModelSerializer):
@@ -396,16 +395,16 @@ class BaseUnitSerializer(serializers.ModelSerializer):
 
     def get_leadership(self, instance):
         """
-        Вывод руководства отряда (пользователи с должностями "Мастер
-        (методист)" и "Комиссар", точные названия которых прописаны
-        в настройках).
+        Вывод руководство отряда - всех, кроме указанных в настройках
+        должностей.
         """
         serializer = self._get_position_serializer()
         position_instance = self._get_position_instance()
-        leaders = position_instance.objects.filter(
-            Q(position__name=settings.MASTER_METHODIST_POSITION_NAME) |
-            Q(position__name=settings.COMMISSIONER_POSITION_NAME)
+        leaders = position_instance.objects.exclude(
+            Q(position__name__in=settings.NOT_LEADERSHIP_POSITIONS) |
+            Q(position__isnull=True)
         )
+
         return serializer(leaders, many=True).data
 
     def get_events_count(self, instance):
@@ -865,6 +864,20 @@ class DetachmentSerializer(BaseUnitSerializer):
         except ValidationError as e:
             raise serializers.ValidationError(e.message_dict)
         return data
+
+    def get_leadership(self, instance):
+        """
+        Вывод руководства отряда (пользователи с должностями "Мастер
+        (методист)" и "Комиссар", точные названия которых прописаны
+        в настройках).
+        """
+        serializer = self._get_position_serializer()
+        position_instance = self._get_position_instance()
+        leaders = position_instance.objects.filter(
+            Q(position__name=settings.MASTER_METHODIST_POSITION_NAME) |
+            Q(position__name=settings.COMMISSIONER_POSITION_NAME)
+        )
+        return serializer(leaders, many=True).data
 
     def get_status(self, obj):
         if not CompetitionParticipants.objects.filter(

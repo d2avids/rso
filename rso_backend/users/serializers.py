@@ -1,9 +1,8 @@
 from datetime import date
 
-from djoser.serializers import UserCreatePasswordRetypeSerializer
-from rest_framework import serializers
-
+from api.serializers import EducationalInstitutionSerializer, RegionSerializer
 from api.utils import create_first_or_exception, get_is_trusted
+from djoser.serializers import UserCreatePasswordRetypeSerializer
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Position, Region,
@@ -14,6 +13,12 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
+from headquarters.serializers import (ShortDetachmentSerializer,
+                                      ShortDistrictHeadquarterSerializer,
+                                      ShortEducationalHeadquarterSerializer,
+                                      ShortLocalHeadquarterSerializer,
+                                      ShortRegionalHeadquarterSerializer)
+from rest_framework import serializers
 from users.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                              MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
                              REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS,
@@ -23,6 +28,7 @@ from users.models import (RSOUser, UserDocuments, UserEducation,
                           UserPrivacySettings, UserProfessionalEducation,
                           UserRegion, UserStatementDocuments,
                           UserVerificationRequest)
+from users.short_serializers import ShortUserSerializer
 
 
 class EmailSerializer(serializers.ModelSerializer):
@@ -32,6 +38,7 @@ class EmailSerializer(serializers.ModelSerializer):
 
 
 class UserEducationSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = UserEducation
         fields = (
@@ -41,6 +48,16 @@ class UserEducationSerializer(serializers.ModelSerializer):
             'study_year',
             'study_specialty',
         )
+
+    def to_representation(self, instance):
+        """Изменяет вывод образовательной организации."""
+        serialized_data = super().to_representation(instance)
+        study_inst = instance.study_institution
+        if study_inst:
+            serialized_data['study_institution'] = (
+                EducationalInstitutionSerializer(study_inst).data
+            )
+        return serialized_data
 
     def create(self, validated_data):
         return create_first_or_exception(
@@ -58,6 +75,8 @@ class ProfessionalEductionSerializer(serializers.ModelSerializer):
     который будет сериализован в поле users_prof_educations одного пользователя
     по эндпоинту /users/me/prof_education.
     """
+
+    study_institution = EducationalInstitutionSerializer()
 
     class Meta:
         model = UserProfessionalEducation
@@ -224,6 +243,14 @@ class UserMediaSerializer(serializers.ModelSerializer):
             UserMedia,
             MEDIA_RAW_EXISTS
         )
+
+
+class UserAvatarSerializer(serializers.ModelSerializer):
+    """Сериализатор для вывода аватарки из модели с Медиа юзера."""
+
+    class Meta:
+        model = UserMedia
+        fields = ('photo',)
 
 
 class UserStatementDocumentsSerializer(serializers.ModelSerializer):
@@ -395,7 +422,7 @@ class RSOUserSerializer(serializers.ModelSerializer):
         serialized_data = super().to_representation(instance)
         region = instance.region
         if region:
-            serialized_data['region'] = region.name
+            serialized_data['region'] = RegionSerializer(region).data
 
         return serialized_data
 
@@ -531,9 +558,7 @@ class CentralPositionOnlySerializer(BasePositionOnlySerializer):
 
 
 class DistrictPositionOnlySerializer(BasePositionOnlySerializer):
-    headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=DistrictHeadquarter.objects.all(),
-    )
+    headquarter = ShortDistrictHeadquarterSerializer()
 
     class Meta:
         model = UserDistrictHeadquarterPosition
@@ -541,9 +566,7 @@ class DistrictPositionOnlySerializer(BasePositionOnlySerializer):
 
 
 class RegionalPositionOnlySerializer(BasePositionOnlySerializer):
-    headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=RegionalHeadquarter.objects.all(),
-    )
+    headquarter = ShortRegionalHeadquarterSerializer()
 
     class Meta:
         model = UserRegionalHeadquarterPosition
@@ -551,9 +574,7 @@ class RegionalPositionOnlySerializer(BasePositionOnlySerializer):
 
 
 class LocalPositionOnlySerializer(BasePositionOnlySerializer):
-    headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=LocalHeadquarter.objects.all(),
-    )
+    headquarter = ShortLocalHeadquarterSerializer()
 
     class Meta:
         model = UserLocalHeadquarterPosition
@@ -561,9 +582,7 @@ class LocalPositionOnlySerializer(BasePositionOnlySerializer):
 
 
 class EducationalPositionOnlySerializer(BasePositionOnlySerializer):
-    headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=EducationalHeadquarter.objects.all(),
-    )
+    headquarter = ShortEducationalHeadquarterSerializer()
 
     class Meta:
         model = UserEducationalHeadquarterPosition
@@ -571,9 +590,7 @@ class EducationalPositionOnlySerializer(BasePositionOnlySerializer):
 
 
 class DetachmentPositionOnlySerializer(BasePositionOnlySerializer):
-    headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=Detachment.objects.all(),
-    )
+    headquarter = ShortDetachmentSerializer()
 
     class Meta:
         model = UserDetachmentPosition
@@ -611,21 +628,11 @@ class UserCommanderSerializer(serializers.ModelSerializer):
     centralheadquarter_commander = serializers.PrimaryKeyRelatedField(
         queryset=CentralHeadquarter.objects.all()
     )
-    districtheadquarter_commander = serializers.PrimaryKeyRelatedField(
-        queryset=DistrictHeadquarter.objects.all()
-    )
-    regionalheadquarter_commander = serializers.PrimaryKeyRelatedField(
-        queryset=RegionalHeadquarter.objects.all()
-    )
-    localheadquarter_commander = serializers.PrimaryKeyRelatedField(
-        queryset=LocalHeadquarter.objects.all()
-    )
-    educationalheadquarter_commander = serializers.PrimaryKeyRelatedField(
-        queryset=EducationalHeadquarter.objects.all()
-    )
-    detachment_commander = serializers.PrimaryKeyRelatedField(
-        queryset=Detachment.objects.all()
-    )
+    districtheadquarter_commander = ShortDistrictHeadquarterSerializer()
+    regionalheadquarter_commander = ShortRegionalHeadquarterSerializer()
+    localheadquarter_commander = ShortLocalHeadquarterSerializer()
+    educationalheadquarter_commander = ShortEducationalHeadquarterSerializer()
+    detachment_commander = ShortDetachmentSerializer()
 
     class Meta:
         model = RSOUser
@@ -694,35 +701,6 @@ class UserTrustedSerializer(serializers.ModelSerializer):
         return get_is_trusted(
             obj=obj,
             model=UserDetachmentPosition
-        )
-
-
-class UserAvatarSerializer(serializers.ModelSerializer):
-    """Сериализатор для вывода аватарки из модели с Медиа юзера."""
-
-    class Meta:
-        model = UserMedia
-        fields = ('photo',)
-
-
-class ShortUserSerializer(serializers.ModelSerializer):
-    """Для сериализации небольшой части данных пользователя."""
-
-    avatar = UserAvatarSerializer(source='media', read_only=True)
-
-    class Meta:
-        model = RSOUser
-        fields = (
-            'id',
-            'username',
-            'avatar',
-            'email',
-            'first_name',
-            'last_name',
-            'patronymic_name',
-            'date_of_birth',
-            'membership_fee',
-            'is_verified',
         )
 
 

@@ -7,7 +7,6 @@ from django_celery_beat.models import (ClockedSchedule, CrontabSchedule,
                                        SolarSchedule)
 from import_export.admin import ImportExportModelAdmin
 from rest_framework.authtoken.models import TokenProxy
-
 from users.forms import RSOUserForm
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserMemberCertLogs, UserMembershipLogs, UserParent,
@@ -103,11 +102,16 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         'last_name'
     )
     readonly_fields = ('date_joined', 'last_login')
+    list_filter = (
+        'date_joined',
+        'last_login',
+        'is_verified',
+        'membership_fee',
+        'is_staff',
+    )
 
     filter_horizontal = ()
-    list_filter = ()
     fieldsets = ()
-    form = RSOUserForm
 
 
 @admin.register(UserMembershipLogs)

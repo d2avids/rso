@@ -1,6 +1,5 @@
 from django.db.models import Q
 from django_filters import rest_framework as filters
-
 from headquarters.models import (Detachment, EducationalHeadquarter,
                                  LocalHeadquarter, RegionalHeadquarter)
 
@@ -11,10 +10,13 @@ class RegionalHeadquarterFilter(filters.FilterSet):
         lookup_expr='icontains',
         label='Название окружного штаба'
     )
+    region = filters.CharFilter(
+        field_name='region__name', lookup_expr='iexact'
+    )
 
     class Meta:
         model = RegionalHeadquarter
-        fields = ('district_headquarter__name', )
+        fields = ('district_headquarter__name',)
 
 
 class LocalHeadquarterFilter(filters.FilterSet):
