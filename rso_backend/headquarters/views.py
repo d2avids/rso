@@ -128,6 +128,7 @@ class RegionalViewSet(viewsets.ModelViewSet):
     Доступна сортировка по ключам name, founding_date, count_related.
     Сортировка по умолчанию - количество участников.
     Доступна фильтрация по Окружным Штабам. Ключ - district_headquarter__name.
+    Доступна фильтрация по имени региона. Ключ - region.
     """
 
     queryset = RegionalHeadquarter.objects.all()
