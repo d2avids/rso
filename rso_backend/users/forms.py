@@ -1,6 +1,5 @@
 from dal import autocomplete
 from django import forms
-
 from users.models import RSOUser
 
 
@@ -11,3 +10,5 @@ class RSOUserForm(forms.ModelForm):
         widgets = {
             'region': autocomplete.ModelSelect2(url='region-autocomplete'),
         }
+
+

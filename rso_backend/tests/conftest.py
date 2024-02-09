@@ -2,10 +2,9 @@ import datetime
 
 import pytest
 from django.conf import settings
-from rest_framework.test import APIClient
-
 from headquarters.models import (CentralHeadquarter, EducationalInstitution,
                                  Region)
+from rest_framework.test import APIClient
 from users.models import RSOUser
 
 USER_FIRST_NAME = 'Дмитрий'

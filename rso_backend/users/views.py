@@ -2,6 +2,10 @@ import mimetypes
 import os
 import zipfile
 
+from api.mixins import RetrieveViewSet
+from api.permissions import IsCommanderOrTrustedAnywhere, IsStuffOrAuthor
+from api.tasks import send_reset_password_email_without_user
+from api.utils import download_file, get_user
 from dal import autocomplete
 from django.db.models import Q
 from django.http.response import HttpResponse
@@ -11,12 +15,6 @@ from djoser.views import UserViewSet
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-
-from api.mixins import RetrieveViewSet
-from api.permissions import IsCommanderOrTrustedAnywhere, IsStuffOrAuthor
-from api.tasks import send_reset_password_email_without_user
-from api.utils import download_file, get_user
-from rso_backend.settings import BASE_DIR
 from users.filters import RSOUserFilter
 from users.models import (RSOUser, UserDocuments, UserEducation,
                           UserForeignDocuments, UserMedia, UserParent,
@@ -35,6 +33,8 @@ from users.serializers import (EmailSerializer, ForeignUserDocumentsSerializer,
                                UserRegionSerializer, UsersParentSerializer,
                                UserStatementDocumentsSerializer,
                                UserTrustedSerializer)
+
+from rso_backend.settings import BASE_DIR
 
 
 class CustomUserViewSet(UserViewSet):
@@ -61,7 +61,7 @@ class CustomUserViewSet(UserViewSet):
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('username', 'first_name', 'last_name', 'patronymic_name')
     filterset_class = RSOUserFilter
-    ordering_fields = ('last_name')
+    ordering_fields = ('last_name',)
 
     @action(
             methods=['post'],

@@ -1,15 +1,5 @@
 import itertools
 
-from dal import autocomplete
-from django.db import transaction
-from django.shortcuts import get_object_or_404
-from django_filters.rest_framework import DjangoFilterBackend
-from drf_yasg import openapi
-from drf_yasg.utils import swagger_auto_schema
-from rest_framework import filters, permissions, serializers, status, viewsets
-from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.response import Response
-
 from api.mixins import (CreateListRetrieveDestroyViewSet,
                         CreateRetrieveUpdateViewSet,
                         ListRetrieveDestroyViewSet, RetrieveUpdateViewSet)
@@ -20,6 +10,12 @@ from api.permissions import (IsApplicantOrOrganizer,
                              IsEventAuthor, IsEventOrganizer, IsLocalCommander,
                              IsRegionalCommander, IsStuffOrCentralCommander,
                              IsVerifiedPermission)
+from dal import autocomplete
+from django.db import transaction
+from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from events.filters import EventFilter
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocumentData, EventIssueAnswer,
@@ -47,6 +43,9 @@ from events.serializers import (AnswerSerializer,
 from events.swagger_schemas import (EventSwaggerSerializer, answer_response,
                                     application_me_response,
                                     participant_me_response)
+from rest_framework import filters, permissions, serializers, status, viewsets
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.response import Response
 from users.models import RSOUser
 from users.serializers import ShortUserSerializer
 

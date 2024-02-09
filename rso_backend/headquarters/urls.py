@@ -1,9 +1,9 @@
 from django.urls import path
-
-from headquarters.views import (EducationalAutoComplete,
+from headquarters.views import (DetachmentAutoComplete,
+                                EducationalAutoComplete,
                                 EducationalInstitutionAutoComplete,
-                                LocalAutoComplete, RegionalAutoComplete,
-                                RegionAutoComplete)
+                                LocalAutoComplete, PositionAutoComplete,
+                                RegionalAutoComplete, RegionAutoComplete)
 
 urlpatterns = [
     path(
@@ -27,8 +27,18 @@ urlpatterns = [
         name='educational-institution-autocomplete'
     ),
     path(
-        'autocomplete/local-autocomplete/',
+        'autocomplete/local/',
         LocalAutoComplete.as_view(),
         name='local-autocomplete'
+    ),
+    path(
+        'autocomplete/detachment/',
+        DetachmentAutoComplete.as_view(),
+        name='detachment-autocomplete',
+    ),
+    path(
+        'autocomplete/position/',
+        PositionAutoComplete.as_view(),
+        name='position-autocomplete'
     )
 ]

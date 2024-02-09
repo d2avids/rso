@@ -1,5 +1,4 @@
 from django.db import models
-
 from events.utils import document_path, image_path
 
 
