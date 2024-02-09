@@ -111,7 +111,6 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
     )
 
     filter_horizontal = ()
-    list_filter = ()
     fieldsets = ()
 
 
