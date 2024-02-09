@@ -16,7 +16,7 @@ class RegionalHeadquarterFilter(filters.FilterSet):
 
     class Meta:
         model = RegionalHeadquarter
-        fields = ('district_headquarter__name', )
+        fields = ('district_headquarter__name',)
 
 
 class LocalHeadquarterFilter(filters.FilterSet):
