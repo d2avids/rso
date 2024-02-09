@@ -36,31 +36,83 @@ class CentralHeadquarterAdmin(BaseUnitAdmin):
 @admin.register(DistrictHeadquarter)
 class DistrictHeadquarterAdmin(ImportExportModelAdmin):
     resource_class = DistrictHeadquarterResource
-    list_display = ('id', 'name', 'commander', 'city',)
+    list_display = ('id', 'name', 'commander', 'founding_date', 'city',)
     search_fields = ('name', 'city')
+    list_filter = ('founding_date', 'commander',)
     form = DistrictForm
 
 
 @admin.register(RegionalHeadquarter)
 class RegionalHeadquarterAdmin(ImportExportModelAdmin):
     resource_class = RegionalHeadquarterResource
-    list_display = ('id', 'name', 'commander', 'city',)
+    list_display = (
+        'id',
+        'name',
+        'commander',
+        'region',
+        'conference_date',
+        'founding_date',
+        'district_headquarter',
+        'city',
+    )
     search_fields = ('name', 'city')
     form = RegionalForm
+    list_filter = ('conference_date', 'district_headquarter',)
 
 
 @admin.register(LocalHeadquarter)
 class LocalHeadquarterAdmin(BaseUnitAdmin):
+    list_display = (
+        'id',
+        'name',
+        'commander',
+        'regional_headquarter',
+        'founding_date',
+        'city',
+    )
+    list_filter = ('founding_date', 'regional_headquarter',)
     form = LocalForm
 
 
 @admin.register(EducationalHeadquarter)
 class EducationalHeadquarterAdmin(BaseUnitAdmin):
+    list_display = (
+        'id',
+        'name',
+        'commander',
+        'local_headquarter',
+        'regional_headquarter',
+        'educational_institution',
+        'founding_date',
+        'city',
+    )
+    list_filter = ('local_headquarter', 'regional_headquarter',)
     form = EducationalForm
 
 
 @admin.register(Detachment)
 class DetachmentAdmin(BaseUnitAdmin):
+    list_display = (
+        'id',
+        'name',
+        'commander',
+        'educational_headquarter',
+        'local_headquarter',
+        'regional_headquarter',
+        'region',
+        'educational_institution',
+        'area',
+        'founding_date',
+        'city',
+    )
+    list_filter = (
+        'educational_headquarter',
+        'local_headquarter',
+        'regional_headquarter',
+        'area',
+        'founding_date',
+    )
+
     form = DetachmentForm
 
     def save_model(self, request, obj, form, change):
