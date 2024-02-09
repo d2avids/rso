@@ -4,7 +4,7 @@ from events.views import EventAutoComplete
 
 urlpatterns = [
     path(
-        'event-autocomplete/',
+        'autocomplete/event/',
         EventAutoComplete.as_view(),
         name='event-autocomplete'
     ),

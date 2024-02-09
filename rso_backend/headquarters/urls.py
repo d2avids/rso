@@ -7,27 +7,27 @@ from headquarters.views import (EducationalAutoComplete,
 
 urlpatterns = [
     path(
-        'region-userautocomplete/',
+        'autocomplete/region/',
         RegionAutoComplete.as_view(),
         name='region-autocomplete'
     ),
     path(
-        'regional-autocomplete/',
+        'autocomplete/regional/',
         RegionalAutoComplete.as_view(),
         name='regional-autocomplete'
     ),
     path(
-        'educational-autocomplete/',
+        'autocomplete/educational/',
         EducationalAutoComplete.as_view(),
          name='educational-autocomplete'
     ),
     path(
-        'educational-institutionautocomplete/',
+        'autocomplete/educational-institution/',
         EducationalInstitutionAutoComplete.as_view(),
         name='educational-institution-autocomplete'
     ),
     path(
-        'local-autocomplete/',
+        'autocomplete/local-autocomplete/',
         LocalAutoComplete.as_view(),
         name='local-autocomplete'
     )
