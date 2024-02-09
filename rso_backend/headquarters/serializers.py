@@ -341,6 +341,7 @@ class BaseUnitSerializer(serializers.ModelSerializer):
     members_count = serializers.SerializerMethodField(read_only=True)
     participants_count = serializers.SerializerMethodField(read_only=True)
     leadership = serializers.SerializerMethodField(read_only=True)
+    events_count = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = None
@@ -357,6 +358,7 @@ class BaseUnitSerializer(serializers.ModelSerializer):
             'city',
             'members_count',
             'participants_count',
+            'events_count',
             'leadership',
         )
 
@@ -405,6 +407,28 @@ class BaseUnitSerializer(serializers.ModelSerializer):
             Q(position__name=settings.COMMISSIONER_POSITION_NAME)
         )
         return serializer(leaders, many=True).data
+
+    def get_events_count(self, instance):
+        mapping_units = {
+            'Detachment': 'Отрядное',
+            'EducationalHeadquarter':
+            ['Отрядное', 'Образовательное'],
+            'LocalHeadquarter':
+            ['Отрядное', 'Образовательное', 'Городское'],
+            'RegionalHeadquarter':
+            ['Отрядное', 'Образовательное', 'Городское', 'Региональное'],
+            'DistrictHeadquarter':
+            ['Отрядное', 'Образовательное', 'Городское', 'Региональное',
+             'Окружное'],
+            'CentralHeadquarter':
+            ['Отрядное', 'Образовательное', 'Городское', 'Региональное',
+             'Окружное', 'Всероссийское']
+        }
+        commander = instance.commander
+        instance_unit_class_name = mapping_units.get(self.Meta.model.__name__)
+        return commander.event_set.filter(
+            scale__in=instance_unit_class_name
+        ).count()
 
     @staticmethod
     def get_members_count(instance):
