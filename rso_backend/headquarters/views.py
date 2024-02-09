@@ -47,7 +47,7 @@ from headquarters.serializers import (
     UserDetachmentApplicationReadSerializer,
     UserDetachmentApplicationSerializer)
 from headquarters.swagger_schemas import applications_response
-from users.models import RSOUser, UserVerificationRequest
+from users.models import UserVerificationRequest
 from users.serializers import UserVerificationReadSerializer
 
 
@@ -686,6 +686,26 @@ class RegionalAutoComplete(autocomplete.Select2QuerySetView):
 class EducationalInstitutionAutoComplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         qs = EducationalInstitution.objects.all()
+
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+
+        return qs
+
+
+class DetachmentAutoComplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = Detachment.objects.all()
+
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+
+        return qs
+
+
+class PositionAutoComplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = Position.objects.all()
 
         if self.q:
             qs = qs.filter(name__icontains=self.q)

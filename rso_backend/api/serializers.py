@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from headquarters.models import Area, EducationalInstitution, Region
 from users.models import MemberCert
-from users.serializers import ShortUserSerializer
+from users.short_serializers import ShortUserSerializer
 
 
 class AreaSerializer(serializers.ModelSerializer):

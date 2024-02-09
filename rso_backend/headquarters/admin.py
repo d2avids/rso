@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from import_export.admin import ImportExportModelAdmin
 
 from headquarters.forms import (CentralForm, DetachmentForm, DistrictForm,
-                                EducationalForm, LocalForm, RegionalForm)
+                                EducationalForm, LocalForm, RegionalForm, CentralPositionForm, RegionalPositionForm, EducationalPositionForm, LocalPositionForm, DistrictPositionForm, DetachmentPositionForm)
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -80,6 +80,8 @@ class DetachmentAdmin(BaseUnitAdmin):
 
 class BaseCentralPositionAdmin(admin.ModelAdmin):
     list_display = ('user', 'position', 'headquarter',)
+    list_filter = ('headquarter',)
+    search_fields = ('user__username', 'name')
 
     def delete_queryset(self, request, queryset):
         """
@@ -95,31 +97,33 @@ class BaseCentralPositionAdmin(admin.ModelAdmin):
 
 @admin.register(UserCentralHeadquarterPosition)
 class UserCentralHeadquarterPositionAdmin(BaseCentralPositionAdmin):
-    pass
+    form = CentralPositionForm
 
 
 @admin.register(UserDistrictHeadquarterPosition)
 class UserDistrictHeadquarterPositionAdmin(BaseCentralPositionAdmin):
-    pass
+    form = DistrictPositionForm
 
 
 @admin.register(UserRegionalHeadquarterPosition)
 class UserRegionalHeadquarterPositionAdmin(BaseCentralPositionAdmin):
-    pass
+    form = RegionalPositionForm
 
 
 @admin.register(UserLocalHeadquarterPosition)
 class UserLocalHeadquarterPositionAdmin(BaseCentralPositionAdmin):
-    pass
+    form = LocalPositionForm
 
 
 @admin.register(UserEducationalHeadquarterPosition)
 class UserEducationalHeadquarterPositionAdmin(BaseCentralPositionAdmin):
-    pass
+    form = EducationalPositionForm
 
 
 @admin.register(UserDetachmentPosition)
 class UserDetachmentPositionAdmin(BaseCentralPositionAdmin):
+    form = DetachmentPositionForm
+
     def has_add_permission(self, request, obj=None):
         """Разрешаем добавление участника в отряд через админку."""
         return True

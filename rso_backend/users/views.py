@@ -61,7 +61,7 @@ class CustomUserViewSet(UserViewSet):
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('username', 'first_name', 'last_name', 'patronymic_name')
     filterset_class = RSOUserFilter
-    ordering_fields = ('last_name')
+    ordering_fields = ('last_name',)
 
     @action(
             methods=['post'],

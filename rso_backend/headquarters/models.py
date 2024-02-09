@@ -610,9 +610,11 @@ class UserUnitPosition(models.Model):
     def __str__(self):
         position = self.position.name if self.position else 'без должности'
         return (
-            f'Пользователь {self.user.username} - '
+            f'Пользователь с ником {self.user.username}, ФИО'
+            f' {self.user.last_name} '
+            f'{self.user.first_name} {self.user.patronymic_name}  - '
             f'{position} '
-            f'в структурной единице "{self.headquarter.name}"'
+            f'в "{self.headquarter.name}"'
         )
 
 

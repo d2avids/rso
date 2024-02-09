@@ -11,3 +11,5 @@ class RSOUserForm(forms.ModelForm):
         widgets = {
             'region': autocomplete.ModelSelect2(url='region-autocomplete'),
         }
+
+
