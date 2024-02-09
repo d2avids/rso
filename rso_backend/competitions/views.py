@@ -259,7 +259,7 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
             return None
         except Detachment.MultipleObjectsReturned:
             return Response({'error':
-                                 'Пользователь командир нескольких отрядов'},
+                            'Пользователь командир нескольких отрядов'},
                             status=status.HTTP_400_BAD_REQUEST)
 
     def get_junior_detachment(self, request_data):
@@ -482,7 +482,7 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
             return None
         except Detachment.MultipleObjectsReturned:
             return Response({'error':
-                                 'Пользователь командир нескольких отрядов'},
+                            'Пользователь командир нескольких отрядов'},
                             status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False,

@@ -4,13 +4,13 @@ from tests.conftest import REGION_MOJAISK, REGION_MOSCOW
 
 
 @pytest.mark.django_db
-def test_regions_list(client, region):
+def test_regions_list(client, regions):
     response = client.get('/api/v1/regions/')
     assert response.status_code == 200, 'Response code is not 200'
 
 
 @pytest.mark.django_db
-def test_detailed_region(client, region):
+def test_detailed_region(client, regions):
     response = client.get('/api/v1/regions/1/')
     assert response.status_code == 200, 'Response code is not 200'
     data = response.data
@@ -18,7 +18,7 @@ def test_detailed_region(client, region):
 
 
 @pytest.mark.django_db
-def test_regions_search(client, region):
+def test_regions_search(client, regions):
     response = client.get(f'/api/v1/regions/?search={REGION_MOSCOW}')
     assert response.status_code == 200, 'Response code is not 200'
     data = response.data

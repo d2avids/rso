@@ -5,7 +5,7 @@ from tests.conftest import (EDUCATIONAL_INSTITUTION_NAME,
 
 
 @pytest.mark.django_db
-def test_edu_inst_list(client, central_headquarter, educational_institution):
+def test_edu_inst_list(client, central_headquarter, educational_institutions):
     response = client.get('/api/v1/eduicational_institutions/')
 
     assert response.status_code == 200, 'Response code is not 200'
@@ -14,7 +14,7 @@ def test_edu_inst_list(client, central_headquarter, educational_institution):
 
 
 @pytest.mark.django_db
-def test_detailed_inst(client, central_headquarter, educational_institution):
+def test_detailed_inst(client, central_headquarter, educational_institutions):
     response = client.get('/api/v1/eduicational_institutions/1/')
 
     assert response.status_code == 200, 'Response code is not 200'
@@ -28,7 +28,7 @@ def test_detailed_inst(client, central_headquarter, educational_institution):
 
 
 @pytest.mark.django_db
-def test_edu_inst_search(client, central_headquarter, educational_institution):
+def test_edu_inst_search(client, central_headquarter, educational_institutions):
     response = client.get(
         f'/api/v1/eduicational_institutions/'
         f'?search={EDUCATIONAL_INSTITUTION_SHORT_NAME}'
@@ -41,7 +41,7 @@ def test_edu_inst_search(client, central_headquarter, educational_institution):
 @pytest.mark.django_db
 def test_edu_inst_region_filter(client,
                                 central_headquarter,
-                                educational_institution):
+                                educational_institutions):
     response = client.get(
         f'/api/v1/eduicational_institutions/'
         f'?region__name={REGION_MOJAISK}'
