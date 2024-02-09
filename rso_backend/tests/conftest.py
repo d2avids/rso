@@ -85,42 +85,34 @@ def user_4():
 @pytest.fixture
 def authenticated_client(client, user):
     """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
-    login_payload = {
-        'username': user.username,
-        'password': USER_PASSWORD,
-    }
-    response = client.post('/api/v1/token/login/', login_payload)
-    assert response.status_code == 200
-    token = response.data['auth_token']
-    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+    client.force_authenticate(user=user)
     return client
 
 
 @pytest.fixture
 def authenticated_client_2(client, user_2):
     """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
-    login_payload = {
-        'username': user_2.username,
-        'password': user_2.password,
-    }
-    response = client.post('/api/v1/token/login/', login_payload)
-    assert response.status_code == 200
-    token = response.data['auth_token']
-    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+    client.force_authenticate(user=user_2)
     return client
 
 
 @pytest.fixture
 def authenticated_client_3(client, user_3):
     """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
-    login_payload = {
-        'username': user_3.username,
-        'password': user_3.password,
-    }
-    response = client.post('/api/v1/token/login/', login_payload)
-    assert response.status_code == 200
-    token = response.data['auth_token']
-    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+    client.force_authenticate(user=user_3)
+    return client
+
+
+@pytest.fixture
+def admin_client():
+    user = RSOUser.objects.create_user(username='admin',
+                                       password='admin_password')
+    user.is_staff = True
+    user.is_superuser = True
+    user.save()
+
+    client = APIClient()
+    client.force_authenticate(user=user)
     return client
 
 
@@ -142,6 +134,7 @@ def educational_institution_2(region_2):
         region=region_2
     )
     return edu
+
 
 @pytest.fixture
 def educational_institutions(regions):
