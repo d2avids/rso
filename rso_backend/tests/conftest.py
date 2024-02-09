@@ -3,9 +3,9 @@ import datetime
 import pytest
 from django.conf import settings
 from rest_framework.test import APIClient
-from competitions.models import Competitions
+from competitions.models import CompetitionApplications, Competitions
 
-from headquarters.models import (CentralHeadquarter, Detachment, DistrictHeadquarter, EducationalHeadquarter, EducationalInstitution, LocalHeadquarter,
+from headquarters.models import (Area, CentralHeadquarter, Detachment, DistrictHeadquarter, EducationalHeadquarter, EducationalInstitution, LocalHeadquarter,
                                  Region, RegionalHeadquarter)
 from users.models import RSOUser
 
@@ -171,6 +171,17 @@ def regions():
 
 
 @pytest.fixture
+def area():
+    area = Area.objects.create(name='Направление 1')
+    return area
+
+
+@pytest.fixture
+def area_2():
+    area = Area.objects.create(name='Направление 2')
+    return area
+
+@pytest.fixture
 def central_headquarter():
     commander = RSOUser.objects.create_user(
         first_name=CENTRAL_HEADQUARTER_COMMANDER_NAME,
@@ -208,7 +219,7 @@ def district_headquarter(central_headquarter, user):
         name='Окружный штаб',
         commander=user,
         central_headquarter=central_headquarter,
-        founding_date=datetime.date.fromisoformat("2022-11-31"),
+        founding_date=datetime.date.fromisoformat("2022-11-13"),
     )
     return district_headquarter
 
@@ -274,7 +285,7 @@ def local_headquarter_2(regional_headquarter_2, user_2):
 
 @pytest.fixture
 def educational_headquarter(
-    local_headquarter, regional_headquarter, educational_headquarter,
+    local_headquarter, regional_headquarter, educational_institution,
     user
 ):
     educational_headquarter = EducationalHeadquarter.objects.create(
@@ -282,7 +293,7 @@ def educational_headquarter(
         commander=user,
         local_headquarter=local_headquarter,
         regional_headquarter=regional_headquarter,
-        educational_headquarter=educational_headquarter,
+        educational_institution=educational_institution,
         founding_date=datetime.date.fromisoformat("2022-05-31"),
     )
     return educational_headquarter
@@ -290,7 +301,7 @@ def educational_headquarter(
 
 @pytest.fixture
 def educational_headquarter_2(
-    local_headquarter_2, regional_headquarter_2, educational_headquarter_2,
+    local_headquarter_2, regional_headquarter_2, educational_institution_2,
     user_2
 ):
     educational_headquarter = EducationalHeadquarter.objects.create(
@@ -298,7 +309,7 @@ def educational_headquarter_2(
         commander=user_2,
         local_headquarter=local_headquarter_2,
         regional_headquarter=regional_headquarter_2,
-        educational_headquarter=educational_headquarter_2,
+        educational_institution=educational_institution_2,
         founding_date=datetime.date.fromisoformat("2022-04-30"),
     )
     return educational_headquarter
@@ -343,27 +354,32 @@ def detachment_2(
 
 
 @pytest.fixture
-def junior_detachment(user_3, regional_headquarter, region):
+def junior_detachment(user_3, regional_headquarter, region, area):
     junior_detachment = Detachment.objects.create(
         name='Младший отряд',
         commander=user_3,
         regional_headquarter=regional_headquarter,
         region=region,
         founding_date=datetime.date.fromisoformat("2024-01-31"),
+        banner='path/to/banner.jpg',
+        area=area
     )
     return junior_detachment
 
 
 @pytest.fixture
-def junior_detachment_2(user_4, regional_headquarter_2, region_2):
+def junior_detachment_2(user_4, regional_headquarter_2, region_2, area_2):
     junior_detachment = Detachment.objects.create(
         name='Второй младший отряд',
         commander=user_4,
         regional_headquarter=regional_headquarter_2,
         region=region_2,
-        founding_date=datetime.date.fromisoformat("2024-02-28"),
+        founding_date=datetime.date.fromisoformat("2024-01-28"),
+        banner='path/to/banner2.jpg',
+        area=area_2
     )
     return junior_detachment
+
 
 @pytest.fixture
 def competition():
@@ -377,3 +393,24 @@ def competition_2():
     return Competitions.objects.create(
         name='Второй конкурс',
     )
+
+
+@pytest.fixture
+def application_competition(user, detachment, competition, junior_detachment):
+    """Заявка на участие в конкурсе."""
+    application = CompetitionApplications.objects.create(
+        competition=competition,
+        detachment=detachment,
+        junior_detachment=junior_detachment
+    )
+    return application
+
+@pytest.fixture
+def application_competition_2(user_2, detachment_2, competition_2, junior_detachment_2):
+    """Вторая заявка на участие в конкурсе."""
+    application = CompetitionApplications.objects.create(
+        competition=competition_2,
+        detachment=detachment_2,
+        junior_detachment=junior_detachment_2
+    )
+    return application
