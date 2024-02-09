@@ -37,8 +37,7 @@ class CentralHeadquarterAdmin(BaseUnitAdmin):
 class DistrictHeadquarterAdmin(ImportExportModelAdmin):
     resource_class = DistrictHeadquarterResource
     list_display = ('id', 'name', 'commander', 'founding_date', 'city',)
-    search_fields = ('name', 'city')
-    list_filter = ('founding_date', 'commander',)
+    search_fields = ('name', 'city', 'founding_date',)
     form = DistrictForm
 
 
@@ -55,9 +54,15 @@ class RegionalHeadquarterAdmin(ImportExportModelAdmin):
         'district_headquarter',
         'city',
     )
-    search_fields = ('name', 'city')
+    search_fields = (
+        'name',
+        'city',
+        'district_headquarter__name',
+        'region__name',
+        'founding_date',
+    )
     form = RegionalForm
-    list_filter = ('conference_date', 'district_headquarter',)
+    list_filter = ('district_headquarter',)
 
 
 @admin.register(LocalHeadquarter)
@@ -70,7 +75,10 @@ class LocalHeadquarterAdmin(BaseUnitAdmin):
         'founding_date',
         'city',
     )
-    list_filter = ('founding_date', 'regional_headquarter',)
+    list_filter = ('regional_headquarter',)
+    search_fields = (
+        'name', 'city', 'founding_date', 'regional_headquarter__name'
+    )
     form = LocalForm
 
 
@@ -87,6 +95,13 @@ class EducationalHeadquarterAdmin(BaseUnitAdmin):
         'city',
     )
     list_filter = ('local_headquarter', 'regional_headquarter',)
+    search_fields = (
+        'name',
+        'city',
+        'educational_institution__name',
+        'regional_headquarter__name',
+        'founding_date'
+    )
     form = EducationalForm
 
 
@@ -106,13 +121,19 @@ class DetachmentAdmin(BaseUnitAdmin):
         'city',
     )
     list_filter = (
+        'area',
         'educational_headquarter',
         'local_headquarter',
         'regional_headquarter',
-        'area',
-        'founding_date',
     )
-
+    search_fields = (
+        'name',
+        'city',
+        'educational_headquarter__name',
+        'local_headquarter__name',
+        'region__name',
+        'educational_institution__name',
+    )
     form = DetachmentForm
 
     def save_model(self, request, obj, form, change):
