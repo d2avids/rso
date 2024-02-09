@@ -10,6 +10,9 @@ class RegionalHeadquarterFilter(filters.FilterSet):
         lookup_expr='icontains',
         label='Название окружного штаба'
     )
+    region = filters.CharFilter(
+        field_name='region__name', lookup_expr='iexact'
+    )
 
     class Meta:
         model = RegionalHeadquarter

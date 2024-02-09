@@ -952,3 +952,6 @@ class EventAutoComplete(autocomplete.Select2QuerySetView):
             qs = qs.filter(name__icontains=self.q)
 
         return qs
+
+    def get_ordering(self):
+        pass
