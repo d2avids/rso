@@ -401,7 +401,9 @@ class BaseUnitSerializer(serializers.ModelSerializer):
         serializer = self._get_position_serializer()
         position_instance = self._get_position_instance()
         leaders = position_instance.objects.exclude(
-            position_name__in=settings.NOT_LEADERSHIP_POSITIONS)
+            Q(position__name__in=settings.NOT_LEADERSHIP_POSITIONS) |
+            Q(position__isnull=True)
+        )
 
         return serializer(leaders, many=True).data
 
