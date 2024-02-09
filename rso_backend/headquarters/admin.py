@@ -38,7 +38,7 @@ class DistrictHeadquarterAdmin(ImportExportModelAdmin):
     resource_class = DistrictHeadquarterResource
     list_display = ('id', 'name', 'commander', 'founding_date', 'city',)
     search_fields = ('name', 'city')
-    list_filter = ('founding_date', 'commander',)
+    list_filter = ('founding_date',)
     form = DistrictForm
 
 
