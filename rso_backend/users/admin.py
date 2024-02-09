@@ -102,6 +102,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         'last_name'
     )
     readonly_fields = ('date_joined', 'last_login')
+    list_filter = ('date_joined', 'last_login',)
 
     filter_horizontal = ()
     list_filter = ()
