@@ -1,9 +1,8 @@
 from datetime import date
 
-from djoser.serializers import UserCreatePasswordRetypeSerializer
-from rest_framework import serializers
-
+from api.serializers import EducationalInstitutionSerializer, RegionSerializer
 from api.utils import create_first_or_exception, get_is_trusted
+from djoser.serializers import UserCreatePasswordRetypeSerializer
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Position, Region,
@@ -14,7 +13,12 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
-from headquarters.serializers import ShortDistrictHeadquarterSerializer, ShortDetachmentSerializer, ShortLocalHeadquarterSerializer, ShortRegionalHeadquarterSerializer, ShortEducationalHeadquarterSerializer
+from headquarters.serializers import (ShortDetachmentSerializer,
+                                      ShortDistrictHeadquarterSerializer,
+                                      ShortEducationalHeadquarterSerializer,
+                                      ShortLocalHeadquarterSerializer,
+                                      ShortRegionalHeadquarterSerializer)
+from rest_framework import serializers
 from users.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                              MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
                              REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS,
@@ -25,7 +29,6 @@ from users.models import (RSOUser, UserDocuments, UserEducation,
                           UserRegion, UserStatementDocuments,
                           UserVerificationRequest)
 from users.short_serializers import ShortUserSerializer
-from api.serializers import EducationalInstitutionSerializer, RegionSerializer
 
 
 class EmailSerializer(serializers.ModelSerializer):

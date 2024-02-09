@@ -1,10 +1,9 @@
 from django.urls import path
-
-from headquarters.views import (EducationalAutoComplete,
+from headquarters.views import (DetachmentAutoComplete,
+                                EducationalAutoComplete,
                                 EducationalInstitutionAutoComplete,
-                                LocalAutoComplete, RegionalAutoComplete,
-                                RegionAutoComplete, PositionAutoComplete,
-                                DetachmentAutoComplete)
+                                LocalAutoComplete, PositionAutoComplete,
+                                RegionalAutoComplete, RegionAutoComplete)
 
 urlpatterns = [
     path(

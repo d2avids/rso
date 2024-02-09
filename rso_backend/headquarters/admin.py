@@ -1,9 +1,11 @@
 from django.contrib import admin
 from django.core.exceptions import ValidationError
-from import_export.admin import ImportExportModelAdmin
-
-from headquarters.forms import (CentralForm, DetachmentForm, DistrictForm,
-                                EducationalForm, LocalForm, RegionalForm, CentralPositionForm, RegionalPositionForm, EducationalPositionForm, LocalPositionForm, DistrictPositionForm, DetachmentPositionForm)
+from headquarters.forms import (CentralForm, CentralPositionForm,
+                                DetachmentForm, DetachmentPositionForm,
+                                DistrictForm, DistrictPositionForm,
+                                EducationalForm, EducationalPositionForm,
+                                LocalForm, LocalPositionForm, RegionalForm,
+                                RegionalPositionForm)
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -18,6 +20,7 @@ from headquarters.resources import (DistrictHeadquarterResource,
                                     EducationalInstitutionResource,
                                     RegionalHeadquarterResource,
                                     RegionResource)
+from import_export.admin import ImportExportModelAdmin
 
 
 class BaseUnitAdmin(admin.ModelAdmin):

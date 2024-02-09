@@ -1,5 +1,4 @@
 import pytest
-
 from tests.conftest import REGION_MOJAISK, REGION_MOSCOW
 
 

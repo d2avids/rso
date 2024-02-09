@@ -1,6 +1,5 @@
 from django.contrib.auth.hashers import make_password
 from import_export import resources
-
 from users.models import RSOUser
 
 
