@@ -375,6 +375,8 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
         у его отряда нет заявки на участие - запрос вернет ошибку 404.
         """
         detachment = self.get_detachment(request.user)
+        if detachment is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
         application = self.get_queryset().filter(
             Q(detachment=detachment) | Q(junior_detachment=detachment)
         ).first()
