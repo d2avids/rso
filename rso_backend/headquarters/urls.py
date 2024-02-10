@@ -1,4 +1,5 @@
 from django.urls import path
+
 from headquarters.views import (DetachmentAutoComplete,
                                 EducationalAutoComplete,
                                 EducationalInstitutionAutoComplete,

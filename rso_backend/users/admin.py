@@ -7,6 +7,7 @@ from django_celery_beat.models import (ClockedSchedule, CrontabSchedule,
                                        SolarSchedule)
 from import_export.admin import ImportExportModelAdmin
 from rest_framework.authtoken.models import TokenProxy
+
 from users.forms import RSOUserForm
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserMemberCertLogs, UserMembershipLogs, UserParent,
@@ -122,6 +123,10 @@ class UserMembershipLogsAdmin(admin.ModelAdmin):
     )
     list_filter = ('date', 'period', 'status')
 
+    def has_add_permission(self, request, obj=None):
+        """Запрещаем добавление записи через админку."""
+        return False
+
 
 @admin.register(UserMemberCertLogs)
 class UserMemberCertLogsAdmin(admin.ModelAdmin):
@@ -131,6 +136,10 @@ class UserMemberCertLogsAdmin(admin.ModelAdmin):
     )
     list_filter = ('date', 'cert_type')
 
+    def has_add_permission(self, request, obj=None):
+        """Запрещаем добавление записи через админку."""
+        return False
+
 
 @admin.register(UserVerificationLogs)
 class UserVerificationLogsAdmin(admin.ModelAdmin):
@@ -139,6 +148,10 @@ class UserVerificationLogsAdmin(admin.ModelAdmin):
     list_display = ('user', 'date', 'description', 'verification_by')
     readonly_fields = ('user', 'date', 'description', 'verification_by')
     list_filter = ('date', 'description')
+
+    def has_add_permission(self, request, obj=None):
+        """Запрещаем добавление записи через админку."""
+        return False
 
 
 admin.site.unregister(Group)

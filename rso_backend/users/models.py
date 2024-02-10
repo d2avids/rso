@@ -3,6 +3,7 @@ from datetime import date
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
+
 from users.constants import (Gender, MilitaryDocType, PrivacyOption,
                              RelationshipType, StudyForm)
 from users.utils import document_path, image_path, validate_years
@@ -927,8 +928,8 @@ class MemberCert(models.Model):
     )
 
     class Meta:
-        verbose_name_plural = 'Выданные справки о членстве в РСО.'
-        verbose_name = 'Выданная справка о членстве в РСО.'
+        verbose_name_plural = 'Выданные справки о членстве в РСО'
+        verbose_name = 'Выданная справка о членстве в РСО'
 
     def __str__(self):
         return (
@@ -967,8 +968,8 @@ class UserMemberCertLogs(models.Model):
     )
 
     class Meta:
-        verbose_name_plural = 'Логи выдачи справок о членстве в РСО.'
-        verbose_name = 'Лог выдачи справки о членстве в РСО.'
+        verbose_name_plural = 'Логи выдачи справок о членстве в РСО'
+        verbose_name = 'Лог выдачи справки о членстве в РСО'
 
 
 class UserVerificationLogs(models.Model):
@@ -997,5 +998,5 @@ class UserVerificationLogs(models.Model):
     )
 
     class Meta:
-        verbose_name_plural = 'Логи верификации юзеров.'
-        verbose_name = 'Лог верификации юзеров.'
+        verbose_name_plural = 'Логи верификации юзеров'
+        verbose_name = 'Лог верификации юзеров'

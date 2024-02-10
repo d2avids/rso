@@ -1,10 +1,13 @@
 from django.contrib import admin
 from django.core.exceptions import ValidationError
+from import_export.admin import ImportExportModelAdmin
+
 from headquarters.forms import (CentralForm, CentralPositionForm,
-                                DetachmentForm, DetachmentPositionForm,
-                                DistrictForm, DistrictPositionForm,
-                                EducationalForm, EducationalPositionForm,
-                                LocalForm, LocalPositionForm, RegionalForm,
+                                DetachmentForm, DetachmentPositionAddForm,
+                                DetachmentPositionForm, DistrictForm,
+                                DistrictPositionForm, EducationalForm,
+                                EducationalPositionForm, LocalForm,
+                                LocalPositionForm, RegionalForm,
                                 RegionalPositionForm)
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
@@ -20,7 +23,6 @@ from headquarters.resources import (DistrictHeadquarterResource,
                                     EducationalInstitutionResource,
                                     RegionalHeadquarterResource,
                                     RegionResource)
-from import_export.admin import ImportExportModelAdmin
 
 
 class BaseUnitAdmin(admin.ModelAdmin):
@@ -199,10 +201,21 @@ class UserEducationalHeadquarterPositionAdmin(BaseCentralPositionAdmin):
 @admin.register(UserDetachmentPosition)
 class UserDetachmentPositionAdmin(BaseCentralPositionAdmin):
     form = DetachmentPositionForm
+    add_form = DetachmentPositionAddForm
 
     def has_add_permission(self, request, obj=None):
         """Разрешаем добавление участника в отряд через админку."""
         return True
+
+    def get_form(self, request, obj=None, **kwargs):
+        """
+        Use special form during position creation.
+        """
+        defaults = {}
+        if obj is None:
+            defaults['form'] = self.add_form
+        defaults.update(kwargs)
+        return super().get_form(request, obj, **defaults)
 
 
 @admin.register(EducationalInstitution)

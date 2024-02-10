@@ -2,6 +2,7 @@ import os
 
 from django.db.models.signals import pre_delete, pre_save
 from django.dispatch import receiver
+
 from users.models import UserMedia, UserStatementDocuments
 from users.utils import user_image_folder_delete, user_statement_folder_delete
 

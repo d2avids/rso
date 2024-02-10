@@ -1,5 +1,7 @@
-from api.utils import create_first_or_exception
 from django.shortcuts import get_object_or_404
+from rest_framework import serializers
+
+from api.utils import create_first_or_exception
 from events.constants import (EVENT_DOCUMENT_DATA_RAW_EXISTS,
                               EVENT_TIME_DATA_RAW_EXISTS)
 from events.models import (Event, EventAdditionalIssue, EventApplications,
@@ -10,7 +12,6 @@ from events.models import (Event, EventAdditionalIssue, EventApplications,
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, RegionalHeadquarter)
-from rest_framework import serializers
 from users.models import RSOUser
 from users.serializers import ShortUserSerializer
 

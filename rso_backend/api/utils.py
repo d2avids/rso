@@ -7,6 +7,10 @@ from datetime import datetime
 from django.db import IntegrityError
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
+from rest_framework import serializers, status
+from rest_framework.permissions import SAFE_METHODS
+from rest_framework.response import Response
+
 from headquarters.models import (CentralHeadquarter, RegionalHeadquarter,
                                  UserCentralHeadquarterPosition,
                                  UserDetachmentPosition,
@@ -14,9 +18,6 @@ from headquarters.models import (CentralHeadquarter, RegionalHeadquarter,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
-from rest_framework import serializers, status
-from rest_framework.permissions import SAFE_METHODS
-from rest_framework.response import Response
 from users.models import RSOUser
 
 
