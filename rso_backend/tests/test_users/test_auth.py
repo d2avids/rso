@@ -43,6 +43,23 @@ def test_login_user(client, user):
 
     assert 'auth_token' in data, 'auth_token is missing in the response'
 
+@pytest.mark.django_db
+def test_set_password(authenticated_client, user):
+    payload = {
+        'new_password': 'XksakAZVfl',
+        'current_password': 'Ddmi36VRN'
+    }
+    response = authenticated_client.post('/api/v1/users/set_password/', payload)
+    assert response.status_code == 204, 'Response status code is not 204'
+
+@pytest.mark.django_db
+def test_set_password_anonymous(client, user):
+    payload = {
+        'new_password': 'XksakAZVfl',
+        'current_password': 'Ddmi36VRN'
+    }
+    response = client.post('/api/v1/users/set_password/', payload)
+    assert response.status_code == 401, 'Response status code is not 401'
 
 @pytest.mark.django_db
 def test_get_me(authenticated_client, central_headquarter):
@@ -152,7 +169,7 @@ def test_get_me_media_anonymous(client, central_headquarter):
 
 @pytest.mark.django_db
 def test_get_me_professional_education(
-    authenticated_client, central_headquarter, educational_institution
+    authenticated_client, authenticated_client_2, central_headquarter, educational_institution
 ):
     response = authenticated_client.get(
         '/api/v1/rsousers/me/professional_education/')
@@ -167,7 +184,6 @@ def test_get_me_professional_education(
         'exam_score': 'string',
         'qualification': 'string'
     }
-    print(payload)
     response = authenticated_client.post(
         '/api/v1/rsousers/me/professional_education/', payload, format="json"
     )
@@ -179,6 +195,27 @@ def test_get_me_professional_education(
     )
     assert response.status_code == HTTPStatus.OK, (
         'Response status code is not 200'
+    )
+    payload = {
+        'exam_score': 'very well',
+    }
+    response = authenticated_client_2.patch(
+        '/api/v1/rsousers/me/professional_education/1/', payload
+    )
+    assert response.status_code == HTTPStatus.FORBIDDEN, (
+        'Response status code is not 403'
+    )
+    response = authenticated_client.patch(
+        '/api/v1/rsousers/me/professional_education/1/', payload
+    )
+    assert response.status_code == HTTPStatus.OK, (
+        'Response status code is not 200'
+    )
+    response_2 = authenticated_client_2.delete(
+        '/api/v1/rsousers/me/professional_education/1/'
+    )
+    assert response_2.status_code == HTTPStatus.FORBIDDEN, (
+        'Response status code is not 403'
     )
     response = authenticated_client.delete(
         '/api/v1/rsousers/me/professional_education/1/'
@@ -218,7 +255,7 @@ def test_get_me_five_professional_educations(
             'exam_score': exam_score,
             'qualification': qualification
         }
-        response = authenticated_client.post(
+        authenticated_client.post(
             '/api/v1/rsousers/me/professional_education/', payload, format="json"
         )
     response = authenticated_client.get(
@@ -236,6 +273,22 @@ def test_get_me_professional_education_anonymous(client,
     response = client.get('/api/v1/rsousers/me/professional_education/')
     assert response.status_code == 401, 'Response status code is not 401'
     assert 'detail' in response.data, 'No detail key in response data'
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    'url',
+    (
+        'download_all_forms',
+        'download_consent_to_the_processing_of_personal_data',
+        'download_membership_statement_file',
+        'download_parent_consent_to_the_processing_of_personal_data'
+    )
+)
+def test_get_me_statement(authenticated_client, central_headquarter, url):
+    response = authenticated_client.get(f'/api/v1/rsousers/me/statement/{url}/')
+    assert response.status_code == 200, 'Response status code is not 200'
+
 
 
 @pytest.mark.django_db
@@ -314,3 +367,76 @@ def test_get_me_positions_anonymous(client, central_headquarter):
 def test_logout_user(authenticated_client):
     response = authenticated_client.post('/api/v1/token/logout/')
     assert response.status_code == 204, 'Response status code is not 204'
+
+
+@pytest.mark.django_db
+def test_rsouser_filters(
+        authenticated_client, district_headquarter,
+        regional_headquarter, local_headquarter, educational_headquarter,
+        detachment, user
+):
+    response = authenticated_client.get(
+        f'/api/v1/rsousers?search={user.username}'
+    )
+    assert response.status_code == 200, (
+        'Response status code is not 200'
+    )
+    assert response.data[0]['username'] == user.username
+    headquarters = [
+        district_headquarter, regional_headquarter, local_headquarter,
+        educational_headquarter, detachment
+    ]
+    for headquarter in headquarters:
+        response = authenticated_client.get(
+            f'/api/v1/rsousers?{headquarter}__name={headquarter.name}'
+        )
+        assert response.status_code == 200, (
+            'Response status code is not 200'
+        )
+    response = authenticated_client.get(
+        f'/api/v1/rsousers?gender=male'
+    )
+    assert response.status_code == 200, (
+        'Response status code is not 200'
+    )
+    response = authenticated_client.get(
+        f'/api/v1/rsousers?is_verified=False'
+    )
+    assert response.status_code == 200, (
+        'Response status code is not 200'
+    )
+    response = authenticated_client.get(
+        f'/api/v1/rsousers?membership_fee=False'
+    )
+    assert response.status_code == 200, (
+        'Response status code is not 200'
+    )
+    response = authenticated_client.get(
+        f'/api/v1/rsousers?date_of_birth=2020-01-01'
+    )
+    assert response.status_code == 200, (
+        'Response status code is not 200'
+    )
+    response = authenticated_client.get(
+        f'/api/v1/rsousers?region=1'
+    )
+    assert response.status_code == 200, (
+        'Response status code is not 200'
+    )
+    response = authenticated_client.get(
+        '/api/v1/rsousers?'
+        f'search={user.username}&'
+        f'district_headquarter__name={district_headquarter.name}&'
+        f'regional_headquarter__name={regional_headquarter.name}&'
+        f'local_headquarter__name={local_headquarter.name}&'
+        f'educational_headquarter__name={educational_headquarter.name}&'
+        f'detachment__name={detachment.name}&'
+        'gender=male&'
+        'is_verified=False&'
+        'membership_fee=False&'
+        'date_of_birth=2020-01-01&'
+        'region=1'
+    )
+    assert response.status_code == 200, (
+        'Response status code is not 200'
+    )

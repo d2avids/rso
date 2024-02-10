@@ -289,7 +289,7 @@ class UserProfessionalEducationViewSet(BaseUserViewSet):
     """
 
     queryset = UserProfessionalEducation.objects.all()
-    permission_classes = [IsStuffOrAuthor,]
+    permission_classes = [IsStuffOrAuthor, permissions.IsAuthenticated]
     ordering = ('qualification',)
 
     def get_object(self):
