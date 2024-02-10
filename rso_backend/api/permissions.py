@@ -676,6 +676,7 @@ class IsUserModelPositionCommander(permissions.BasePermission):
         for key, value in data.items():
             if value is not None:
                 prepared_data[key] = value
+        print('командир', prepared_data)
         return prepared_data
 
     def prepare_data_trusted(self, request):
@@ -686,6 +687,7 @@ class IsUserModelPositionCommander(permissions.BasePermission):
         for key, value in data.items():
             if value is not None:
                 prepared_data[key] = value
+        print('доверенный', prepared_data)
         return prepared_data
 
     def has_permission(self, request, view):
@@ -700,6 +702,7 @@ class IsUserModelPositionCommander(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         headquarter_id = obj.headquarter.id
+
         prepared_data = (
             self.prepare_data_commander(request)
             | self.prepare_data_trusted(request)
@@ -708,7 +711,7 @@ class IsUserModelPositionCommander(permissions.BasePermission):
             for model_position, commander_or_trusted in self.POSITIONS.items():
                 if prepared_key in commander_or_trusted:
                     if isinstance(obj, model_position):
-                        if headquarter_id == prepared_value:
+                        if headquarter_id == prepared_value['id']:
                             return True
         return False
 

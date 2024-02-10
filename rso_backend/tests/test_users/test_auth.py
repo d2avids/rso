@@ -1,4 +1,5 @@
 import pytest
+from http import HTTPStatus
 from tests.conftest import USER_FIRST_NAME, USER_LAST_NAME, USERNAME
 
 
@@ -148,12 +149,83 @@ def test_get_me_media_anonymous(client, central_headquarter):
 
 
 @pytest.mark.django_db
-def test_get_me_professional_education(authenticated_client,
-                                       central_headquarter):
+def test_get_me_professional_education(
+    authenticated_client, central_headquarter, educational_institution
+):
     response = authenticated_client.get(
         '/api/v1/rsousers/me/professional_education/')
-    assert response.status_code == 404, 'Response status code is not 404'
+    assert response.status_code == HTTPStatus.NOT_FOUND, (
+        'Response status code is not 404'
+    )
     assert 'detail' in response.data, 'No detail key in response data'
+
+    payload = {
+        'study_institution': educational_institution.pk,
+        'years_of_study': '2010-2015',
+        'exam_score': 'string',
+        'qualification': 'string'
+    }
+    print(payload)
+    response = authenticated_client.post(
+        '/api/v1/rsousers/me/professional_education/', payload, format="json"
+    )
+    assert response.status_code == HTTPStatus.CREATED, (
+        'Response status code is not 201'
+    )
+    response = authenticated_client.get(
+        '/api/v1/rsousers/me/professional_education/'
+    )
+    assert response.status_code == HTTPStatus.OK, (
+        'Response status code is not 200'
+    )
+    response = authenticated_client.delete(
+        '/api/v1/rsousers/me/professional_education/1/'
+    )
+    assert response.status_code == HTTPStatus.NO_CONTENT, (
+        'Response status code is not 204'
+    )
+    payload = {
+        'study_institution': educational_institution.pk,
+        'years_of_study': '5',
+        'exam_score': 'string',
+        'qualification': 'string'
+    }
+    response = authenticated_client.post(
+        '/api/v1/rsousers/me/professional_education/', payload
+    )
+    assert response.status_code == HTTPStatus.BAD_REQUEST, (
+        'Response status code is not 400'
+    )
+
+@pytest.mark.django_db
+def test_get_me_five_professional_educations(
+    authenticated_client, central_headquarter, educational_institution
+):
+    payloads = [
+            ('2010-2015', 'well done', 'professional'),
+            ('2015-2016', 'medium rare', 'newby'),
+            ('2017-2018', 'nice', 'welder'),
+            ('2019-2020', 'good', 'doctor'),
+            ('2021-2022', 'excellent', 'master'),
+            ('2022-2023', 'unbelivable', 'wizard'),
+        ]
+    for years_of_study, exam_score, qualification in payloads:
+        payload = {
+            'study_institution': educational_institution.pk,
+            'years_of_study': years_of_study,
+            'exam_score': exam_score,
+            'qualification': qualification
+        }
+        response = authenticated_client.post(
+            '/api/v1/rsousers/me/professional_education/', payload, format="json"
+        )
+    response = authenticated_client.get(
+        '/api/v1/rsousers/me/professional_education/'
+    )
+    assert len(response.data['users_prof_educations']) == 5, (
+        'Wrong length of response data, expected 5'
+    )
+
 
 
 @pytest.mark.django_db

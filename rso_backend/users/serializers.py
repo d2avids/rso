@@ -1,10 +1,11 @@
 from datetime import date
+from django.http import Http404
 
 from api.serializers import EducationalInstitutionSerializer, RegionSerializer
 from api.utils import create_first_or_exception, get_is_trusted
 from djoser.serializers import UserCreatePasswordRetypeSerializer
 from headquarters.models import (CentralHeadquarter, Detachment,
-                                 DistrictHeadquarter, EducationalHeadquarter,
+                                 DistrictHeadquarter, EducationalHeadquarter, EducationalInstitution,
                                  LocalHeadquarter, Position, Region,
                                  RegionalHeadquarter,
                                  UserCentralHeadquarterPosition,
@@ -76,7 +77,9 @@ class ProfessionalEductionSerializer(serializers.ModelSerializer):
     по эндпоинту /users/me/prof_education.
     """
 
-    study_institution = EducationalInstitutionSerializer()
+    study_institution = serializers.PrimaryKeyRelatedField(
+        queryset=EducationalInstitution.objects.all()
+    )
 
     class Meta:
         model = UserProfessionalEducation
@@ -131,9 +134,9 @@ class UserProfessionalEducationSerializer(serializers.ModelSerializer):
                 user_id=obj.first().user_id
             )
         except AttributeError:
-            raise serializers.ValidationError(
+            raise Http404(
                 'У данного юзера не введено дополнительное'
-                ' профессиональное образование.',
+                ' профессиональное образование.'
             )
         serializer = ProfessionalEductionSerializerID(users_data, many=True)
         return serializer.data
