@@ -3,20 +3,6 @@ import os
 from datetime import datetime
 
 import pdfrw
-from django.shortcuts import get_object_or_404
-from django_filters.rest_framework import DjangoFilterBackend
-from drf_yasg import openapi
-from drf_yasg.utils import swagger_auto_schema
-from pdfrw.buildxobj import pagexobj
-from pdfrw.toreportlab import makerl
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfgen import canvas
-from rest_framework import filters, permissions, status, viewsets
-from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.response import Response
-
 from api.filters import EducationalInstitutionFilter
 from api.mixins import ListRetrieveViewSet
 from api.permissions import (IsRegionalCommanderForCert,
@@ -28,13 +14,27 @@ from api.serializers import (AreaSerializer, EducationalInstitutionSerializer,
 from api.swagger_schemas import properties, properties_external
 from api.utils import (create_and_return_archive, get_user, get_user_by_id,
                        text_to_lines)
+from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from headquarters.models import (Area, EducationalInstitution, Region,
                                  RegionalHeadquarter,
                                  UserRegionalHeadquarterPosition)
-from rso_backend.settings import BASE_DIR
+from pdfrw.buildxobj import pagexobj
+from pdfrw.toreportlab import makerl
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
+from rest_framework import filters, permissions, status, viewsets
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.response import Response
 from users.models import (MemberCert, RSOUser, UserDocuments,
                           UserMemberCertLogs, UserMembershipLogs,
                           UserVerificationLogs, UserVerificationRequest)
+
+from rso_backend.settings import BASE_DIR
 
 
 class EducationalInstitutionViewSet(ListRetrieveViewSet):

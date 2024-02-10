@@ -1,17 +1,6 @@
 import os
 from datetime import date
 
-from django.conf import settings
-from django.db import transaction
-from django.db.models import Q
-from django.http.response import HttpResponse
-from django.shortcuts import get_object_or_404
-from drf_yasg import openapi
-from drf_yasg.utils import swagger_auto_schema
-from rest_framework import filters, permissions, status, viewsets
-from rest_framework.decorators import action
-from rest_framework.response import Response
-
 from api.mixins import ListRetrieveDestroyViewSet
 from api.permissions import (IsRegionalCommanderOrAdmin,
                              IsRegionalCommanderOrAdminOrAuthor)
@@ -27,8 +16,19 @@ from competitions.swagger_schemas import (request_update_application,
                                           response_competitions_participants,
                                           response_create_application,
                                           response_junior_detachments)
+from django.conf import settings
+from django.db import transaction
+from django.db.models import Q
+from django.http.response import HttpResponse
+from django.shortcuts import get_object_or_404
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from headquarters.models import Detachment, RegionalHeadquarter
 from headquarters.serializers import ShortDetachmentSerializer
+from rest_framework import filters, permissions, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
 from rso_backend.settings import BASE_DIR
 
 
