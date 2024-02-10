@@ -748,6 +748,9 @@ class IsRegionalCommanderOrAdminOrAuthor(BasePermission):
     def has_object_permission(self, request, view, obj):
         application = obj
         current_detachment = view.get_detachment(request.user)
+        if current_detachment is None:
+            if not is_regional_commander(request.user):
+                return False
         return (application.detachment == current_detachment or
                 application.junior_detachment == current_detachment or
                 is_regional_commander(request.user))

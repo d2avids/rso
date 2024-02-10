@@ -2,6 +2,7 @@ import datetime
 
 import pytest
 from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 from competitions.models import CompetitionApplications, Competitions
 
@@ -83,6 +84,27 @@ def user_4():
 
 
 @pytest.fixture
+def user_5():
+    user = RSOUser.objects.create_user(
+        first_name='Имя5',
+        last_name='Фамилия5',
+        username='username5',
+        password='ПятыйПароль'
+    )
+    return user
+
+
+@pytest.fixture
+def user_6():
+    user = RSOUser.objects.create_user(
+        first_name='Имя6',
+        last_name='Фамилия6',
+        username='username6',
+        password='ШестойПароль'
+    )
+    return user
+
+@pytest.fixture
 def authenticated_client(client, user):
     """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
     client.force_authenticate(user=user)
@@ -100,6 +122,13 @@ def authenticated_client_2(client, user_2):
 def authenticated_client_3(client, user_3):
     """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
     client.force_authenticate(user=user_3)
+    return client
+
+
+@pytest.fixture
+def authenticated_client_6(client, user_6):
+    """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
+    client.force_authenticate(user=user_6)
     return client
 
 
@@ -320,6 +349,7 @@ def detachment(
     user, educational_headquarter, local_headquarter, regional_headquarter,
     region, educational_institution, area
 ):
+    """Стандартный отряд региона 1"""
     detachment = Detachment.objects.create(
         name='Отряд',
         commander=user,
@@ -329,6 +359,7 @@ def detachment(
         region=region,
         educational_institution=educational_institution,
         area=area,
+        banner='path/to/banner.png',
         founding_date=datetime.date.fromisoformat("2022-02-28"),
     )
     return detachment
@@ -339,6 +370,7 @@ def detachment_2(
     user_2, educational_headquarter_2, local_headquarter_2,
     regional_headquarter_2, region_2, educational_institution_2, area_2
 ):
+    """Стандартный отряд региона 2"""
     detachment = Detachment.objects.create(
         name='Второй отряд',
         commander=user_2,
@@ -354,7 +386,28 @@ def detachment_2(
 
 
 @pytest.fixture
+def detachment_3(
+    user_6, educational_headquarter, local_headquarter, regional_headquarter,
+    region, educational_institution, area
+):
+    """Такой же отряд как и 1(тот же регион), но с другим командиром"""
+    detachment = Detachment.objects.create(
+        name='Третий отряд',
+        commander=user_6,
+        educational_headquarter=educational_headquarter,
+        local_headquarter=local_headquarter,
+        regional_headquarter=regional_headquarter,
+        region=region,
+        area=area,
+        educational_institution=educational_institution,
+        founding_date=datetime.date.fromisoformat("2023-01-20"),
+    )
+    return detachment
+
+
+@pytest.fixture
 def junior_detachment(user_3, regional_headquarter, region, area):
+    """Стандартный младший отряд региона 1"""
     junior_detachment = Detachment.objects.create(
         name='Младший отряд',
         commander=user_3,
@@ -369,6 +422,7 @@ def junior_detachment(user_3, regional_headquarter, region, area):
 
 @pytest.fixture
 def junior_detachment_2(user_4, regional_headquarter_2, region_2, area_2):
+    """Стандартный младший отряд региона 2"""
     junior_detachment = Detachment.objects.create(
         name='Второй младший отряд',
         commander=user_4,
@@ -377,6 +431,21 @@ def junior_detachment_2(user_4, regional_headquarter_2, region_2, area_2):
         founding_date=datetime.date.fromisoformat("2024-01-28"),
         banner='path/to/banner2.jpg',
         area=area_2
+    )
+    return junior_detachment
+
+
+@pytest.fixture
+def junior_detachment_3(user_5, regional_headquarter, region, area):
+    """Такой же младший отряд как и 1(тот же регион), но с другим командиром"""
+    junior_detachment = Detachment.objects.create(
+        name='Третий младший отряд',
+        commander=user_5,
+        regional_headquarter=regional_headquarter,
+        region=region,
+        founding_date=datetime.date.fromisoformat("2024-01-30"),
+        banner='path/to/banner3.jpg',
+        area=area
     )
     return junior_detachment
 
@@ -396,7 +465,9 @@ def competition_2():
 
 
 @pytest.fixture
-def application_competition(user, detachment, competition, junior_detachment):
+def application_competition_tandem(
+    detachment, competition, junior_detachment
+):
     """Заявка на участие в конкурсе."""
     application = CompetitionApplications.objects.create(
         competition=competition,
@@ -406,11 +477,22 @@ def application_competition(user, detachment, competition, junior_detachment):
     return application
 
 @pytest.fixture
-def application_competition_2(user_2, detachment_2, competition_2, junior_detachment_2):
-    """Вторая заявка на участие в конкурсе."""
+def application_competition_start(competition, junior_detachment):
+    """Старт заявка на участие в конкурсе."""
     application = CompetitionApplications.objects.create(
-        competition=competition_2,
-        detachment=detachment_2,
-        junior_detachment=junior_detachment_2
+        competition=competition,
+        junior_detachment=junior_detachment
+    )
+    return application
+
+
+@pytest.fixture
+def application_competition_start_2(
+    competition, junior_detachment_3
+):
+    """Вторая старт заявка на участие в конкурсе."""
+    application = CompetitionApplications.objects.create(
+        competition=competition,
+        junior_detachment=junior_detachment_3
     )
     return application
