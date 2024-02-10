@@ -195,6 +195,22 @@ class RSOUserViewSet(RetrieveViewSet):
             serializer = UserHeadquarterPositionSerializer(user)
             return Response(serializer.data)
 
+    @action(
+        detail=True,
+        methods=['get'],
+        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor,),
+        serializer_class=UserCommanderSerializer
+    )
+    def commander(self, request, pk=None):
+        """
+        Представляет айди структурных единиц, в которых пользователь
+        является командиром.
+        """
+        if request.method == 'GET':
+            user = get_object_or_404(RSOUser, id=pk)
+            serializer = UserCommanderSerializer(user)
+            return Response(serializer.data)
+
 
 class BaseUserViewSet(viewsets.ModelViewSet):
     """
