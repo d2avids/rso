@@ -11,12 +11,14 @@ class RegionalHeadquarterFilter(filters.FilterSet):
         label='Название окружного штаба'
     )
     region = filters.CharFilter(
-        field_name='region__name', lookup_expr='iexact'
+        field_name='region__name',
+        lookup_expr='iexact',
+        label='Название региона'
     )
 
     class Meta:
         model = RegionalHeadquarter
-        fields = ('district_headquarter__name',)
+        fields = ('district_headquarter__name', 'region')
 
 
 class LocalHeadquarterFilter(filters.FilterSet):
