@@ -1,3 +1,8 @@
+from django.shortcuts import get_object_or_404
+from rest_framework import permissions, status
+from rest_framework.permissions import BasePermission
+from rest_framework.response import Response
+
 from api.utils import (check_commander_or_not, check_roles_for_edit,
                        check_trusted_for_centralhead,
                        check_trusted_for_detachments,
@@ -7,7 +12,6 @@ from api.utils import (check_commander_or_not, check_roles_for_edit,
                        check_trusted_in_headquarters, check_trusted_user,
                        is_regional_commander, is_safe_method,
                        is_stuff_or_central_commander)
-from django.shortcuts import get_object_or_404
 from events.models import Event, EventOrganizationData
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
@@ -18,9 +22,6 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
-from rest_framework import permissions, status
-from rest_framework.permissions import BasePermission
-from rest_framework.response import Response
 from users.models import RSOUser
 from users.serializers import UserCommanderSerializer, UserTrustedSerializer
 

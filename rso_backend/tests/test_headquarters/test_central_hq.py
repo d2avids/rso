@@ -2,6 +2,7 @@ import datetime
 
 import pytest
 from django.conf import settings
+
 from tests.conftest import (CENTRAL_HEADQUARTER_NAME,
                             DETACHMENTS_APPEARANCE_YEAR,
                             RSO_FOUNDING_CONGRESS_DATE)

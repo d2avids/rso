@@ -1,5 +1,6 @@
 from dal import autocomplete
 from django import forms
+
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, RegionalHeadquarter,
@@ -162,6 +163,19 @@ class EducationalPositionForm(BasePositionForm):
 
 
 class DetachmentPositionForm(BasePositionForm):
+    class Meta:
+        model = UserDetachmentPosition
+        fields = '__all__'
+        widgets = {
+            'user': autocomplete.ModelSelect2(url='user-autocomplete'),
+            'position': autocomplete.ModelSelect2(url='position-autocomplete'),
+            'headquarter': autocomplete.ModelSelect2(
+                url='detachment-autocomplete'
+            )
+        }
+
+
+class DetachmentPositionAddForm(forms.ModelForm):
     class Meta:
         model = UserDetachmentPosition
         fields = '__all__'

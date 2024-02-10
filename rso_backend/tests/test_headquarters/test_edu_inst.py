@@ -1,4 +1,5 @@
 import pytest
+
 from tests.conftest import (EDUCATIONAL_INSTITUTION_NAME,
                             EDUCATIONAL_INSTITUTION_SHORT_NAME, REGION_MOJAISK)
 

@@ -4,9 +4,11 @@ import pytest
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
-from competitions.models import CompetitionApplications, Competitions
 
-from headquarters.models import (Area, CentralHeadquarter, Detachment, DistrictHeadquarter, EducationalHeadquarter, EducationalInstitution, LocalHeadquarter,
+from competitions.models import CompetitionApplications, Competitions
+from headquarters.models import (Area, CentralHeadquarter, Detachment,
+                                 DistrictHeadquarter, EducationalHeadquarter,
+                                 EducationalInstitution, LocalHeadquarter,
                                  Region, RegionalHeadquarter)
 from users.models import RSOUser
 

@@ -1,12 +1,14 @@
 import datetime as dt
 
-from api.serializers import (AreaSerializer, EducationalInstitutionSerializer,
-                             RegionSerializer)
-from competitions.models import CompetitionParticipants
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.db.models.query import QuerySet
+from rest_framework import serializers
+
+from api.serializers import (AreaSerializer, EducationalInstitutionSerializer,
+                             RegionSerializer)
+from competitions.models import CompetitionParticipants
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -18,7 +20,6 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
-from rest_framework import serializers
 from users.models import RSOUser
 from users.short_serializers import ShortUserSerializer
 

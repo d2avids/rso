@@ -1,11 +1,12 @@
 from datetime import date
 
+from django.conf import settings
+from rest_framework import serializers
+
 from competitions.models import (CompetitionApplications,
                                  CompetitionParticipants, Competitions)
-from django.conf import settings
 from headquarters.models import Detachment
 from headquarters.serializers import BaseShortUnitSerializer
-from rest_framework import serializers
 
 
 class ShortDetachmentCompetitionSerializer(BaseShortUnitSerializer):
