@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 import pytest
 
 
@@ -189,3 +191,110 @@ def test_edit_parent_data(authenticated_client,
         '/api/v1/rsousers/me/parent/'
     )
     assert response.data == payload
+
+
+@pytest.mark.django_db(transaction=True)
+def test_edit_me_professional_education(
+    authenticated_client_8, authenticated_client_7, educational_institution,
+    educational_institution_2
+):
+    """CRUD-тест для до проф образований + проверка удаления чужой записи"""
+
+    payload = {
+        'study_institution': educational_institution.pk,
+        'years_of_study': '2010-2015',
+        'exam_score': 'string',
+        'qualification': 'string'
+    }
+    response = authenticated_client_8.post(
+        '/api/v1/rsousers/me/professional_education/', payload, format="json"
+    )
+    assert response.status_code == HTTPStatus.CREATED, (
+        'Response status code is not 201'
+    )
+    response = authenticated_client_8.get(
+        '/api/v1/rsousers/me/professional_education/'
+    )
+    assert response.status_code == HTTPStatus.OK, (
+        'Response status code is not 200'
+    )
+    payload = {
+        'exam_score': 'very well',
+        'study_institution': educational_institution_2.pk
+    }
+    response = authenticated_client_7.patch(
+        '/api/v1/rsousers/me/professional_education/1/', payload
+    )
+    assert response.status_code == HTTPStatus.FORBIDDEN, (
+        'Response status code is not 403'
+    )
+    response = authenticated_client_8.patch(
+        '/api/v1/rsousers/me/professional_education/1/', payload
+    )
+    assert response.status_code == HTTPStatus.OK, (
+        'Response status code is not 200'
+    )
+    response_2 = authenticated_client_7.delete(
+        '/api/v1/rsousers/me/professional_education/1/'
+    )
+    assert response_2.status_code == HTTPStatus.FORBIDDEN, (
+        'Response status code is not 403'
+    )
+    response = authenticated_client_8.delete(
+        '/api/v1/rsousers/me/professional_education/1/'
+    )
+    assert response.status_code == HTTPStatus.NO_CONTENT, (
+        'Response status code is not 204'
+    )
+
+
+@pytest.mark.django_db(transaction=True)
+def test_edit_me_profedu_wrong_data(
+            authenticated_client, authenticated_client_7, educational_institution
+):
+    """Проверка попытки записать проф образование с некорректными данными."""
+
+    payload = {
+        'study_institution': educational_institution.pk,
+        'years_of_study': '5',
+        'exam_score': 'string',
+        'qualification': 'string'
+    }
+    response = authenticated_client.post(
+        '/api/v1/rsousers/me/professional_education/', payload
+    )
+    assert response.status_code == HTTPStatus.BAD_REQUEST, (
+        'Response status code is not 400'
+    )
+
+
+@pytest.mark.django_db(transaction=True)
+def test_get_me_five_professional_educations(
+    authenticated_client, central_headquarter, educational_institution
+):
+    """Проверка попытки записать больше 5 профобразований."""
+
+    payloads = [
+            ('2010-2015', 'well done', 'professional'),
+            ('2015-2016', 'medium rare', 'newby'),
+            ('2017-2018', 'nice', 'welder'),
+            ('2019-2020', 'good', 'doctor'),
+            ('2021-2022', 'excellent', 'master'),
+            ('2022-2023', 'unbelievable', 'wizard'),
+        ]
+    for years_of_study, exam_score, qualification in payloads:
+        payload = {
+            'study_institution': educational_institution.pk,
+            'years_of_study': years_of_study,
+            'exam_score': exam_score,
+            'qualification': qualification
+        }
+        authenticated_client.post(
+            '/api/v1/rsousers/me/professional_education/', payload, format="json"
+        )
+    response = authenticated_client.get(
+        '/api/v1/rsousers/me/professional_education/'
+    )
+    assert len(response.data['users_prof_educations']) == 5, (
+        'Wrong length of response data, expected 5'
+    )
