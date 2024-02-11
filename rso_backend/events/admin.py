@@ -1,4 +1,5 @@
 from django.contrib import admin
+
 from events.forms import (EventApplicationForm, EventForm,
                           EventOrganizationDataForm, EventParticipantDataForm)
 from events.models import (Event, EventAdditionalIssue, EventApplications,

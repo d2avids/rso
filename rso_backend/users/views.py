@@ -2,10 +2,6 @@ import mimetypes
 import os
 import zipfile
 
-from api.mixins import RetrieveViewSet
-from api.permissions import IsCommanderOrTrustedAnywhere, IsStuffOrAuthor
-from api.tasks import send_reset_password_email_without_user
-from api.utils import download_file, get_user
 from dal import autocomplete
 from django.db.models import Q
 from django.http.response import HttpResponse
@@ -15,6 +11,12 @@ from djoser.views import UserViewSet
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
+
+from api.mixins import RetrieveViewSet
+from api.permissions import IsCommanderOrTrustedAnywhere, IsStuffOrAuthor
+from api.tasks import send_reset_password_email_without_user
+from api.utils import download_file, get_user
+from rso_backend.settings import BASE_DIR
 from users.filters import RSOUserFilter
 from users.models import (RSOUser, UserDocuments, UserEducation,
                           UserForeignDocuments, UserMedia, UserParent,
@@ -33,8 +35,6 @@ from users.serializers import (EmailSerializer, ForeignUserDocumentsSerializer,
                                UserRegionSerializer, UsersParentSerializer,
                                UserStatementDocumentsSerializer,
                                UserTrustedSerializer)
-
-from rso_backend.settings import BASE_DIR
 
 
 class CustomUserViewSet(UserViewSet):
@@ -195,6 +195,22 @@ class RSOUserViewSet(RetrieveViewSet):
             serializer = UserHeadquarterPositionSerializer(user)
             return Response(serializer.data)
 
+    @action(
+        detail=True,
+        methods=['get'],
+        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor,),
+        serializer_class=UserCommanderSerializer
+    )
+    def commander(self, request, pk=None):
+        """
+        Представляет айди структурных единиц, в которых пользователь
+        является командиром.
+        """
+        if request.method == 'GET':
+            user = get_object_or_404(RSOUser, id=pk)
+            serializer = UserCommanderSerializer(user)
+            return Response(serializer.data)
+
 
 class BaseUserViewSet(viewsets.ModelViewSet):
     """
@@ -289,7 +305,7 @@ class UserProfessionalEducationViewSet(BaseUserViewSet):
     """
 
     queryset = UserProfessionalEducation.objects.all()
-    permission_classes = [IsStuffOrAuthor,]
+    permission_classes = [IsStuffOrAuthor, permissions.IsAuthenticated]
     ordering = ('qualification',)
 
     def get_object(self):

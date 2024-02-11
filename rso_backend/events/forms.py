@@ -1,5 +1,6 @@
 from dal import autocomplete
 from django import forms
+
 from events.models import (Event, EventApplications, EventOrganizationData,
                            EventParticipants)
 

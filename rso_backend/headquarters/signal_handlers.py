@@ -2,6 +2,7 @@ import os
 
 from django.db.models.signals import pre_delete, pre_save
 from django.dispatch import receiver
+
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, RegionalHeadquarter)

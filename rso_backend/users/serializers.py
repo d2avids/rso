@@ -1,12 +1,15 @@
 from datetime import date
 
+from django.http import Http404
+from djoser.serializers import UserCreatePasswordRetypeSerializer
+from rest_framework import serializers
+
 from api.serializers import EducationalInstitutionSerializer, RegionSerializer
 from api.utils import create_first_or_exception, get_is_trusted
-from djoser.serializers import UserCreatePasswordRetypeSerializer
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
-                                 LocalHeadquarter, Position, Region,
-                                 RegionalHeadquarter,
+                                 EducationalInstitution, LocalHeadquarter,
+                                 Position, Region, RegionalHeadquarter,
                                  UserCentralHeadquarterPosition,
                                  UserDetachmentPosition,
                                  UserDistrictHeadquarterPosition,
@@ -18,7 +21,6 @@ from headquarters.serializers import (ShortDetachmentSerializer,
                                       ShortEducationalHeadquarterSerializer,
                                       ShortLocalHeadquarterSerializer,
                                       ShortRegionalHeadquarterSerializer)
-from rest_framework import serializers
 from users.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                              MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
                              REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS,
@@ -76,7 +78,9 @@ class ProfessionalEductionSerializer(serializers.ModelSerializer):
     по эндпоинту /users/me/prof_education.
     """
 
-    study_institution = EducationalInstitutionSerializer()
+    study_institution = serializers.PrimaryKeyRelatedField(
+        queryset=EducationalInstitution.objects.all()
+    )
 
     class Meta:
         model = UserProfessionalEducation
@@ -131,9 +135,9 @@ class UserProfessionalEducationSerializer(serializers.ModelSerializer):
                 user_id=obj.first().user_id
             )
         except AttributeError:
-            raise serializers.ValidationError(
+            raise Http404(
                 'У данного юзера не введено дополнительное'
-                ' профессиональное образование.',
+                ' профессиональное образование.'
             )
         serializer = ProfessionalEductionSerializerID(users_data, many=True)
         return serializer.data

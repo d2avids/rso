@@ -4,9 +4,11 @@ import pytest
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
-from competitions.models import CompetitionApplications, Competitions
 
-from headquarters.models import (Area, CentralHeadquarter, Detachment, DistrictHeadquarter, EducationalHeadquarter, EducationalInstitution, LocalHeadquarter,
+from competitions.models import CompetitionApplications, Competitions
+from headquarters.models import (Area, CentralHeadquarter, Detachment,
+                                 DistrictHeadquarter, EducationalHeadquarter,
+                                 EducationalInstitution, LocalHeadquarter,
                                  Region, RegionalHeadquarter)
 from users.models import RSOUser
 
@@ -14,6 +16,11 @@ USER_FIRST_NAME = 'Дмитрий'
 USER_LAST_NAME = 'Воронежский'
 USERNAME = 'dimka'
 USER_PASSWORD = 'Ddmi36VRN'
+
+SECOND_USER_FIRST_NAME = 'Имя2'
+SECOND_USER_LAST_NAME = 'Фамилия2'
+SECOND_USERNAME = 'Никнейм2'
+SECOND_USER_PASSWORD = 'UScz1335erP3251AssW'
 
 REGION_MOSCOW = 'Москва'
 REGION_MOJAISK = 'Можайск'
@@ -108,16 +115,29 @@ def user_6():
 @pytest.fixture
 def authenticated_client(client, user):
     """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
-    client.force_authenticate(user=user)
+    login_payload = {
+        'username': user.username,
+        'password': USER_PASSWORD,
+    }
+    response = client.post('/api/v1/token/login/', login_payload)
+    assert response.status_code == 200
+    token = response.data['auth_token']
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
     return client
 
 
 @pytest.fixture
 def authenticated_client_2(client, user_2):
     """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
-    client.force_authenticate(user=user_2)
+    login_payload = {
+        'username': SECOND_USERNAME,
+        'password': SECOND_USER_PASSWORD,
+    }
+    response = client.post('/api/v1/token/login/', login_payload)
+    assert response.status_code == 200
+    token = response.data['auth_token']
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
     return client
-
 
 @pytest.fixture
 def authenticated_client_3(client, user_3):

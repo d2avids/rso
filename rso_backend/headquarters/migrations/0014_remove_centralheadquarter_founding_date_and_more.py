@@ -3,8 +3,9 @@
 import datetime
 
 import django.core.validators
-import headquarters.utils
 from django.db import migrations, models
+
+import headquarters.utils
 
 
 class Migration(migrations.Migration):
