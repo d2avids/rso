@@ -709,7 +709,7 @@ class IsUserModelPositionCommander(permissions.BasePermission):
             for model_position, commander_or_trusted in self.POSITIONS.items():
                 if prepared_key in commander_or_trusted:
                     if isinstance(obj, model_position):
-                        if headquarter_id == prepared_value:
+                        if headquarter_id == prepared_value['id']:
                             return True
         return False
 

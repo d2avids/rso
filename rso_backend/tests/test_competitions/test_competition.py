@@ -2,6 +2,7 @@ import datetime
 from http import HTTPStatus
 
 import pytest
+from competitions.models import CompetitionApplications, CompetitionParticipants
 from headquarters.models import CentralHeadquarter, DistrictHeadquarter, RegionalHeadquarter
 
 from rso_backend import settings
@@ -839,4 +840,29 @@ class TestCompetitionApplicationsViewSet:
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, (
             'Response code is not 403'
+        )
+    
+    def test_confirm_commander_reg_headquarter(
+            self, authenticated_client_commander_regional_headquarter,
+            competition, regional_headquarter_competition,
+            application_competition_tandem, detachment, junior_detachment
+    ):
+        """Проверка, что региональный командир может верифицировать
+        заявку"""
+        response = authenticated_client_commander_regional_headquarter.post(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_tandem.id}/confirm/', {}
+        )
+        assert response.status_code == HTTPStatus.CREATED, (
+            'Response code is not 201'
+        )
+        assert not CompetitionApplications.objects.filter(
+            id=application_competition_tandem.id
+        ).exists(), (
+            "Подтвержденная заявка не удалилась после верификации"
+        )
+        assert CompetitionParticipants.objects.filter(
+            detachment=detachment, junior_detachment=junior_detachment
+        ).exists(), (
+            "Тандем участники не добавились после верификации"
         )
