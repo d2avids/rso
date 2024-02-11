@@ -9,6 +9,12 @@ def test_rsouser_filters(
         regional_headquarter, local_headquarter, educational_headquarter,
         detachment, user
 ):
+    """Проверка работы фильтров для эндпоинта списка юзеров.
+
+    Каждое поле проверяется по отдельности,
+    затем сразу все в одном запросе.
+    """
+
     response = authenticated_client.get(
         f'/api/v1/rsousers?search={user.username}'
     )

@@ -196,6 +196,7 @@ def authenticated_client_8(client, user_uncommander_untrusted_2):
         'username': user_uncommander_untrusted_2.username,
         'password': 'Passw0rd!!',
     }
+    client = APIClient()
     response = client.post('/api/v1/token/login/', login_payload)
     assert response.status_code == 200
     token = response.data['auth_token']

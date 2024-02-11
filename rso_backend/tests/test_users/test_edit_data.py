@@ -195,8 +195,11 @@ def test_edit_parent_data(authenticated_client,
 
 @pytest.mark.django_db(transaction=True)
 def test_edit_me_professional_education(
-    authenticated_client_8, authenticated_client_7, educational_institution
+    authenticated_client_8, authenticated_client_7, educational_institution,
+    educational_institution_2
 ):
+    """CRUD-тест для до проф образований + проверка удаления чужой записи"""
+
     payload = {
         'study_institution': educational_institution.pk,
         'years_of_study': '2010-2015',
@@ -217,11 +220,8 @@ def test_edit_me_professional_education(
     )
     payload = {
         'exam_score': 'very well',
+        'study_institution': educational_institution_2.pk
     }
-    response = authenticated_client_7.get(
-        '/api/v1/rsousers/me/professional_education/'
-    )
-    print(response.data)
     response = authenticated_client_7.patch(
         '/api/v1/rsousers/me/professional_education/1/', payload
     )
@@ -252,6 +252,8 @@ def test_edit_me_professional_education(
 def test_edit_me_profedu_wrong_data(
             authenticated_client, authenticated_client_7, educational_institution
 ):
+    """Проверка попытки записать проф образование с некорректными данными."""
+
     payload = {
         'study_institution': educational_institution.pk,
         'years_of_study': '5',
@@ -270,6 +272,8 @@ def test_edit_me_profedu_wrong_data(
 def test_get_me_five_professional_educations(
     authenticated_client, central_headquarter, educational_institution
 ):
+    """Проверка попытки записать больше 5 профобразований."""
+
     payloads = [
             ('2010-2015', 'well done', 'professional'),
             ('2015-2016', 'medium rare', 'newby'),
