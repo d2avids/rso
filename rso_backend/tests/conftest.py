@@ -60,10 +60,10 @@ def user():
 @pytest.fixture
 def user_2():
     user = RSOUser.objects.create_user(
-        first_name='Имя2',
-        last_name='Фамилия2',
-        username='username2',
-        password='ВторойПароль'
+        first_name=SECOND_USER_FIRST_NAME,
+        last_name=SECOND_USER_LAST_NAME,
+        username=SECOND_USERNAME,
+        password=SECOND_USER_PASSWORD
     )
     return user
 
@@ -111,6 +111,29 @@ def user_6():
     )
     return user
 
+
+@pytest.fixture
+def user_uncommander_untrusted():
+    user = RSOUser.objects.create_user(
+        first_name='Имя7',
+        last_name='Фамилия7',
+        username='username7',
+        password='sEvenPassw0rd!'
+    )
+    return user
+
+
+@pytest.fixture
+def user_uncommander_untrusted_2():
+    user = RSOUser.objects.create_user(
+        first_name='Имя8',
+        last_name='Фамилия8',
+        username='username8',
+        password='Passw0rd!!'
+    )
+    return user
+
+
 @pytest.fixture
 def authenticated_client(client, user):
     """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
@@ -149,6 +172,34 @@ def authenticated_client_3(client, user_3):
 def authenticated_client_6(client, user_6):
     """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
     client.force_authenticate(user=user_6)
+    return client
+
+
+@pytest.fixture
+def authenticated_client_7(client, user_uncommander_untrusted):
+    """Авторизованный клиент сущности юзера (некомандир, недоверенный)."""
+    login_payload = {
+        'username': user_uncommander_untrusted.username,
+        'password': 'sEvenPassw0rd!',
+    }
+    response = client.post('/api/v1/token/login/', login_payload)
+    assert response.status_code == 200
+    token = response.data['auth_token']
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+    return client
+
+
+@pytest.fixture
+def authenticated_client_8(client, user_uncommander_untrusted_2):
+    """Авторизованный клиент сущности юзера (некомандир, недоверенный)."""
+    login_payload = {
+        'username': user_uncommander_untrusted_2.username,
+        'password': 'Passw0rd!!',
+    }
+    response = client.post('/api/v1/token/login/', login_payload)
+    assert response.status_code == 200
+    token = response.data['auth_token']
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
     return client
 
 

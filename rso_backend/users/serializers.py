@@ -79,7 +79,7 @@ class ProfessionalEductionSerializer(serializers.ModelSerializer):
     """
 
     study_institution = serializers.PrimaryKeyRelatedField(
-        queryset=EducationalInstitution.objects.all()
+        queryset=EducationalInstitution.objects.all(),
     )
 
     class Meta:

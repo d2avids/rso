@@ -1,3 +1,4 @@
+from django.db.models import QuerySet
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status
 from rest_framework.permissions import BasePermission
@@ -343,6 +344,8 @@ class IsStuffOrAuthor(BasePermission):
     """
 
     def has_permission(self, request, view):
+        if request.method in ('PATCH', 'PUT', 'DELETE'):
+            return self.has_object_permission(request, view, view.get_object())
         return any([
             is_safe_method(request),
             is_stuff_or_central_commander(request),
@@ -350,6 +353,12 @@ class IsStuffOrAuthor(BasePermission):
         ])
 
     def has_object_permission(self, request, view, obj):
+        if isinstance(obj, QuerySet):
+            queryset = obj.filter(id=view.kwargs.get('pk'), user=request.user)
+            if queryset.count() == 0:
+                return False
+            else:
+                obj = queryset.first()
         roles_models = {
             'district_commander': UserDistrictHeadquarterPosition,
             'regional_commander': UserRegionalHeadquarterPosition,

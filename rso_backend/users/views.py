@@ -10,6 +10,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from api.mixins import RetrieveViewSet
@@ -328,11 +329,6 @@ class UserProfessionalEducationViewSet(BaseUserViewSet):
                 data={'detail': 'Нет записи с таким ID.'}
             )
         instance = self.get_queryset().get(pk=kwargs['pk'])
-        if instance.user_id != self.request.user.id:
-            return Response(
-                status=status.HTTP_403_FORBIDDEN,
-                data={'detail': 'У вас нет прав на удаление этой записи.'}
-            )
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -363,6 +359,16 @@ class UserProfessionalEducationViewSet(BaseUserViewSet):
         serializer.save()
         return Response(serializer.data)
 
+    def create(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        if queryset.filter(user=self.request.user).count() < 5:
+            return super().create(request, *args, **kwargs)
+        return Response(
+            status=status.HTTP_403_FORBIDDEN,
+            data={
+                'detail': 'Нельзя ввести больше 5 записей о доп. проф. образовании.'
+            }
+        )
 
 class UserDocumentsViewSet(BaseUserViewSet):
     """Представляет документы пользователя."""
@@ -444,7 +450,7 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         """
 
         filename = 'rso_membership_statement.rtf'
-        filepath = str(BASE_DIR) + '/templates/membership/' + filename
+        filepath = BASE_DIR.joinpath('templates', 'membership', filename)
         return download_file(filepath, filename)
 
     @action(
@@ -460,7 +466,7 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         """
 
         filename = 'consent_to_the_processing_of_personal_data.rtf'
-        filepath = str(BASE_DIR) + '/templates/membership/' + filename
+        filepath = BASE_DIR.joinpath('templates',  'membership', filename)
         return download_file(filepath, filename)
 
     @action(
@@ -479,7 +485,7 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         filename = (
             'download_parent_consent_to_the_processing_of_personal_data.rtf'
         )
-        filepath = str(BASE_DIR) + '/templates/membership/' + filename
+        filepath = BASE_DIR.joinpath('templates', 'membership', filename)
         return download_file(filepath, filename)
 
     @action(
@@ -494,17 +500,14 @@ class UserStatementDocumentsViewSet(BaseUserViewSet):
         Архив доступен по эндпоинту /users/me/statement/download_all_forms/
         """
 
-        filepath = str(BASE_DIR) + '\\templates\\membership\\'
-        zip_filename = os.path.join(
-            str(BASE_DIR) + '\\templates\\',
-            'entry_forms.zip'
-        )
+        filepath = BASE_DIR.joinpath('templates', 'membership')
+        zip_filename = BASE_DIR.joinpath('templates', 'entry_forms.zip')
         file_dir = os.listdir(filepath)
         with zipfile.ZipFile(zip_filename, 'w') as zipf:
             for file in file_dir:
                 zipf.write(os.path.join(filepath, file), file)
         zipf.close()
-        filepath = str(BASE_DIR) + '\\templates\\' + 'entry_forms.zip'
+        filepath = BASE_DIR.joinpath('templates', 'entry_forms.zip')
         path = open(filepath, 'rb')
         mime_type, _ = mimetypes.guess_type(filepath)
         response = HttpResponse(path, content_type=mime_type)
