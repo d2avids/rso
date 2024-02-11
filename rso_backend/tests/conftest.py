@@ -3,6 +3,8 @@ import datetime
 import pytest
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
+from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
 from competitions.models import CompetitionApplications, Competitions
@@ -38,6 +40,13 @@ EDUCATIONAL_INSTITUTION_NAME = 'Образовательная организа�
 EDUCATIONAL_INSTITUTION_SHORT_NAME = 'Образов. организация'
 SECOND_EDUCATIONAL_INSTITUTION_NAME = 'Другая образовательная организация'
 SECOND_EDUCATIONAL_INSTITUTION_SHORT_NAME = 'Др'
+
+
+pytest_plugins = [
+    'tests.fixtures.fixture_competition',
+    'tests.fixtures.fixture_user',
+    'tests.fixtures.fixture_headquarter',
+]
 
 
 @pytest.fixture
@@ -134,17 +143,36 @@ def user_uncommander_untrusted_2():
     return user
 
 
+
+@pytest.fixture
+def user_commander():
+    """Командир всех структурных единиц выше отряда региона 1."""
+    user = RSOUser.objects.create_user(
+        first_name='Командир',
+        last_name='Всего',
+        username='командир',
+        password='ПарольКомандира'
+    )
+    return user
+
+
+@pytest.fixture
+def user_commander_2():
+    """Командир всех структурных единиц выше отряда региона 2."""
+    user = RSOUser.objects.create_user(
+        first_name='Командир2',
+        last_name='Всего2',
+        username='командир2',
+        password='ПарольКомандира2'
+    )
+    return user
+
+
 @pytest.fixture
 def authenticated_client(client, user):
     """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
-    login_payload = {
-        'username': user.username,
-        'password': USER_PASSWORD,
-    }
-    response = client.post('/api/v1/token/login/', login_payload)
-    assert response.status_code == 200
-    token = response.data['auth_token']
-    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+    token, _ = Token.objects.get_or_create(user=user)
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
     return client
 
 
@@ -161,17 +189,35 @@ def authenticated_client_2(client, user_2):
     client.credentials(HTTP_AUTHORIZATION='Token ' + token)
     return client
 
+
 @pytest.fixture
 def authenticated_client_3(client, user_3):
     """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
-    client.force_authenticate(user=user_3)
+    token, _ = Token.objects.get_or_create(user=user_3)
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
     return client
 
 
 @pytest.fixture
 def authenticated_client_6(client, user_6):
     """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
-    client.force_authenticate(user=user_6)
+    token, _ = Token.objects.get_or_create(user=user_6)
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+    return client
+
+
+@pytest.fixture
+def free_authenticated_client():
+    """Авторизованный клиент, который нигде не командир."""
+    user = RSOUser.objects.create_user(
+        first_name='Свободный',
+        last_name='Юзер',
+        username='free',
+        password='ПарольСвободный'
+    )
+    client = APIClient()
+    token, _ = Token.objects.get_or_create(user=user)
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
     return client
 
 
@@ -213,7 +259,8 @@ def admin_client():
     user.save()
 
     client = APIClient()
-    client.force_authenticate(user=user)
+    token, _ = Token.objects.get_or_create(user=user)
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
     return client
 
 
@@ -282,6 +329,7 @@ def area_2():
     area = Area.objects.create(name='Направление 2')
     return area
 
+
 @pytest.fixture
 def central_headquarter():
     commander = RSOUser.objects.create_user(
@@ -302,10 +350,10 @@ def central_headquarter():
 
 
 @pytest.fixture
-def central_headquarter_2(user_2):
+def central_headquarter_2(user_commander_2):
     central_headquarter = CentralHeadquarter.objects.create(
         name='Второй центральный штаб',
-        commander=user_2,
+        commander=user_commander_2,
         detachments_appearance_year=2018,
         rso_founding_congress_date=datetime.date.fromisoformat(
             "2022-12-31"
@@ -315,10 +363,10 @@ def central_headquarter_2(user_2):
 
 
 @pytest.fixture
-def district_headquarter(central_headquarter, user):
+def district_headquarter(central_headquarter, user_commander):
     district_headquarter = DistrictHeadquarter.objects.create(
         name='Окружный штаб',
-        commander=user,
+        commander=user_commander,
         central_headquarter=central_headquarter,
         founding_date=datetime.date.fromisoformat("2022-11-13"),
     )
@@ -326,10 +374,10 @@ def district_headquarter(central_headquarter, user):
 
 
 @pytest.fixture
-def district_headquarter_2(central_headquarter_2, user_2):
+def district_headquarter_2(central_headquarter_2, user_commander_2):
     district_headquarter = DistrictHeadquarter.objects.create(
         name='Второй окружный штаб',
-        commander=user_2,
+        commander=user_commander_2,
         central_headquarter=central_headquarter_2,
         founding_date=datetime.date.fromisoformat("2022-10-31"),
     )
@@ -337,10 +385,10 @@ def district_headquarter_2(central_headquarter_2, user_2):
 
 
 @pytest.fixture
-def regional_headquarter(district_headquarter, region, user):
+def regional_headquarter(district_headquarter, region, user_commander):
     regional_headquarter = RegionalHeadquarter.objects.create(
         name='Региональный штаб',
-        commander=user,
+        commander=user_commander,
         region=region,
         district_headquarter=district_headquarter,
         conference_date=datetime.date.fromisoformat("2022-09-30"),
@@ -350,10 +398,10 @@ def regional_headquarter(district_headquarter, region, user):
 
 
 @pytest.fixture
-def regional_headquarter_2(district_headquarter_2, region_2, user_2):
+def regional_headquarter_2(district_headquarter_2, region_2, user_commander_2):
     regional_headquarter = RegionalHeadquarter.objects.create(
         name='Второй региональный штаб',
-        commander=user_2,
+        commander=user_commander_2,
         region=region_2,
         district_headquarter=district_headquarter_2,
         conference_date=datetime.date.fromisoformat("2022-08-31"),
@@ -363,10 +411,10 @@ def regional_headquarter_2(district_headquarter_2, region_2, user_2):
 
 
 @pytest.fixture
-def local_headquarter(regional_headquarter, user):
+def local_headquarter(regional_headquarter, user_commander):
     local_headquarter = LocalHeadquarter.objects.create(
         name='Локальный штаб',
-        commander=user,
+        commander=user_commander,
         regional_headquarter=regional_headquarter,
         founding_date=datetime.date.fromisoformat("2022-07-31"),
     )
@@ -374,10 +422,10 @@ def local_headquarter(regional_headquarter, user):
 
 
 @pytest.fixture
-def local_headquarter_2(regional_headquarter_2, user_2):
+def local_headquarter_2(regional_headquarter_2, user_commander_2):
     local_headquarter = LocalHeadquarter.objects.create(
         name='Второй локальный штаб',
-        commander=user_2,
+        commander=user_commander_2,
         regional_headquarter=regional_headquarter_2,
         founding_date=datetime.date.fromisoformat("2022-06-30"),
     )
@@ -387,11 +435,11 @@ def local_headquarter_2(regional_headquarter_2, user_2):
 @pytest.fixture
 def educational_headquarter(
     local_headquarter, regional_headquarter, educational_institution,
-    user
+    user_commander
 ):
     educational_headquarter = EducationalHeadquarter.objects.create(
         name='Образовательный штаб',
-        commander=user,
+        commander=user_commander,
         local_headquarter=local_headquarter,
         regional_headquarter=regional_headquarter,
         educational_institution=educational_institution,
@@ -403,11 +451,11 @@ def educational_headquarter(
 @pytest.fixture
 def educational_headquarter_2(
     local_headquarter_2, regional_headquarter_2, educational_institution_2,
-    user_2
+    user_commander_2
 ):
     educational_headquarter = EducationalHeadquarter.objects.create(
         name='Второй образовательный штаб',
-        commander=user_2,
+        commander=user_commander_2,
         local_headquarter=local_headquarter_2,
         regional_headquarter=regional_headquarter_2,
         educational_institution=educational_institution_2,
@@ -418,15 +466,13 @@ def educational_headquarter_2(
 
 @pytest.fixture
 def detachment(
-    user, educational_headquarter, local_headquarter, regional_headquarter,
+    user, regional_headquarter,
     region, educational_institution, area
 ):
     """Стандартный отряд региона 1"""
     detachment = Detachment.objects.create(
         name='Отряд',
         commander=user,
-        educational_headquarter=educational_headquarter,
-        local_headquarter=local_headquarter,
         regional_headquarter=regional_headquarter,
         region=region,
         educational_institution=educational_institution,
@@ -439,15 +485,12 @@ def detachment(
 
 @pytest.fixture
 def detachment_2(
-    user_2, educational_headquarter_2, local_headquarter_2,
-    regional_headquarter_2, region_2, educational_institution_2, area_2
+    user_2, regional_headquarter_2, region_2, educational_institution_2, area_2
 ):
     """Стандартный отряд региона 2"""
     detachment = Detachment.objects.create(
         name='Второй отряд',
         commander=user_2,
-        educational_headquarter=educational_headquarter_2,
-        local_headquarter=local_headquarter_2,
         regional_headquarter=regional_headquarter_2,
         region=region_2,
         educational_institution=educational_institution_2,
@@ -459,15 +502,13 @@ def detachment_2(
 
 @pytest.fixture
 def detachment_3(
-    user_6, educational_headquarter, local_headquarter, regional_headquarter,
+    user_6, regional_headquarter,
     region, educational_institution, area
 ):
     """Такой же отряд как и 1(тот же регион), но с другим командиром"""
     detachment = Detachment.objects.create(
         name='Третий отряд',
         commander=user_6,
-        educational_headquarter=educational_headquarter,
-        local_headquarter=local_headquarter,
         regional_headquarter=regional_headquarter,
         region=region,
         area=area,
@@ -475,96 +516,3 @@ def detachment_3(
         founding_date=datetime.date.fromisoformat("2023-01-20"),
     )
     return detachment
-
-
-@pytest.fixture
-def junior_detachment(user_3, regional_headquarter, region, area):
-    """Стандартный младший отряд региона 1"""
-    junior_detachment = Detachment.objects.create(
-        name='Младший отряд',
-        commander=user_3,
-        regional_headquarter=regional_headquarter,
-        region=region,
-        founding_date=datetime.date.fromisoformat("2024-01-31"),
-        banner='path/to/banner.jpg',
-        area=area
-    )
-    return junior_detachment
-
-
-@pytest.fixture
-def junior_detachment_2(user_4, regional_headquarter_2, region_2, area_2):
-    """Стандартный младший отряд региона 2"""
-    junior_detachment = Detachment.objects.create(
-        name='Второй младший отряд',
-        commander=user_4,
-        regional_headquarter=regional_headquarter_2,
-        region=region_2,
-        founding_date=datetime.date.fromisoformat("2024-01-28"),
-        banner='path/to/banner2.jpg',
-        area=area_2
-    )
-    return junior_detachment
-
-
-@pytest.fixture
-def junior_detachment_3(user_5, regional_headquarter, region, area):
-    """Такой же младший отряд как и 1(тот же регион), но с другим командиром"""
-    junior_detachment = Detachment.objects.create(
-        name='Третий младший отряд',
-        commander=user_5,
-        regional_headquarter=regional_headquarter,
-        region=region,
-        founding_date=datetime.date.fromisoformat("2024-01-30"),
-        banner='path/to/banner3.jpg',
-        area=area
-    )
-    return junior_detachment
-
-
-@pytest.fixture
-def competition():
-    return Competitions.objects.create(
-        name='Конкурс',
-    )
-
-
-@pytest.fixture
-def competition_2():
-    return Competitions.objects.create(
-        name='Второй конкурс',
-    )
-
-
-@pytest.fixture
-def application_competition_tandem(
-    detachment, competition, junior_detachment
-):
-    """Заявка на участие в конкурсе."""
-    application = CompetitionApplications.objects.create(
-        competition=competition,
-        detachment=detachment,
-        junior_detachment=junior_detachment
-    )
-    return application
-
-@pytest.fixture
-def application_competition_start(competition, junior_detachment):
-    """Старт заявка на участие в конкурсе."""
-    application = CompetitionApplications.objects.create(
-        competition=competition,
-        junior_detachment=junior_detachment
-    )
-    return application
-
-
-@pytest.fixture
-def application_competition_start_2(
-    competition, junior_detachment_3
-):
-    """Вторая старт заявка на участие в конкурсе."""
-    application = CompetitionApplications.objects.create(
-        competition=competition,
-        junior_detachment=junior_detachment_3
-    )
-    return application
