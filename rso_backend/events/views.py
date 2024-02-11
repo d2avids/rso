@@ -19,7 +19,7 @@ from api.permissions import (IsApplicantOrOrganizer,
                              IsDistrictCommander, IsEducationalCommander,
                              IsEventAuthor, IsEventOrganizer, IsLocalCommander,
                              IsRegionalCommander, IsStuffOrCentralCommander,
-                             IsVerifiedPermission)
+                             IsVerifiedPermission, IsEventOrganizerOrAuthor)
 from events.filters import EventFilter
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocumentData, EventIssueAnswer,
@@ -73,6 +73,9 @@ class EventViewSet(viewsets.ModelViewSet):
         """
         Применить пермишен в зависимости от действия и масштаба мероприятия.
         """
+        permission_classes = [
+            permissions.AllowAny
+        ]
         if self.action in ['list', 'retrieve']:
             permission_classes = [permissions.AllowAny]
         if self.action == 'create':
@@ -86,7 +89,9 @@ class EventViewSet(viewsets.ModelViewSet):
         if self.action in (
                 'update', 'update_time_data', 'update_document_data'
         ):
-            permission_classes = [IsAuthorPermission, IsEventOrganizer]
+            permission_classes = [IsEventOrganizerOrAuthor]
+        print(permission_classes)
+        print('ПЕРМИШЕНЫ ВЫШЕ ------')
         return [permission() for permission in permission_classes]
 
     @swagger_auto_schema(request_body=EventSwaggerSerializer)

@@ -646,9 +646,13 @@ class UserDistrictHeadquarterPosition(UserUnitPosition):
 
     def save(self, *args, **kwargs):
         if self._state.adding:
+            default_position, _ = Position.objects.get_or_create(
+                name=settings.DEFAULT_POSITION_NAME
+            )
             central_position = UserCentralHeadquarterPosition.objects.create(
                 user_id=self.user_id,
                 headquarter=CentralHeadquarter.objects.first(),
+                position=default_position,
             )
             central_position.save_base(force_insert=True)
             kwargs['headquarter'] = self.headquarter.central_headquarter

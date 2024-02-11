@@ -2,11 +2,14 @@ import datetime
 from http import HTTPStatus
 
 import pytest
+from competitions.models import CompetitionApplications, CompetitionParticipants
+from competitions.serializers import ShortDetachmentCompetitionSerializer
+from headquarters.models import CentralHeadquarter, DistrictHeadquarter, RegionalHeadquarter
 
 from rso_backend import settings
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db(transaction=True, reset_sequences=True)
 class TestCompetitionViewSet:
     competition_url = '/api/v1/competitions/'
 
@@ -140,7 +143,7 @@ class TestCompetitionViewSet:
         assert len(response.data) == 0, 'Incorrect count of junior detachments'
 
     def test_junior_detachments_commander_with_busy_and_free_detachment(
-            self, authenticated_client_6, competition, detachment,
+            self, authenticated_client_6, competition, detachment_competition,
             junior_detachment, application_competition_tandem,
             detachment_3, junior_detachment_3
     ):
@@ -189,12 +192,12 @@ class TestCompetitionViewSet:
         assert data == [], 'Incorrect list of junior detachments'
 
     def test_applications_get_list_regional_headquarter_commander(
-            self, authenticated_client, competition,
-            application_competition_start,
-            regional_headquarter, junior_detachment
+            self, authenticated_client_commander_regional_headquarter,
+            competition, application_competition_start,
+            regional_headquarter_competition, junior_detachment
         ):
         """Проверка, что командир рег. штаба может получить список заявок"""
-        response = authenticated_client.get(
+        response = authenticated_client_commander_regional_headquarter.get(
             f'{self.competition_url}{competition.id}/applications/'
         )
         assert response.status_code == HTTPStatus.OK, (
@@ -307,7 +310,7 @@ class TestCompetitionViewSet:
         assert response.status_code == HTTPStatus.BAD_REQUEST, (
             'Response code is not 400'
         )
-    
+
     def test_create_applications_busy_detachment(
         self, authenticated_client_3, competition, junior_detachment,
         application_competition_start
@@ -321,7 +324,7 @@ class TestCompetitionViewSet:
         )
 
     def test_create_applications_busy_detachment_tandem(
-        self, authenticated_client, competition, detachment,
+        self, authenticated_client, competition, detachment_competition,
         application_competition_tandem, junior_detachment_3
     ):
         """Проверка, что занятой старший отряд не может подать
@@ -377,6 +380,12 @@ class TestCompetitionViewSet:
         assert (response.get('Content-Disposition') ==
                 'attachment; filename="Regulation_on_the_best_LSO_2024.pdf"')
 
+
+@pytest.mark.django_db(transaction=True)
+class TestCompetitionApplicationsViewSet:
+    competition_url = '/api/v1/competitions/'
+    application_url = '/applications/'
+
     def test_applications_all_auth(
         self, authenticated_client, competition, application_competition_start,
         junior_detachment
@@ -384,13 +393,12 @@ class TestCompetitionViewSet:
         """Проверка, что все заявки на конкурс можно просмотреть
         авторизованному пользователю"""
         response = authenticated_client.get(
-            f'{self.competition_url}{competition.id}/applications/all/'
+            f'{self.competition_url}{competition.id}{self.application_url}all/'
         )
         assert response.status_code == HTTPStatus.OK, (
             'Response code is not 200'
         )
         data = response.data
-        # assert type(data) == list
         assert len(data) == 1
         assert data[0]['id'] == application_competition_start.id
         assert len(data) == 1, 'Incorrect count of applications'
@@ -419,12 +427,12 @@ class TestCompetitionViewSet:
 
     def test_applications_all_not_auth(
         self, client, competition, application_competition_tandem,
-        junior_detachment, detachment
+        junior_detachment, detachment_competition
     ):
         """Проверка, что все заявки на конкурс можно просмотреть
         не авторизованному пользователю"""
         response = client.get(
-            f'{self.competition_url}{competition.id}/applications/all/'
+            f'{self.competition_url}{competition.id}{self.application_url}all/'
         )
         assert response.status_code == HTTPStatus.OK, (
             'Response code is not 200'
@@ -452,17 +460,17 @@ class TestCompetitionViewSet:
             'area': str(junior_detachment.area),
         }
         assert data[0]['detachment'] == {
-            'id': detachment.id,
-            'name': detachment.name,
-            'banner': f'http://testserver{settings.MEDIA_URL}{detachment.banner}',
-            'area': str(detachment.area),
+            'id': detachment_competition.id,
+            'name': detachment_competition.name,
+            'banner': f'http://testserver{settings.MEDIA_URL}{detachment_competition.banner}',
+            'area': str(detachment_competition.area),
         }
         assert data[0]['is_confirmed_by_junior'] is False, 'Incorrect status'
 
     def test_applications_me_with_applications(
             self, authenticated_client, competition,
             application_competition_tandem, application_competition_start_2,
-            junior_detachment, detachment
+            junior_detachment, detachment_competition
     ):
         """Проверка, что командир старшего отряда может получить заявку,
         если его отряд в заявке
@@ -470,7 +478,7 @@ class TestCompetitionViewSet:
         Есть еще не подтвержденные заявки, которые ему не отобразятся.
         """
         response = authenticated_client.get(
-            f'{self.competition_url}{competition.id}/applications/me/'
+            f'{self.competition_url}{competition.id}{self.application_url}me/'
         )
         assert response.status_code == HTTPStatus.OK, (
             'Response code is not 200'
@@ -498,10 +506,10 @@ class TestCompetitionViewSet:
             'area': str(junior_detachment.area),
         }
         assert data['detachment'] == {
-            'id': detachment.id,
-            'name': detachment.name,
-            'banner': f'http://testserver{settings.MEDIA_URL}{detachment.banner}',
-            'area': str(detachment.area),
+            'id': detachment_competition.id,
+            'name': detachment_competition.name,
+            'banner': f'http://testserver{settings.MEDIA_URL}{detachment_competition.banner}',
+            'area': str(detachment_competition.area),
         }
         assert data['is_confirmed_by_junior'] is False, 'Incorrect status'
 
@@ -512,7 +520,7 @@ class TestCompetitionViewSet:
         """Проверка, что если у пользователя нет заявки на конкурс,
         то ответ будет 404"""
         response = authenticated_client.get(
-            f'{self.competition_url}{competition.id}/applications/me/'
+            f'{self.competition_url}{competition.id}{self.application_url}me/'
         )
         assert response.status_code == HTTPStatus.NOT_FOUND, (
             'Response code is not 404'
@@ -525,30 +533,30 @@ class TestCompetitionViewSet:
         """Проверка, что если у пользователя-коммандира отряда нет заявки на конкурс,
         то ответ будет 404"""
         response = authenticated_client.get(
-            f'{self.competition_url}{competition.id}/applications/me/'
+            f'{self.competition_url}{competition.id}{self.application_url}me/'
         )
         assert response.status_code == HTTPStatus.NOT_FOUND, (
             'Response code is not 404'
         )
-    
+
     def test_applications_me_not_auth(self, client, competition):
         """Проверка, что нельзя получить заявки неавторизованному пользователю"""
         response = client.get(
-            f'{self.competition_url}{competition.id}/applications/me/'
+            f'{self.competition_url}{competition.id}{self.application_url}me/'
         )
         assert response.status_code == HTTPStatus.UNAUTHORIZED, (
             'Response code is not 401'
         )
 
     def test_applications_id_reg_commander(
-            self, authenticated_client, competition,
-            application_competition_start_2, regional_headquarter,
-            junior_detachment_3
+            self, authenticated_client_commander_regional_headquarter,
+            competition, application_competition_start_2,
+            regional_headquarter_competition, junior_detachment_3
     ):
         """Проверка, что командир регионального штаба может получить
         заявку по id"""
-        response = authenticated_client.get(
-            f'{self.competition_url}{competition.id}/applications/'
+        response = authenticated_client_commander_regional_headquarter.get(
+            f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_start_2.id}/'
         )
         assert response.status_code == HTTPStatus.OK, (
@@ -578,25 +586,25 @@ class TestCompetitionViewSet:
         }
         assert data['detachment'] is None, 'Incorrect status'
 
-    # def test_applications_id_auth(
-    #         self, authenticated_client, competition,
-    #         application_competition_start
-    # ):
-    #     """Проверка, что простой пользователь не может получить заявку по id"""
-    #     response = authenticated_client.get(
-    #         f'{self.competition_url}{competition.id}/applications/'
-    #         f'{application_competition_start.id}/'
-    #     )
-    #     assert response.status_code == HTTPStatus.FORBIDDEN, (
-    #         'Response code is not 403'
-    #     )
+    def test_applications_id_auth(
+            self, free_authenticated_client, competition,
+            application_competition_start
+    ):
+        """Проверка, что простой пользователь не может получить заявку по id"""
+        response = free_authenticated_client.get(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_start.id}/'
+        )
+        assert response.status_code == HTTPStatus.FORBIDDEN, (
+            'Response code is not 403'
+        )
 
     def test_applications_id_not_auth(
             self, client, competition, application_competition_tandem
     ):
         """Проверка, что нельзя получить заявку неавторизованному пользователю"""
         response = client.get(
-            f'{self.competition_url}{competition.id}/applications/'
+            f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem.id}/'
         )
         assert response.status_code == HTTPStatus.UNAUTHORIZED, (
@@ -610,7 +618,7 @@ class TestCompetitionViewSet:
         """Проверка, что командир младшего отряда может изменить поле
         is_confirmed_by_junior"""
         response = authenticated_client_3.put(
-            f'{self.competition_url}{competition.id}/applications/'
+            f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_start.id}/',
             {'is_confirmed_by_junior': True}
         )
@@ -623,12 +631,12 @@ class TestCompetitionViewSet:
 
     def test_applications_id_put_detachment(
             self, authenticated_client, competition, junior_detachment,
-            application_competition_tandem, detachment
+            application_competition_tandem, detachment_competition
     ):
         """Проверка, что командир старшего отряда не может изменить поле
         is_confirmed_by_junior"""
         response = authenticated_client.put(
-            f'{self.competition_url}{competition.id}/applications/'
+            f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem.id}/',
             {'is_confirmed_by_junior': True}
         )
@@ -643,7 +651,7 @@ class TestCompetitionViewSet:
         """Проверка, что простой пользователь не может изменить поле
         is_confirmed_by_junior"""
         response = authenticated_client.put(
-            f'{self.competition_url}{competition.id}/applications/'
+            f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem.id}/',
             {'is_confirmed_by_junior': True}
         )
@@ -658,10 +666,595 @@ class TestCompetitionViewSet:
         """Проверка, что не авторизованный пользователь не может изменить поле
         is_confirmed_by_junior"""
         response = client.put(
-            f'{self.competition_url}{competition.id}/applications/'
+            f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem.id}/',
             {'is_confirmed_by_junior': True}
         )
         assert response.status_code == HTTPStatus.UNAUTHORIZED, (
             'Response code is not 401'
+        )
+
+    def test_applications_id_patch_junior_detachment(
+            self, authenticated_client_3, competition, junior_detachment,
+            application_competition_start
+    ):
+        """Проверка, что командир младшего отряда может изменить поле
+        is_confirmed_by_junior"""
+        response = authenticated_client_3.patch(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_start.id}/',
+            {'is_confirmed_by_junior': True}
+        )
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200'
+        )
+        assert response.data['is_confirmed_by_junior'] is True, (
+            'Incorrect is_confirmed_by_junior'
+        )
+
+    def test_applications_id_patch_detachment(
+            self, authenticated_client, competition, junior_detachment,
+            application_competition_tandem, detachment_competition, user
+    ):
+        """Проверка, что командир старшего отряда не может изменить поле
+        is_confirmed_by_junior"""
+        response = authenticated_client.patch(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_tandem.id}/',
+            {'is_confirmed_by_junior': True}
+        )
+        assert response.status_code == HTTPStatus.FORBIDDEN, (
+            'Response code is not 403'
+        )
+
+    def test_applications_id_patch_auth(
+            self, authenticated_client, competition,
+            application_competition_tandem
+    ):
+        """Проверка, что простой пользователь не может изменить поле
+        is_confirmed_by_junior"""
+        response = authenticated_client.patch(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_tandem.id}/',
+            {'is_confirmed_by_junior': True}
+        )
+        assert response.status_code == HTTPStatus.FORBIDDEN, (
+            'Response code is not 403'
+        )
+
+    def test_applications_id_patch_not_auth(
+            self, client, competition,
+            application_competition_tandem
+    ):
+        """Проверка, что не авторизованный пользователь не может изменить поле
+        is_confirmed_by_junior"""
+        response = client.patch(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_tandem.id}/',
+            {'is_confirmed_by_junior': True}
+        )
+        assert response.status_code == HTTPStatus.UNAUTHORIZED, (
+            'Response code is not 401'
+        )
+
+    def test_applications_id_delete_not_auth(
+            self, client, competition, application_competition_tandem
+    ):
+        """Проверка, что не авторизованный пользователь не может удалить заявку"""
+        response = client.delete(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_tandem.id}/'
+        )
+        assert response.status_code == HTTPStatus.UNAUTHORIZED, (
+            'Response code is not 401'
+        )
+
+    def test_applications_id_delete_auth(
+            self, free_authenticated_client, competition,
+            application_competition_start
+    ):
+        """Проверка, что простой пользователь не может удалить заявку"""
+        response = free_authenticated_client.delete(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_start.id}/'
+        )
+        assert response.status_code == HTTPStatus.FORBIDDEN, (
+            'Response code is not 403'
+        )
+
+    def test_applications_id_delete_commander(
+            self, authenticated_client, competition,
+            application_competition_tandem
+    ):
+        """Проверка, что командир отряда из заявки может ее удалить"""
+        response = authenticated_client.delete(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_tandem.id}/'
+        )
+        assert response.status_code == HTTPStatus.NO_CONTENT, (
+            'Response code is not 204'
+        )
+
+    def test_applications_id_delete_junior_detachment_commander(
+            self, authenticated_client_3, competition, junior_detachment,
+            application_competition_tandem
+    ):
+        """Проверка, что командир младшего отряда может удалить заявку"""
+        response = authenticated_client_3.delete(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_tandem.id}/'
+        )
+        assert response.status_code == HTTPStatus.NO_CONTENT, (
+            'Response code is not 204'
+        )
+
+    def test_applications_id_delete_regional_commander(
+            self, authenticated_client_commander_regional_headquarter,
+            competition, regional_headquarter_competition,
+            application_competition_start
+    ):
+        """Проверка, что региональный командир может удалить заявку"""
+        response = authenticated_client_commander_regional_headquarter.delete(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_start.id}/'
+        )
+        assert response.status_code == HTTPStatus.NO_CONTENT, (
+            'Response code is not 204'
+        )
+
+    def test_confirm_not_auth(
+            self, client, competition, application_competition_tandem
+    ):
+        """Проверка, что не авторизованный пользователь не может верифицировать
+        заявку"""
+        response = client.post(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_tandem.id}/confirm/'
+        )
+        assert response.status_code == HTTPStatus.UNAUTHORIZED, (
+            'Response code is not 401'
+        )
+
+    def test_confirm_auth(
+            self, free_authenticated_client, competition,
+            application_competition_start
+    ):
+        """Проверка, что простой пользователь не может верифицировать
+        заявку"""
+        response = free_authenticated_client.post(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_start.id}/confirm/'
+        )
+        assert response.status_code == HTTPStatus.FORBIDDEN, (
+            'Response code is not 403'
+        )
+
+    def test_confirm_commander_in_application(
+            self, authenticated_client, competition,
+            application_competition_tandem
+    ):
+        """Проверка, что командир отряда из заявки не может верифицировать
+        заявку"""
+        response = authenticated_client.post(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_tandem.id}/confirm/'
+        )
+        assert response.status_code == HTTPStatus.FORBIDDEN, (
+            'Response code is not 403'
+        )
+
+    def test_confirm_commander_reg_headquarter_without_junior_detach_confirm(
+        self, authenticated_client_commander_regional_headquarter,
+        competition, regional_headquarter_competition,
+        application_competition_tandem
+    ):
+        """Проверка, что заявку, которая не подтверждена младшим отрядом,
+        командир регионального отряда не может верифицировать"""
+        response = authenticated_client_commander_regional_headquarter.post(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_tandem.id}/confirm/', {}
+        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST, (
+            'Response code is not 400'
+        )
+
+    def test_confirm_commander_reg_headquarter(
+            self, authenticated_client_commander_regional_headquarter,
+            competition, regional_headquarter_competition,
+            application_competition_tandem_confirm_junior,
+            detachment_competition, junior_detachment
+    ):
+        """Проверка, что региональный командир может верифицировать
+        заявку"""
+        response = authenticated_client_commander_regional_headquarter.post(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_tandem_confirm_junior.id}/confirm/',
+        )
+        assert response.status_code == HTTPStatus.CREATED, (
+            'Response code is not 201'
+        )
+        assert not CompetitionApplications.objects.filter(
+            id=application_competition_tandem_confirm_junior.id
+        ).exists(), (
+            "Подтвержденная заявка не удалилась после верификации"
+        )
+        assert CompetitionParticipants.objects.filter(
+            detachment=detachment_competition,
+            junior_detachment=junior_detachment
+        ).exists(), (
+            "Тандем участники не добавились после верификации"
+        )
+
+
+@pytest.mark.django_db(transaction=True)
+class TestCompetitionParticipantsViewSet:
+    competition_url = '/api/v1/competitions/'
+    participants_url = '/participants/'
+
+    def test_list_participants_not_auth(
+            self, client, competition, participants_competition_start,
+            participants_competition_tandem, detachment_competition,
+            junior_detachment, junior_detachment_3
+    ):
+        """Проверка, что неавторизованный пользователь может получить
+        участников конкурса"""
+        response = client.get(f'{self.competition_url}{competition.id}'
+                              f'{self.participants_url}')
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200'
+        )
+        data = response.data
+        assert len(data) == 2, (
+            'Количество участников не соответствует ожидаемому'
+        )
+        start = data[0]
+        tandem = data[1]
+        assert 'id' in start, (
+            'Отсутствует поле "id" участника конкурса - старт'
+        )
+        assert 'id' in tandem, (
+            'Отсутствует поле "id" участника конкурса - тандем'
+        )
+        assert 'competition' in start, (
+            'Отсутствует поле "competition" участника конкурса - старт'
+        )
+        assert 'competition' in tandem, (
+            'Отсутствует поле "competition" участника конкурса - тандем'
+        )
+        assert 'detachment' in start, (
+            'Отсутствует поле "detachment" участника конкурса - старт'
+        )
+        assert 'detachment' in tandem, (
+            'Отсутствует поле "detachment" участника конкурса - тандем'
+        )
+        assert 'junior_detachment' in start, (
+            'Отсутствует поле "junior_detachment" участника конкурса - старт'
+        )
+        assert 'junior_detachment' in tandem, (
+            'Отсутствует поле "junior_detachment" участника конкурса - тандем'
+        )
+        assert 'detachment' in start, (
+            'Отсутствует поле "detachment" участника конкурса - старт'
+        )
+        assert 'detachment' in tandem, (
+            'Отсутствует поле "detachment" участника конкурса - тандем'
+        )
+        assert start['junior_detachment'] == {
+            'id': junior_detachment_3.id,
+            'name': junior_detachment_3.name,
+            'banner': f'http://testserver{settings.MEDIA_URL}{junior_detachment_3.banner}',
+            'area': str(junior_detachment_3.area),
+        }
+        assert tandem['junior_detachment'] == {
+            'id': junior_detachment.id,
+            'name': junior_detachment.name,
+            'banner': f'http://testserver{settings.MEDIA_URL}{junior_detachment.banner}',
+            'area': str(junior_detachment.area),
+        }
+        assert start['detachment'] is None, (
+            'Поле "detachment" участника конкурса не пустое - старт'
+        )
+        assert tandem['detachment'] == {
+            'id': detachment_competition.id,
+            'name': detachment_competition.name,
+            'banner': f'http://testserver{settings.MEDIA_URL}{detachment_competition.banner}',
+            'area': str(detachment_competition.area),
+        }
+
+    def test_list_participants_auth(
+            self, authenticated_client, competition,
+            participants_competition_start,
+            participants_competition_tandem, detachment_competition,
+            junior_detachment, junior_detachment_3
+    ):
+        """Проверка, что авторизованный пользователь может получить
+        участников конкурса"""
+        response = authenticated_client.get(
+            f'{self.competition_url}{competition.id}{self.participants_url}'
+        )
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200'
+        )
+        data = response.data
+        assert len(data) == 2, (
+            'Количество участников не соответствует ожидаемому'
+        )
+        start = data[0]
+        tandem = data[1]
+        assert 'id' in start, (
+            'Отсутствует поле "id" участника конкурса - старт'
+        )
+        assert 'id' in tandem, (
+            'Отсутствует поле "id" участника конкурса - тандем'
+        )
+        assert 'competition' in start, (
+            'Отсутствует поле "competition" участника конкурса - старт'
+        )
+        assert 'competition' in tandem, (
+            'Отсутствует поле "competition" участника конкурса - тандем'
+        )
+        assert 'detachment' in start, (
+            'Отсутствует поле "detachment" участника конкурса - старт'
+        )
+        assert 'detachment' in tandem, (
+            'Отсутствует поле "detachment" участника конкурса - тандем'
+        )
+        assert 'junior_detachment' in start, (
+            'Отсутствует поле "junior_detachment" участника конкурса - старт'
+        )
+        assert 'junior_detachment' in tandem, (
+            'Отсутствует поле "junior_detachment" участника конкурса - тандем'
+        )
+        assert 'detachment' in start, (
+            'Отсутствует поле "detachment" участника конкурса - старт'
+        )
+        assert 'detachment' in tandem, (
+            'Отсутствует поле "detachment" участника конкурса - тандем'
+        )
+        assert start['junior_detachment'] == {
+            'id': junior_detachment_3.id,
+            'name': junior_detachment_3.name,
+            'banner': f'http://testserver{settings.MEDIA_URL}{junior_detachment_3.banner}',
+            'area': str(junior_detachment_3.area),
+        }
+        assert tandem['junior_detachment'] == {
+            'id': junior_detachment.id,
+            'name': junior_detachment.name,
+            'banner': f'http://testserver{settings.MEDIA_URL}{junior_detachment.banner}',
+            'area': str(junior_detachment.area),
+        }
+        assert start['detachment'] is None, (
+            'Поле "detachment" участника конкурса не пустое - старт'
+        )
+        assert tandem['detachment'] == {
+            'id': detachment_competition.id,
+            'name': detachment_competition.name,
+            'banner': f'http://testserver{settings.MEDIA_URL}{detachment_competition.banner}',
+            'area': str(detachment_competition.area),
+        }
+
+    def test_participants_me_commander(
+            self, authenticated_client, competition,
+            participants_competition_tandem, detachment_competition,
+            junior_detachment
+    ):
+        """Проверка, что командир старшего отряда может получить
+        информацию по своей заявке"""
+        response = authenticated_client.get(
+            f'{self.competition_url}{competition.id}'
+            f'{self.participants_url}me/'
+        )
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200'
+        )
+        data = response.data
+        assert 'id' in data, (
+            'Отсутствует поле "id"'
+        )
+        assert 'competition' in data, (
+            'Отсутствует поле "competition"'
+        )
+        assert 'detachment' in data, (
+            'Отсутствует поле "detachment"'
+        )
+        assert 'junior_detachment' in data, (
+            'Отсутствует поле "junior_detachment"'
+        )
+        assert data['junior_detachment'] == {
+            'id': junior_detachment.id,
+            'name': junior_detachment.name,
+            'banner': f'{settings.MEDIA_URL}{junior_detachment.banner}',
+            'area': str(junior_detachment.area),
+        }
+        assert data['detachment'] == {
+            'id': detachment_competition.id,
+            'name': detachment_competition.name,
+            'banner': f'{settings.MEDIA_URL}{detachment_competition.banner}',
+            'area': str(detachment_competition.area),
+        }
+
+    def test_participants_me_junior_commander(
+            self, authenticated_client_3, competition,
+            participants_competition_tandem, detachment_competition,
+            junior_detachment
+    ):
+        """Проверка, что командир младшего отряда может получить
+        информацию по своей заявке"""
+        response = authenticated_client_3.get(
+            f'{self.competition_url}{competition.id}'
+            f'{self.participants_url}me/'
+        )
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200'
+        )
+        data = response.data
+        assert 'id' in data, (
+            'Отсутствует поле "id"'
+        )
+        assert 'competition' in data, (
+            'Отсутствует поле "competition"'
+        )
+        assert 'detachment' in data, (
+            'Отсутствует поле "detachment"'
+        )
+        assert 'junior_detachment' in data, (
+            'Отсутствует поле "junior_detachment"'
+        )
+        assert data['junior_detachment'] == {
+            'id': junior_detachment.id,
+            'name': junior_detachment.name,
+            'banner': f'{settings.MEDIA_URL}{junior_detachment.banner}',
+            'area': str(junior_detachment.area),
+        }
+        assert data['detachment'] == {
+            'id': detachment_competition.id,
+            'name': detachment_competition.name,
+            'banner': f'{settings.MEDIA_URL}{detachment_competition.banner}',
+            'area': str(detachment_competition.area),
+        }
+
+    def test_participants_me_auth(
+            self, free_authenticated_client, competition,
+            participants_competition_start,
+            participants_competition_tandem
+    ):
+        """Проверка, что простой клиент получит 404"""
+        response = free_authenticated_client.get(
+            f'{self.competition_url}{competition.id}'
+            f'{self.participants_url}me/'
+        )
+        assert response.status_code == HTTPStatus.NOT_FOUND, (
+            'Response code is not 404'
+        )
+
+    def test_participants_me_not_auth(
+            self, client, competition,
+            participants_competition_start,
+            participants_competition_tandem
+    ):
+        """Проверка, что неавторизованный клиент не имеет доступа"""
+        response = client.get(
+            f'{self.competition_url}{competition.id}'
+            f'{self.participants_url}me/'
+        )
+        assert response.status_code == HTTPStatus.UNAUTHORIZED, (
+            'Response code is not 401'
+        )
+
+    def test_retrieve_participants_not_auth(
+            self, client, competition, participants_competition_tandem,
+            detachment_competition, junior_detachment
+    ):
+        """Проверка, что неавторизованный пользователь может получить
+        участника конкурса"""
+        response = client.get(f'{self.competition_url}{competition.id}'
+                              f'{self.participants_url}')
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200'
+        )
+        tandem = response.data[0]
+        assert 'id' in tandem, (
+            'Отсутствует поле "id" участника конкурса - тандем'
+        )
+        assert 'competition' in tandem, (
+            'Отсутствует поле "competition" участника конкурса - тандем'
+        )
+        assert 'detachment' in tandem, (
+            'Отсутствует поле "detachment" участника конкурса - тандем'
+        )
+        assert 'junior_detachment' in tandem, (
+            'Отсутствует поле "junior_detachment" участника конкурса - тандем'
+        )
+        assert 'detachment' in tandem, (
+            'Отсутствует поле "detachment" участника конкурса - тандем'
+        )
+        assert tandem['junior_detachment'] == {
+            'id': junior_detachment.id,
+            'name': junior_detachment.name,
+            'banner': f'http://testserver{settings.MEDIA_URL}{junior_detachment.banner}',
+            'area': str(junior_detachment.area),
+        }
+        assert tandem['detachment'] == {
+            'id': detachment_competition.id,
+            'name': detachment_competition.name,
+            'banner': f'http://testserver{settings.MEDIA_URL}{detachment_competition.banner}',
+            'area': str(detachment_competition.area),
+        }
+
+    def test_retrieve_participants_auth(
+            self, authenticated_client, competition,
+            participants_competition_start,
+            junior_detachment_3
+    ):
+        """Проверка, что авторизованный пользователь может получить
+        участника конкурса"""
+        response = authenticated_client.get(
+            f'{self.competition_url}{competition.id}{self.participants_url}'
+        )
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200'
+        )
+        start = response.data[0]
+        assert 'id' in start, (
+            'Отсутствует поле "id" участника конкурса - старт'
+        )
+        assert 'competition' in start, (
+            'Отсутствует поле "competition" участника конкурса - старт'
+        )
+        assert 'detachment' in start, (
+            'Отсутствует поле "detachment" участника конкурса - старт'
+        )
+        assert 'junior_detachment' in start, (
+            'Отсутствует поле "junior_detachment" участника конкурса - старт'
+        )
+        assert 'detachment' in start, (
+            'Отсутствует поле "detachment" участника конкурса - старт'
+        )
+        assert start['junior_detachment'] == {
+            'id': junior_detachment_3.id,
+            'name': junior_detachment_3.name,
+            'banner': f'http://testserver{settings.MEDIA_URL}{junior_detachment_3.banner}',
+            'area': str(junior_detachment_3.area),
+        }
+        assert start['detachment'] is None, (
+            'Поле "detachment" участника конкурса не пустое - старт'
+        )
+
+    def test_delete_participants_not_auth(
+            self, client, competition, participants_competition_tandem,
+    ):
+        """Проверка, что неавторизованный пользователь не может
+        удалять участника конкурса"""
+        response = client.delete(
+            f'{self.competition_url}{competition.id}'
+            f'{self.participants_url}{participants_competition_tandem.id}/')
+        assert response.status_code == HTTPStatus.UNAUTHORIZED, (
+            'Response code is not 401'
+        )
+
+    def test_delete_participants_auth(
+            self, authenticated_client, competition,
+            participants_competition_tandem,
+    ):
+        """Проверка, что простой пользователь не может
+        удалять участника конкурса"""
+        response = authenticated_client.delete(
+            f'{self.competition_url}{competition.id}'
+            f'{self.participants_url}{participants_competition_tandem.id}/')
+        assert response.status_code == HTTPStatus.FORBIDDEN, (
+            'Response code is not 403'
+        )
+
+    def test_delete_participants_reg_commander(
+            self, authenticated_client_commander_regional_headquarter,
+            competition, regional_headquarter_competition,
+            participants_competition_tandem
+    ):
+        """Проверка, что региональный командир может удалять
+        участника конкурса"""
+        response = authenticated_client_commander_regional_headquarter.delete(
+            f'{self.competition_url}{competition.id}'
+            f'{self.participants_url}{participants_competition_tandem.id}/')
+        assert response.status_code == HTTPStatus.NO_CONTENT, (
+            'Response code is not 204'
         )

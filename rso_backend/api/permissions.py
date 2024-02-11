@@ -1,3 +1,4 @@
+from django.db.models import QuerySet
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status
 from rest_framework.permissions import BasePermission
@@ -12,6 +13,8 @@ from api.utils import (check_commander_or_not, check_roles_for_edit,
                        check_trusted_in_headquarters, check_trusted_user,
                        is_regional_commander, is_safe_method,
                        is_stuff_or_central_commander)
+from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from events.models import Event, EventOrganizationData
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
@@ -22,6 +25,9 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
+from rest_framework import permissions, status
+from rest_framework.permissions import BasePermission
+from rest_framework.response import Response
 from users.models import RSOUser
 from users.serializers import UserCommanderSerializer, UserTrustedSerializer
 
@@ -343,6 +349,8 @@ class IsStuffOrAuthor(BasePermission):
     """
 
     def has_permission(self, request, view):
+        if request.method in ('PATCH', 'PUT', 'DELETE'):
+            return self.has_object_permission(request, view, view.get_object())
         return any([
             is_safe_method(request),
             is_stuff_or_central_commander(request),
@@ -350,6 +358,12 @@ class IsStuffOrAuthor(BasePermission):
         ])
 
     def has_object_permission(self, request, view, obj):
+        if isinstance(obj, QuerySet):
+            queryset = obj.filter(id=view.kwargs.get('pk'), user=request.user)
+            if queryset.count() == 0:
+                return False
+            else:
+                obj = queryset.first()
         roles_models = {
             'district_commander': UserDistrictHeadquarterPosition,
             'regional_commander': UserRegionalHeadquarterPosition,
@@ -677,7 +691,6 @@ class IsUserModelPositionCommander(permissions.BasePermission):
         for key, value in data.items():
             if value is not None:
                 prepared_data[key] = value
-        print('командир', prepared_data)
         return prepared_data
 
     def prepare_data_trusted(self, request):
@@ -688,7 +701,6 @@ class IsUserModelPositionCommander(permissions.BasePermission):
         for key, value in data.items():
             if value is not None:
                 prepared_data[key] = value
-        print('доверенный', prepared_data)
         return prepared_data
 
     def has_permission(self, request, view):
@@ -703,7 +715,6 @@ class IsUserModelPositionCommander(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         headquarter_id = obj.headquarter.id
-
         prepared_data = (
             self.prepare_data_commander(request)
             | self.prepare_data_trusted(request)
@@ -744,7 +755,7 @@ class IsRegionalCommanderOrAdmin(BasePermission):
 
 
 class IsRegionalCommanderOrAdminOrAuthor(BasePermission):
-    """Для операций с одним обектом.
+    """Для операций с одним объектом.
     Проверяет, является ли пользователь командиром
     регионального штаба, администратором или отрядом из заявки в конкурс.
     """
@@ -752,9 +763,8 @@ class IsRegionalCommanderOrAdminOrAuthor(BasePermission):
     def has_object_permission(self, request, view, obj):
         application = obj
         current_detachment = view.get_detachment(request.user)
-        if current_detachment is None:
-            if not is_regional_commander(request.user):
-                return False
-        return (application.detachment == current_detachment or
-                application.junior_detachment == current_detachment or
-                is_regional_commander(request.user))
+        if current_detachment:
+            return (application.junior_detachment == current_detachment or
+                    application.detachment == current_detachment or
+                    is_regional_commander(request.user))
+        return is_regional_commander(request.user)

@@ -256,12 +256,10 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
         try:
             detachment = Detachment.objects.get(commander=user)
             return detachment
-        except Detachment.DoesNotExist:
+        # except Detachment.DoesNotExist:
+        #     return None
+        except Exception:
             return None
-        except Detachment.MultipleObjectsReturned:
-            return Response({'error':
-                            'Пользователь командир нескольких отрядов'},
-                            status=status.HTTP_400_BAD_REQUEST)
 
     def get_junior_detachment(self, request_data):
         if 'junior_detachment' in request_data:
@@ -503,6 +501,8 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
         выводится HTTP_404_NOT_FOUND.
         """
         detachment = self.get_detachment(request.user)
+        if detachment is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
         participant_unit = self.get_queryset().filter(
             Q(detachment=detachment) | Q(junior_detachment=detachment)
         ).first()
