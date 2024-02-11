@@ -581,14 +581,12 @@ def get_is_trusted(obj, model):
 
 
 def is_regional_commander(user):
-    """Проверяет, является ли пользователь командировам
+    """Проверяет, является ли пользователь командиром
     регионального штаба или администратором.
     """
     check_regional_commander = RegionalHeadquarter.objects.filter(
         commander=user
     ).exists()
-    return (user.is_authenticated
-            and any([
-                check_regional_commander,
-                user.is_staff
-            ]))
+    return (user.is_authenticated and
+            (check_regional_commander or
+             user.is_staff))

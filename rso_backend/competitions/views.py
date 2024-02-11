@@ -255,12 +255,14 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
         try:
             detachment = Detachment.objects.get(commander=user)
             return detachment
-        except Detachment.DoesNotExist:
+        # except Detachment.DoesNotExist:
+        #     return None
+        # except Detachment.MultipleObjectsReturned:
+        #     return Response({'error':
+        #                     'Пользователь командир нескольких отрядов'},
+        #                     status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
             return None
-        except Detachment.MultipleObjectsReturned:
-            return Response({'error':
-                            'Пользователь командир нескольких отрядов'},
-                            status=status.HTTP_400_BAD_REQUEST)
 
     def get_junior_detachment(self, request_data):
         if 'junior_detachment' in request_data:

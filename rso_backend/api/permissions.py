@@ -740,7 +740,7 @@ class IsRegionalCommanderOrAdmin(BasePermission):
 
 
 class IsRegionalCommanderOrAdminOrAuthor(BasePermission):
-    """Для операций с одним обектом.
+    """Для операций с одним объектом.
     Проверяет, является ли пользователь командиром
     регионального штаба, администратором или отрядом из заявки в конкурс.
     """
@@ -748,9 +748,9 @@ class IsRegionalCommanderOrAdminOrAuthor(BasePermission):
     def has_object_permission(self, request, view, obj):
         application = obj
         current_detachment = view.get_detachment(request.user)
-        if current_detachment is None:
-            if not is_regional_commander(request.user):
-                return False
-        return (application.detachment == current_detachment or
-                application.junior_detachment == current_detachment or
-                is_regional_commander(request.user))
+        if isinstance(current_detachment, Detachment):
+            return (application.detachment == current_detachment or
+                    application.junior_detachment == current_detachment or
+                    request.user.is_staff or
+                    is_regional_commander(request.user))
+        return is_regional_commander(request.user)

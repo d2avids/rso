@@ -104,6 +104,7 @@ def user_6():
     )
     return user
 
+
 @pytest.fixture
 def authenticated_client(client, user):
     """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
