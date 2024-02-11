@@ -18,7 +18,9 @@ def test_edit_education_data(authenticated_client,
         '/api/v1/rsousers/me/education/',
         payload
     )
-    assert response.status_code == 200, 'Response status code is not 200'
+    assert response.status_code == HTTPStatus.OK, (
+        'Response status code is not HTTPStatus.OK'
+    )
     response = authenticated_client.get('/api/v1/rsousers/me/education/')
     assert response.data == payload
 
@@ -39,7 +41,9 @@ def test_edit_foreign_documents_data(authenticated_client,
         '/api/v1/rsousers/me/foreign_documents/',
         payload
     )
-    assert response.status_code == 200, 'Response status code is not 200'
+    assert response.status_code == HTTPStatus.OK, (
+        'Response status code is not HTTPStatus.OK'
+    )
     response = authenticated_client.get(
         '/api/v1/rsousers/me/foreign_documents/'
     )
@@ -60,7 +64,9 @@ def test_edit_privacy_data(authenticated_client,
         '/api/v1/rsousers/me/privacy/',
         payload
     )
-    assert response.status_code == 200, 'Response status code is not 200'
+    assert response.status_code == HTTPStatus.OK, (
+        'Response status code is not HTTPStatus.OK'
+    )
     response = authenticated_client.get(
         '/api/v1/rsousers/me/privacy/'
     )
@@ -84,7 +90,9 @@ def test_edit_region_data(authenticated_client,
         '/api/v1/rsousers/me/region/',
         payload
     )
-    assert response.status_code == 200, 'Response status code is not 200'
+    assert response.status_code == HTTPStatus.OK, (
+        'Response status code is not HTTPStatus.OK'
+    )
     response = authenticated_client.get(
         '/api/v1/rsousers/me/region/'
     )
@@ -112,7 +120,9 @@ def test_edit_statement_data(authenticated_client, central_headquarter):
         '/api/v1/rsousers/me/statement/',
         payload
     )
-    assert response.status_code == 200, 'Response status code is not 200'
+    assert response.status_code == HTTPStatus.OK, (
+        'Response status code is not HTTPStatus.OK'
+    )
     response = authenticated_client.get(
         '/api/v1/rsousers/me/statement/'
     )
@@ -155,7 +165,9 @@ def test_edit_documents_data(authenticated_client, central_headquarter):
         '/api/v1/rsousers/me/documents/',
         payload
     )
-    assert response.status_code == 200, 'Response status code is not 200'
+    assert response.status_code == HTTPStatus.OK, (
+        'Response status code is not HTTPStatus.OK'
+    )
     data = response.data
     assert data.get('snils') == 'string', 'Incorrect data'
     assert data.get('mil_reg_doc_type') == 'military_certificate', 'Data incor'
@@ -186,7 +198,9 @@ def test_edit_parent_data(authenticated_client,
         '/api/v1/rsousers/me/parent/',
         payload
     )
-    assert response.status_code == 200, 'Response status code is not 200'
+    assert response.status_code == HTTPStatus.OK, (
+        'Response status code is not HTTPStatus.OK'
+    )
     response = authenticated_client.get(
         '/api/v1/rsousers/me/parent/'
     )
@@ -195,10 +209,11 @@ def test_edit_parent_data(authenticated_client,
 
 @pytest.mark.django_db(transaction=True)
 def test_edit_me_professional_education(
-    authenticated_client_8, authenticated_client_7, educational_institution,
-    educational_institution_2
+        authenticated_client_8, authenticated_client_7,
+        educational_institution,
+        educational_institution_2
 ):
-    """CRUD-тест для до проф образований + проверка удаления чужой записи"""
+    """CRUD-тест для до проф образований + проверка удаления чужой записи."""
 
     payload = {
         'study_institution': educational_institution.pk,
@@ -216,7 +231,7 @@ def test_edit_me_professional_education(
         '/api/v1/rsousers/me/professional_education/'
     )
     assert response.status_code == HTTPStatus.OK, (
-        'Response status code is not 200'
+        'Response status code is not HTTPStatus.OK'
     )
     payload = {
         'exam_score': 'very well',
@@ -232,7 +247,7 @@ def test_edit_me_professional_education(
         '/api/v1/rsousers/me/professional_education/1/', payload
     )
     assert response.status_code == HTTPStatus.OK, (
-        'Response status code is not 200'
+        'Response status code is not HTTPStatus.OK'
     )
     response_2 = authenticated_client_7.delete(
         '/api/v1/rsousers/me/professional_education/1/'
@@ -250,7 +265,7 @@ def test_edit_me_professional_education(
 
 @pytest.mark.django_db(transaction=True)
 def test_edit_me_profedu_wrong_data(
-            authenticated_client, authenticated_client_7, educational_institution
+        authenticated_client, authenticated_client_7, educational_institution
 ):
     """Проверка попытки записать проф образование с некорректными данными."""
 
@@ -270,18 +285,18 @@ def test_edit_me_profedu_wrong_data(
 
 @pytest.mark.django_db(transaction=True)
 def test_get_me_five_professional_educations(
-    authenticated_client, central_headquarter, educational_institution
+        authenticated_client, central_headquarter, educational_institution
 ):
     """Проверка попытки записать больше 5 профобразований."""
 
     payloads = [
-            ('2010-2015', 'well done', 'professional'),
-            ('2015-2016', 'medium rare', 'newby'),
-            ('2017-2018', 'nice', 'welder'),
-            ('2019-2020', 'good', 'doctor'),
-            ('2021-2022', 'excellent', 'master'),
-            ('2022-2023', 'unbelievable', 'wizard'),
-        ]
+        ('2010-2015', 'well done', 'professional'),
+        ('2015-2016', 'medium rare', 'newby'),
+        ('2017-2018', 'nice', 'welder'),
+        ('2019-2020', 'good', 'doctor'),
+        ('2021-2022', 'excellent', 'master'),
+        ('2022-2023', 'unbelievable', 'wizard'),
+    ]
     for years_of_study, exam_score, qualification in payloads:
         payload = {
             'study_institution': educational_institution.pk,
@@ -290,7 +305,8 @@ def test_get_me_five_professional_educations(
             'qualification': qualification
         }
         authenticated_client.post(
-            '/api/v1/rsousers/me/professional_education/', payload, format="json"
+            '/api/v1/rsousers/me/professional_education/', payload,
+            format="json"
         )
     response = authenticated_client.get(
         '/api/v1/rsousers/me/professional_education/'

@@ -170,7 +170,10 @@ def user_commander_2():
 
 @pytest.fixture
 def authenticated_client(client, user):
-    """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
+    """Авторизованный клиент сущности юзера (простой невериф. пользователь).
+
+    Командир отряда, если вызывать вместе с detachment фикстурй.
+    """
     token, _ = Token.objects.get_or_create(user=user)
     client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
     return client
@@ -178,7 +181,10 @@ def authenticated_client(client, user):
 
 @pytest.fixture
 def authenticated_client_2(client, user_2):
-    """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
+    """Авторизованный клиент сущности юзера (простой невериф. пользователь).
+
+    Командир отряда, если вызывать вместе с detachment_2 фикстурй.
+    """
     login_payload = {
         'username': SECOND_USERNAME,
         'password': SECOND_USER_PASSWORD,
@@ -200,7 +206,12 @@ def authenticated_client_3(client, user_3):
 
 @pytest.fixture
 def authenticated_client_6(client, user_6):
-    """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
+    """Авторизованный клиент сущности юзера (простой невериф. пользователь).
+
+    Командир отряда, если вызывать вместе с detachment_3 фикстурой.
+    Создатель мероприятия отрядного уровня, если вызвать вместе
+    с event_detachment.
+    """
     token, _ = Token.objects.get_or_create(user=user_6)
     client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
     return client
@@ -502,7 +513,7 @@ def detachment_2(
 
 @pytest.fixture
 def detachment_3(
-    user_6, regional_headquarter,
+        user_6, regional_headquarter,
     region, educational_institution, area
 ):
     """Такой же отряд как и 1(тот же регион), но с другим командиром"""
