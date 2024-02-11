@@ -1,7 +1,7 @@
 import datetime
 
 import pytest
-from competitions.models import CompetitionApplications, Competitions
+from competitions.models import CompetitionApplications, CompetitionParticipants, Competitions
 from rest_framework.authtoken.models import Token
 from headquarters.models import Detachment, RegionalHeadquarter
 from users.models import RSOUser
@@ -43,6 +43,25 @@ def regional_headquarter_competition(
         founding_date=2022,
     )
     return regional_headquarter
+
+
+@pytest.fixture
+def detachment_competition(
+    user, regional_headquarter_competition,
+    region, educational_institution, area
+):
+    """Отряд региона 1"""
+    detachment = Detachment.objects.create(
+        name='Отряд',
+        commander=user,
+        regional_headquarter=regional_headquarter_competition,
+        region=region,
+        educational_institution=educational_institution,
+        area=area,
+        banner='path/to/banner.png',
+        founding_date=datetime.date.fromisoformat("2022-02-28"),
+    )
+    return detachment
 
 
 @pytest.fixture
@@ -106,14 +125,29 @@ def competition_2():
 
 @pytest.fixture
 def application_competition_tandem(
-    detachment, competition, junior_detachment
+    detachment_competition, competition, junior_detachment
 ):
     """Заявка на участие в конкурсе."""
     application = CompetitionApplications.objects.create(
         competition=competition,
-        detachment=detachment,
+        detachment=detachment_competition,
         junior_detachment=junior_detachment
     )
+    return application
+
+
+@pytest.fixture
+def application_competition_tandem_confirm_junior(
+    detachment_competition, competition, junior_detachment
+):
+    """Подтвержденная младшим отрядом заявка на участие в конкурсе."""
+    application = CompetitionApplications.objects.create(
+        competition=competition,
+        detachment=detachment_competition,
+        junior_detachment=junior_detachment
+    )
+    application.is_confirmed_by_junior = True
+    application.save()
     return application
 
 
@@ -137,3 +171,37 @@ def application_competition_start_2(
         junior_detachment=junior_detachment_3
     )
     return application
+
+
+@pytest.fixture
+def participants_competition_tandem(
+    competition, detachment_competition, junior_detachment
+):
+    """Участники конкурса - тандем, регион 1."""
+    return CompetitionParticipants.objects.create(
+        competition=competition,
+        detachment=detachment_competition,
+        junior_detachment=junior_detachment
+    )
+
+
+@pytest.fixture
+def participants_competition_start(
+    competition, junior_detachment_3
+):
+    """Участник конкурса - старт, регион 1."""
+    return CompetitionParticipants.objects.create(
+        competition=competition,
+        junior_detachment=junior_detachment_3
+    )
+
+
+@pytest.fixture
+def participants_competition_start_2(
+    competition, junior_detachment_2
+):
+    """Участники конкурса - старт, регион 2."""
+    return CompetitionParticipants.objects.create(
+        competition=competition,
+        junior_detachment=junior_detachment_2
+    )

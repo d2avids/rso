@@ -501,6 +501,8 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
         выводится HTTP_404_NOT_FOUND.
         """
         detachment = self.get_detachment(request.user)
+        if detachment is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
         participant_unit = self.get_queryset().filter(
             Q(detachment=detachment) | Q(junior_detachment=detachment)
         ).first()

@@ -184,9 +184,16 @@ def authenticated_client_6(client, user_6):
 
 
 @pytest.fixture
-def free_authenticated_client(client, user_5):
+def free_authenticated_client():
     """Авторизованный клиент, который нигде не командир."""
-    token, _ = Token.objects.get_or_create(user=user_5)
+    user = RSOUser.objects.create_user(
+        first_name='Свободный',
+        last_name='Юзер',
+        username='free',
+        password='ПарольСвободный'
+    )
+    client = APIClient()
+    token, _ = Token.objects.get_or_create(user=user)
     client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
     return client
 
