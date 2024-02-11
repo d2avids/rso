@@ -258,10 +258,6 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
             return detachment
         # except Detachment.DoesNotExist:
         #     return None
-        # except Detachment.MultipleObjectsReturned:
-        #     return Response({'error':
-        #                     'Пользователь командир нескольких отрядов'},
-        #                     status=status.HTTP_400_BAD_REQUEST)
         except Exception:
             return None
 

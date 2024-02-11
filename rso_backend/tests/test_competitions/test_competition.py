@@ -2,11 +2,12 @@ import datetime
 from http import HTTPStatus
 
 import pytest
+from headquarters.models import CentralHeadquarter, DistrictHeadquarter, RegionalHeadquarter
 
 from rso_backend import settings
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db(transaction=True, reset_sequences=True)
 class TestCompetitionViewSet:
     competition_url = '/api/v1/competitions/'
 
@@ -189,12 +190,12 @@ class TestCompetitionViewSet:
         assert data == [], 'Incorrect list of junior detachments'
 
     def test_applications_get_list_regional_headquarter_commander(
-            self, authenticated_client, competition,
-            application_competition_start,
-            regional_headquarter, junior_detachment
+            self, authenticated_client_commander_regional_headquarter,
+            competition, application_competition_start,
+            regional_headquarter_competition, junior_detachment
         ):
         """Проверка, что командир рег. штаба может получить список заявок"""
-        response = authenticated_client.get(
+        response = authenticated_client_commander_regional_headquarter.get(
             f'{self.competition_url}{competition.id}/applications/'
         )
         assert response.status_code == HTTPStatus.OK, (
@@ -535,7 +536,7 @@ class TestCompetitionApplicationsViewSet:
         assert response.status_code == HTTPStatus.NOT_FOUND, (
             'Response code is not 404'
         )
-    
+
     def test_applications_me_not_auth(self, client, competition):
         """Проверка, что нельзя получить заявки неавторизованному пользователю"""
         response = client.get(
@@ -546,13 +547,13 @@ class TestCompetitionApplicationsViewSet:
         )
 
     def test_applications_id_reg_commander(
-            self, authenticated_client, competition,
-            application_competition_start_2, regional_headquarter,
-            junior_detachment_3
+            self, authenticated_client_commander_regional_headquarter,
+            competition, application_competition_start_2,
+            regional_headquarter_competition, junior_detachment_3
     ):
         """Проверка, что командир регионального штаба может получить
         заявку по id"""
-        response = authenticated_client.get(
+        response = authenticated_client_commander_regional_headquarter.get(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_start_2.id}/'
         )
@@ -584,11 +585,11 @@ class TestCompetitionApplicationsViewSet:
         assert data['detachment'] is None, 'Incorrect status'
 
     def test_applications_id_auth(
-            self, authenticated_client, competition,
+            self, free_authenticated_client, competition,
             application_competition_start
     ):
         """Проверка, что простой пользователь не может получить заявку по id"""
-        response = authenticated_client.get(
+        response = free_authenticated_client.get(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_start.id}/'
         )
@@ -670,7 +671,70 @@ class TestCompetitionApplicationsViewSet:
         assert response.status_code == HTTPStatus.UNAUTHORIZED, (
             'Response code is not 401'
         )
-    
+
+    def test_applications_id_patch_junior_detachment(
+            self, authenticated_client_3, competition, junior_detachment,
+            application_competition_start
+    ):
+        """Проверка, что командир младшего отряда может изменить поле
+        is_confirmed_by_junior"""
+        response = authenticated_client_3.patch(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_start.id}/',
+            {'is_confirmed_by_junior': True}
+        )
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200'
+        )
+        assert response.data['is_confirmed_by_junior'] is True, (
+            'Incorrect is_confirmed_by_junior'
+        )
+
+    def test_applications_id_patch_detachment(
+            self, authenticated_client, competition, junior_detachment,
+            application_competition_tandem, detachment, user
+    ):
+        """Проверка, что командир старшего отряда не может изменить поле
+        is_confirmed_by_junior"""
+        response = authenticated_client.patch(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_tandem.id}/',
+            {'is_confirmed_by_junior': True}
+        )
+        assert response.status_code == HTTPStatus.FORBIDDEN, (
+            'Response code is not 403'
+        )
+
+    def test_applications_id_patch_auth(
+            self, authenticated_client, competition,
+            application_competition_tandem
+    ):
+        """Проверка, что простой пользователь не может изменить поле
+        is_confirmed_by_junior"""
+        response = authenticated_client.patch(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_tandem.id}/',
+            {'is_confirmed_by_junior': True}
+        )
+        assert response.status_code == HTTPStatus.FORBIDDEN, (
+            'Response code is not 403'
+        )
+
+    def test_applications_id_patch_not_auth(
+            self, client, competition,
+            application_competition_tandem
+    ):
+        """Проверка, что не авторизованный пользователь не может изменить поле
+        is_confirmed_by_junior"""
+        response = client.patch(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_tandem.id}/',
+            {'is_confirmed_by_junior': True}
+        )
+        assert response.status_code == HTTPStatus.UNAUTHORIZED, (
+            'Response code is not 401'
+        )
+
     def test_applications_id_delete_not_auth(
             self, client, competition, application_competition_tandem
     ):
@@ -682,20 +746,20 @@ class TestCompetitionApplicationsViewSet:
         assert response.status_code == HTTPStatus.UNAUTHORIZED, (
             'Response code is not 401'
         )
-    
+
     def test_applications_id_delete_auth(
-            self, authenticated_client, competition,
+            self, free_authenticated_client, competition,
             application_competition_start
     ):
         """Проверка, что простой пользователь не может удалить заявку"""
-        response = authenticated_client.delete(
+        response = free_authenticated_client.delete(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_start.id}/'
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, (
             'Response code is not 403'
         )
-    
+
     def test_applications_id_delete_commander(
             self, authenticated_client, competition,
             application_competition_tandem
@@ -723,14 +787,56 @@ class TestCompetitionApplicationsViewSet:
         )
 
     def test_applications_id_delete_regional_commander(
-            self, authenticated_client, competition, regional_headquarter,
+            self, authenticated_client_commander_regional_headquarter,
+            competition, regional_headquarter_competition,
             application_competition_start
     ):
         """Проверка, что региональный командир может удалить заявку"""
-        response = authenticated_client.delete(
+        response = authenticated_client_commander_regional_headquarter.delete(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_start.id}/'
         )
         assert response.status_code == HTTPStatus.NO_CONTENT, (
             'Response code is not 204'
+        )
+
+    def test_confirm_not_auth(
+            self, client, competition, application_competition_tandem
+    ):
+        """Проверка, что не авторизованный пользователь не может верифицировать
+        заявку"""
+        response = client.post(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_tandem.id}/confirm/'
+        )
+        assert response.status_code == HTTPStatus.UNAUTHORIZED, (
+            'Response code is not 401'
+        )
+
+    def test_confirm_auth(
+            self, free_authenticated_client, competition,
+            application_competition_start
+    ):
+        """Проверка, что простой пользователь не может верифицировать
+        заявку"""
+        response = free_authenticated_client.post(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_start.id}/confirm/'
+        )
+        assert response.status_code == HTTPStatus.FORBIDDEN, (
+            'Response code is not 403'
+        )
+
+    def test_confirm_commander_in_application(
+            self, authenticated_client, competition,
+            application_competition_tandem
+    ):
+        """Проверка, что командир отряда из заявки не может верифицировать
+        заявку"""
+        response = authenticated_client.post(
+            f'{self.competition_url}{competition.id}{self.application_url}'
+            f'{application_competition_tandem.id}/confirm/'
+        )
+        assert response.status_code == HTTPStatus.FORBIDDEN, (
+            'Response code is not 403'
         )

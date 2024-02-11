@@ -581,13 +581,20 @@ def get_is_trusted(obj, model):
     return is_trusted
 
 
+def get_regional_headquarters_if_commander(user):
+    """Получение региональных штабов пользователя если он командир."""
+    try:
+        reg_headquarter = RegionalHeadquarter.objects.get(commander=user)
+        return reg_headquarter
+    except Exception:
+        return None
+
+
 def is_regional_commander(user):
     """Проверяет, является ли пользователь командиром
     регионального штаба или администратором.
     """
-    check_regional_commander = RegionalHeadquarter.objects.filter(
-        commander=user
-    ).exists()
+    check_regional_commander = get_regional_headquarters_if_commander(user)
     return (user.is_authenticated and
             (check_regional_commander or
              user.is_staff))
