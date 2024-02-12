@@ -10,10 +10,9 @@ from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from api.mixins import RetrieveViewSet
+from api.mixins import RetrieveViewSet, RetrieveUpdateViewSet
 from api.permissions import IsCommanderOrTrustedAnywhere, IsStuffOrAuthor
 from api.tasks import send_reset_password_email_without_user
 from api.utils import download_file, get_user
@@ -102,7 +101,7 @@ class CustomUserViewSet(UserViewSet):
             )
 
 
-class RSOUserViewSet(RetrieveViewSet):
+class RSOUserViewSet(RetrieveUpdateViewSet):
     """
     Представляет пользователей. Доступны операции чтения.
     Пользователь имеет возможность изменять собственные данные
@@ -121,7 +120,7 @@ class RSOUserViewSet(RetrieveViewSet):
     @action(
         detail=False,
         methods=['get', 'patch'],
-        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor,),
+        permission_classes=(permissions.IsAuthenticated,),
         serializer_class=RSOUserSerializer,
     )
     def me(self, request, pk=None):
@@ -140,7 +139,7 @@ class RSOUserViewSet(RetrieveViewSet):
     @action(
         detail=False,
         methods=['get'],
-        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor,),
+        permission_classes=(permissions.IsAuthenticated,),
         serializer_class=UserCommanderSerializer
     )
     def me_commander(self, request, pk=None):
@@ -155,7 +154,7 @@ class RSOUserViewSet(RetrieveViewSet):
     @action(
         detail=False,
         methods=['get'],
-        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor,),
+        permission_classes=(permissions.IsAuthenticated,),
         serializer_class=UserCommanderSerializer
     )
     def me_trusted(self, request, pk=None):
@@ -170,7 +169,7 @@ class RSOUserViewSet(RetrieveViewSet):
     @action(
         detail=False,
         methods=['get'],
-        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor,),
+        permission_classes=(permissions.IsAuthenticated,),
         serializer_class=UserCommanderSerializer
     )
     def me_positions(self, request, pk=None):
@@ -184,7 +183,7 @@ class RSOUserViewSet(RetrieveViewSet):
     @action(
         detail=True,
         methods=['get'],
-        permission_classes=(permissions.AllowAny,),
+        permission_classes=(permissions.IsAuthenticated,),
         serializer_class=UserCommanderSerializer
     )
     def positions(self, request, pk=None):
@@ -199,7 +198,7 @@ class RSOUserViewSet(RetrieveViewSet):
     @action(
         detail=True,
         methods=['get'],
-        permission_classes=(permissions.IsAuthenticated, IsStuffOrAuthor,),
+        permission_classes=(permissions.IsAuthenticated,),
         serializer_class=UserCommanderSerializer
     )
     def commander(self, request, pk=None):

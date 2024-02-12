@@ -8,6 +8,13 @@ class RetrieveViewSet(mixins.RetrieveModelMixin,
     pass
 
 
+class RetrieveUpdateViewSet(mixins.RetrieveModelMixin,
+                            mixins.UpdateModelMixin,
+                            GenericViewSet):
+    """Миксин, разрешающий методы чтения только у конкретного юзера."""
+    pass
+
+
 class ListRetrieveViewSet(mixins.RetrieveModelMixin,
                           mixins.ListModelMixin,
                           GenericViewSet):
