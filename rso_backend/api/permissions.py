@@ -684,22 +684,38 @@ class IsUserModelPositionCommander(permissions.BasePermission):
     }
 
     def prepare_data_commander(self, request):
-        """Метод создает словарь со штабами/отрядами, где юзер - командир."""
+        """Метод создает словарь со штабами/отрядами, где юзер - командир.
+
+        Пример словаря prepared_data:
+        {
+            'centralheadquarter_commander': 1,
+            'localheadquarter_commander': 2,
+            ...
+            'detachment_commander': 3
+        }
+        """
 
         data = UserCommanderSerializer(request.user).data
         prepared_data = {}
         for key, value in data.items():
-            if value is not None:
-                prepared_data[key] = value
+            if value:
+                prepared_data[key] = value['id']
         return prepared_data
 
     def prepare_data_trusted(self, request):
-        """Метод создает словарь со штабами/отрядами, где юзер - доверенный."""
+        """Метод создает словарь со штабами/отрядами, где юзер - доверенный.
+
+        Пример словаря prepared_data:
+        {
+            'centralheadquarter_trusted': 1,
+            'localheadquarter_trusted': 2,
+        }
+        """
 
         data = UserTrustedSerializer(request.user).data
         prepared_data = {}
         for key, value in data.items():
-            if value is not None:
+            if value:
                 prepared_data[key] = value
         return prepared_data
 
@@ -723,7 +739,7 @@ class IsUserModelPositionCommander(permissions.BasePermission):
             for model_position, commander_or_trusted in self.POSITIONS.items():
                 if prepared_key in commander_or_trusted:
                     if isinstance(obj, model_position):
-                        if headquarter_id == prepared_value['id']:
+                        if headquarter_id == prepared_value:
                             return True
         return False
 
