@@ -686,7 +686,7 @@ class IsUserModelPositionCommander(permissions.BasePermission):
     def prepare_data_commander(self, request):
         """Метод создает словарь со штабами/отрядами, где юзер - командир.
 
-        Пример словаря prepared_data:
+        Пример словаря prepared_data, возвращаемого этим методом:
         {
             'centralheadquarter_commander': 1,
             'localheadquarter_commander': 2,
@@ -698,14 +698,16 @@ class IsUserModelPositionCommander(permissions.BasePermission):
         data = UserCommanderSerializer(request.user).data
         prepared_data = {}
         for key, value in data.items():
-            if value:
+            if value and type(value) is not int:
                 prepared_data[key] = value['id']
+            else:
+                prepared_data[key] = value
         return prepared_data
 
     def prepare_data_trusted(self, request):
         """Метод создает словарь со штабами/отрядами, где юзер - доверенный.
 
-        Пример словаря prepared_data:
+        Пример словаря prepared_data, возвращаемого этим методом:
         {
             'centralheadquarter_trusted': 1,
             'localheadquarter_trusted': 2,

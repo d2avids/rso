@@ -11,7 +11,8 @@ from competitions.models import CompetitionApplications, Competitions
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
-                                 Region, RegionalHeadquarter)
+                                 Position, Region, RegionalHeadquarter,
+                                 UserDetachmentPosition)
 from users.models import RSOUser
 
 USER_FIRST_NAME = 'Дмитрий'
@@ -527,3 +528,36 @@ def detachment_3(
         founding_date=datetime.date.fromisoformat("2023-01-20"),
     )
     return detachment
+
+
+@pytest.fixture
+def position_jedi():
+    """Должность джедай"""
+
+    position_jedi = Position.objects.create(
+        name='Джедай'
+    )
+    return position_jedi
+
+
+@pytest.fixture
+def position_dart():
+    """Должность дарт"""
+
+    position_dart = Position.objects.create(
+        name='Дарт'
+    )
+    return position_dart
+
+
+@pytest.fixture
+def detachment_positions(detachment_2, user_6, position_jedi):
+    """user_6 в отряде detachment с должностью джедай."""
+
+    detachment_position = UserDetachmentPosition.objects.create(
+        headquarter=detachment_2,
+        user=user_6,
+        position=position_jedi,
+        is_trusted=False
+    )
+    return detachment_position
