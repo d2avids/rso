@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from events.utils import document_path, image_path
@@ -114,6 +115,56 @@ class Event(models.Model):
         blank=True,
         null=True
     )
+    # Ссылка на штаб/отряд организовавший мероприятие
+    # Заполнено может быть только одно поле из шести
+    org_central_headquarter = models.ForeignKey(
+        to='headquarters.CentralHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='events',
+        null=True,
+        blank=True,
+        verbose_name='Центральный штаб-организатор',
+    )
+    org_district_headquarter = models.ForeignKey(
+        to='headquarters.DistrictHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='events',
+        null=True,
+        blank=True,
+        verbose_name='Окружной штаб-организатор',
+    )
+    org_regional_headquarter = models.ForeignKey(
+        to='headquarters.RegionalHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='events',
+        null=True,
+        blank=True,
+        verbose_name='Региональный штаб-организатор',
+    )
+    org_local_headquarter = models.ForeignKey(
+        to='headquarters.LocalHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='events',
+        null=True,
+        blank=True,
+        verbose_name='Местный штаб-организатор',
+    )
+    org_educational_headquarter = models.ForeignKey(
+        to='headquarters.EducationalHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='events',
+        null=True,
+        blank=True,
+        verbose_name='Образовательный штаб-организатор',
+    )
+    org_detachment = models.ForeignKey(
+        to='headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='events',
+        null=True,
+        blank=True,
+        verbose_name='Отряд-организатор',
+    )
 
     class Meta:
         verbose_name_plural = 'Мероприятия'
@@ -127,6 +178,19 @@ class Event(models.Model):
             EventDocumentData.objects.get_or_create(event_id=self.id)
         except Exception:
             raise
+
+    def clean(self):
+        filled_fields = [bool(getattr(self, field)) for field in [
+            'org_central_headquarter',
+            'org_district_headquarter',
+            'org_regional_headquarter',
+            'org_local_headquarter',
+            'org_educational_headquarter',
+            'org_detachment',]]
+        if sum(filled_fields) != 1:
+            raise ValidationError(
+                'Структурная единица-организатор может быть только один'
+            )
 
     def __str__(self):
         return f'{self.name} id {self.id}'
@@ -622,3 +686,20 @@ class MultiEventApplication(models.Model):
                 name='unique_detachment_application'
             ),
         ]
+
+    def clean(self):
+        filled_fields = [bool(getattr(self, field)) for field in [
+            'central_headquarter',
+            'district_headquarter',
+            'regional_headquarter',
+            'local_headquarter',
+            'educational_headquarter',
+            'detachment',]]
+        if sum(filled_fields) != 1:
+            raise ValidationError(
+                'В одной заявке может быть подана только одна структурная'
+                'единица'
+            )
+
+    def __str__(self):
+        return f'Заявка {self.event.name} id {self.id}'

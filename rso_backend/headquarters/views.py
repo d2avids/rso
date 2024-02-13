@@ -1,6 +1,7 @@
 from dal import autocomplete
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg.utils import swagger_auto_schema
@@ -339,10 +340,7 @@ class BasePositionViewSet(viewsets.ModelViewSet):
         # TODO: в действительности мы ловим DoesNotExist для дочерних классов
         # TODO: edit - можно добавить маппинг. Сделать позднее.
         except Exception:
-            return Response(
-                {'detail': 'Не найден участник по заданному айди членства.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            raise Http404('Не найден участник по заданному id членства.')
         return obj
 
 
@@ -651,7 +649,7 @@ class RegionAutoComplete(autocomplete.Select2QuerySetView):
 
         if self.q:
             qs = qs.filter(name__icontains=self.q)
-        return qs
+        return qs.order_by('name')
 
 
 class EducationalAutoComplete(autocomplete.Select2QuerySetView):
@@ -661,7 +659,7 @@ class EducationalAutoComplete(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(name__icontains=self.q)
 
-        return qs
+        return qs.order_by('name')
 
 
 class LocalAutoComplete(autocomplete.Select2QuerySetView):
@@ -671,7 +669,7 @@ class LocalAutoComplete(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(name__icontains=self.q)
 
-        return qs
+        return qs.order_by('name')
 
 
 class RegionalAutoComplete(autocomplete.Select2QuerySetView):
@@ -681,7 +679,7 @@ class RegionalAutoComplete(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(name__icontains=self.q)
 
-        return qs
+        return qs.order_by('name')
 
 
 class EducationalInstitutionAutoComplete(autocomplete.Select2QuerySetView):
@@ -691,7 +689,7 @@ class EducationalInstitutionAutoComplete(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(name__icontains=self.q)
 
-        return qs
+        return qs.order_by('name')
 
 
 class DetachmentAutoComplete(autocomplete.Select2QuerySetView):
@@ -701,7 +699,7 @@ class DetachmentAutoComplete(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(name__icontains=self.q)
 
-        return qs
+        return qs.order_by('name')
 
 
 class PositionAutoComplete(autocomplete.Select2QuerySetView):
@@ -711,4 +709,4 @@ class PositionAutoComplete(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(name__icontains=self.q)
 
-        return qs
+        return qs.order_by('name')

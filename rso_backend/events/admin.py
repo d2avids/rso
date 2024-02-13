@@ -1,7 +1,8 @@
 from django.contrib import admin
 
 from events.forms import (EventApplicationForm, EventForm,
-                          EventOrganizationDataForm, EventParticipantDataForm)
+                          EventOrganizationDataForm, EventParticipantDataForm,
+                          MultiEventApplicationForm)
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocument, EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
@@ -67,3 +68,8 @@ class EventParticipantsAdmin(admin.ModelAdmin):
 @admin.register(EventApplications)
 class EventApplicationAdmin(admin.ModelAdmin):
     form = EventApplicationForm
+
+
+@admin.register(MultiEventApplication)
+class MultiEventApplicationAdmin(admin.ModelAdmin):
+    form = MultiEventApplicationForm

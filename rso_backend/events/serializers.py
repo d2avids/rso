@@ -118,6 +118,12 @@ class EventSerializer(serializers.ModelSerializer):
             'documents',
             'organization_data',
             'additional_issues',
+            'org_central_headquarter',
+            'org_district_headquarter',
+            'org_regional_headquarter',
+            'org_local_headquarter',
+            'org_educational_headquarter',
+            'org_detachment',
         )
         read_only_fields = (
             'id',
@@ -129,6 +135,14 @@ class EventSerializer(serializers.ModelSerializer):
             'document_data',
         )
 
+    def create(self, validated_data):
+        instance = Event(**validated_data)
+        try:
+            instance.full_clean()
+        except Exception as e:
+            raise serializers.ValidationError({'error': str(e)})
+        return super().create(validated_data)
+
 
 class ShortEventSerializer(serializers.ModelSerializer):
     class Meta:
@@ -138,6 +152,7 @@ class ShortEventSerializer(serializers.ModelSerializer):
             'name',
             'banner',
         )
+
 
 class AnswerSerializer(serializers.ModelSerializer):
     class Meta:
@@ -600,3 +615,11 @@ class EventApplicationsCreateSerializer(serializers.ModelSerializer):
                 'Вы загрузили не все документы. '
                 'Всего необходимо {} документов'.format(len_documents)
             )
+
+    def create(self, validated_data):
+        instance = EventApplications(**validated_data)
+        try:
+            instance.full_clean()
+        except Exception as e:
+            raise serializers.ValidationError({'error': str(e)})
+        return super().create(validated_data)

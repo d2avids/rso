@@ -168,6 +168,7 @@ class BaseShortUnitListSerializer(serializers.ModelSerializer):
 
     members_count = serializers.SerializerMethodField(read_only=True)
     participants_count = serializers.SerializerMethodField(read_only=True)
+    events_count = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = None
@@ -178,6 +179,7 @@ class BaseShortUnitListSerializer(serializers.ModelSerializer):
             'founding_date',
             'members_count',
             'participants_count',
+            'events_count',
         )
 
     @staticmethod
@@ -199,6 +201,9 @@ class BaseShortUnitListSerializer(serializers.ModelSerializer):
         if issubclass(instance_type, CentralHeadquarter):
             return RSOUser.objects.count()
         return instance.members.count() + 1
+
+    def get_events_count(self, instance):
+        return instance.events.count()
 
 
 class ShortDistrictHeadquarterListSerializer(BaseShortUnitListSerializer):
@@ -224,7 +229,6 @@ class ShortRegionalHeadquarterListSerializer(BaseShortUnitListSerializer):
         if region:
             serialized_data['region'] = RegionSerializer(region).data
         return serialized_data
-
 
 
 class ShortLocalHeadquarterListSerializer(BaseShortUnitListSerializer):
@@ -409,26 +413,7 @@ class BaseUnitSerializer(serializers.ModelSerializer):
         return serializer(leaders, many=True).data
 
     def get_events_count(self, instance):
-        mapping_units = {
-            'Detachment': 'Отрядное',
-            'EducationalHeadquarter':
-            ['Отрядное', 'Образовательное'],
-            'LocalHeadquarter':
-            ['Отрядное', 'Образовательное', 'Городское'],
-            'RegionalHeadquarter':
-            ['Отрядное', 'Образовательное', 'Городское', 'Региональное'],
-            'DistrictHeadquarter':
-            ['Отрядное', 'Образовательное', 'Городское', 'Региональное',
-             'Окружное'],
-            'CentralHeadquarter':
-            ['Отрядное', 'Образовательное', 'Городское', 'Региональное',
-             'Окружное', 'Всероссийское']
-        }
-        commander = instance.commander
-        instance_unit_class_name = mapping_units.get(self.Meta.model.__name__)
-        return commander.event_set.filter(
-            scale__in=instance_unit_class_name
-        ).count()
+        return instance.events.count()
 
     @staticmethod
     def get_members_count(instance):

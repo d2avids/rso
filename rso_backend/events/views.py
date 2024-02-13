@@ -648,7 +648,7 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
         ```
         Доступ:
             - только командир структурной единицы, типу которых
-              разрешена подача заявок.
+              разрешена подача заявок. Командир должен быть верифицирован.
 
         Дубли и структурные единицы без хотя бы одного участника игнорируются.
         """
@@ -675,7 +675,7 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
         if (event.participants_number and
                 total_participants > event.participants_number):
             raise serializers.ValidationError(
-                'Общее количество поданых участников превышает общее'
+                'Общее количество поданых участников превышает общее '
                 'разрешенное количество участников мероприятя.'
             )
 
@@ -957,7 +957,7 @@ class EventAutoComplete(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(name__icontains=self.q)
 
-        return qs
+        return qs.order_by('name')
 
     def get_ordering(self):
         pass
