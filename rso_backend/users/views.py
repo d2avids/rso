@@ -369,6 +369,7 @@ class UserProfessionalEducationViewSet(BaseUserViewSet):
             }
         )
 
+
 class UserDocumentsViewSet(BaseUserViewSet):
     """Представляет документы пользователя."""
 
@@ -564,4 +565,4 @@ class UserAutocomplete(autocomplete.Select2QuerySetView):
                 Q(last_name__icontains=self.q) |
                 Q(patronymic_name__icontains=self.q)
             )
-        return qs
+        return qs.order_by('last_name')

@@ -651,7 +651,7 @@ class RegionAutoComplete(autocomplete.Select2QuerySetView):
 
         if self.q:
             qs = qs.filter(name__icontains=self.q)
-        return qs
+        return qs.order_by('name')
 
 
 class EducationalAutoComplete(autocomplete.Select2QuerySetView):
@@ -661,7 +661,7 @@ class EducationalAutoComplete(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(name__icontains=self.q)
 
-        return qs
+        return qs.order_by('name')
 
 
 class LocalAutoComplete(autocomplete.Select2QuerySetView):
@@ -671,7 +671,7 @@ class LocalAutoComplete(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(name__icontains=self.q)
 
-        return qs
+        return qs.order_by('name')
 
 
 class RegionalAutoComplete(autocomplete.Select2QuerySetView):
@@ -681,7 +681,7 @@ class RegionalAutoComplete(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(name__icontains=self.q)
 
-        return qs
+        return qs.order_by('name')
 
 
 class EducationalInstitutionAutoComplete(autocomplete.Select2QuerySetView):
@@ -691,7 +691,7 @@ class EducationalInstitutionAutoComplete(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(name__icontains=self.q)
 
-        return qs
+        return qs.order_by('name')
 
 
 class DetachmentAutoComplete(autocomplete.Select2QuerySetView):
@@ -701,7 +701,7 @@ class DetachmentAutoComplete(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(name__icontains=self.q)
 
-        return qs
+        return qs.order_by('name')
 
 
 class PositionAutoComplete(autocomplete.Select2QuerySetView):
@@ -711,4 +711,4 @@ class PositionAutoComplete(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(name__icontains=self.q)
 
-        return qs
+        return qs.order_by('name')

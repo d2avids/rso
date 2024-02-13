@@ -20,6 +20,12 @@ class EventSwaggerSerializer(serializers.ModelSerializer):
             'description',
             'application_type',
             'available_structural_units',
+            'org_central_headquarter',
+            'org_district_headquarter',
+            'org_regional_headquarter',
+            'org_local_headquarter',
+            'org_educational_headquarter',
+            'org_detachment',
         )
 
 
