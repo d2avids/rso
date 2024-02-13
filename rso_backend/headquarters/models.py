@@ -490,6 +490,10 @@ class Detachment(Unit):
         self.check_headquarters_relations()
         if not self.regional_headquarter:
             self.regional_headquarter = self.region.headquarters.first()
+        if not self.educational_institution and self.educational_headquarter:
+            self.educational_institution = (
+                self.educational_headquarter.educational_institution
+            )
         super().save(*args, **kwargs)
 
     def __str__(self):

@@ -405,7 +405,9 @@ class BaseUnitSerializer(serializers.ModelSerializer):
         """
         serializer = self._get_position_serializer()
         position_instance = self._get_position_instance()
-        leaders = position_instance.objects.exclude(
+        leaders = position_instance.objects.filter(
+            headquarter=instance
+        ).exclude(
             Q(position__name__in=settings.NOT_LEADERSHIP_POSITIONS) |
             Q(position__isnull=True)
         )
@@ -860,6 +862,7 @@ class DetachmentSerializer(BaseUnitSerializer):
         serializer = self._get_position_serializer()
         position_instance = self._get_position_instance()
         leaders = position_instance.objects.filter(
+            Q(headquarter=instance) &
             Q(position__name=settings.MASTER_METHODIST_POSITION_NAME) |
             Q(position__name=settings.COMMISSIONER_POSITION_NAME)
         )
