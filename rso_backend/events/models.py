@@ -173,11 +173,12 @@ class Event(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
 
-        try:
-            EventTimeData.objects.get_or_create(event_id=self.id)
-            EventDocumentData.objects.get_or_create(event_id=self.id)
-        except Exception:
-            raise
+        EventTimeData.objects.get_or_create(event_id=self.id)
+        EventDocumentData.objects.get_or_create(event_id=self.id)
+        EventOrganizationData.objects.create(
+            event_id=self.id,
+            organizer=self.author,
+        )
 
     def clean(self):
         filled_fields = [bool(getattr(self, field)) for field in [
