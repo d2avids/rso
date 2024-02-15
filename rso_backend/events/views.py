@@ -12,7 +12,9 @@ from rest_framework.response import Response
 
 from api.mixins import (CreateListRetrieveDestroyViewSet,
                         CreateRetrieveUpdateViewSet,
-                        ListRetrieveDestroyViewSet, RetrieveUpdateDestroyViewSet, RetrieveUpdateViewSet)
+                        ListRetrieveDestroyViewSet,
+                        RetrieveUpdateDestroyViewSet,
+                        RetrieveUpdateViewSet)
 from api.permissions import (IsApplicantOrOrganizer,
                              IsAuthorMultiEventApplication, IsAuthorPermission,
                              IsCommander, IsDetachmentCommander,

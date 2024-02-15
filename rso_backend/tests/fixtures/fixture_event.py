@@ -2,7 +2,10 @@ import pytest
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from events.models import Event, EventAdditionalIssue, EventApplications, EventIssueAnswer, EventOrganizationData, EventParticipants
+from events.models import (
+    Event, EventAdditionalIssue, EventApplications,
+    EventIssueAnswer, EventOrganizationData, EventParticipants
+)
 from users.models import RSOUser
 
 
@@ -20,9 +23,11 @@ def user_event_organizer():
 
 @pytest.fixture
 def authenticated_client_event_organizer(user_event_organizer):
-    """Аунтефицированный клиент для организатора мероприятий.
+    """
+    Аутентифицированный клиент для организатора мероприятий.
     Не забудь при использовании еще создать фикстуру
-    организатора event_organizer."""
+    организатора event_organizer.
+    """
     client = APIClient()
     token, _ = Token.objects.get_or_create(user=user_event_organizer)
     client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
@@ -56,8 +61,8 @@ def event_individual(user_event_organizer, regional_headquarter):
 
 
 @pytest.fixture
-def issue(event_individual):
-    """Вопрос по мероприятию"""
+def issue_individual(event_individual):
+    """Вопрос по мероприятию."""
     return EventAdditionalIssue.objects.create(
         event=event_individual,
         issue='Вопрос по мероприятию',
@@ -65,8 +70,8 @@ def issue(event_individual):
 
 
 @pytest.fixture
-def issue2(event_individual):
-    """Второй вопрос по мероприятию"""
+def issue_individual2(event_individual):
+    """Второй вопрос по мероприятию."""
     return EventAdditionalIssue.objects.create(
         event=event_individual,
         issue='Второй вопрос по мероприятию',
@@ -74,7 +79,7 @@ def issue2(event_individual):
 
 
 @pytest.fixture
-def issues(event_individual, issue, issue2):
+def issues_individual(event_individual, issue_individual, issue_individual2):
     """
     Вопросы по мероприятию.
     Создает фикстуры и возвращает два вопроса.
@@ -85,29 +90,31 @@ def issues(event_individual, issue, issue2):
 
 
 @pytest.fixture
-def answer(event_individual, user_5, issue):
-    """Ответ на вопрос по мероприятию от user_5"""
+def answer_individual(event_individual, user_5, issue_individual):
+    """Ответ на вопрос по мероприятию от user_5."""
     return EventIssueAnswer.objects.create(
         event=event_individual,
         user=user_5,
-        issue=issue,
+        issue=issue_individual,
         answer='Ответ на вопрос',
     )
 
 
 @pytest.fixture
-def answer2(event_individual, user_5, issue2):
-    """Второй ответ на вопрос по мероприятию от user_5"""
+def answer_individual2(event_individual, user_5, issue_individual2):
+    """Второй ответ на вопрос по мероприятию от user_5."""
     return EventIssueAnswer.objects.create(
         event=event_individual,
         user=user_5,
-        issue=issue2,
+        issue=issue_individual2,
         answer='Второй ответ на вопрос',
     )
 
 
 @pytest.fixture
-def answers(event_individual, answer, answer2):
+def answers_individual(
+    event_individual, answer_individual, answer_individual2
+):
     """
     Ответы на вопросы по мероприятию.
     Создает фикстуры и возвращает два ответа.
@@ -118,8 +125,8 @@ def answers(event_individual, answer, answer2):
 
 
 @pytest.fixture
-def event_organizer(user_event_organizer, event_individual):
-    """пользователь из модели организаторов эвентов."""
+def event_organizer_individual(user_event_organizer, event_individual):
+    """Пользователь из модели организаторов эвентов."""
     organizer = EventOrganizationData.objects.create(
         event=event_individual,
         organizer=user_event_organizer
@@ -129,10 +136,12 @@ def event_organizer(user_event_organizer, event_individual):
 
 @pytest.fixture
 def application_individual(
-    event_individual, user_5, issue, answer
+    event_individual, user_5, issue_individual, answer_individual
 ):
-    """Неподтвержденная заявка на индивидуальное мероприятие
-    от user_5. После подтверждения заявка удаляется."""
+    """
+    Неподтвержденная заявка на индивидуальное мероприятие
+    от user_5. После подтверждения заявка удаляется.
+    """
     application = EventApplications.objects.create(
         event=event_individual,
         user=user_5
@@ -142,10 +151,12 @@ def application_individual(
 
 @pytest.fixture
 def application_individual2(
-    event_individual, user_4, issue, answer
+    event_individual, user_4, issue_individual, answer_individual
 ):
-    """Неподтвержденная заявка на индивидуальное мероприятие
-    от user_4. После подтверждения заявка удаляется."""
+    """
+    Неподтвержденная заявка на индивидуальное мероприятие
+    от user_4. После подтверждения заявка удаляется.
+    """
     application = EventApplications.objects.create(
         event=event_individual,
         user=user_4
@@ -157,7 +168,7 @@ def application_individual2(
 def participant_individual_event(
     event_individual, user_5
 ):
-    """Участник индивидуального эвента (user_5)"""
+    """Участник индивидуального эвента (user_5)."""
     participant = EventParticipants.objects.create(
         event=event_individual,
         user=user_5
