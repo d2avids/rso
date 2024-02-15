@@ -1,8 +1,9 @@
 import pytest
 
-from http import HTTPStatus,
+from http import HTTPStatus
 
-from tests.conftest import authenticated_client_2, free_authenticated_client, user_6, client
+from tests.conftest import user_uncommander_untrusted
+
 
 @pytest.mark.django_db
 def test_get_detachments_commander(client, detachment, authenticated_client):
@@ -14,7 +15,9 @@ def test_get_detachments_commander(client, detachment, authenticated_client):
 
 
 @pytest.mark.django_db
-def test_get_detachment_members_commander(client, detachment, authenticated_client):
+def test_get_detachment_members_commander(
+    client, detachment, authenticated_client
+):
     """Получение списка участников отряда юзером-командиром."""
 
     response = client.get(f'/api/v1/detachments/{detachment.pk}/members/')
@@ -41,7 +44,9 @@ def test_get_detachment_members_anonymous(client, detachment):
 
 
 @pytest.mark.django_db
-def test_delete_detachment_commander(client, detachment_2, authenticated_client_2):
+def test_delete_detachment_commander(
+    client, detachment_2, authenticated_client_2
+):
     """Удаление отряда юзером-командиром."""
 
     response = client.delete(f'/api/v1/detachments/{detachment_2.pk}/')
@@ -64,65 +69,93 @@ def test_delete_detachment_anonymous(client, detachment):
 
 class TestDetachmentsPositions:
     payload = {
-        'user': user_6,
+        'user': user_uncommander_untrusted,
         'position': 1,
         'is_trusted': True
     }
-    users_dict = {
-        'Анонимный юзер': client,
-        'Неверифицированный юзер': free_authenticated_client,
-        'Верифицированный юзер': 'создать',
-        'Командир текущего отряда': authenticated_client_2,
-        'Командир другого отряда, свой ОбрШ': 'создать/найти',
-        'Командир другого отряда, не свой ОбрШ': 'создать/найти',
-        'Командир своего ОбрШ': 'создать/найти',
-        'Командир другой ОбрШ': 'создать/найти',
-        'Командир своего МШ': 'создать/найти',
-        'Командир другой МШ': 'создать/найти',
-        'Командир своего РШ': 'создать/найти',
-        'Командир другой РШ': 'создать/найти',
-        'Командир своего ОкрШ': 'создать/найти',
-        'Командир другой ОкрШ': 'создать/найти',
-        'Командир ЦШ': 'создать/найти',
-    }
+    # authenticated_client_7 = authenticated_client_7
+    # authenticated_client_2 = authenticated_client_2
+    # authenticated_client_9 = authenticated_client_9
+    # authenticated_client = authenticated_client
+    # educational_headquarter_2 = educational_headquarter_2
+    # educational_headquarter = educational_headquarter
+    # local_headquarter_2 = local_headquarter_2
+    # local_headquarter = local_headquarter
+    # regional_headquarter_2 = regional_headquarter_2
+    # regional_headquarter = regional_headquarter
+    # district_headquarter_2 = district_headquarter_2
+    # district_headquarter = district_headquarter
+    # central_headquarter_2 = central_headquarter_2
+    # # admin_client = admin_client
 
+    # roles_dict = {
+    #     client: 'Анонимный юзер',
+    #     authenticated_client_7: 'Невериф-й юзер некомандир, недоверенный',
+    #     authenticated_client_2: 'Командир текущего отряда',
+    #     authenticated_client_9: 'Командир другого отряда, свой ОбрШ',
+    #     authenticated_client: 'Командир другого отряда, не свой ОбрШ',
+    #     educational_headquarter_2: 'Командир своего ОбрШ',
+    #     educational_headquarter: 'Командир другой ОбрШ',
+    #     local_headquarter_2: 'Командир своего МШ',
+    #     local_headquarter: 'Командир другой МШ',
+    #     regional_headquarter_2: 'Командир своего РШ',
+    #     regional_headquarter: 'Командир другой РШ',
+    #     district_headquarter_2: 'Командир своего ОкрШ',
+    #     district_headquarter: 'Командир другой ОкрШ',
+    #     central_headquarter_2: 'Командир ЦШ',
+    #     admin_client: 'Админ'
+    # }
+
+    @pytest.mark.parametrize(
+            'client_name',
+            [
+              'client',
+              'authenticated_client_7',
+              'authenticated_client_2',
+              'authenticated_client_9',
+              'authenticated_client',
+              'admin_client'
+            ]
+    )
     @pytest.mark.django_db
-    def test_get_detachment_memberships_commander(
-        self, client, detachment_2, authenticated_client_2,
-        detachment_positions
+    def test_get_detachment_memberships(
+        self, client, detachment_2, client_name,
+        detachment_positions, request, educational_headquarter_2,
+        educational_headquarter, local_headquarter_2, local_headquarter,
+        regional_headquarter_2, regional_headquarter, district_headquarter_2,
+        district_headquarter, central_headquarter_2
     ):
-        """Получение списка участников отряда юзером-командиром."""
+        """Получение списка участников отряда юзерами с разными ролями."""
 
-        response = authenticated_client_2.get(
+        test_client = request.getfixturevalue(client_name)
+        response = test_client.get(
             f'/api/v1/detachments/{detachment_2.pk}'
             f'/members/{detachment_positions.pk}/'
         )
 
         assert response.status_code == HTTPStatus.OK, (
-            'Response code is not 200'
+            'Response code is not 200.'
         )
 
+    # @pytest.mark.django_db
+    # def test_get_detachment_memberships_anonymous(
+    #     self, client, detachment_2, detachment_positions
+    # ):
+    #     """Получение списка участников отряда юзером-анонимом."""
 
-    @pytest.mark.django_db
-    def test_get_detachment_memberships_anonymous(
-        self, client, detachment_2, detachment_positions
-    ):
-        """Получение списка участников отряда юзером-анонимом."""
+    #     response = client.get(
+    #         f'/api/v1/detachments/{detachment_2.pk}'
+    #         f'/members/{detachment_positions.pk}/'
+    #     )
 
-        response = client.get(
-            f'/api/v1/detachments/{detachment_2.pk}'
-            f'/members/{detachment_positions.pk}/'
-        )
-
-        assert response.status_code == HTTPStatus.OK, (
-            'Response code is not 200'
-        )
-
+    #     assert response.status_code == HTTPStatus.OK, (
+    #         'Response code is not 200'
+    #     )
 
     @pytest.mark.django_db
     def test_up_del_detachment_memberships(
-        self, client, user_6, detachment_2, authenticated_client_2,
-        detachment_positions, free_authenticated_client
+        self, client, user_uncommander_untrusted, detachment_2,
+        authenticated_client_2, detachment_positions, free_authenticated_client
     ):
         """Изменение позиции/должности участника отряда юзером-командиром."""
 
@@ -145,7 +178,7 @@ class TestDetachmentsPositions:
         )
         response = authenticated_client_2.patch(
             f'/api/v1/detachments/{detachment_2.pk}/members/2/',
-           self.payload
+            self.payload
         )
         assert response.status_code == HTTPStatus.NOT_FOUND, (
             'Response code is not 404'
