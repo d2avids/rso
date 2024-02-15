@@ -36,7 +36,7 @@ def authenticated_client_event_organizer(user_event_organizer):
 
 @pytest.fixture
 def authenticated_verifed_client_5(client, user_5):
-    """Верифицированный аунтефицированный клиент."""
+    """Верифицированный аутентифицированный клиент."""
     user_5.is_verified = True
     user_5.save()
     token, _ = Token.objects.get_or_create(user=user_5)
