@@ -20,18 +20,21 @@ from users.models import RSOUser
 Тестовая структура РСО:
 Один центральный штаб. Один командир центрального штаба.
 Далее идет разветвление.
-- Окружной Штаб №1 делится на два Региональных штаба(РШ_1а и РШ_1б).
-- Региональный штаб №1a делится на два Местных штаба(МШ_1а и МШ_1б).
-- Местный штаб №1a делится на два Образовательных штаба(ОШ_1а и ОШ_1б).
+- Окружной Штаб №1 делится на два Региональных штаба(РШ_1а и РШ_1б);
+- Региональный штаб №1a делится на два Местных штаба(МШ_1а и МШ_1б);
+- Местный штаб №1a делится на два Образовательных штаба(ОШ_1а и ОШ_1б);
 - Образовательный штаб №1a делится на два Отряда(Отряд_1а и Отряд_1б).
 
 В каждом штабе/отряде уникальный командир.
 Кроме того созданы сущности:
-- Анонимный пользователь
-- Простой неверифицированный пользователь
-- Пользователь принятый в отдряд и назначенный на должность
-- Админ
+- Анонимный пользователь;
+- Простой неверифицированный пользователь;
+- Пользователь принятый в отдряд и назначенный на должность;
+- Доверенный пользователь в отряде;
+- Админ.
 """
+
+PASSWORD = 'p@ssWord!123'
 
 @pytest.fixture
 def anonymous_client():
@@ -47,7 +50,7 @@ def user_unverified():
         first_name='unverified',
         last_name='unverified',
         username='unverified',
-        password='p@ssWord!123'
+        password=PASSWORD
     )
     return user_unverified
 
@@ -57,9 +60,50 @@ def user_with_position():
 
     user_with_position = RSOUser.objects.create_user(
         first_name='HavePosition',
-        last_name='HavePositionов',
+        last_name='HavePosition',
         username='positioned',
-        password='p@ssWord!123'
+        password=PASSWORD
     )
     return user_with_position
+
+@pytest.fixture
+def user_trusted():
+    user_trusted = RSOUser.objects.create_user(
+        first_name='Юзер',
+        last_name='Доверенный',
+        username='trusted',
+        password=PASSWORD
+    )
+    return user_trusted
+
+@pytest.fixture
+def centr_commander():
+    centr_commander = RSOUser.objects.create_user(
+        first_name='Командир',
+        last_name='Центральный',
+        username='centr_com',
+        password=PASSWORD
+    )
+    return centr_commander
+
+@pytest.fixture
+def distr_commander_1a():
+    distr_commander_1a = RSOUser.objects.create_user(
+        first_name='Командир',
+        last_name='Окружной',
+        username='distr_com_1a',
+        password=PASSWORD
+    )
+    return distr_commander_1a
+
+
+@pytest.fixture
+def distr_commander_1b():
+    distr_commander_1b = RSOUser.objects.create_user(
+        first_name='Командир',
+        last_name='Окружной',
+        username='distr_com_1b',
+        password=PASSWORD
+    )
+    return distr_commander_1b
 
