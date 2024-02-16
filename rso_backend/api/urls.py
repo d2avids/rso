@@ -11,9 +11,11 @@ from api.constants import (CREATE_DELETE, CREATE_METHOD, DELETE,
 from api.views import (AreaViewSet, EducationalInstitutionViewSet,
                        MemberCertViewSet, RegionViewSet,
                        change_membership_fee_status, verify_user)
-from competitions.views import (CompetitionApplicationsViewSet,
-                                CompetitionParticipantsViewSet,
-                                CompetitionViewSet)
+from competitions.views import (
+    CompetitionApplicationsViewSet, CompetitionParticipantsViewSet,
+    CompetitionViewSet,
+    ParticipationInDistrictAndInterregionalEventsReportViewSet
+)
 from events.views import (AnswerDetailViewSet, EventAdditionalIssueViewSet,
                           EventApplicationsViewSet,
                           EventOrganizationDataViewSet,
@@ -92,6 +94,16 @@ router.register(
     r'competitions/(?P<competition_pk>\d+)/participants',
     CompetitionParticipantsViewSet,
     basename='competition-participants'
+)
+# router.register(
+#     r'regionals/(?P<region_pk>\d+)/comp_applications/participation_in_district_and_interregional_events',
+#     ParticipationInDistrictAndInterregionalEventsReportViewSet,
+#     basename='participation_in_district_and_interregional_events'
+# )
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/participation_in_district_and_interregional_events',
+    ParticipationInDistrictAndInterregionalEventsReportViewSet,
+    basename='participation_in_district_and_interregional_events'
 )
 
 

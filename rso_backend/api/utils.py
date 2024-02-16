@@ -598,3 +598,19 @@ def is_regional_commander(user):
     return (user.is_authenticated and
             (check_regional_commander or
              user.is_staff))
+
+
+def is_commander_this_detachment(user, detachment):
+    """Проверяет, является ли пользователь командиром отряда."""
+    return user.is_authenticated and detachment.commander == user
+
+
+def is_regional_commissioner(user):
+    """Проверяет, является ли пользователь комиссаром рег штаба."""
+    if not user.is_authenticated:
+        return False
+    try:
+        position_name = user.userregionalheadquarterposition.position.name
+    except UserRegionalHeadquarterPosition.DoesNotExist:
+        return False
+    return position_name == 'Комиссар' or user.is_staff

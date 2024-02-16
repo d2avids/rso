@@ -3,7 +3,9 @@ from datetime import date
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, signals
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
@@ -13,23 +15,33 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from api.mixins import ListRetrieveDestroyViewSet
-from api.permissions import (IsRegionalCommanderOrAdmin,
-                             IsRegionalCommanderOrAdminOrAuthor)
-from competitions.models import (CompetitionApplications,
-                                 CompetitionParticipants, Competitions)
-from competitions.serializers import (CompetitionApplicationsObjectSerializer,
-                                      CompetitionApplicationsSerializer,
-                                      CompetitionParticipantsObjectSerializer,
-                                      CompetitionParticipantsSerializer,
-                                      CompetitionSerializer,
-                                      ShortDetachmentCompetitionSerializer)
+from api.permissions import (
+    IsCommanderAndCompetitionParticipant,
+    IsCommanderDetachmentInParameterOrRegionalCommissioner,
+    IsRegionalCommanderOrAdmin, IsRegionalCommanderOrAdminOrAuthor,
+    IsRegionalCommissioner,
+    IsRegionalCommissionerOrCommanderDetachmentWithVerif
+)
+from competitions.models import (
+    CompetitionApplications, CompetitionParticipants, Competitions,
+    ParticipationInDistrAndInterregionalEvents,
+    ParticipationInDistrAndInterregionalEventsReport, Score
+)
+from competitions.serializers import (
+    CompetitionApplicationsObjectSerializer, CompetitionApplicationsSerializer,
+    CompetitionParticipantsObjectSerializer, CompetitionParticipantsSerializer,
+    CompetitionSerializer,
+    ConfirmParticipationInDistrictAndInterregionalEventsReportSerializer,
+    ParticipationInDistrictAndInterregionalEventsReportSerializer,
+    ParticipationInDistrictAndInterregionalEventsSerializer,
+    ShortDetachmentCompetitionSerializer
+)
 from competitions.swagger_schemas import (request_update_application,
                                           response_competitions_applications,
                                           response_competitions_participants,
                                           response_create_application,
                                           response_junior_detachments)
 from headquarters.models import Detachment, RegionalHeadquarter
-from headquarters.serializers import ShortDetachmentSerializer
 from rso_backend.settings import BASE_DIR
 
 
@@ -80,9 +92,8 @@ class CompetitionViewSet(viewsets.ModelViewSet):
         )
         return list(Detachment.objects.exclude(
             id__in=in_applications_junior_detachment_ids
-                + participants_junior_detachment_ids
-        ).values_list('id', flat=True)
-                    )
+            + participants_junior_detachment_ids
+        ).values_list('id', flat=True))
 
     def get_junior_detachments(self):
         """
@@ -510,3 +521,147 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = CompetitionParticipantsObjectSerializer(participant_unit)
         return Response(serializer.data)
+
+
+class ParticipationInDistrictAndInterregionalEventsReportViewSet(
+    viewsets.ModelViewSet
+):
+    """Вью сет для показателя 'Участие членов студенческого отряда в
+    окружных и межрегиональных мероприятиях.'.
+
+    Доступ:
+        - чтение: Командир отряда из инстанса объекта к которому
+                  нужен доступ, а также комиссары региональных штабов.
+        - чтение(list): только комиссары региональных штабов.
+        - изменение: Если заявка не подтверждена - командир отряда из
+                     инстанса объекта который изменяют,
+                     а также комиссары региональных штабов.
+                     Если подтверждена - только комиссар регионального штаба.
+        - удаление: Если заявка не подтверждена - командир отряда из
+                    инстанса объекта который удаляют,
+                    а также комиссары региональных штабов.
+                    Если подтверждена - только комиссар регионального штаба.
+    Поиск:
+        - ключ для поиска: ?search
+        - поле для поиска: id отряда и id конкурса.
+    """
+    queryset = ParticipationInDistrAndInterregionalEventsReport.objects.all()
+    serializer_class = ParticipationInDistrictAndInterregionalEventsReportSerializer
+    permission_classes = (
+        permissions.IsAuthenticated,
+        IsCommanderDetachmentInParameterOrRegionalCommissioner
+    )
+    filter_backends = (filters.SearchFilter, )
+    search_fields = ('detachment__name', 'competition__name')
+
+    def get_queryset(self):
+        return ParticipationInDistrAndInterregionalEventsReport.objects.filter(
+            competition_id=self.kwargs.get('competition_pk')
+        )
+
+    def get_permissions(self):
+        if self.action == 'retrieve':
+            return [permissions.IsAuthenticated(),
+                    IsCommanderDetachmentInParameterOrRegionalCommissioner()]
+        if self.action == 'create':
+            return [permissions.IsAuthenticated(),
+                    IsCommanderAndCompetitionParticipant()]
+        if self.action == 'list':
+            return [permissions.IsAuthenticated(), IsRegionalCommissioner()]
+        if self.action in ['update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(),
+                    IsRegionalCommissionerOrCommanderDetachmentWithVerif()]
+        return super().get_permissions()
+
+    # @staticmethod
+    # def score_calculation(data):
+    #     """Функция вычисления баллов."""
+    #     elements = data.get('events')
+    #     if len(elements) == 0:
+    #         return 0
+    #     return sum([element['number_of_participants'] for element in elements])
+
+    def create(self, request, *args, **kwargs):
+        """Action для создания отчета.
+
+        Доступ: командиры отрядов, которые участвуют в конкурсе.
+        """
+        competition = get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+        detachment = get_object_or_404(
+            Detachment, id=request.user.detachment_commander.id
+        )
+        if ParticipationInDistrAndInterregionalEventsReport.objects.filter(
+                competition=competition,
+                detachment=detachment
+        ).exists():
+            return Response({'error': 'Отчет уже создан. Измените существующий.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(competition=competition,
+                        detachment=detachment,
+                        is_verified=False)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data,
+                        status=status.HTTP_201_CREATED,
+                        headers=headers)
+
+    @action(detail=True,
+            methods=['post'],
+            url_path='accept',
+            permission_classes=(permissions.IsAuthenticated,
+                                IsRegionalCommissioner,))
+    def accept_report(self, request, competition_pk, pk):
+        """Action для верификации отчета рег. комиссаром."""
+        report = self.get_object()
+        if report.is_verified:
+            return Response({'error': 'Отчет уже подтвержден.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        serializer = (
+            ConfirmParticipationInDistrictAndInterregionalEventsReportSerializer(
+                report,
+                data={'is_verified': True},
+                context={'request': request},
+                partial=True)
+        )
+        try:
+            with transaction.atomic():
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                # score_table_instance, created = Score.objects.get_or_create(
+                #     detachment=report.detachment,
+                # )
+                # score_table_instance.participation_in_district_and_interregional_events = (
+                #     self.score_calculation(serializer.data)
+                # )
+                # score_table_instance.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as error:
+            return Response({'error': str(error)},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+
+@receiver(post_save, sender=ParticipationInDistrAndInterregionalEventsReport)
+def create_score(sender, instance, created, **kwargs):
+    """Сигнал для пересчета баллов при сохранении отчета."""
+    if created:
+        pass
+    else:
+        if instance.is_verified:
+            score_table_instance = Score.objects.get_or_create(
+                detachment=instance.detachment
+            )
+            score_table_instance.participation_in_district_and_interregional_events = (
+                instance.score_calculation(instance)
+            )
+            score_table_instance.save()
+
+        return score_table_instance
+
+
+signals.post_save.connect(
+    create_score,
+    sender=ParticipationInDistrAndInterregionalEventsReport
+)

@@ -1,4 +1,7 @@
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
+
+from competitions.utils import get_certificate_scans_path
 
 
 class Competitions(models.Model):
@@ -129,3 +132,149 @@ class CompetitionParticipants(models.Model):
                 name='unique_tandem_participant'
             )
         ]
+
+
+class Score(models.Model):
+    """
+    Таблица для хранения очков отрядов за верифицированные отчеты.
+    """
+    detachment = models.ForeignKey(
+        to='headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='competition_scores',
+        verbose_name='Отряд'
+    )
+    competition = models.ForeignKey(
+        to='Competitions',
+        on_delete=models.CASCADE,
+        related_name='competition_scores',
+        verbose_name='Конкурс'
+    )
+    participation_in_district_and_interregional_events = (
+        models.PositiveSmallIntegerField(
+            verbose_name='Оценка',
+            default=0
+        )
+    )
+
+    def __str__(self):
+        return (
+            f'Оценки отряда {self.detachment.name} '
+            f'в конкурсе {self.competition.name}'
+        )
+
+
+class LinksOfParticipationInDistrAndInterregionalEvents(models.Model):
+    """
+    Ссылки на участие в окружных и межрегиональных мероприятиях.
+
+    Хранит пользовательские ссылки на социальные сети с фотоотчетом
+    с наименованием мероприятия и наименованием ЛСО,
+    принявшем в нем участие.
+    """
+    link = models.URLField(
+        verbose_name='Ссылка',
+        max_length=500
+    )
+    event = models.ForeignKey(
+        to='ParticipationInDistrAndInterregionalEvents',
+        on_delete=models.CASCADE,
+        related_name='links',
+        verbose_name='Участие в окружных и межрегиональных мероприятиях'
+    )
+
+    def __str__(self):
+        return (f'Ссылка участия в конкурсе, id {self.id}')
+
+    class Meta:
+        verbose_name_plural = (
+            'Ссылки на фотоотчет участия СО в окружных и '
+            'межрегиональных мероприятиях'
+        )
+        verbose_name = (
+            'Ссылка на фотоотчет участия СО в окружном '
+            'или межрегиональном мероприятии'
+        )
+
+
+class ParticipationInDistrAndInterregionalEvents(models.Model):
+    """
+    Участие членов студенческого отряда в окружных и межрегиональных
+    мероприятиях. Модель для хранения каждого участия.
+    """
+    event_name = models.CharField(
+        verbose_name='Название мероприятия',
+        max_length=255
+    )
+    certificate_scans = models.FileField(
+        verbose_name='Сканы сертификатов',
+        upload_to=get_certificate_scans_path,
+        blank=True,
+        null=True
+    )
+    number_of_participants = models.PositiveIntegerField(
+        verbose_name='Количество участников',
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    created_at = models.DateTimeField(
+        verbose_name='Дата и время создания заявки',
+        auto_now_add=True
+    )
+    report = models.ForeignKey(
+        to='ParticipationInDistrAndInterregionalEventsReport',
+        on_delete=models.CASCADE,
+        related_name='events',
+    )
+
+    def __str__(self):
+        return (f'Участие в окружных и'
+                f'межрегиональных мероприятиях, id {self.id}')
+
+    class Meta:
+        verbose_name = 'Участие в окружных и межрегиональных  мероприятиях'
+
+
+class ParticipationInDistrAndInterregionalEventsReport(models.Model):
+    """
+    Модель для хранения отчета о участии в окружных и межрегиональных
+    мероприятиях.
+    """
+    competition = models.ForeignKey(
+        to='Competitions',
+        on_delete=models.CASCADE,
+        related_name='participation_in_district_and_interregional_events_reports',
+        verbose_name='Конкурс',
+    )
+    detachment = models.ForeignKey(
+        to='headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='participation_in_district_and_interregional_events_reports',
+        verbose_name='Отряд'
+    )
+    is_verified = models.BooleanField(
+        verbose_name='Подтверждено',
+        default=False
+    )
+
+    def __str__(self):
+        return (f'Отчет о участии СО {self.detachment.name} '
+                f'в окружных и межрегиональных мероприятиях, id {self.id}')
+
+    class Meta:
+        ordering = ['-competition__id']
+        verbose_name = 'Отчет о участии в окружных и межрегиональных мероприятиях'
+        verbose_name_plural = 'Отчеты о участии в окружных и межрегиональных мероприятиях'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('competition', 'detachment'),
+                name='unique_participation_in_district_and_interregional_events_report'
+            )
+        ]
+
+    def score_calculation(self):
+        """Функция вычисления баллов."""
+        elements = self.events.all()
+        if len(elements) == 0:
+            return 0
+        return sum([element['number_of_participants'] for element in elements])
