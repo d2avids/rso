@@ -2,16 +2,18 @@ import datetime
 
 import pytest
 from django.conf import settings
-from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from headquarters.models import (Area, CentralHeadquarter, Detachment,
+from headquarters.models import (CentralHeadquarter, Detachment, Position,
                                  DistrictHeadquarter, EducationalHeadquarter,
-                                 EducationalInstitution, LocalHeadquarter,
-                                 Position, Region, RegionalHeadquarter,
-                                 UserDetachmentPosition)
+                                 LocalHeadquarter, UserDetachmentPosition,
+                                 UserEducationalHeadquarterPosition,
+                                 RegionalHeadquarter,
+                                 UserLocalHeadquarterPosition,
+                                 UserRegionalHeadquarterPosition,
+                                 UserCentralHeadquarterPosition)
 from tests.conftest import (client, educational_institution, area, area_2,
-                            educational_institution_2, region, region_2)
+                            educational_institution_2, region)
 from users.models import RSOUser
 
 
@@ -56,27 +58,165 @@ def user_unverified():
     )
     return user_unverified
 
+
 @pytest.fixture
-def user_with_position():
+def user_with_position_in_detachment():
     """Пользователь принятый в отряд и назначенный на должность."""
 
-    user_with_position = RSOUser.objects.create_user(
+    user_with_position_in_detachment = RSOUser.objects.create_user(
         first_name='HavePosition',
-        last_name='HavePosition',
-        username='positioned',
+        last_name='InDetachment',
+        username='positionedDETACHMENT',
         password=PASSWORD
     )
-    return user_with_position
+    return user_with_position_in_detachment
+
 
 @pytest.fixture
-def user_trusted():
-    user_trusted = RSOUser.objects.create_user(
+def user_with_position_in_edu_hq():
+    """Пользователь принятый в образовательный штаб.
+
+     Будет назначен на должность.
+    """
+
+    user_with_position_in_edu_hq = RSOUser.objects.create_user(
+        first_name='HavePosition',
+        last_name='InEduHq',
+        username='positionedEDUHQ',
+        password=PASSWORD
+    )
+    return user_with_position_in_edu_hq
+
+
+@pytest.fixture
+def user_with_position_in_local_hq():
+    """Пользователь принятый в местный штаб.
+
+     Будет назначен на должность.
+    """
+
+    user_with_position_in_local_hq = RSOUser.objects.create_user(
+        first_name='HavePosition',
+        last_name='InLocalHq',
+        username='positionedLOCALHQ',
+        password=PASSWORD
+    )
+    return user_with_position_in_local_hq
+
+
+@pytest.fixture
+def user_with_position_in_regional_hq():
+    """Пользователь принятый в региональный штаб.
+
+     Будет назначен на должность.
+    """
+
+    user_with_position_in_regional_hq = RSOUser.objects.create_user(
+        first_name='HavePosition',
+        last_name='InRegionalHq',
+        username='positionedREGIONALHQ',
+        password=PASSWORD
+    )
+    return user_with_position_in_regional_hq
+
+
+@pytest.fixture
+def user_with_position_in_district_hq():
+    """Пользователь принятый в окружный штаб.
+
+     Будет назначен на должность.
+    """
+
+    user_with_position_in_district_hq = RSOUser.objects.create_user(
+        first_name='HavePosition',
+        last_name='InDistrictHq',
+        username='positionedDISTRICTHQ',
+        password=PASSWORD
+    )
+    return user_with_position_in_district_hq
+
+
+@pytest.fixture
+def user_with_position_in_centr_hq():
+    """Пользователь принятый в центральный штаб.
+
+     Будет назначен на должность.
+    """
+
+    user_with_position_in_centr_hq = RSOUser.objects.create_user(
+        first_name='HavePosition',
+        last_name='InCentrHq',
+        username='positionedCENTRHQ',
+        password=PASSWORD
+    )
+    return user_with_position_in_centr_hq
+
+
+@pytest.fixture
+def user_trusted_in_detachment():
+    user_trusted_in_detachment = RSOUser.objects.create_user(
         first_name='Юзер',
         last_name='Доверенный',
         username='trusted',
         password=PASSWORD
     )
-    return user_trusted
+    return user_trusted_in_detachment
+
+
+@pytest.fixture
+def user_trusted_in_edu_hq():
+    user_trusted_in_edu_hq = RSOUser.objects.create_user(
+        first_name='Юзер',
+        last_name='Доверенный',
+        username='trustedEDUHQ',
+        password=PASSWORD
+    )
+    return user_trusted_in_edu_hq
+
+
+@pytest.fixture
+def user_trusted_in_local_hq():
+    user_trusted_in_local_hq = RSOUser.objects.create_user(
+        first_name='Юзер',
+        last_name='Доверенный',
+        username='trustedLOCALHQ',
+        password=PASSWORD
+    )
+    return user_trusted_in_local_hq
+
+
+@pytest.fixture
+def user_trusted_in_regional_hq():
+    user_trusted_in_regional_hq = RSOUser.objects.create_user(
+        first_name='Юзер',
+        last_name='Доверенный',
+        username='trustedREGIONALHQ',
+        password=PASSWORD
+    )
+    return user_trusted_in_regional_hq
+
+
+@pytest.fixture
+def user_trusted_in_district_hq():
+    user_trusted_in_district_hq = RSOUser.objects.create_user(
+        first_name='Юзер',
+        last_name='Доверенный',
+        username='trustedDISTRICTHQ',
+        password=PASSWORD
+    )
+    return user_trusted_in_district_hq
+
+
+@pytest.fixture
+def user_trusted_in_centr_hq():
+    user_trusted_in_centr_hq = RSOUser.objects.create_user(
+        first_name='Юзер',
+        last_name='Доверенный',
+        username='trustedCENTRHQ',
+        password=PASSWORD
+    )
+    return user_trusted_in_centr_hq
+
 
 @pytest.fixture
 def centr_commander():
@@ -213,11 +353,81 @@ def authenticated_unverified(user_unverified, client):
 
 
 @pytest.fixture
-def authenticated_user_with_position(user_with_position, client):
-    """Аутентифицированный пользователь с должностью."""
+def authenticated_user_with_position_in_detachment(
+    user_with_position_in_detachment, client
+):
+    """Аутентифицированный пользователь с должностью в отряде."""
 
     login_payload = {
-        'username': 'positioned',
+        'username': 'positionedDETACHMENT',
+        'password': PASSWORD,
+    }
+    response = client.post('/api/v1/token/login/', login_payload)
+    assert response.status_code == 200
+    token = response.data['auth_token']
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+    return client
+
+
+@pytest.fixture
+def authenticated_user_with_position_in_edu_hq(
+    user_with_position_in_edu_hq, client
+):
+    """Аутентифицированный пользователь с должностью в обр. штабе."""
+
+    login_payload = {
+        'username': 'positionedEDUHQ',
+        'password': PASSWORD,
+    }
+    response = client.post('/api/v1/token/login/', login_payload)
+    assert response.status_code == 200
+    token = response.data['auth_token']
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+    return client
+
+
+@pytest.fixture
+def authenticated_user_with_position_in_local_hq(
+    user_with_position_in_local_hq, client
+):
+    """Аутентифицированный пользователь с должностью в мест. штабе."""
+
+    login_payload = {
+        'username': 'positionedLOCALHQ',
+        'password': PASSWORD,
+    }
+    response = client.post('/api/v1/token/login/', login_payload)
+    assert response.status_code == 200
+    token = response.data['auth_token']
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+    return client
+
+
+@pytest.fixture
+def authenticated_user_with_position_in_regional_hq(
+    user_with_position_in_regional_hq, client
+):
+    """Аутентифицированный пользователь с должностью в рег. штабе."""
+
+    login_payload = {
+        'username': 'positionedREGIONALHQ',
+        'password': PASSWORD,
+    }
+    response = client.post('/api/v1/token/login/', login_payload)
+    assert response.status_code == 200
+    token = response.data['auth_token']
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+    return client
+
+
+@pytest.fixture
+def authenticated_user_with_position_in_distr_hq(
+    user_with_position_in_district_hq, client
+):
+    """Аутентифицированный пользователь с должностью в дист. штабе."""
+
+    login_payload = {
+        'username': 'positionedDISTRICTHQ',
         'password': PASSWORD,
     }
     response = client.post('/api/v1/token/login/', login_payload)
@@ -227,8 +437,25 @@ def authenticated_user_with_position(user_with_position, client):
     return client
 
 @pytest.fixture
-def authenticated_trusted(user_trusted, client):
-    """Аутентифицированный доверенный клиент."""
+def authenticated_user_with_position_in_centr_hq(
+    user_with_position_in_centr_hq, client
+):
+    """Аутентифицированный пользователь с должностью в центр. штабе."""
+
+    login_payload = {
+        'username': 'positionedCENTRHQ',
+        'password': PASSWORD,
+    }
+    response = client.post('/api/v1/token/login/', login_payload)
+    assert response.status_code == 200
+    token = response.data['auth_token']
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+    return client
+
+
+@pytest.fixture
+def authenticated_trusted_in_detachment(user_trusted_in_detachment, client):
+    """Аутентифицированный доверенный юзер отряда."""
 
     login_payload = {
         'username': 'trusted',
@@ -240,6 +467,78 @@ def authenticated_trusted(user_trusted, client):
     client.credentials(HTTP_AUTHORIZATION='Token ' + token)
     return client
 
+
+@pytest.fixture
+def authenticated_trusted_in_edu_hq(user_trusted_in_edu_hq, client):
+    """Аутентифицированный доверенный юзер обр. штаба ."""
+
+    login_payload = {
+        'username': 'trustedEDUHQ',
+        'password': PASSWORD,
+    }
+    response = client.post('/api/v1/token/login/', login_payload)
+    assert response.status_code == 200
+    token = response.data['auth_token']
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+    return client
+
+
+@pytest.fixture
+def authenticated_trusted_in_local_hq(user_trusted_in_local_hq, client):
+    """Аутентифицированный доверенный юзер мест. штаба."""
+
+    login_payload = {
+        'username': 'trustedLOCALHQ',
+        'password': PASSWORD,
+    }
+    response = client.post('/api/v1/token/login/', login_payload)
+    assert response.status_code == 200
+    token = response.data['auth_token']
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+    return client
+
+
+@pytest.fixture
+def authenticated_trusted_in_regional_hq(user_trusted_in_regional_hq, client):
+    """Аутентифицированный доверенный юзер рег. штаба."""
+
+    login_payload = {
+        'username': 'trustedREGIONALHQ',
+        'password': PASSWORD,
+    }
+    response = client.post('/api/v1/token/login/', login_payload)
+    assert response.status_code == 200
+    token = response.data['auth_token']
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+    return client
+
+@pytest.fixture
+def authenticated_trusted_in_district_hq(user_trusted_in_district_hq, client):
+    """Аутентифицированный доверенный юзер дист. штаба."""
+
+    login_payload = {
+        'username': 'trustedDISTRICTHQ',
+        'password': PASSWORD,
+    }
+    response = client.post('/api/v1/token/login/', login_payload)
+    assert response.status_code == 200
+    token = response.data['auth_token']
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+    return client
+
+@pytest.fixture
+def authenticated_trusted_in_centr_hq(user_trusted_in_centr_hq, client):
+    """Аутентифицированный доверенный юзер центр. штаба."""
+
+    login_payload = {
+        'username': 'trustedCENTRHQ',
+        'password': PASSWORD,
+    }
+    response = client.post('/api/v1/token/login/', login_payload)
+    assert response.status_code == 200
+    token = response.data['auth_token']
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+    return client
 
 @pytest.fixture
 def authenticated_centr_commander(centr_commander, client):
@@ -581,25 +880,178 @@ def position_jedi():
 
 
 @pytest.fixture
-def position_dart():
-    """Должность Дарт"""
+def positions_for_detachments():
+    """Альтернативные должности."""
 
     position_dart = Position.objects.create(
         name='Дарт'
     )
-    return position_dart
+    position_master = Position.objects.create(
+        name='Магистр'
+    )
+    return position_dart, position_master
 
 
 @pytest.fixture
 def detachment_positions(
-    detachment_1a, user_with_position, position_jedi
+    detachment_1a, user_with_position_in_detachment, position_jedi,
+    user_trusted_in_detachment
 ):
-    """user_with_position в отряде detachment_1a с должностью джедай."""
+    """
+    user_with_position_in_detachment недоверенный в отряде detachment_1a
+    с должностью джедай.
 
-    detachment_position = UserDetachmentPosition.objects.create(
+    user_trusted_in_detachment доверенный в отряде detachment_1a
+    с должностью джедай.
+    """
+
+    det_position_regular = UserDetachmentPosition.objects.create(
         headquarter=detachment_1a,
-        user=user_with_position,
+        user=user_with_position_in_detachment,
         position=position_jedi,
         is_trusted=False
     )
-    return detachment_position
+    det_position_trusted = UserDetachmentPosition.objects.create(
+        headquarter=detachment_1a,
+        user=user_trusted_in_detachment,
+        position=position_jedi,
+        is_trusted=True
+    )
+    return det_position_regular, det_position_trusted
+
+@pytest.fixture
+def edu_hq_positions(
+    edu_hq_1a, user_with_position_in_edu_hq, position_jedi,
+    user_trusted_in_edu_hq
+):
+    """
+    user_with_position_in_edu_hq недоверенный в образовательном штабе edu_hq_1a
+    с должностью джедай.
+
+    user_trusted_in_edu_hq доверенный в образовательном штабе edu_hq_1a
+    с должностью джедай.
+    """
+
+    edu_hq_position_regular = UserEducationalHeadquarterPosition.objects.create(
+        headquarter=edu_hq_1a,
+        user=user_with_position_in_edu_hq,
+        position=position_jedi,
+        is_trusted=False
+    )
+    edu_hq_position_trusted = UserEducationalHeadquarterPosition.objects.create(
+        headquarter=edu_hq_1a,
+        user=user_trusted_in_edu_hq,
+        position=position_jedi,
+        is_trusted=True
+    )
+    return edu_hq_position_regular, edu_hq_position_trusted
+
+@pytest.fixture
+def local_hq_positions(
+    local_hq_1a, user_with_position_in_local_hq, position_jedi,
+    user_trusted_in_local_hq
+):
+    """
+    user_with_position_in_local_hq недоверенный в местном штабе local_hq_1a
+    с должностью джедай.
+
+    user_trusted_in_local_hq доверенный в местном штабе local_hq_1a
+    с должностью джедай.
+    """
+
+    local_hq_position_regular = UserLocalHeadquarterPosition.objects.create(
+        headquarter=local_hq_1a,
+        user=user_with_position_in_local_hq,
+        position=position_jedi,
+        is_trusted=False
+    )
+    local_hq_position_trusted = UserLocalHeadquarterPosition.objects.create(
+        headquarter=local_hq_1a,
+        user=user_trusted_in_local_hq,
+        position=position_jedi,
+        is_trusted=True
+    )
+    return local_hq_position_regular, local_hq_position_trusted
+
+
+@pytest.fixture
+def regional_hq_positions(
+    regional_hq_1a, user_with_position_in_regional_hq, position_jedi,
+    user_trusted_in_regional_hq
+):
+    """
+    user_with_position_in_regional_hq недоверенный в рег. штабе regional_hq_1a
+    с должностью джедай.
+
+    user_trusted_in_regional_hq доверенный в  рег. штабе regional_hq_1a
+    с должностью джедай.
+    """
+
+    reg_hq_position_regular = UserRegionalHeadquarterPosition.objects.create(
+        headquarter=regional_hq_1a,
+        user=user_with_position_in_regional_hq,
+        position=position_jedi,
+        is_trusted=False
+    )
+    reg_hq_position_trusted = UserLocalHeadquarterPosition.objects.create(
+        headquarter=regional_hq_1a,
+        user=user_trusted_in_regional_hq,
+        position=position_jedi,
+        is_trusted=True
+    )
+    return reg_hq_position_regular, reg_hq_position_trusted
+
+@pytest.fixture
+def district_hq_positions(
+    district_hq_1a, user_with_position_in_district_hq, position_jedi,
+    user_trusted_in_district_hq
+):
+    """
+    user_with_position_in_district_hq недоверенный в окружном штабе district_hq_1a
+    с должностью джедай.
+
+    user_trusted_in_district_hq доверенный в окружном штабе district_hq_1a
+    с должностью джедай.
+    """
+
+    distr_hq_position_regular = UserDistrictHeadquarterPosition.objects.create(
+        headquarter=district_hq_1a,
+        user=user_with_position_in_district_hq,
+        position=position_jedi,
+        is_trusted=False
+    )
+    distr_hq_position_trusted = UserDistrictHeadquarterPosition.objects.create(
+        headquarter=district_hq_1a,
+        user=user_trusted_in_district_hq,
+        position=position_jedi,
+        is_trusted=True
+    )
+    return distr_hq_position_regular, distr_hq_position_trusted
+
+@pytest.fixture
+def central_hq_position(
+    central_hq, user_with_position_in_centr_hq, position_jedi,
+    user_trusted_in_centr_hq
+):
+    """
+    user_with_position_in_centr_hq недоверенный в центральном штабе
+    с должностью джедай.
+
+    user_trusted_in_central_hq доверенный в центральном штабе c должностью
+    джедай.
+    """
+
+    central_hq_position_regular = UserCentralHeadquarterPosition.objects.create(
+        headquarter=central_hq,
+        user=user_with_position_in_centr_hq,
+        position=position_jedi,
+        is_trusted=False
+    )
+    central_hq_position_trusted = UserCentralHeadquarterPosition.objects.create(
+        headquarter=central_hq,
+        user=user_trusted_in_centr_hq,
+        position=position_jedi,
+        is_trusted=True
+    )
+
+    return central_hq_position_regular, central_hq_position_trusted
