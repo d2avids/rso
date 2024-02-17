@@ -116,7 +116,7 @@ def verify_user(request, pk):
 
 
 @api_view(['POST', 'DELETE'])
-@permission_classes([MembershipFeePermission])
+@permission_classes([permissions.IsAuthenticated, MembershipFeePermission])
 def change_membership_fee_status(request, pk):
     """Изменить статус оплаты членского взноса пользователю.
 
