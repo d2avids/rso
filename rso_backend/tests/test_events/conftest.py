@@ -3,7 +3,7 @@ from events.models import Event
 
 
 @pytest.fixture
-def event_detachment(user_6):
+def event_detachment(user_6, regional_headquarter):
     event = Event.objects.create(
         name='Test Event',
         format='Онлайн',
@@ -15,5 +15,7 @@ def event_detachment(user_6):
         participants_number=100,
         description='desc',
         available_structural_units='Отряды',
+        org_regional_headquarter=regional_headquarter,
+
     )
     return event
