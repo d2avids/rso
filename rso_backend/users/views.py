@@ -34,7 +34,7 @@ from users.serializers import (EmailSerializer, ForeignUserDocumentsSerializer,
                                UserProfessionalEducationSerializer,
                                UserRegionSerializer, UsersParentSerializer,
                                UserStatementDocumentsSerializer,
-                               UserTrustedSerializer)
+                               UserTrustedSerializer, SafeUserSerializer)
 
 
 class CustomUserViewSet(UserViewSet):
@@ -210,6 +210,16 @@ class RSOUserViewSet(RetrieveUpdateViewSet):
             user = get_object_or_404(RSOUser, id=pk)
             serializer = UserCommanderSerializer(user)
             return Response(serializer.data)
+
+
+class SafeUserViewSet(RetrieveViewSet):
+    """Безопасные для чтения данные пользователя по id.
+
+    Доступно авторизованным пользователям.
+    """
+    queryset = RSOUser.objects.all()
+    serializer_class = SafeUserSerializer
+    permission_classes = (permissions.IsAuthenticated,)
 
 
 class BaseUserViewSet(viewsets.ModelViewSet):
