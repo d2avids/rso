@@ -6,10 +6,10 @@ from tests.conftest import user_uncommander_untrusted
 
 
 @pytest.mark.django_db
-def test_get_detachments_commander(client, detachment, authenticated_client):
+def test_get_detachments_commander(authenticated_det_com_1a, detachment_1a, detachment_commander_1a):
     """Получение списка отрядов юзером-командиром одного из отрядов."""
 
-    response = client.get('/api/v1/detachments/')
+    response = authenticated_det_com_1a.get('/api/v1/detachments/')
 
     assert response.status_code == HTTPStatus.OK, 'Response code is not 200'
 
