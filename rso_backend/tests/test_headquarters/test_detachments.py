@@ -243,4 +243,3 @@ class TestDetachmentsPositions:
         assert response.status_code == HTTPStatus.FORBIDDEN, (
             'Response code is not 403.'
         )
-

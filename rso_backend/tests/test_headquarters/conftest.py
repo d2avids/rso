@@ -11,7 +11,8 @@ from headquarters.models import (CentralHeadquarter, Detachment, Position,
                                  RegionalHeadquarter,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition,
-                                 UserCentralHeadquarterPosition)
+                                 UserCentralHeadquarterPosition,
+                                 UserDistrictHeadquarterPosition,)
 from tests.conftest import (client, educational_institution, area, area_2,
                             educational_institution_2, region)
 from users.models import RSOUser
@@ -993,7 +994,7 @@ def regional_hq_positions(
         position=position_jedi,
         is_trusted=False
     )
-    reg_hq_position_trusted = UserLocalHeadquarterPosition.objects.create(
+    reg_hq_position_trusted = UserRegionalHeadquarterPosition.objects.create(
         headquarter=regional_hq_1a,
         user=user_trusted_in_regional_hq,
         position=position_jedi,
@@ -1029,7 +1030,7 @@ def district_hq_positions(
     return distr_hq_position_regular, distr_hq_position_trusted
 
 @pytest.fixture
-def central_hq_position(
+def central_hq_positions(
     central_hq, user_with_position_in_centr_hq, position_jedi,
     user_trusted_in_centr_hq
 ):
@@ -1040,7 +1041,7 @@ def central_hq_position(
     user_trusted_in_central_hq доверенный в центральном штабе c должностью
     джедай.
     """
-
+    #TODO: записьне создается. Нужно разобраться как создать для тестов.
     central_hq_position_regular = UserCentralHeadquarterPosition.objects.create(
         headquarter=central_hq,
         user=user_with_position_in_centr_hq,

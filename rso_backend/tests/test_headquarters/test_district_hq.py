@@ -3,12 +3,12 @@ import pytest
 from http import HTTPStatus
 
 from headquarters.models import Position
-from tests.test_headquarters.conftest import user_with_position_in_local_hq
+from tests.test_headquarters.conftest import user_with_position_in_district_hq
 
 
-class TestLocalHQPositions:
+class TestDistrictHQPositions:
     payload = {
-        'user': user_with_position_in_local_hq,
+        'user': user_with_position_in_district_hq,
         'position': 1,
         'is_trusted': True
     }
@@ -45,11 +45,11 @@ class TestLocalHQPositions:
         ]
     )
     @pytest.mark.django_db
-    def test_get_local_hq_memberships(
+    def test_get_district_hq_memberships(
             self, client, central_hq, district_hq_1a, district_hq_1b,
             regional_hq_1a, regional_hq_1b, local_hq_1a, local_hq_1b,
             edu_hq_1a, edu_hq_1b, detachment_1a, detachment_1b,
-            client_name, request, local_hq_positions,
+            client_name, request, district_hq_positions,
             user_with_position_in_detachment, user_with_position_in_edu_hq,
             user_with_position_in_local_hq, user_with_position_in_regional_hq,
             user_with_position_in_district_hq, user_with_position_in_centr_hq,
@@ -61,12 +61,15 @@ class TestLocalHQPositions:
             local_commander_1b, regional_commander_1a, regional_commander_1b,
             distr_commander_1a, distr_commander_1b, centr_commander
     ):
-        """Получение списка уч-ков местн. штаба юзерами с разными ролями."""
+        """
+        Получение списка участников окружного штаба
+        юзерами с разными ролями.
+        """
 
         test_client = request.getfixturevalue(client_name)
         response = test_client.get(
-            f'/api/v1/locals/{local_hq_1a.pk}'
-            f'/members/{local_hq_positions[0].pk}/',
+            f'/api/v1/districts/{district_hq_1a.pk}'
+            f'/members/{district_hq_positions[0].pk}/',
         )
 
         assert response.status_code == HTTPStatus.OK, (
@@ -74,8 +77,8 @@ class TestLocalHQPositions:
         )
 
         assert response.data['user']['username'] == (
-            user_with_position_in_local_hq.username
-        ), 'В ответе нет участника с должностью в местном штабе.'
+            user_with_position_in_district_hq.username
+        ), 'В ответе нет участника с должностью в окружном штабе.'
 
     @pytest.mark.parametrize(
         'client_name',
@@ -89,13 +92,9 @@ class TestLocalHQPositions:
             'authenticated_user_with_position_in_centr_hq',
             'authenticated_trusted_in_detachment',
             'authenticated_trusted_in_edu_hq',
-            'authenticated_trusted_in_regional_hq',
-            'authenticated_trusted_in_district_hq',
             'authenticated_trusted_in_centr_hq',
             'authenticated_centr_commander',
-            'authenticated_distr_commander_1a',
             'authenticated_distr_commander_1b',
-            'authenticated_regional_commander_1a',
             'authenticated_regional_commander_1b',
             'authenticated_edu_commander_1a',
             'authenticated_local_commander_1b',
@@ -103,14 +102,18 @@ class TestLocalHQPositions:
             'authenticated_edu_commander_1b',
             'authenticated_det_com_1b',
             'admin_client',
+            'authenticated_trusted_in_local_hq',
+            'authenticated_local_commander_1a',
+            'authenticated_trusted_in_regional_hq',
+            'authenticated_regional_commander_1a',
         ]
     )
     @pytest.mark.django_db
-    def test_bad_upd_del_local_hq_memberships(
+    def test_bad_upd_del_district_hq_memberships(
         self, client, central_hq, district_hq_1a, district_hq_1b,
         regional_hq_1a, regional_hq_1b, local_hq_1a, local_hq_1b,
         edu_hq_1a, edu_hq_1b, detachment_1a, detachment_1b,
-        client_name, request, local_hq_positions,
+        client_name, request, district_hq_positions,
         user_with_position_in_detachment, user_with_position_in_edu_hq,
         user_with_position_in_local_hq, user_with_position_in_regional_hq,
         user_with_position_in_district_hq, user_with_position_in_centr_hq,
@@ -122,27 +125,27 @@ class TestLocalHQPositions:
         local_commander_1b, regional_commander_1a, regional_commander_1b,
         distr_commander_1a,
     ):
-        """Плохая попытка изменения/удаления позиции участника  местного штаба.
+        """Плохая попытка изменения/удаления позиции участника Окр. штаба.
 
         В тесте принимают участие все роли юзеров, кроме:
-        - командира местного штаба 1а;
-        - доверенного члена местного штаба 1a;
+        - командира окружного штаба 1а;
+        - доверенного члена окружного штаба 1a;
         - анонима
         """
 
         self.payload['position'] = 2
         test_client = request.getfixturevalue(client_name)
         response = test_client.patch(
-            f'/api/v1/locals/{local_hq_1a.pk}'
-            f'/members/{local_hq_positions[0].pk}/',
+            f'/api/v1/districts/{district_hq_1a.pk}'
+            f'/members/{district_hq_positions[0].pk}/',
             self.payload
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, (
             'Response code is not 403.'
         )
         response = test_client.put(
-            f'/api/v1/locals/{local_hq_1a.pk}'
-            f'/members/{local_hq_positions[0].pk}/',
+            f'/api/v1/districts/{district_hq_1a.pk}'
+            f'/members/{district_hq_positions[0].pk}/',
             self.payload
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, (
@@ -150,33 +153,33 @@ class TestLocalHQPositions:
         )
 
         response = test_client.delete(
-            f'/api/v1/locals/{local_hq_1a.pk}'
-            f'/members/{local_hq_positions[0].pk}/',
+            f'/api/v1/districts/{district_hq_1a.pk}'
+            f'/members/{district_hq_positions[0].pk}/',
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, (
             'Response code is not 403.'
         )
 
     @pytest.mark.django_db
-    def test_anon_upd_del_local_hq_memberships(
-        self, client, local_hq_1a, local_hq_positions
+    def test_anon_upd_del_district_hq_memberships(
+        self, client, district_hq_1a, district_hq_positions
     ):
-        """Аноним пытается изменить/удалить позицию участника местн. штаба."""
+        """Аноним пытается изменить/удалить позицию участника Окр. штаба."""
 
         self.payload['position'] = 2
         response = client.patch(
-            f'/api/v1/locals/{local_hq_1a.pk}'
-            f'/members/{local_hq_positions[0].pk}/',
+            f'/api/v1/districts/{district_hq_1a.pk}'
+            f'/members/{district_hq_positions[0].pk}/',
             self.payload
         )
         assert response.status_code == HTTPStatus.UNAUTHORIZED, (
             'Response code is not 401.'
         )
 
-        self.payload['position'] = 2
+        self.payload['position'] = 3
         response = client.put(
-            f'/api/v1/locals/{local_hq_1a.pk}'
-            f'/members/{local_hq_positions[0].pk}/',
+            f'/api/v1/districts/{district_hq_1a.pk}'
+            f'/members/{district_hq_positions[0].pk}/',
             self.payload
         )
         assert response.status_code == HTTPStatus.UNAUTHORIZED, (
@@ -184,8 +187,8 @@ class TestLocalHQPositions:
         )
 
         response = client.delete(
-            f'/api/v1/locals/{local_hq_1a.pk}'
-            f'/members/{local_hq_positions[0].pk}/',
+            f'/api/v1/districts/{district_hq_1a.pk}'
+            f'/members/{district_hq_positions[0].pk}/',
             self.payload
         )
         assert response.status_code == HTTPStatus.UNAUTHORIZED, (
@@ -194,29 +197,29 @@ class TestLocalHQPositions:
 
     @pytest.mark.parametrize(
         'client_name', [
-            'authenticated_trusted_in_local_hq',
-            'authenticated_local_commander_1a',
+            'authenticated_trusted_in_district_hq',
+            'authenticated_distr_commander_1a',
         ]
     )
     @pytest.mark.django_db
-    def test_good_upd_del_local_hq_memberships(
-        self, client_name, request, local_hq_1a, local_hq_positions,
-        positions_for_detachments, local_commander_1a,
-        user_trusted_in_local_hq, client
+    def test_good_upd_del_district_hq_memberships(
+        self, client_name, request, district_hq_1a, district_hq_positions,
+        positions_for_detachments, distr_commander_1a,
+        user_trusted_in_district_hq, client
     ):
-        """Проверка изменения/удаления позиции участника местного штаба.
+        """Проверка изменения/удаления позиции участника окружного штаба.
 
         Действующие лица, которым разрешен update:
-        - командира  местного штаба 1a;
-        - доверенного члена местного штаба 1a.
+        - командира  окружного штаба 1a;
+        - доверенного члена окружного штаба 1a.
         DELETE запрещен и это тоже проверяем здесь.
         """
 
         test_client = request.getfixturevalue(client_name)
         self.payload['position'] = 2
         response = test_client.put(
-            f'/api/v1/locals/{local_hq_1a.pk}'
-            f'/members/{local_hq_positions[0].pk}/',
+            f'/api/v1/districts/{district_hq_1a.pk}'
+            f'/members/{district_hq_positions[0].pk}/',
             self.payload
         )
         assert response.status_code == HTTPStatus.OK, (
@@ -228,8 +231,8 @@ class TestLocalHQPositions:
 
         self.payload['position'] = 3
         response = test_client.patch(
-            f'/api/v1/locals/{local_hq_1a.pk}'
-            f'/members/{local_hq_positions[0].pk}/',
+            f'/api/v1/districts/{district_hq_1a.pk}'
+            f'/members/{district_hq_positions[0].pk}/',
             self.payload
         )
         assert response.status_code == HTTPStatus.OK, (
@@ -240,8 +243,8 @@ class TestLocalHQPositions:
         ), 'Position is not changed.'
 
         response = test_client.delete(
-            f'/api/v1/locals/{local_hq_1a.pk}'
-            f'/members/{local_hq_positions[0].pk}/',
+            f'/api/v1/districts/{district_hq_1a.pk}'
+            f'/members/{district_hq_positions[0].pk}/',
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, (
             'Response code is not 403.'
