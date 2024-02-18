@@ -13,7 +13,7 @@ from api.views import (AreaViewSet, EducationalInstitutionViewSet,
                        change_membership_fee_status, verify_user)
 from competitions.views import (
     CompetitionApplicationsViewSet, CompetitionParticipantsViewSet,
-    CompetitionViewSet,
+    CompetitionViewSet, ParticipationInAllRussianEventsViewSet,
     ParticipationInDistrictAndInterregionalEventsViewSet,
 )
 from events.views import (AnswerDetailViewSet, EventAdditionalIssueViewSet,
@@ -105,6 +105,11 @@ router.register(
     r'competitions/(?P<competition_pk>\d+)/reports/participation_in_district_and_interregional_events',
     ParticipationInDistrictAndInterregionalEventsViewSet,
     basename='participation_in_district_and_interregional_events'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/participation_in_all_russian_events',
+    ParticipationInAllRussianEventsViewSet,
+    basename='participation_in_all_russian_events'
 )
 
 

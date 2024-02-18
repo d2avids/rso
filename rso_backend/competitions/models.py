@@ -156,6 +156,12 @@ class Score(models.Model):
             default=0
         )
     )
+    participation_in_all_russian_events = (
+        models.PositiveSmallIntegerField(
+            verbose_name='Оценка',
+            default=0
+        )
+    )
 
     def __str__(self):
         return (
@@ -174,7 +180,60 @@ class Score(models.Model):
         ]
 
 
-class LinksOfParticipationInDistrAndInterregEvents(models.Model):
+class Links(models.Model):
+    """Абстрактная модель для ссылок."""
+    link = models.URLField(
+        verbose_name='Ссылка',
+        max_length=500
+    )
+
+    def __str__(self):
+        return (f'Ссылка участия в конкурсе, id {self.id}')
+
+    class Meta:
+        abstract = True
+
+
+class Report(models.Model):
+    """Абстрактная модель для отчетов."""
+    event_name = models.CharField(
+        verbose_name='Название мероприятия',
+        max_length=255
+    )
+    certificate_scans = models.FileField(
+        verbose_name='Сканы сертификатов',
+        upload_to=get_certificate_scans_path,
+        blank=True,
+        null=True
+    )
+    number_of_participants = models.PositiveIntegerField(
+        verbose_name='Количество участников',
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    created_at = models.DateTimeField(
+        verbose_name='Дата и время создания заявки',
+        auto_now_add=True
+    )
+    is_verified = models.BooleanField(
+        verbose_name='Подтверждено',
+        default=False
+    )
+
+    class Meta:
+        abstract = True
+
+    def score_calculation(self, events, report):
+        """Функция вычисления очков."""
+        if events.__len__() == 0:
+            return 0
+        total_participants = events.aggregate(
+            total_participants=models.Sum('number_of_participants')
+        )
+        return total_participants['total_participants']
+
+
+class LinksOfParticipationInDistrAndInterregEvents(Links):
     """
     Ссылки на участие в окружных и межрегиональных мероприятиях.
 
@@ -182,10 +241,6 @@ class LinksOfParticipationInDistrAndInterregEvents(models.Model):
     с наименованием мероприятия и наименованием ЛСО,
     принявшем в нем участие.
     """
-    link = models.URLField(
-        verbose_name='Ссылка',
-        max_length=500
-    )
     event = models.ForeignKey(
         to='ParticipationInDistrAndInterregEvents',
         on_delete=models.CASCADE,
@@ -208,35 +263,16 @@ class LinksOfParticipationInDistrAndInterregEvents(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=('event', 'link'),
-                name='unique_event_link'
+                name='unique_event_link_distr_and_interreg_events'
             )
         ]
 
 
-class ParticipationInDistrAndInterregEvents(models.Model):
+class ParticipationInDistrAndInterregEvents(Report):
     """
     Участие членов студенческого отряда в окружных и межрегиональных
     мероприятиях. Модель для хранения каждого участия.
     """
-    event_name = models.CharField(
-        verbose_name='Название мероприятия',
-        max_length=255
-    )
-    certificate_scans = models.FileField(
-        verbose_name='Сканы сертификатов',
-        upload_to=get_certificate_scans_path,
-        blank=True,
-        null=True
-    )
-    number_of_participants = models.PositiveIntegerField(
-        verbose_name='Количество участников',
-        default=0,
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
-    )
-    created_at = models.DateTimeField(
-        verbose_name='Дата и время создания заявки',
-        auto_now_add=True
-    )
     competition = models.ForeignKey(
         to='Competitions',
         on_delete=models.CASCADE,
@@ -249,10 +285,6 @@ class ParticipationInDistrAndInterregEvents(models.Model):
         related_name='participation_in_distr_and_interreg_events',
         verbose_name='Отряд'
     )
-    is_verified = models.BooleanField(
-        verbose_name='Подтверждено',
-        default=False
-    )
 
     def __str__(self):
         return (f'Участие СО {self.detachment.name} в окружных '
@@ -262,7 +294,8 @@ class ParticipationInDistrAndInterregEvents(models.Model):
         verbose_name = 'Участие в окружных и межрегиональных мероприятиях'
         ordering = ['-competition__id']
         verbose_name = 'Участие в окружных и межрегиональных мероприятиях'
-        verbose_name_plural = 'Участия в окружных и межрегиональных мероприятиях'
+        verbose_name_plural = ('Участия в окружных и межрегиональных '
+                               'мероприятиях')
         constraints = [
             models.UniqueConstraint(
                 fields=('competition', 'detachment', 'event_name'),
@@ -270,11 +303,67 @@ class ParticipationInDistrAndInterregEvents(models.Model):
             )
         ]
 
-    def score_calculation(self, events, report):
-        """Функция вычисления баллов."""
-        if events.__len__() == 0:
-            return 0
-        total_participants = events.aggregate(
-            total_participants=models.Sum('number_of_participants')
+
+class LinksOfParticipationInAllRussianEvents(Links):
+    """
+    Ссылки на участие во всероссийских мероприятиях.
+
+    Хранит пользовательские ссылки на социальные сети с фотоотчетом
+    с наименованием мероприятия и наименованием ЛСО,
+    принявшем в нем участие.
+    """
+    event = models.ForeignKey(
+        to='ParticipationInAllRussianEvents',
+        on_delete=models.CASCADE,
+        related_name='links',
+        verbose_name='Участие во всероссийских мероприятиях'
+    )
+
+    class Meta:
+        verbose_name_plural = (
+            'Ссылки на фотоотчет участия СО во всероссийских мероприятиях'
         )
-        return total_participants['total_participants']
+        verbose_name = (
+            'Ссылка на фотоотчет участия СО во всероссийском мероприятии'
+        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=('event', 'link'),
+                name='unique_event_link_all_russian_events'
+            )
+        ]
+
+
+class ParticipationInAllRussianEvents(Report):
+    """
+    Участие членов студенческого отряда во всероссийских
+    мероприятиях. Модель для хранения каждого участия.
+    """
+    competition = models.ForeignKey(
+        to='Competitions',
+        on_delete=models.CASCADE,
+        related_name='participation_in_all_russian_events',
+        verbose_name='Конкурс',
+    )
+    detachment = models.ForeignKey(
+        to='headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='participation_in_all_russian_events',
+        verbose_name='Отряд'
+    )
+
+    def __str__(self):
+        return (f'Участие СО {self.detachment.name} во всероссийских '
+                f'мероприятиях, id {self.id}')
+
+    class Meta:
+        verbose_name = 'Участие во всероссийских мероприятиях'
+        ordering = ['-competition__id']
+        verbose_name = 'Участие во всероссийских мероприятиях'
+        verbose_name_plural = 'Участия во всероссийских мероприятиях'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('competition', 'detachment', 'event_name'),
+                name='unique_participation_in_all_russian_events'
+            )
+        ]

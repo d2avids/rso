@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import filters, permissions, status, viewsets
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from api.mixins import ListRetrieveDestroyViewSet
@@ -22,19 +22,21 @@ from api.permissions import (
 )
 from competitions.models import (
     CompetitionApplications, CompetitionParticipants, Competitions,
+    ParticipationInAllRussianEvents,
     ParticipationInDistrAndInterregEvents,
-    Score
 )
 from competitions.serializers import (
     CompetitionApplicationsObjectSerializer, CompetitionApplicationsSerializer,
     CompetitionParticipantsObjectSerializer, CompetitionParticipantsSerializer,
-    CompetitionSerializer,
+    CompetitionSerializer, ConfirmParticipationInAllRussianEventsSerializer,
     ConfirmParticipationInDistrictAndInterregionalEventsSerializer,
+    ParticipationInAllRussianEventsCreateSerializer,
+    ParticipationInAllRussianEventsSerializer,
     ParticipationInDistrAndInterregEventsCreateSerializer,
     ParticipationInDistrAndInterregEventsSerializer,
     ShortDetachmentCompetitionSerializer
 )
-from competitions.signal_handlers import create_score
+from competitions.signal_handlers import create_score_q7, create_score_q8
 from competitions.swagger_schemas import (request_update_application,
                                           response_competitions_applications,
                                           response_competitions_participants,
@@ -559,16 +561,16 @@ class ParticipationInDistrictAndInterregionalEventsViewSet(
             regional_headquarter = (
                 self.request.user.userregionalheadquarterposition.headquarter
             )
-            return ParticipationInDistrAndInterregEvents.objects.filter(
+            return self.serializer_class.Meta.model.objects.filter(
                 detachment__regional_headquarter=regional_headquarter,
                 competition_id=self.kwargs.get('competition_pk')
             )
         if self.action == 'me':
-            return ParticipationInDistrAndInterregEvents.objects.filter(
+            return self.serializer_class.Meta.model.objects.filter(
                 detachment__commander=self.request.user,
                 competition_id=self.kwargs.get('competition_pk')
             )
-        return ParticipationInDistrAndInterregEvents.objects.filter(
+        return self.serializer_class.Meta.model.objects.filter(
             competition_id=self.kwargs.get('competition_pk')
         )
 
@@ -643,8 +645,7 @@ class ParticipationInDistrictAndInterregionalEventsViewSet(
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as error:
             return Response({'error': str(error)},
-                            status=status.HTTP_400_BAD_REQUEST)    
-
+                            status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False,
             methods=['get'],
@@ -656,7 +657,93 @@ class ParticipationInDistrictAndInterregionalEventsViewSet(
         в региональных и межрегиональных мероприятиях текущего пользователя.
 
         Доступ: все пользователи, кроме анонимов.
-        Если у пользователь не командир отряда, и у его отряда нет поданых отчетов,
-        вернется пустой список.
+        Если у пользователь не командир отряда, и у его отряда нет
+        поданых отчетов, вернется пустой список.
         """
         return super().list(request, *args, **kwargs)
+
+
+class ParticipationInAllRussianEventsViewSet(
+    ParticipationInDistrictAndInterregionalEventsViewSet
+):
+    """Вью сет для показателя 'Участие членов студенческого отряда во
+    всероссийских мероприятиях.'.
+
+    Доступ:
+        - чтение: Командир отряда из инстанса объекта к которому
+                  нужен доступ, а также комиссары региональных штабов.
+        - чтение(list): только комиссары региональных штабов.
+        - изменение: Если заявка не подтверждена - командир отряда из
+                     инстанса объекта который изменяют,
+                     а также комиссары региональных штабов.
+                     Если подтверждена - только комиссар регионального штаба.
+        - удаление: Если заявка не подтверждена - командир отряда из
+                    инстанса объекта который удаляют,
+                    а также комиссары региональных штабов.
+                    Если подтверждена - только комиссар регионального штаба.
+    ! При редактировании нельзя изменять event_name.
+    Поиск:
+        - ключ для поиска: ?search
+        - поле для поиска: id отряда и id конкурса.
+    """
+    queryset = ParticipationInAllRussianEvents.objects.all()
+    serializer_class = ParticipationInAllRussianEventsSerializer
+
+    def create(self, request, *args, **kwargs):
+        """Action для создания отчета.
+
+        Доступ: командиры отрядов, которые участвуют в конкурсе.
+        """
+        competition = get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+        detachment = get_object_or_404(
+            Detachment, id=request.user.detachment_commander.id
+        )
+        serializer = ParticipationInAllRussianEventsCreateSerializer(
+            data=request.data,
+            context={'request': request,
+                     'action': 'create',
+                     'competition': competition,
+                     'detachment': detachment})
+        serializer.is_valid(raise_exception=True)
+        serializer.save(competition=competition,
+                        detachment=detachment,
+                        is_verified=False)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data,
+                        status=status.HTTP_201_CREATED,
+                        headers=headers)
+
+    @action(detail=True,
+            methods=['post'],
+            url_path='accept',
+            permission_classes=(permissions.IsAuthenticated,
+                                IsRegionalCommissioner,))
+    @swagger_auto_schema(
+        request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={})
+    )
+    def accept_report(self, request, competition_pk, pk, *args, **kwargs):
+        """
+        Action для верификации отчета рег. комиссаром.
+
+        Принимает пустой POST запрос.
+        """
+        report = self.get_object()
+        if report.is_verified:
+            return Response({'error': 'Отчет уже подтвержден.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        serializer = (
+            ConfirmParticipationInAllRussianEventsSerializer(
+                report,
+                data={'is_verified': True},
+                context={'request': request},
+                partial=True)
+        )
+        try:
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as error:
+            return Response({'error': str(error)},
+                            status=status.HTTP_400_BAD_REQUEST)

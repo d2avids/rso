@@ -460,11 +460,6 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
             'Ссылки на отчет не соответствуют ожидаемым'
         )
 
-
-
-
-
-
     def test_patch_report_participant(
         self, authenticated_client_3, participants_competition_tandem,
         competition, report_question7_not_verif, report_question7_not_verif2
