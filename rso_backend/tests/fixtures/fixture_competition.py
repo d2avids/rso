@@ -334,6 +334,30 @@ def report_question7_verif(
 
 
 @pytest.fixture
+def report_question7_verif_second(
+    competition, participants_competition_tandem,
+    junior_detachment
+):
+    """
+    Второй верифицированный отчет отряда по участию в областных
+    и межрегиональных мероприятиях. Подал отчет участник отряда
+    тандем-младший отряд - участник конкурса. Регион 1.
+    """
+    report = ParticipationInDistrAndInterregEvents.objects.create(
+        event_name='Мероприятие 2',
+        number_of_participants=100,
+        competition=competition,
+        detachment=junior_detachment,
+        is_verified=True
+    )
+    link = LinksOfParticipationInDistrAndInterregEvents.objects.create(
+        link='https://example.com/q7_12',
+        event=report
+    )
+    return report
+
+
+@pytest.fixture
 def report_question7_not_verif2(
     competition, participants_competition_start,
     junior_detachment_3

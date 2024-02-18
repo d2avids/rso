@@ -269,3 +269,12 @@ class ParticipationInDistrAndInterregEvents(models.Model):
                 name='unique_participation_in_distr_and_interreg_events'
             )
         ]
+
+    def score_calculation(self, events, report):
+        """Функция вычисления баллов."""
+        if events.__len__() == 0:
+            return 0
+        total_participants = events.aggregate(
+            total_participants=models.Sum('number_of_participants')
+        )
+        return total_participants['total_participants']

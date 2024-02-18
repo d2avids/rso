@@ -671,3 +671,37 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
                 scores[0].participation_in_distr_and_interreg_events ==
                 verif_report.number_of_participants
             ), 'Оценка не соответствует ожидаемому'
+
+    def test_put_number_participants_reg_commander(
+            self, authenticated_client_commissar_regional_headquarter,
+            participants_competition_tandem, competition,
+            report_question7_verif, report_question7_verif_second
+    ):
+        """
+        Проверка работы сигнала, который пересчитывает общее количество
+        очков, после изменения количества участников в
+        верифицированной заявке рег.командиром.
+        """
+        response = authenticated_client_commissar_regional_headquarter.patch(
+            f'{self.competition_url}{competition.id}'
+            f'{self.question_url}{report_question7_verif_second.id}/',
+            data=self.report,
+            format='json'
+        )
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200'
+        )
+        scores = Score.objects.filter(
+            competition=competition,
+            detachment=report_question7_verif.detachment
+        ).all()
+        assert scores.count() == 1, (
+            "Количество записей не соответствует ожидаемому"
+        )
+        assert (
+            scores[0].participation_in_distr_and_interreg_events ==
+            self.report['number_of_participants'] +
+            report_question7_verif.number_of_participants
+        ), (
+            "Количество участников не пересчиталось, сигнал не отработал."
+        )

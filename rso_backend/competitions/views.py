@@ -3,9 +3,7 @@ from datetime import date
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q, signals, Sum
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+from django.db.models import Q
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
@@ -31,10 +29,12 @@ from competitions.serializers import (
     CompetitionApplicationsObjectSerializer, CompetitionApplicationsSerializer,
     CompetitionParticipantsObjectSerializer, CompetitionParticipantsSerializer,
     CompetitionSerializer,
-    ConfirmParticipationInDistrictAndInterregionalEventsSerializer, ParticipationInDistrAndInterregEventsCreateSerializer,
+    ConfirmParticipationInDistrictAndInterregionalEventsSerializer,
+    ParticipationInDistrAndInterregEventsCreateSerializer,
     ParticipationInDistrAndInterregEventsSerializer,
     ShortDetachmentCompetitionSerializer
 )
+from competitions.signal_handlers import create_score
 from competitions.swagger_schemas import (request_update_application,
                                           response_competitions_applications,
                                           response_competitions_participants,
@@ -581,16 +581,6 @@ class ParticipationInDistrictAndInterregionalEventsViewSet(
                     IsRegionalCommissionerOrCommanderDetachmentWithVerif()]
         return super().get_permissions()
 
-    @staticmethod
-    def score_calculation(events, report):
-        """Функция вычисления баллов."""
-        if events.__len__() == 0:
-            return 0
-        total_participants = events.aggregate(
-            total_participants=Sum('number_of_participants')
-        )
-        return total_participants['total_participants']
-
     def create(self, request, *args, **kwargs):
         """Action для создания отчета.
 
@@ -642,48 +632,10 @@ class ParticipationInDistrictAndInterregionalEventsViewSet(
                 context={'request': request},
                 partial=True)
         )
-        events = ParticipationInDistrAndInterregEvents.objects.filter(
-                    competition=report.competition,
-                    detachment=report.detachment,
-                    is_verified=True
-        )
         try:
-            with transaction.atomic():
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
-                score_table_instance, created = Score.objects.get_or_create(
-                    detachment=report.detachment,
-                    competition=report.competition
-                )
-                score_table_instance.participation_in_distr_and_interreg_events = (
-                    self.score_calculation(events, report)
-                )
-                score_table_instance.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as error:
             return Response({'error': str(error)},
                             status=status.HTTP_400_BAD_REQUEST)
-
-
-# @receiver(post_save, sender=ParticipationInDistrAndInterregionalEvents)
-# def create_score(sender, instance, created, **kwargs):
-#     """Сигнал для пересчета баллов при сохранении отчета."""
-#     if created:
-#         pass
-#     else:
-#         if instance.is_verified:
-#             score_table_instance = Score.objects.get_or_create(
-#                 detachment=instance.detachment
-#             )
-#             score_table_instance.participation_in_district_and_interregional_events = (
-#                 instance.score_calculation(instance)
-#             )
-#             score_table_instance.save()
-
-#         return score_table_instance
-
-
-# signals.post_save.connect(
-#     create_score,
-#     sender=ParticipationInDistrAndInterregionalEventsReport
-# )

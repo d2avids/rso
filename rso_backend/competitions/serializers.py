@@ -315,7 +315,7 @@ class ParticipationInDistrAndInterregEventsCreateSerializer(
         if len(attrs.get('links')) == 0:
             raise serializers.ValidationError(
                     'Добавьте хотя бы одну ссылку на фотоотчет.'
-                )
+            )
         if ParticipationInDistrAndInterregEvents.objects.filter(
             competition=self.context.get('competition'),
             detachment=self.context.get('detachment'),
