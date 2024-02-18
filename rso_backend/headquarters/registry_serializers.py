@@ -13,7 +13,7 @@ class BaseRegistrySerializer(BaseShortUnitListSerializer):
     штабов при указании query-параметра registry как true.
     """
 
-    events_count = serializers.SerializerMethodField()
+    event_count = serializers.SerializerMethodField()
 
     class Meta:
         model = None
