@@ -1,9 +1,16 @@
 import datetime
 
 import pytest
-from competitions.models import CompetitionApplications, CompetitionParticipants, Competitions
+from competitions.models import (
+    CompetitionApplications, CompetitionParticipants,
+    Competitions, LinksOfParticipationInDistrAndInterregEvents, ParticipationInDistrAndInterregEvents
+)
 from rest_framework.authtoken.models import Token
-from headquarters.models import Detachment, RegionalHeadquarter
+from rest_framework.test import APIClient
+from headquarters.models import (
+    Detachment, Position, RegionalHeadquarter,
+    UserRegionalHeadquarterPosition
+)
 from users.models import RSOUser
 
 
@@ -25,6 +32,70 @@ def authenticated_client_commander_regional_headquarter(
     """Авторизованный клиент командира рег штаба."""
     token, _ = Token.objects.get_or_create(
         user=user_commander_regional_headquarter
+    )
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+    return client
+
+
+@pytest.fixture
+def user_commissar_regional_headquarter(
+    position_commissar, regional_headquarter
+):
+    """Комиссар рег штаба. Регион 1."""
+    user = RSOUser.objects.create_user(
+        first_name='Коммисар',
+        last_name='Рег штаба',
+        username='username2RegCom',
+        password='ВторойПарольRegCom'
+    )
+    position_commissar = UserRegionalHeadquarterPosition.objects.create(
+        user=user,
+        position=position_commissar,
+        headquarter=regional_headquarter
+    )
+    return user
+
+
+@pytest.fixture
+def authenticated_client_commissar_regional_headquarter(
+    user_commissar_regional_headquarter
+):
+    """Авторизованный клиент комиссара рег штаба. Регион 1."""
+    client = APIClient()
+    token, _ = Token.objects.get_or_create(
+        user=user_commissar_regional_headquarter
+    )
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+    return client
+
+
+@pytest.fixture
+def user_commissar_regional_headquarter_2(
+    position_commissar, regional_headquarter_2
+):
+    """Комиссар рег штаба. Регион 2."""
+    user = RSOUser.objects.create_user(
+        first_name='Коммисар2',
+        last_name='Рег штаба2',
+        username='username2RegCom2',
+        password='ВторойПарольRegCom2'
+    )
+    position_commissar = UserRegionalHeadquarterPosition.objects.create(
+        user=user,
+        position=position_commissar,
+        headquarter=regional_headquarter_2
+    )
+    return user
+
+
+@pytest.fixture
+def authenticated_client_commissar_regional_headquarter_2(
+    user_commissar_regional_headquarter_2
+):
+    """Авторизованный клиент комиссара рег штаба. Регион 2."""
+    client = APIClient()
+    token, _ = Token.objects.get_or_create(
+        user=user_commissar_regional_headquarter_2
     )
     client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
     return client
@@ -205,3 +276,152 @@ def participants_competition_start_2(
         competition=competition,
         junior_detachment=junior_detachment_2
     )
+
+
+@pytest.fixture
+def position_commissar():
+    """Должность комиссара."""
+    return Position.objects.create(
+        name='Комиссар',
+    )
+
+
+@pytest.fixture
+def report_question7_not_verif(
+    competition, participants_competition_tandem,
+    junior_detachment
+):
+    """
+    Не верифицированный отчет отряда по участию в областных и межрегиональных
+    мероприятиях. Подал отчет участник отряда
+    тандем-младший отряд - участник конкурса. Регион 1.
+    """
+    report = ParticipationInDistrAndInterregEvents.objects.create(
+        event_name='Мероприятие 1',
+        number_of_participants=10,
+        competition=competition,
+        detachment=junior_detachment,
+    )
+    link = LinksOfParticipationInDistrAndInterregEvents.objects.create(
+        link='https://example.com/q7_1',
+        event=report
+    )
+    return report
+
+
+@pytest.fixture
+def report_question7_verif(
+    competition, participants_competition_tandem,
+    junior_detachment
+):
+    """
+    Верифицированный отчет отряда по участию в областных и межрегиональных
+    мероприятиях. Подал отчет участник отряда
+    тандем-младший отряд - участник конкурса. Регион 1.
+    """
+    report = ParticipationInDistrAndInterregEvents.objects.create(
+        event_name='Мероприятие 1',
+        number_of_participants=10,
+        competition=competition,
+        detachment=junior_detachment,
+        is_verified=True
+    )
+    link = LinksOfParticipationInDistrAndInterregEvents.objects.create(
+        link='https://example.com/q7_1',
+        event=report
+    )
+    return report
+
+
+@pytest.fixture
+def report_question7_not_verif2(
+    competition, participants_competition_start,
+    junior_detachment_3
+):
+    """
+    Не верифицированный отчет отряда по участию в областных и межрегиональных
+    мероприятиях. Подал отчет участник отряда
+    старт- участник конкурса. Регион 1.
+    """
+    report = ParticipationInDistrAndInterregEvents.objects.create(
+        event_name='Мероприятие 1',
+        number_of_participants=100,
+        competition=competition,
+        detachment=junior_detachment_3,
+    )
+    link = LinksOfParticipationInDistrAndInterregEvents.objects.create(
+        link='https://example.com/q7_2',
+        event=report
+    )
+    return report
+
+
+@pytest.fixture
+def report_question7_verif2(
+    competition, participants_competition_start,
+    junior_detachment_3
+):
+    """
+    Верифицированный отчет отряда по участию в областных и межрегиональных
+    мероприятиях. Подал отчет участник отряда
+    старт- участник конкурса. Регион 1
+    """
+    report = ParticipationInDistrAndInterregEvents.objects.create(
+        event_name='Мероприятие 1',
+        number_of_participants=100,
+        competition=competition,
+        detachment=junior_detachment_3,
+        is_verified=True
+    )
+    link = LinksOfParticipationInDistrAndInterregEvents.objects.create(
+        link='https://example.com/q7_2',
+        event=report
+    )
+    return report
+
+
+@pytest.fixture
+def report_question7_not_verif3(
+    competition, participants_competition_start_2,
+    junior_detachment_2
+):
+    """
+    Не верифицированный отчет отряда по участию в областных и межрегиональных
+    мероприятиях. Подал отчет участник отряда
+    старт- участник конкурса. Регион 2.
+    """
+    report = ParticipationInDistrAndInterregEvents.objects.create(
+        event_name='Мероприятие 1',
+        number_of_participants=20,
+        competition=competition,
+        detachment=junior_detachment_2,
+    )
+    link = LinksOfParticipationInDistrAndInterregEvents.objects.create(
+        link='https://example.com/q7_3',
+        event=report
+    )
+    return report
+
+
+@pytest.fixture
+def report_question7_verif3(
+    competition, participants_competition_start_2,
+    junior_detachment_2
+):
+    """
+    Верифицированный отчет отряда по участию в областных и межрегиональных
+    мероприятиях. Подал отчет участник отряда
+    старт- участник конкурса. Регион 2.
+    """
+    report = ParticipationInDistrAndInterregEvents.objects.create(
+        event_name='Мероприятие 1',
+        number_of_participants=20,
+        competition=competition,
+        detachment=junior_detachment_2,
+        is_verified=True
+    )
+    link = LinksOfParticipationInDistrAndInterregEvents.objects.create(
+        link='https://example.com/q7_3',
+        event=report
+    )
+    return report

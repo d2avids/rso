@@ -31,7 +31,7 @@ from competitions.serializers import (
     CompetitionApplicationsObjectSerializer, CompetitionApplicationsSerializer,
     CompetitionParticipantsObjectSerializer, CompetitionParticipantsSerializer,
     CompetitionSerializer,
-    ConfirmParticipationInDistrictAndInterregionalEventsSerializer,
+    ConfirmParticipationInDistrictAndInterregionalEventsSerializer, ParticipationInDistrAndInterregEventsCreateSerializer,
     ParticipationInDistrAndInterregEventsSerializer,
     ShortDetachmentCompetitionSerializer
 )
@@ -540,6 +540,7 @@ class ParticipationInDistrictAndInterregionalEventsViewSet(
                     инстанса объекта который удаляют,
                     а также комиссары региональных штабов.
                     Если подтверждена - только комиссар регионального штаба.
+    ! При редактировании нельзя изменять event_name.
     Поиск:
         - ключ для поиска: ?search
         - поле для поиска: id отряда и id конкурса.
@@ -554,6 +555,14 @@ class ParticipationInDistrictAndInterregionalEventsViewSet(
     search_fields = ('detachment__name', 'competition__name')
 
     def get_queryset(self):
+        if self.action == 'list':
+            regional_headquarter = (
+                self.request.user.userregionalheadquarterposition.headquarter
+            )
+            return ParticipationInDistrAndInterregEvents.objects.filter(
+                detachment__regional_headquarter=regional_headquarter,
+                competition_id=self.kwargs.get('competition_pk')
+            )
         return ParticipationInDistrAndInterregEvents.objects.filter(
             competition_id=self.kwargs.get('competition_pk')
         )
@@ -593,11 +602,12 @@ class ParticipationInDistrictAndInterregionalEventsViewSet(
         detachment = get_object_or_404(
             Detachment, id=request.user.detachment_commander.id
         )
-        serializer = self.get_serializer(data=request.data,
-                                         context={'request': request,
-                                                  'action': 'create',
-                                                  'competition': competition,
-                                                  'detachment': detachment})
+        serializer = ParticipationInDistrAndInterregEventsCreateSerializer(
+            data=request.data,
+            context={'request': request,
+                     'action': 'create',
+                     'competition': competition,
+                     'detachment': detachment})
         serializer.is_valid(raise_exception=True)
         serializer.save(competition=competition,
                         detachment=detachment,
@@ -629,7 +639,7 @@ class ParticipationInDistrictAndInterregionalEventsViewSet(
             ConfirmParticipationInDistrictAndInterregionalEventsSerializer(
                 report,
                 data={'is_verified': True},
-                context={'request': request, 'action': 'accept'},
+                context={'request': request},
                 partial=True)
         )
         events = ParticipationInDistrAndInterregEvents.objects.filter(

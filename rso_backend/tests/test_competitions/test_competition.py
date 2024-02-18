@@ -1,10 +1,9 @@
-import datetime
 from http import HTTPStatus
 
 import pytest
-from competitions.models import CompetitionApplications, CompetitionParticipants
-from competitions.serializers import ShortDetachmentCompetitionSerializer
-from headquarters.models import CentralHeadquarter, DistrictHeadquarter, RegionalHeadquarter
+from competitions.models import (
+    CompetitionApplications, CompetitionParticipants
+)
 
 from rso_backend import settings
 
