@@ -14,7 +14,7 @@ from api.views import (AreaViewSet, EducationalInstitutionViewSet,
 from competitions.views import (
     CompetitionApplicationsViewSet, CompetitionParticipantsViewSet,
     CompetitionViewSet,
-    ParticipationInDistrictAndInterregionalEventsReportViewSet
+    ParticipationInDistrictAndInterregionalEventsViewSet
 )
 from events.views import (AnswerDetailViewSet, EventAdditionalIssueViewSet,
                           EventApplicationsViewSet,
@@ -102,7 +102,7 @@ router.register(
 # )
 router.register(
     r'competitions/(?P<competition_pk>\d+)/reports/participation_in_district_and_interregional_events',
-    ParticipationInDistrictAndInterregionalEventsReportViewSet,
+    ParticipationInDistrictAndInterregionalEventsViewSet,
     basename='participation_in_district_and_interregional_events'
 )
 

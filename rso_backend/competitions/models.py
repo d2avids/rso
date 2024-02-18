@@ -150,7 +150,7 @@ class Score(models.Model):
         related_name='competition_scores',
         verbose_name='Конкурс'
     )
-    participation_in_district_and_interregional_events = (
+    participation_in_distr_and_interreg_events = (
         models.PositiveSmallIntegerField(
             verbose_name='Оценка',
             default=0
@@ -163,8 +163,18 @@ class Score(models.Model):
             f'в конкурсе {self.competition.name}'
         )
 
+    class Meta:
+        verbose_name_plural = 'Оценки отрядов'
+        verbose_name = 'Оценка отряда'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('detachment', 'competition'),
+                name='unique_competition_score'
+            )
+        ]
 
-class LinksOfParticipationInDistrAndInterregionalEvents(models.Model):
+
+class LinksOfParticipationInDistrAndInterregEvents(models.Model):
     """
     Ссылки на участие в окружных и межрегиональных мероприятиях.
 
@@ -177,7 +187,7 @@ class LinksOfParticipationInDistrAndInterregionalEvents(models.Model):
         max_length=500
     )
     event = models.ForeignKey(
-        to='ParticipationInDistrAndInterregionalEvents',
+        to='ParticipationInDistrAndInterregEvents',
         on_delete=models.CASCADE,
         related_name='links',
         verbose_name='Участие в окружных и межрегиональных мероприятиях'
@@ -195,9 +205,15 @@ class LinksOfParticipationInDistrAndInterregionalEvents(models.Model):
             'Ссылка на фотоотчет участия СО в окружном '
             'или межрегиональном мероприятии'
         )
+        constraints = [
+            models.UniqueConstraint(
+                fields=('event', 'link'),
+                name='unique_event_link'
+            )
+        ]
 
 
-class ParticipationInDistrAndInterregionalEvents(models.Model):
+class ParticipationInDistrAndInterregEvents(models.Model):
     """
     Участие членов студенческого отряда в окружных и межрегиональных
     мероприятиях. Модель для хранения каждого участия.
@@ -221,35 +237,16 @@ class ParticipationInDistrAndInterregionalEvents(models.Model):
         verbose_name='Дата и время создания заявки',
         auto_now_add=True
     )
-    report = models.ForeignKey(
-        to='ParticipationInDistrAndInterregionalEventsReport',
-        on_delete=models.CASCADE,
-        related_name='events',
-    )
-
-    def __str__(self):
-        return (f'Участие в окружных и'
-                f'межрегиональных мероприятиях, id {self.id}')
-
-    class Meta:
-        verbose_name = 'Участие в окружных и межрегиональных  мероприятиях'
-
-
-class ParticipationInDistrAndInterregionalEventsReport(models.Model):
-    """
-    Модель для хранения отчета о участии в окружных и межрегиональных
-    мероприятиях.
-    """
     competition = models.ForeignKey(
         to='Competitions',
         on_delete=models.CASCADE,
-        related_name='participation_in_district_and_interregional_events_reports',
+        related_name='participation_in_distr_and_interreg_events',
         verbose_name='Конкурс',
     )
     detachment = models.ForeignKey(
         to='headquarters.Detachment',
         on_delete=models.CASCADE,
-        related_name='participation_in_district_and_interregional_events_reports',
+        related_name='participation_in_distr_and_interreg_events',
         verbose_name='Отряд'
     )
     is_verified = models.BooleanField(
@@ -258,23 +255,62 @@ class ParticipationInDistrAndInterregionalEventsReport(models.Model):
     )
 
     def __str__(self):
-        return (f'Отчет о участии СО {self.detachment.name} '
-                f'в окружных и межрегиональных мероприятиях, id {self.id}')
+        return (f'Участие СО {self.detachment.name} в окружных '
+                f'и межрегиональных  мероприятиях, id {self.id}')
 
     class Meta:
+        verbose_name = 'Участие в окружных и межрегиональных мероприятиях'
         ordering = ['-competition__id']
-        verbose_name = 'Отчет о участии в окружных и межрегиональных мероприятиях'
-        verbose_name_plural = 'Отчеты о участии в окружных и межрегиональных мероприятиях'
+        verbose_name = 'Участие в окружных и межрегиональных мероприятиях'
+        verbose_name_plural = 'Участия в окружных и межрегиональных мероприятиях'
         constraints = [
             models.UniqueConstraint(
-                fields=('competition', 'detachment'),
-                name='unique_participation_in_district_and_interregional_events_report'
+                fields=('competition', 'detachment', 'event_name'),
+                name='unique_participation_in_distr_and_interreg_events'
             )
         ]
 
-    def score_calculation(self):
-        """Функция вычисления баллов."""
-        elements = self.events.all()
-        if len(elements) == 0:
-            return 0
-        return sum([element['number_of_participants'] for element in elements])
+
+# class ParticipationInDistrAndInterregionalEventsReport(models.Model):
+#     """
+#     Модель для хранения отчета о участии в окружных и межрегиональных
+#     мероприятиях.
+#     """
+#     competition = models.ForeignKey(
+#         to='Competitions',
+#         on_delete=models.CASCADE,
+#         related_name='participation_in_district_and_interregional_events_reports',
+#         verbose_name='Конкурс',
+#     )
+#     detachment = models.ForeignKey(
+#         to='headquarters.Detachment',
+#         on_delete=models.CASCADE,
+#         related_name='participation_in_district_and_interregional_events_reports',
+#         verbose_name='Отряд'
+#     )
+#     is_verified = models.BooleanField(
+#         verbose_name='Подтверждено',
+#         default=False
+#     )
+
+    # def __str__(self):
+    #     return (f'Отчет о участии СО {self.detachment.name} '
+    #             f'в окружных и межрегиональных мероприятиях, id {self.id}')
+
+    # class Meta:
+    #     ordering = ['-competition__id']
+    #     verbose_name = 'Отчет о участии в окружных и межрегиональных мероприятиях'
+    #     verbose_name_plural = 'Отчеты о участии в окружных и межрегиональных мероприятиях'
+    #     constraints = [
+    #         models.UniqueConstraint(
+    #             fields=('competition', 'detachment'),
+    #             name='unique_participation_in_district_and_interregional_events_report'
+    #         )
+    #     ]
+
+    # def score_calculation(self):
+    #     """Функция вычисления баллов."""
+    #     elements = self.events.all()
+    #     if len(elements) == 0:
+    #         return 0
+    #     return sum([element['number_of_participants'] for element in elements])

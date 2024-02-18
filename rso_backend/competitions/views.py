@@ -3,7 +3,7 @@ from datetime import date
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q, signals
+from django.db.models import Q, signals, Sum
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.http.response import HttpResponse
@@ -24,16 +24,15 @@ from api.permissions import (
 )
 from competitions.models import (
     CompetitionApplications, CompetitionParticipants, Competitions,
-    ParticipationInDistrAndInterregionalEvents,
-    ParticipationInDistrAndInterregionalEventsReport, Score
+    ParticipationInDistrAndInterregEvents,
+    Score
 )
 from competitions.serializers import (
     CompetitionApplicationsObjectSerializer, CompetitionApplicationsSerializer,
     CompetitionParticipantsObjectSerializer, CompetitionParticipantsSerializer,
     CompetitionSerializer,
-    ConfirmParticipationInDistrictAndInterregionalEventsReportSerializer,
-    ParticipationInDistrictAndInterregionalEventsReportSerializer,
-    ParticipationInDistrictAndInterregionalEventsSerializer,
+    ConfirmParticipationInDistrictAndInterregionalEventsSerializer,
+    ParticipationInDistrAndInterregEventsSerializer,
     ShortDetachmentCompetitionSerializer
 )
 from competitions.swagger_schemas import (request_update_application,
@@ -523,7 +522,7 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
         return Response(serializer.data)
 
 
-class ParticipationInDistrictAndInterregionalEventsReportViewSet(
+class ParticipationInDistrictAndInterregionalEventsViewSet(
     viewsets.ModelViewSet
 ):
     """Вью сет для показателя 'Участие членов студенческого отряда в
@@ -545,8 +544,8 @@ class ParticipationInDistrictAndInterregionalEventsReportViewSet(
         - ключ для поиска: ?search
         - поле для поиска: id отряда и id конкурса.
     """
-    queryset = ParticipationInDistrAndInterregionalEventsReport.objects.all()
-    serializer_class = ParticipationInDistrictAndInterregionalEventsReportSerializer
+    queryset = ParticipationInDistrAndInterregEvents.objects.all()
+    serializer_class = ParticipationInDistrAndInterregEventsSerializer
     permission_classes = (
         permissions.IsAuthenticated,
         IsCommanderDetachmentInParameterOrRegionalCommissioner
@@ -555,7 +554,7 @@ class ParticipationInDistrictAndInterregionalEventsReportViewSet(
     search_fields = ('detachment__name', 'competition__name')
 
     def get_queryset(self):
-        return ParticipationInDistrAndInterregionalEventsReport.objects.filter(
+        return ParticipationInDistrAndInterregEvents.objects.filter(
             competition_id=self.kwargs.get('competition_pk')
         )
 
@@ -573,13 +572,15 @@ class ParticipationInDistrictAndInterregionalEventsReportViewSet(
                     IsRegionalCommissionerOrCommanderDetachmentWithVerif()]
         return super().get_permissions()
 
-    # @staticmethod
-    # def score_calculation(data):
-    #     """Функция вычисления баллов."""
-    #     elements = data.get('events')
-    #     if len(elements) == 0:
-    #         return 0
-    #     return sum([element['number_of_participants'] for element in elements])
+    @staticmethod
+    def score_calculation(events, report):
+        """Функция вычисления баллов."""
+        if events.__len__() == 0:
+            return 0
+        total_participants = events.aggregate(
+            total_participants=Sum('number_of_participants')
+        )
+        return total_participants['total_participants']
 
     def create(self, request, *args, **kwargs):
         """Action для создания отчета.
@@ -592,13 +593,11 @@ class ParticipationInDistrictAndInterregionalEventsReportViewSet(
         detachment = get_object_or_404(
             Detachment, id=request.user.detachment_commander.id
         )
-        if ParticipationInDistrAndInterregionalEventsReport.objects.filter(
-                competition=competition,
-                detachment=detachment
-        ).exists():
-            return Response({'error': 'Отчет уже создан. Измените существующий.'},
-                            status=status.HTTP_400_BAD_REQUEST)
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=request.data,
+                                         context={'request': request,
+                                                  'action': 'create',
+                                                  'competition': competition,
+                                                  'detachment': detachment})
         serializer.is_valid(raise_exception=True)
         serializer.save(competition=competition,
                         detachment=detachment,
@@ -613,55 +612,68 @@ class ParticipationInDistrictAndInterregionalEventsReportViewSet(
             url_path='accept',
             permission_classes=(permissions.IsAuthenticated,
                                 IsRegionalCommissioner,))
+    @swagger_auto_schema(
+        request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={})
+    )
     def accept_report(self, request, competition_pk, pk):
-        """Action для верификации отчета рег. комиссаром."""
+        """
+        Action для верификации отчета рег. комиссаром.
+
+        Принимает пустой POST запрос.
+        """
         report = self.get_object()
         if report.is_verified:
             return Response({'error': 'Отчет уже подтвержден.'},
                             status=status.HTTP_400_BAD_REQUEST)
         serializer = (
-            ConfirmParticipationInDistrictAndInterregionalEventsReportSerializer(
+            ConfirmParticipationInDistrictAndInterregionalEventsSerializer(
                 report,
                 data={'is_verified': True},
-                context={'request': request},
+                context={'request': request, 'action': 'accept'},
                 partial=True)
+        )
+        events = ParticipationInDistrAndInterregEvents.objects.filter(
+                    competition=report.competition,
+                    detachment=report.detachment,
+                    is_verified=True
         )
         try:
             with transaction.atomic():
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
-                # score_table_instance, created = Score.objects.get_or_create(
-                #     detachment=report.detachment,
-                # )
-                # score_table_instance.participation_in_district_and_interregional_events = (
-                #     self.score_calculation(serializer.data)
-                # )
-                # score_table_instance.save()
+                score_table_instance, created = Score.objects.get_or_create(
+                    detachment=report.detachment,
+                    competition=report.competition
+                )
+                score_table_instance.participation_in_distr_and_interreg_events = (
+                    self.score_calculation(events, report)
+                )
+                score_table_instance.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as error:
             return Response({'error': str(error)},
                             status=status.HTTP_400_BAD_REQUEST)
 
 
-@receiver(post_save, sender=ParticipationInDistrAndInterregionalEventsReport)
-def create_score(sender, instance, created, **kwargs):
-    """Сигнал для пересчета баллов при сохранении отчета."""
-    if created:
-        pass
-    else:
-        if instance.is_verified:
-            score_table_instance = Score.objects.get_or_create(
-                detachment=instance.detachment
-            )
-            score_table_instance.participation_in_district_and_interregional_events = (
-                instance.score_calculation(instance)
-            )
-            score_table_instance.save()
+# @receiver(post_save, sender=ParticipationInDistrAndInterregionalEvents)
+# def create_score(sender, instance, created, **kwargs):
+#     """Сигнал для пересчета баллов при сохранении отчета."""
+#     if created:
+#         pass
+#     else:
+#         if instance.is_verified:
+#             score_table_instance = Score.objects.get_or_create(
+#                 detachment=instance.detachment
+#             )
+#             score_table_instance.participation_in_district_and_interregional_events = (
+#                 instance.score_calculation(instance)
+#             )
+#             score_table_instance.save()
 
-        return score_table_instance
+#         return score_table_instance
 
 
-signals.post_save.connect(
-    create_score,
-    sender=ParticipationInDistrAndInterregionalEventsReport
-)
+# signals.post_save.connect(
+#     create_score,
+#     sender=ParticipationInDistrAndInterregionalEventsReport
+# )

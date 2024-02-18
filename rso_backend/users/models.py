@@ -141,9 +141,6 @@ class RSOUser(AbstractUser):
             f'{self.first_name}. Id: {self.id}'
         )
 
-    def is_commissar_detachment(self):
-        return self.role == 'commissar'
-
 
 class UserEducation(models.Model):
     """Информация об образовательной организации пользователя."""
