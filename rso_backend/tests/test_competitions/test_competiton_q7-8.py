@@ -705,3 +705,72 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
         ), (
             "Количество участников не пересчиталось, сигнал не отработал."
         )
+
+    def test_me_with_raport(
+        self, authenticated_client_3, participants_competition_tandem,
+        competition, report_question7_not_verif, report_question7_verif_second,
+        report_question7_verif2
+    ):
+        """
+        Проверка, что пользователь с подаными отчетами по запросу на
+        /me/ может получить доступ к своим отчетам.
+        """
+        response = authenticated_client_3.get(
+            f'{self.competition_url}{competition.id}'
+            f'{self.question_url}me/'
+        )
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200'
+        )
+        data = response.data
+        assert isinstance(data, list), (
+            'Response type is not list'
+        )
+        assert len(data) == 2, (
+            'Количество отчетов не соответствует ожидаемому'
+        )
+        assert data[0]['id'] == report_question7_not_verif.id, (
+            'Отчет не соответствует ожидаемому'
+        )
+        assert data[1]['id'] == report_question7_verif_second.id, (
+            'Отчет не соответствует ожидаемому'
+        )
+
+    def test_me_without_raport(
+        self, authenticated_client_3, participants_competition_tandem,
+        competition, report_question7_verif2
+    ):
+        """
+        Проверка, что пользователь отряд которого не имеет
+        поданых отчетов, получит пустой массив.
+        """
+        response = authenticated_client_3.get(
+            f'{self.competition_url}{competition.id}'
+            f'{self.question_url}me/'
+        )
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200'
+        )
+        data = response.data
+        assert isinstance(data, list), (
+            'Response type is not list'
+        )
+        assert len(data) == 0, (
+            'Количество отчетов не соответствует ожидаемому'
+        )
+
+    def test_me_not_auth(
+        self, client, participants_competition_tandem,
+        competition, report_question7_not_verif
+    ):
+        """
+        Проверка, что неавторизованный пользователь не может
+        получить доступ к эндпоинту.
+        """
+        response = client.get(
+            f'{self.competition_url}{competition.id}'
+            f'{self.question_url}me/'
+        )
+        assert response.status_code == HTTPStatus.UNAUTHORIZED, (
+            'Response code is not 401'
+        )

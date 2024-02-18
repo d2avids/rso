@@ -14,7 +14,7 @@ from api.views import (AreaViewSet, EducationalInstitutionViewSet,
 from competitions.views import (
     CompetitionApplicationsViewSet, CompetitionParticipantsViewSet,
     CompetitionViewSet,
-    ParticipationInDistrictAndInterregionalEventsViewSet
+    ParticipationInDistrictAndInterregionalEventsViewSet,
 )
 from events.views import (AnswerDetailViewSet, EventAdditionalIssueViewSet,
                           EventApplicationsViewSet,

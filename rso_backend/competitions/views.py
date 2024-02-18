@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import filters, permissions, status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 
 from api.mixins import ListRetrieveDestroyViewSet
@@ -563,6 +563,11 @@ class ParticipationInDistrictAndInterregionalEventsViewSet(
                 detachment__regional_headquarter=regional_headquarter,
                 competition_id=self.kwargs.get('competition_pk')
             )
+        if self.action == 'me':
+            return ParticipationInDistrAndInterregEvents.objects.filter(
+                detachment__commander=self.request.user,
+                competition_id=self.kwargs.get('competition_pk')
+            )
         return ParticipationInDistrAndInterregEvents.objects.filter(
             competition_id=self.kwargs.get('competition_pk')
         )
@@ -615,7 +620,7 @@ class ParticipationInDistrictAndInterregionalEventsViewSet(
     @swagger_auto_schema(
         request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={})
     )
-    def accept_report(self, request, competition_pk, pk):
+    def accept_report(self, request, competition_pk, pk, *args, **kwargs):
         """
         Action для верификации отчета рег. комиссаром.
 
@@ -638,4 +643,20 @@ class ParticipationInDistrictAndInterregionalEventsViewSet(
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as error:
             return Response({'error': str(error)},
-                            status=status.HTTP_400_BAD_REQUEST)
+                            status=status.HTTP_400_BAD_REQUEST)    
+
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='me',
+            permission_classes=(permissions.IsAuthenticated,))
+    def me(self, request, competition_pk, *args, **kwargs):
+        """
+        Action для получения списка всех отчетов о участии
+        в региональных и межрегиональных мероприятиях текущего пользователя.
+
+        Доступ: все пользователи, кроме анонимов.
+        Если у пользователь не командир отряда, и у его отряда нет поданых отчетов,
+        вернется пустой список.
+        """
+        return super().list(request, *args, **kwargs)
