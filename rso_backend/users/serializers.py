@@ -6,8 +6,7 @@ from rest_framework import serializers
 
 from api.serializers import EducationalInstitutionSerializer, RegionSerializer
 from api.utils import create_first_or_exception, get_is_trusted
-from headquarters.models import (CentralHeadquarter,
-                                 EducationalInstitution,
+from headquarters.models import (CentralHeadquarter, EducationalInstitution,
                                  Position, Region,
                                  UserCentralHeadquarterPosition,
                                  UserDetachmentPosition,

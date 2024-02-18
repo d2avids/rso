@@ -29,12 +29,12 @@ from headquarters.views import (CentralPositionViewSet, CentralViewSet,
                                 PositionViewSet, RegionalPositionViewSet,
                                 RegionalViewSet, get_structural_units)
 from users.views import (CustomUserViewSet, ForeignUserDocumentsViewSet,
-                         RSOUserViewSet, UserDocumentsViewSet,
+                         RSOUserViewSet, SafeUserViewSet, UserDocumentsViewSet,
                          UserEducationViewSet, UserMediaViewSet,
                          UserPrivacySettingsViewSet,
                          UserProfessionalEducationViewSet, UserRegionViewSet,
                          UsersParentViewSet, UserStatementDocumentsViewSet,
-                         apply_for_verification, SafeUserViewSet)
+                         apply_for_verification)
 
 app_name = 'api'
 

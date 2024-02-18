@@ -184,9 +184,8 @@ class DistrictHeadquarter(Unit):
             self.central_headquarter = CentralHeadquarter.objects.first()
         super().save(*args, **kwargs)
 
-    def get_related_units(self):
+    def get_related_units(self) -> dict:
         regional_headquarters = self.regional_headquarters.all()
-
         educational_headquarters = EducationalHeadquarter.objects.filter(
             regional_headquarter__in=regional_headquarters
         )
@@ -198,6 +197,7 @@ class DistrictHeadquarter(Unit):
         )
 
         return {
+            'regional_headquarters': regional_headquarters,
             'educational_headquarters': educational_headquarters,
             'local_headquarters': local_headquarters,
             'detachments': detachments
@@ -269,6 +269,13 @@ class RegionalHeadquarter(Unit):
         verbose_name_plural = 'Региональные штабы'
         verbose_name = 'Региональный штаб'
 
+    def get_related_units(self) -> dict:
+        return {
+            'educational_headquarters': self.educational_headquarters.all(),
+            'local_headquarters': self.educational_headquarters.all(),
+            'detachments': self.detachments.all()
+        }
+
 
 class LocalHeadquarter(Unit):
     regional_headquarter = models.ForeignKey(
@@ -284,6 +291,12 @@ class LocalHeadquarter(Unit):
     class Meta:
         verbose_name_plural = 'Местные штабы'
         verbose_name = 'Местный штаб'
+
+    def get_related_units(self) -> dict:
+        return {
+            'educational_headquarters': self.educational_headquarters.all(),
+            'detachments': self.detachments.all()
+        }
 
 
 class EducationalHeadquarter(Unit):
@@ -311,6 +324,13 @@ class EducationalHeadquarter(Unit):
         verbose_name='Дата основания',
     )
 
+    class Meta:
+        verbose_name_plural = 'Образовательные штабы'
+        verbose_name = 'Образовательный штаб'
+
+    def get_related_units(self) -> dict:
+        return {'detachments': self.detachments.all()}
+
     def check_headquarters_relations(self) -> None:
         """
         Проверяет, что местный штаб (local_headquarter) связан с тем же
@@ -330,10 +350,6 @@ class EducationalHeadquarter(Unit):
     def save(self, *args, **kwargs):
         self.check_headquarters_relations()
         super().save(*args, **kwargs)
-
-    class Meta:
-        verbose_name_plural = 'Образовательные штабы'
-        verbose_name = 'Образовательный штаб'
 
 
 class Detachment(Unit):
