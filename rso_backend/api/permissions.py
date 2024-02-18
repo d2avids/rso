@@ -572,6 +572,7 @@ class IsEventOrganizer(BasePermission):
             organizer=request.user
         ).exists():
             return True
+        return obj.event.author == request.user
 
 
 class IsEventOrganizerOrAuthor(BasePermission):

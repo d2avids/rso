@@ -36,12 +36,13 @@ from users.views import (CustomUserViewSet, ForeignUserDocumentsViewSet,
                          UserPrivacySettingsViewSet,
                          UserProfessionalEducationViewSet, UserRegionViewSet,
                          UsersParentViewSet, UserStatementDocumentsViewSet,
-                         apply_for_verification)
+                         apply_for_verification, SafeUserViewSet)
 
 app_name = 'api'
 
 router = DefaultRouter()
 
+router.register(r'save_users', SafeUserViewSet, basename='save_users')
 router.register(r'rsousers', RSOUserViewSet)
 router.register(r'regions', RegionViewSet)
 router.register(r'areas', AreaViewSet)

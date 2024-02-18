@@ -66,12 +66,13 @@ class ListRetrieveDestroyViewSet(mixins.ListModelMixin,
     pass
 
 
-class RetrieveUpdateViewSet(mixins.RetrieveModelMixin,
-                            mixins.UpdateModelMixin,
-                            GenericViewSet):
+class RetrieveUpdateDestroyViewSet(mixins.RetrieveModelMixin,
+                                   mixins.UpdateModelMixin,
+                                   mixins.DestroyModelMixin,
+                                   GenericViewSet):
     """
     Миксин для эндпоинта /events/<event_pk>/answers/
-    разрешающий только методы чтения(retrieve) и обновления.
+    разрешающий только методы чтения(retrieve) удаления и обновления.
     """
     pass
 

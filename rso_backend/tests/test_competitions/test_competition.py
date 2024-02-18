@@ -13,9 +13,11 @@ class TestCompetitionViewSet:
     competition_url = '/api/v1/competitions/'
 
     def test_competition_list(self, client, competition, competition_2):
-        """Получение списка конкурсов"""
+        """Получение списка конкурсов."""
         response = client.get(self.competition_url)
-        assert response.status_code == HTTPStatus.OK, 'Response code is not 200'
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200'
+        )
         assert isinstance(response.data, list), 'Response type is not list'
         assert isinstance(response.data[0], dict), 'Response type is not dict'
         assert 'name' in response.data[0], 'Not found name-key in response'
@@ -23,9 +25,11 @@ class TestCompetitionViewSet:
         assert response.data[0]['id'] == competition.id, 'Incorrect id'
 
     def test_competition_detail(self, client, competition):
-        """Получение конкурса"""
+        """Получение конкурса."""
         response = client.get(f'{self.competition_url}{competition.id}/')
-        assert response.status_code == HTTPStatus.OK, 'Response code is not 200'
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200'
+        )
         assert isinstance(response.data, dict), 'Response type is not dict'
         assert 'name' in response.data, 'Not found name-key in response'
         assert 'id' in response.data, 'Not found id-key in response'
@@ -33,21 +37,21 @@ class TestCompetitionViewSet:
         assert response.data['id'] == competition.id, 'Incorrect id'
 
     def test_competition_detail_not_found(self, client):
-        """Получение конкурса по несуществующему id"""
+        """Получение конкурса по несуществующему id."""
         response = client.get(f'{self.competition_url}99999/')
         assert response.status_code == HTTPStatus.NOT_FOUND, (
             'Response code is not 404'
         )
 
     def test_create_competition_not_auth(self, client):
-        """Создание конкурса неавторизованным пользователем"""
+        """Создание конкурса неавторизованным пользователем."""
         response = client.post(self.competition_url, {'name': 'test'})
         assert response.status_code == HTTPStatus.UNAUTHORIZED, (
             'Response code is not 401'
         )
 
     def test_create_competition_auth(self, authenticated_client):
-        """Создание конкурса авторизованным пользователем"""
+        """Создание конкурса авторизованным пользователем."""
         response = authenticated_client.post(
             self.competition_url, {'name': 'test'}
         )
@@ -56,14 +60,14 @@ class TestCompetitionViewSet:
         )
 
     def test_create_competition_admin(self, admin_client):
-        """Создание конкурса администратором"""
+        """Создание конкурса администратором."""
         response = admin_client.post(self.competition_url, {'name': 'test'})
         assert response.status_code == HTTPStatus.CREATED, (
             'Response code is not 201'
         )
 
     def test_junior_detachments_not_auth(self, client, competition):
-        """Получение списка младших отрядов неавторизованным пользователем"""
+        """Получение списка младших отрядов неавторизованным пользователем."""
         response = client.get(
             f'{self.competition_url}{competition.id}/junour_detachments/'
         )
@@ -72,7 +76,7 @@ class TestCompetitionViewSet:
         )
 
     def test_junior_detachments_auth(self, authenticated_client, competition):
-        """Получение списка младших отрядов авторизованным пользователем"""
+        """Получение списка младших отрядов авторизованным пользователем."""
         response = authenticated_client.get(
             f'{self.competition_url}{competition.id}/junour_detachments/'
         )
@@ -85,9 +89,10 @@ class TestCompetitionViewSet:
             self, authenticated_client, detachment, competition,
             junior_detachment, junior_detachment_2
     ):
-        """Получение списка младших отрядов командиром отряда региона 1
+        """
+        Получение списка младших отрядов командиром отряда региона 1.
 
-        Есть свободные младшие отряды в регионе 1
+        Есть свободные младшие отряды в регионе 1.
         """
         response = authenticated_client.get(
             f'{self.competition_url}{competition.id}/junour_detachments/'
@@ -112,9 +117,10 @@ class TestCompetitionViewSet:
             self, authenticated_client, competition, detachment,
             junior_detachment_2
     ):
-        """Получение списка младших отрядов командиром старшего отряда региона 1
+        """
+        Получение списка младших отрядов командиром старшего отряда региона 1.
 
-        Нет младших отрядов в регионе 1, есть в регионе 2
+        Нет младших отрядов в регионе 1, есть в регионе 2.
         """
         response = authenticated_client.get(
             f'{self.competition_url}{competition.id}/junour_detachments/'
@@ -129,7 +135,8 @@ class TestCompetitionViewSet:
         self, authenticated_client, competition, detachment, junior_detachment,
         application_competition_start,
     ):
-        """Получение списка младших отрядов командиром старшего отряда региона 1
+        """
+        Получение списка младших отрядов командиром старшего отряда региона 1.
 
         У одного младшего отряда есть заявка старт на участие в конкурсе.
         """
@@ -146,7 +153,8 @@ class TestCompetitionViewSet:
             junior_detachment, application_competition_tandem,
             detachment_3, junior_detachment_3
     ):
-        """Получение списка младших отрядов командиром старшего отряда региона 1
+        """
+        Получение списка младших отрядов командиром старшего отряда региона 1.
 
         У одного младшего отряда есть тандем заявка на участие в конкурсе.
         Есть свободный младший отряд в регионе 1
@@ -168,13 +176,16 @@ class TestCompetitionViewSet:
         assert data[0]['banner'] == f'{settings.MEDIA_URL}{junior_detachment_3.banner}', (
             'Incorrect banner'
         )
-        assert data[0]['area'] == str(junior_detachment_3.area), 'Incorrect area'
+        assert data[0]['area'] == str(junior_detachment_3.area), (
+            'Incorrect area'
+        )
 
     def test_junior_detachments_commander_junior_detachment(
         self, authenticated_client_3, competition, detachment,
         junior_detachment, junior_detachment_3
     ):
-        """Получение списка младших отрядов командиром младшего отряда
+        """
+        Получение списка младших отрядов командиром младшего отряда
         региона 1
 
         Проверка, что возвращается пустой список (нет доступа), при том,
@@ -194,8 +205,8 @@ class TestCompetitionViewSet:
             self, authenticated_client_commander_regional_headquarter,
             competition, application_competition_start,
             regional_headquarter_competition, junior_detachment
-        ):
-        """Проверка, что командир рег. штаба может получить список заявок"""
+    ):
+        """Проверка, что командир рег. штаба может получить список заявок."""
         response = authenticated_client_commander_regional_headquarter.get(
             f'{self.competition_url}{competition.id}/applications/'
         )
@@ -215,9 +226,15 @@ class TestCompetitionViewSet:
         assert 'is_confirmed_by_junior' in data[0], (
             'Not found is_confirmed_by_junior-key in response'
         )
-        assert data[0]['id'] == application_competition_start.id, 'Incorrect id'
-        assert data[0]['competition']['id'] == competition.id, 'Incorrect id'
-        assert data[0]['competition']['name'] == competition.name, 'Incorrect name'
+        assert data[0]['id'] == application_competition_start.id, (
+            'Incorrect id'
+        )
+        assert data[0]['competition']['id'] == competition.id, (
+            'Incorrect id'
+        )
+        assert data[0]['competition']['name'] == competition.name, (
+            'Incorrect name'
+        )
         assert data[0]['junior_detachment'] == {
             'id': junior_detachment.id,
             'name': junior_detachment.name,
@@ -230,7 +247,10 @@ class TestCompetitionViewSet:
     def test_applications_get_list_auth(
             self, authenticated_client, competition,
     ):
-        """Проверка, что не региональный командир не может получить список заявок"""
+        """
+        Проверка, что не региональный командир не может получить список
+        заявок.
+        """
         response = authenticated_client.get(
             f'{self.competition_url}{competition.id}/applications/'
         )
@@ -241,8 +261,10 @@ class TestCompetitionViewSet:
     def test_create_applications_not_auth(
         self, client, competition
     ):
-        """Проверка, что неавторизованный пользователь не может
-        получить список заявок"""
+        """
+        Проверка, что неавторизованный пользователь не может
+        получить список заявок.
+        """
         response = client.get(
             f'{self.competition_url}{competition.id}/applications/'
         )
@@ -253,7 +275,9 @@ class TestCompetitionViewSet:
     def test_create_applications_auth_tandem(
         self, authenticated_client, competition, junior_detachment
     ):
-        """Проверка, что не командир не может подать заявку тандем"""
+        """
+        Проверка, что не командир не может подать заявку тандем.
+        """
         response = authenticated_client.post(
             f'{self.competition_url}{competition.id}/applications/',
             {'junior_detachment': junior_detachment.id}
@@ -265,7 +289,9 @@ class TestCompetitionViewSet:
     def test_create_applications_auth_start(
         self, authenticated_client, competition
     ):
-        """Проверка, что не командир не может подать заявку старт"""
+        """
+        Проверка, что не командир не может подать заявку старт.
+        """
         response = authenticated_client.post(
             f'{self.competition_url}{competition.id}/applications/',
         )
@@ -277,8 +303,9 @@ class TestCompetitionViewSet:
             self, authenticated_client, competition, detachment,
             junior_detachment
     ):
-        """Проверка, что командир старшего отряда может подать
-        тандем заявку с свободным младшим отрядом
+        """
+        Проверка, что командир старшего отряда может подать
+        тандем заявку с свободным младшим отрядом.
         """
         response = authenticated_client.post(
             f'{self.competition_url}{competition.id}/applications/',
@@ -291,7 +318,9 @@ class TestCompetitionViewSet:
     def test_create_applications_junior_commander(
             self, authenticated_client_3, competition, junior_detachment
     ):
-        """Проверка, что командир младшего отряда может подать старт заявку"""
+        """
+        Проверка, что командир младшего отряда может подать старт заявку.
+        """
         response = authenticated_client_3.post(
             f'{self.competition_url}{competition.id}/applications/',
         )
@@ -302,7 +331,9 @@ class TestCompetitionViewSet:
     def test_create_applications_start_commander(
             self, authenticated_client, competition, detachment
     ):
-        """Проверка, что командир старшего отряда не может подать старт заявку"""
+        """
+        Проверка, что командир старшего отряда не может подать старт заявку.
+        """
         response = authenticated_client.post(
             f'{self.competition_url}{competition.id}/applications/',
         )
@@ -314,7 +345,9 @@ class TestCompetitionViewSet:
         self, authenticated_client_3, competition, junior_detachment,
         application_competition_start
     ):
-        """Проверка, что занятой отряд не может подать еще одну заявку"""
+        """
+        Проверка, что занятой отряд не может подать еще одну заявку.
+        """
         response = authenticated_client_3.post(
             f'{self.competition_url}{competition.id}/applications/',
         )
@@ -326,8 +359,10 @@ class TestCompetitionViewSet:
         self, authenticated_client, competition, detachment_competition,
         application_competition_tandem, junior_detachment_3
     ):
-        """Проверка, что занятой старший отряд не может подать
-        заявку с свободным младшим отрядом"""
+        """
+        Проверка, что занятой старший отряд не может подать
+        заявку с свободным младшим отрядом.
+        """
         response = authenticated_client.post(
             f'{self.competition_url}{competition.id}/applications/',
             {'junior_detachment': junior_detachment_3.id}
@@ -341,8 +376,10 @@ class TestCompetitionViewSet:
             application_competition_start,
             junior_detachment
     ):
-        """Проверка, что свободный старший отряд не может подать
-        в заявку занятой младший отряд"""
+        """
+        Проверка, что свободный старший отряд не может подать
+        в заявку занятой младший отряд.
+        """
         response = authenticated_client.post(
             f'{self.competition_url}{competition.id}/applications/',
             {'junior_detachment': junior_detachment.id}
@@ -354,8 +391,10 @@ class TestCompetitionViewSet:
     def test_download_regulation_file_auth(
         self, authenticated_client, competition
     ):
-        """Проверка, что положение конкурса можно скачать
-        авторизованному пользователю"""
+        """
+        Проверка, что положение конкурса можно скачать
+        авторизованному пользователю.
+        """
         response = authenticated_client.get(
             f'{self.competition_url}download_regulation_file/'
         )
@@ -368,8 +407,10 @@ class TestCompetitionViewSet:
     def test_download_regulation_file_not_auth(
         self, client, competition
     ):
-        """Проверка, что положение конкурса можно скачать
-        не авторизованному пользователю"""
+        """
+        Проверка, что положение конкурса можно скачать
+        не авторизованному пользователю.
+        """
         response = client.get(
             f'{self.competition_url}download_regulation_file/'
         )
@@ -389,8 +430,10 @@ class TestCompetitionApplicationsViewSet:
         self, authenticated_client, competition, application_competition_start,
         junior_detachment
     ):
-        """Проверка, что все заявки на конкурс можно просмотреть
-        авторизованному пользователю"""
+        """
+        Проверка, что все заявки на конкурс можно просмотреть
+        авторизованному пользователю.
+        """
         response = authenticated_client.get(
             f'{self.competition_url}{competition.id}{self.application_url}all/'
         )
@@ -428,8 +471,10 @@ class TestCompetitionApplicationsViewSet:
         self, client, competition, application_competition_tandem,
         junior_detachment, detachment_competition
     ):
-        """Проверка, что все заявки на конкурс можно просмотреть
-        не авторизованному пользователю"""
+        """
+        Проверка, что все заявки на конкурс можно просмотреть
+        не авторизованному пользователю.
+        """
         response = client.get(
             f'{self.competition_url}{competition.id}{self.application_url}all/'
         )
@@ -471,8 +516,9 @@ class TestCompetitionApplicationsViewSet:
             application_competition_tandem, application_competition_start_2,
             junior_detachment, detachment_competition
     ):
-        """Проверка, что командир старшего отряда может получить заявку,
-        если его отряд в заявке
+        """
+        Проверка, что командир старшего отряда может получить заявку,
+        если его отряд в заявке.
 
         Есть еще не подтвержденные заявки, которые ему не отобразятся.
         """
@@ -516,8 +562,10 @@ class TestCompetitionApplicationsViewSet:
             self, authenticated_client, competition,
             application_competition_start_2
     ):
-        """Проверка, что если у пользователя нет заявки на конкурс,
-        то ответ будет 404"""
+        """
+        Проверка, что если у пользователя нет заявки на конкурс,
+        то ответ будет 404.
+        """
         response = authenticated_client.get(
             f'{self.competition_url}{competition.id}{self.application_url}me/'
         )
@@ -529,8 +577,10 @@ class TestCompetitionApplicationsViewSet:
             self, authenticated_client, competition, detachment,
             application_competition_start_2
     ):
-        """Проверка, что если у пользователя-коммандира отряда нет заявки на конкурс,
-        то ответ будет 404"""
+        """
+        Проверка, что если у пользователя-коммандира отряда нет заявки на конкурс,
+        то ответ будет 404.
+        """
         response = authenticated_client.get(
             f'{self.competition_url}{competition.id}{self.application_url}me/'
         )
@@ -552,8 +602,10 @@ class TestCompetitionApplicationsViewSet:
             competition, application_competition_start_2,
             regional_headquarter_competition, junior_detachment_3
     ):
-        """Проверка, что командир регионального штаба может получить
-        заявку по id"""
+        """
+        Проверка, что командир регионального штаба может получить
+        заявку по id.
+        """
         response = authenticated_client_commander_regional_headquarter.get(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_start_2.id}/'
@@ -589,7 +641,9 @@ class TestCompetitionApplicationsViewSet:
             self, free_authenticated_client, competition,
             application_competition_start
     ):
-        """Проверка, что простой пользователь не может получить заявку по id"""
+        """
+        Проверка, что простой пользователь не может получить заявку по id.
+        """
         response = free_authenticated_client.get(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_start.id}/'
@@ -601,7 +655,9 @@ class TestCompetitionApplicationsViewSet:
     def test_applications_id_not_auth(
             self, client, competition, application_competition_tandem
     ):
-        """Проверка, что нельзя получить заявку неавторизованному пользователю"""
+        """
+        Проверка, что нельзя получить заявку неавторизованному пользователю.
+        """
         response = client.get(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem.id}/'
@@ -614,8 +670,10 @@ class TestCompetitionApplicationsViewSet:
             self, authenticated_client_3, competition, junior_detachment,
             application_competition_start
     ):
-        """Проверка, что командир младшего отряда может изменить поле
-        is_confirmed_by_junior"""
+        """
+        Проверка, что командир младшего отряда может изменить поле
+        is_confirmed_by_junior.
+        """
         response = authenticated_client_3.put(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_start.id}/',
@@ -632,8 +690,10 @@ class TestCompetitionApplicationsViewSet:
             self, authenticated_client, competition, junior_detachment,
             application_competition_tandem, detachment_competition
     ):
-        """Проверка, что командир старшего отряда не может изменить поле
-        is_confirmed_by_junior"""
+        """
+        Проверка, что командир старшего отряда не может изменить поле
+        is_confirmed_by_junior.
+        """
         response = authenticated_client.put(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem.id}/',
@@ -647,8 +707,10 @@ class TestCompetitionApplicationsViewSet:
             self, authenticated_client, competition,
             application_competition_tandem
     ):
-        """Проверка, что простой пользователь не может изменить поле
-        is_confirmed_by_junior"""
+        """
+        Проверка, что простой пользователь не может изменить поле
+        is_confirmed_by_junior.
+        """
         response = authenticated_client.put(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem.id}/',
@@ -662,8 +724,10 @@ class TestCompetitionApplicationsViewSet:
             self, client, competition,
             application_competition_tandem
     ):
-        """Проверка, что не авторизованный пользователь не может изменить поле
-        is_confirmed_by_junior"""
+        """
+        Проверка, что не авторизованный пользователь не может изменить поле
+        is_confirmed_by_junior.
+        """
         response = client.put(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem.id}/',
@@ -677,8 +741,10 @@ class TestCompetitionApplicationsViewSet:
             self, authenticated_client_3, competition, junior_detachment,
             application_competition_start
     ):
-        """Проверка, что командир младшего отряда может изменить поле
-        is_confirmed_by_junior"""
+        """
+        Проверка, что командир младшего отряда может изменить поле
+        is_confirmed_by_junior.
+        """
         response = authenticated_client_3.patch(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_start.id}/',
@@ -695,8 +761,10 @@ class TestCompetitionApplicationsViewSet:
             self, authenticated_client, competition, junior_detachment,
             application_competition_tandem, detachment_competition, user
     ):
-        """Проверка, что командир старшего отряда не может изменить поле
-        is_confirmed_by_junior"""
+        """
+        Проверка, что командир старшего отряда не может изменить поле
+        is_confirmed_by_junior.
+        """
         response = authenticated_client.patch(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem.id}/',
@@ -710,8 +778,10 @@ class TestCompetitionApplicationsViewSet:
             self, authenticated_client, competition,
             application_competition_tandem
     ):
-        """Проверка, что простой пользователь не может изменить поле
-        is_confirmed_by_junior"""
+        """
+        Проверка, что простой пользователь не может изменить поле
+        is_confirmed_by_junior.
+        """
         response = authenticated_client.patch(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem.id}/',
@@ -725,8 +795,10 @@ class TestCompetitionApplicationsViewSet:
             self, client, competition,
             application_competition_tandem
     ):
-        """Проверка, что не авторизованный пользователь не может изменить поле
-        is_confirmed_by_junior"""
+        """
+        Проверка, что не авторизованный пользователь не может изменить поле
+        is_confirmed_by_junior.
+        """
         response = client.patch(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem.id}/',
@@ -739,7 +811,9 @@ class TestCompetitionApplicationsViewSet:
     def test_applications_id_delete_not_auth(
             self, client, competition, application_competition_tandem
     ):
-        """Проверка, что не авторизованный пользователь не может удалить заявку"""
+        """
+        Проверка, что не авторизованный пользователь не может удалить заявку.
+        """
         response = client.delete(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem.id}/'
@@ -752,7 +826,9 @@ class TestCompetitionApplicationsViewSet:
             self, free_authenticated_client, competition,
             application_competition_start
     ):
-        """Проверка, что простой пользователь не может удалить заявку"""
+        """
+        Проверка, что простой пользователь не может удалить заявку.
+        """
         response = free_authenticated_client.delete(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_start.id}/'
@@ -765,7 +841,9 @@ class TestCompetitionApplicationsViewSet:
             self, authenticated_client, competition,
             application_competition_tandem
     ):
-        """Проверка, что командир отряда из заявки может ее удалить"""
+        """
+        Проверка, что командир отряда из заявки может ее удалить.
+        """
         response = authenticated_client.delete(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem.id}/'
@@ -778,7 +856,9 @@ class TestCompetitionApplicationsViewSet:
             self, authenticated_client_3, competition, junior_detachment,
             application_competition_tandem
     ):
-        """Проверка, что командир младшего отряда может удалить заявку"""
+        """
+        Проверка, что командир младшего отряда может удалить заявку.
+        """
         response = authenticated_client_3.delete(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem.id}/'
@@ -792,7 +872,9 @@ class TestCompetitionApplicationsViewSet:
             competition, regional_headquarter_competition,
             application_competition_start
     ):
-        """Проверка, что региональный командир может удалить заявку"""
+        """
+        Проверка, что региональный командир может удалить заявку.
+        """
         response = authenticated_client_commander_regional_headquarter.delete(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_start.id}/'
@@ -804,8 +886,10 @@ class TestCompetitionApplicationsViewSet:
     def test_confirm_not_auth(
             self, client, competition, application_competition_tandem
     ):
-        """Проверка, что не авторизованный пользователь не может верифицировать
-        заявку"""
+        """
+        Проверка, что не авторизованный пользователь не может верифицировать
+        заявку.
+        """
         response = client.post(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem.id}/confirm/'
@@ -818,8 +902,10 @@ class TestCompetitionApplicationsViewSet:
             self, free_authenticated_client, competition,
             application_competition_start
     ):
-        """Проверка, что простой пользователь не может верифицировать
-        заявку"""
+        """
+        Проверка, что простой пользователь не может верифицировать
+        заявку.
+        """
         response = free_authenticated_client.post(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_start.id}/confirm/'
@@ -832,8 +918,10 @@ class TestCompetitionApplicationsViewSet:
             self, authenticated_client, competition,
             application_competition_tandem
     ):
-        """Проверка, что командир отряда из заявки не может верифицировать
-        заявку"""
+        """
+        Проверка, что командир отряда из заявки не может верифицировать
+        заявку.
+        """
         response = authenticated_client.post(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem.id}/confirm/'
@@ -847,8 +935,10 @@ class TestCompetitionApplicationsViewSet:
         competition, regional_headquarter_competition,
         application_competition_tandem
     ):
-        """Проверка, что заявку, которая не подтверждена младшим отрядом,
-        командир регионального отряда не может верифицировать"""
+        """
+        Проверка, что заявку, которая не подтверждена младшим отрядом,
+        командир регионального отряда не может верифицировать.
+        """
         response = authenticated_client_commander_regional_headquarter.post(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem.id}/confirm/', {}
@@ -863,8 +953,10 @@ class TestCompetitionApplicationsViewSet:
             application_competition_tandem_confirm_junior,
             detachment_competition, junior_detachment
     ):
-        """Проверка, что региональный командир может верифицировать
-        заявку"""
+        """
+        Проверка, что региональный командир может верифицировать
+        заявку.
+        """
         response = authenticated_client_commander_regional_headquarter.post(
             f'{self.competition_url}{competition.id}{self.application_url}'
             f'{application_competition_tandem_confirm_junior.id}/confirm/',
@@ -895,8 +987,10 @@ class TestCompetitionParticipantsViewSet:
             participants_competition_tandem, detachment_competition,
             junior_detachment, junior_detachment_3
     ):
-        """Проверка, что неавторизованный пользователь может получить
-        участников конкурса"""
+        """
+        Проверка, что неавторизованный пользователь может получить
+        участников конкурса.
+        """
         response = client.get(f'{self.competition_url}{competition.id}'
                               f'{self.participants_url}')
         assert response.status_code == HTTPStatus.OK, (
@@ -966,8 +1060,10 @@ class TestCompetitionParticipantsViewSet:
             participants_competition_tandem, detachment_competition,
             junior_detachment, junior_detachment_3
     ):
-        """Проверка, что авторизованный пользователь может получить
-        участников конкурса"""
+        """
+        Проверка, что авторизованный пользователь может получить
+        участников конкурса.
+        """
         response = authenticated_client.get(
             f'{self.competition_url}{competition.id}{self.participants_url}'
         )
@@ -1037,8 +1133,10 @@ class TestCompetitionParticipantsViewSet:
             participants_competition_tandem, detachment_competition,
             junior_detachment
     ):
-        """Проверка, что командир старшего отряда может получить
-        информацию по своей заявке"""
+        """
+        Проверка, что командир старшего отряда может получить
+        информацию по своей заявке.
+        """
         response = authenticated_client.get(
             f'{self.competition_url}{competition.id}'
             f'{self.participants_url}me/'
@@ -1077,8 +1175,10 @@ class TestCompetitionParticipantsViewSet:
             participants_competition_tandem, detachment_competition,
             junior_detachment
     ):
-        """Проверка, что командир младшего отряда может получить
-        информацию по своей заявке"""
+        """
+        Проверка, что командир младшего отряда может получить
+        информацию по своей заявке.
+        """
         response = authenticated_client_3.get(
             f'{self.competition_url}{competition.id}'
             f'{self.participants_url}me/'
@@ -1131,7 +1231,9 @@ class TestCompetitionParticipantsViewSet:
             participants_competition_start,
             participants_competition_tandem
     ):
-        """Проверка, что неавторизованный клиент не имеет доступа"""
+        """
+        Проверка, что неавторизованный клиент не имеет доступа.
+        """
         response = client.get(
             f'{self.competition_url}{competition.id}'
             f'{self.participants_url}me/'
@@ -1144,8 +1246,10 @@ class TestCompetitionParticipantsViewSet:
             self, client, competition, participants_competition_tandem,
             detachment_competition, junior_detachment
     ):
-        """Проверка, что неавторизованный пользователь может получить
-        участника конкурса"""
+        """
+        Проверка, что неавторизованный пользователь может получить
+        участника конкурса.
+        """
         response = client.get(f'{self.competition_url}{competition.id}'
                               f'{self.participants_url}')
         assert response.status_code == HTTPStatus.OK, (
@@ -1185,8 +1289,10 @@ class TestCompetitionParticipantsViewSet:
             participants_competition_start,
             junior_detachment_3
     ):
-        """Проверка, что авторизованный пользователь может получить
-        участника конкурса"""
+        """
+        Проверка, что авторизованный пользователь может получить
+        участника конкурса.
+        """
         response = authenticated_client.get(
             f'{self.competition_url}{competition.id}{self.participants_url}'
         )
@@ -1222,8 +1328,10 @@ class TestCompetitionParticipantsViewSet:
     def test_delete_participants_not_auth(
             self, client, competition, participants_competition_tandem,
     ):
-        """Проверка, что неавторизованный пользователь не может
-        удалять участника конкурса"""
+        """
+        Проверка, что неавторизованный пользователь не может
+        удалять участника конкурса.
+        """
         response = client.delete(
             f'{self.competition_url}{competition.id}'
             f'{self.participants_url}{participants_competition_tandem.id}/')
@@ -1235,8 +1343,10 @@ class TestCompetitionParticipantsViewSet:
             self, authenticated_client, competition,
             participants_competition_tandem,
     ):
-        """Проверка, что простой пользователь не может
-        удалять участника конкурса"""
+        """
+        Проверка, что простой пользователь не может
+        удалять участника конкурса.
+        """
         response = authenticated_client.delete(
             f'{self.competition_url}{competition.id}'
             f'{self.participants_url}{participants_competition_tandem.id}/')
@@ -1249,8 +1359,10 @@ class TestCompetitionParticipantsViewSet:
             competition, regional_headquarter_competition,
             participants_competition_tandem
     ):
-        """Проверка, что региональный командир может удалять
-        участника конкурса"""
+        """
+        Проверка, что региональный командир может удалять
+        участника конкурса.
+        """
         response = authenticated_client_commander_regional_headquarter.delete(
             f'{self.competition_url}{competition.id}'
             f'{self.participants_url}{participants_competition_tandem.id}/')

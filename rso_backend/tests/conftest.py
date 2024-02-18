@@ -47,6 +47,7 @@ pytest_plugins = [
     'tests.fixtures.fixture_competition',
     'tests.fixtures.fixture_user',
     'tests.fixtures.fixture_headquarter',
+    'tests.fixtures.fixture_event',
 ]
 
 
@@ -201,6 +202,22 @@ def authenticated_client_2(client, user_2):
 def authenticated_client_3(client, user_3):
     """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
     token, _ = Token.objects.get_or_create(user=user_3)
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+    return client
+
+
+@pytest.fixture
+def authenticated_client_4(client, user_4):
+    """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
+    token, _ = Token.objects.get_or_create(user=user_4)
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+    return client
+
+
+@pytest.fixture
+def authenticated_client_5(client, user_5):
+    """Авторизованный клиент сущности юзера (простой невериф. пользователь)."""
+    token, _ = Token.objects.get_or_create(user=user_5)
     client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
     return client
 
