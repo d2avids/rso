@@ -596,13 +596,15 @@ class IsEventOrganizerOrAuthor(BasePermission):
 
 class IsApplicantOrOrganizer(BasePermission):
     """
-    Проверяет, является ли пользователь автором заявки
-    или организатором мероприятия. Только одиночных объектов.
+    Проверяет, является ли пользователь автором заявки, мероприятия
+    или организатором мероприятия. Только для одиночных объектов.
     """
     def has_object_permission(self, request, view, obj):
         if EventOrganizationData.objects.filter(
             organizer=request.user
         ).exists():
+            return True
+        if obj.event.author == request.user:
             return True
         return obj.user == request.user
 
