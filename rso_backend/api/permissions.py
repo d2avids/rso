@@ -561,6 +561,11 @@ class IsEventOrganizer(BasePermission):
             organizer=request.user
         ).exists():
             return True
+        event = Event.objects.filter(  # Удалить, конда уйдет в продакшен
+            id=view.kwargs.get('event_pk')
+        ).first()
+        if event is not None:
+            return event.author == request.user
         return False
 
     def has_object_permission(self, request, view, obj):
