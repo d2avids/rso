@@ -29,7 +29,7 @@ from headquarters.views import (CentralPositionViewSet, CentralViewSet,
                                 PositionViewSet, RegionalPositionViewSet,
                                 RegionalViewSet, get_structural_units)
 from users.views import (CustomUserViewSet, ForeignUserDocumentsViewSet,
-                         RSOUserViewSet, UserDocumentsViewSet,
+                         RSOUserViewSet, SafeUserViewSet, UserDocumentsViewSet,
                          UserEducationViewSet, UserMediaViewSet,
                          UserPrivacySettingsViewSet,
                          UserProfessionalEducationViewSet, UserRegionViewSet,
@@ -40,6 +40,7 @@ app_name = 'api'
 
 router = DefaultRouter()
 
+router.register(r'save_users', SafeUserViewSet, basename='save_users')
 router.register(r'rsousers', RSOUserViewSet)
 router.register(r'regions', RegionViewSet)
 router.register(r'areas', AreaViewSet)

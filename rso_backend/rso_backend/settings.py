@@ -361,6 +361,7 @@ DJOSER = {
     'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
     'SERIALIZERS': {
         'user': 'users.serializers.ShortUserSerializer',
+        'current_user': 'users.serializers.RSOUserSerializer',
         'user_create_password_retype': 'users.serializers.UserCreateSerializer',
     },
     'PERMISSIONS': {

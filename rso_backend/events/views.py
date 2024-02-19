@@ -12,14 +12,16 @@ from rest_framework.response import Response
 
 from api.mixins import (CreateListRetrieveDestroyViewSet,
                         CreateRetrieveUpdateViewSet,
-                        ListRetrieveDestroyViewSet, RetrieveUpdateViewSet)
+                        ListRetrieveDestroyViewSet,
+                        RetrieveUpdateDestroyViewSet, RetrieveUpdateViewSet)
 from api.permissions import (IsApplicantOrOrganizer,
                              IsAuthorMultiEventApplication, IsAuthorPermission,
                              IsCommander, IsDetachmentCommander,
                              IsDistrictCommander, IsEducationalCommander,
-                             IsEventAuthor, IsEventOrganizer, IsLocalCommander,
+                             IsEventAuthor, IsEventOrganizer,
+                             IsEventOrganizerOrAuthor, IsLocalCommander,
                              IsRegionalCommander, IsStuffOrCentralCommander,
-                             IsVerifiedPermission, IsEventOrganizerOrAuthor)
+                             IsVerifiedPermission)
 from events.filters import EventFilter
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocumentData, EventIssueAnswer,
@@ -220,7 +222,7 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
     """Представление заявок на участие в мероприятии.
 
     Доступ:
-        - создание - авторизованные пользователи;
+        - создание - авторизованные + верифицированные пользователи;
         - чтение и удаление - авторы заявок либо пользователи
           из модели организаторов;
     """
@@ -264,6 +266,9 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
         """
         Реализует функционал отклонения заявки на участие в мероприятии.
         При отклонении заявки удаляются все документы и ответы на вопросы.
+
+        Доступ: авторизованные + верифицированные пользователи из модели
+        организаторов мероприятий и авторы заявок.
         """
         instance = self.get_object()
         # очень дорого, нужно оптимизировать.
@@ -321,7 +326,8 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
 
         Доступен только для пользователей из модели организаторов.
         """
-        answers = EventIssueAnswer.objects.filter(user=request.user,
+        application = get_object_or_404(EventApplications, pk=pk)
+        answers = EventIssueAnswer.objects.filter(user=application.user,
                                                   event__id=event_pk)
         if request.method == 'GET':
             serializer = AnswerSerializer(answers,
@@ -442,7 +448,7 @@ def create_answers(request, event_pk):
     return Response(status=status.HTTP_201_CREATED)
 
 
-class AnswerDetailViewSet(RetrieveUpdateViewSet):
+class AnswerDetailViewSet(RetrieveUpdateDestroyViewSet):
     """Поштучное получение, изменение и удаление ответов
     в индивидуальных заявках на мероприятие.
 

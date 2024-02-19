@@ -6,10 +6,8 @@ from rest_framework import serializers
 
 from api.serializers import EducationalInstitutionSerializer, RegionSerializer
 from api.utils import create_first_or_exception, get_is_trusted
-from headquarters.models import (CentralHeadquarter, Detachment,
-                                 DistrictHeadquarter, EducationalHeadquarter,
-                                 EducationalInstitution, LocalHeadquarter,
-                                 Position, Region, RegionalHeadquarter,
+from headquarters.models import (CentralHeadquarter, EducationalInstitution,
+                                 Position, Region,
                                  UserCentralHeadquarterPosition,
                                  UserDetachmentPosition,
                                  UserDistrictHeadquarterPosition,
@@ -253,6 +251,7 @@ class UserAvatarSerializer(serializers.ModelSerializer):
     """Сериализатор для вывода аватарки из модели с Медиа юзера."""
 
     class Meta:
+        ref_name = 'user_avatar'
         model = UserMedia
         fields = ('photo',)
 
@@ -774,15 +773,16 @@ class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
         )
 
 
-class DjoserUserSerializer(RSOUserSerializer):
+class SafeUserSerializer(RSOUserSerializer):
     """Для сериализации безопасной части данных пользователя.
 
-    Для использования в дефолтном джосеровском /users/.
+    Для использования в /safe_users/.
     """
 
     avatar = UserAvatarSerializer(source='media', read_only=True)
 
     class Meta:
+        ref_name = 'safe_users'
         model = RSOUser
         fields = (
             'id',

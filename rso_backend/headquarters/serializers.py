@@ -536,8 +536,13 @@ class DistrictHeadquarterSerializer(BaseUnitSerializer):
         return self._cached_units
 
     def get_regional_headquarters(self, obj):
-        hqs = RegionalHeadquarter.objects.filter(district_headquarter=obj)
-        return ShortRegionalHeadquarterSerializer(hqs, many=True).data
+        units = self._get_units(obj)
+        regional_headquarters_serializer = (
+            ShortEducationalHeadquarterSerializer(
+                units['regional_headquarters'], many=True
+            )
+        ).data
+        return regional_headquarters_serializer
 
     def get_educational_headquarters(self, obj):
         units = self._get_units(obj)
@@ -614,25 +619,49 @@ class RegionalHeadquarterSerializer(BaseUnitSerializer):
     def to_representation(self, instance):
         """
         Вызывает родительский метод to_representation,
-        а также изменяем вывод region.
+        а также изменяем вывод region + очищаем кэш.
         """
         serialized_data = super().to_representation(instance)
         region = instance.region
         if region:
             serialized_data['region'] = RegionSerializer(region).data
+        self._cached_units = None
         return serialized_data
 
-    def get_detachments(self, obj):
-        hqs = Detachment.objects.filter(regional_headquarter=obj)
-        return ShortDetachmentSerializer(hqs, many=True).data
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._cached_units = None
 
-    def get_local_headquarters(self, obj):
-        hqs = LocalHeadquarter.objects.filter(regional_headquarter=obj)
-        return ShortLocalHeadquarterSerializer(hqs, many=True).data
+    def _get_units(self, obj):
+        """
+        Сохраняем юниты в кэш и отдаем их. Если есть в кэше, берем оттуда.
+        """
+        if self._cached_units is None:
+            self._cached_units = obj.get_related_units()
+        return self._cached_units
 
     def get_educational_headquarters(self, obj):
-        hqs = EducationalHeadquarter.objects.filter(regional_headquarter=obj)
-        return ShortEducationalHeadquarterSerializer(hqs, many=True).data
+        units = self._get_units(obj)
+        educational_headquarters_serializer = (
+            ShortEducationalHeadquarterSerializer(
+                units['educational_headquarters'], many=True
+            )
+        ).data
+        return educational_headquarters_serializer
+
+    def get_local_headquarters(self, obj):
+        units = self._get_units(obj)
+        local_headquarters_serializer = ShortLocalHeadquarterSerializer(
+            units['local_headquarters'], many=True
+        ).data
+        return local_headquarters_serializer
+
+    def get_detachments(self, obj):
+        units = self._get_units(obj)
+        detachment_serializer = ShortDetachmentSerializer(
+            units['detachments'], many=True
+        ).data
+        return detachment_serializer
 
 
 class LocalHeadquarterSerializer(BaseUnitSerializer):
@@ -662,13 +691,38 @@ class LocalHeadquarterSerializer(BaseUnitSerializer):
         )
         read_only_fields = ('educational_headquarters', 'detachments')
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._cached_units = None
+
+    def to_representation(self, instance):
+        """Очищаем кэш."""
+        self._cached_units = None
+        return super().to_representation(instance)
+
+    def _get_units(self, obj):
+        """
+        Сохраняем юниты в кэш и отдаем их. Если есть в кэше, берем оттуда.
+        """
+        if self._cached_units is None:
+            self._cached_units = obj.get_related_units()
+        return self._cached_units
+
     def get_educational_headquarters(self, obj):
-        hqs = EducationalHeadquarter.objects.filter(local_headquarter=obj)
-        return ShortEducationalHeadquarterSerializer(hqs, many=True).data
+        units = self._get_units(obj)
+        educational_headquarters_serializer = (
+            ShortEducationalHeadquarterSerializer(
+                units['educational_headquarters'], many=True
+            )
+        ).data
+        return educational_headquarters_serializer
 
     def get_detachments(self, obj):
-        hqs = Detachment.objects.filter(local_headquarter=obj)
-        return ShortDetachmentSerializer(hqs, many=True).data
+        units = self._get_units(obj)
+        detachment_serializer = ShortDetachmentSerializer(
+            units['detachments'], many=True
+        ).data
+        return detachment_serializer
 
 
 class EducationalHeadquarterSerializer(BaseUnitSerializer):
@@ -721,6 +775,7 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
         """
         Вызывает родительский метод to_representation,
         а также изменяет вывод educational_institution.
+        Очищаем кэш.
         """
         serialized_data = super().to_representation(instance)
         educational_institution = instance.educational_institution
@@ -729,9 +784,17 @@ class EducationalHeadquarterSerializer(BaseUnitSerializer):
         )
         return serialized_data
 
+    @staticmethod
+    def _get_units(obj):
+        """Получаем связанные объекты (отряды)."""
+        return obj.get_related_units()
+
     def get_detachments(self, obj):
-        hqs = Detachment.objects.filter(educational_headquarter=obj)
-        return ShortDetachmentSerializer(hqs, many=True).data
+        return (
+            ShortDetachmentSerializer(
+                self._get_units(obj)['detachments'], many=True
+            ).data
+        )
 
 
 class UserDetachmentApplicationSerializer(serializers.ModelSerializer):

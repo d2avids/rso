@@ -12,7 +12,7 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
-from api.mixins import RetrieveViewSet, RetrieveUpdateViewSet
+from api.mixins import RetrieveUpdateViewSet, RetrieveViewSet
 from api.permissions import IsCommanderOrTrustedAnywhere, IsStuffOrAuthor
 from api.tasks import send_reset_password_email_without_user
 from api.utils import download_file, get_user
@@ -25,7 +25,8 @@ from users.models import (RSOUser, UserDocuments, UserEducation,
                           UserVerificationRequest)
 from users.serializers import (EmailSerializer, ForeignUserDocumentsSerializer,
                                ProfessionalEductionSerializer,
-                               RSOUserSerializer, UserCommanderSerializer,
+                               RSOUserSerializer, SafeUserSerializer,
+                               UserCommanderSerializer,
                                UserDocumentsSerializer,
                                UserEducationSerializer,
                                UserHeadquarterPositionSerializer,
@@ -41,21 +42,23 @@ class CustomUserViewSet(UserViewSet):
     """Кастомный вьюсет юзера.
     Доступно изменение метода сброса пароля reset_password
     на новом эндпоинте api/v1/reset_password/.
-    Эндпоинт списка юзеров /api/v1/rsousers.
+    Эндпоинт списка юзеров /api/v1/rsousers/.
     Доступен поиск по username, first_name, last_name, patronymic_name
     при передаче search query-параметра.
     По умолчанию сортируются по last_name.
     Доступна фильтрация по полям:
-    - district_headquarter__name,
-    - regional_headquarter__name,
-    - local_headquarter__name,
-    - educational_headquarter__name,
-    - detachment__name,
-    - gender,
-    - is_verified,
-    - membership_fee,
-    - date_of_birth,
-    - region.
+    - district_headquarter__name - имя ОШ,
+    - regional_headquarter__name - имя РШ,
+    - local_headquarter__name - имя МШ,
+    - educational_headquarter__name - имя СО ОО,
+    - detachment__name - имя отряда,
+    - gender - male/female,
+    - is_verified - true/false,
+    - membership_fee - true/false,
+    - date_of_birth - поиск по конкретной дате в формате дд.мм.гггг,
+    - date_of_birth_lte - поиск по датам до указанной,
+    - date_of_birth_gte - поиск по дата после указанной,
+    - region - имя региона.
     """
 
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
@@ -73,7 +76,7 @@ class CustomUserViewSet(UserViewSet):
         """
         POST-запрос с адресом почты в json`е
         высылает ссылку на почту на подтвеждение смены пароля.
-        Вид ссылки в почте:
+        Вид ссылки в письме:
         'https://лк.трудкрут.рф/password/reset/confirm/{uid}/{token}'
         """
 
@@ -210,6 +213,16 @@ class RSOUserViewSet(RetrieveUpdateViewSet):
             user = get_object_or_404(RSOUser, id=pk)
             serializer = UserCommanderSerializer(user)
             return Response(serializer.data)
+
+
+class SafeUserViewSet(RetrieveViewSet):
+    """Безопасные для чтения данные пользователя по id.
+
+    Доступно авторизованным пользователям.
+    """
+    queryset = RSOUser.objects.all()
+    serializer_class = SafeUserSerializer
+    permission_classes = (permissions.IsAuthenticated,)
 
 
 class BaseUserViewSet(viewsets.ModelViewSet):

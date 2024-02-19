@@ -116,7 +116,7 @@ def verify_user(request, pk):
 
 
 @api_view(['POST', 'DELETE'])
-@permission_classes([MembershipFeePermission])
+@permission_classes([permissions.IsAuthenticated, MembershipFeePermission])
 def change_membership_fee_status(request, pk):
     """Изменить статус оплаты членского взноса пользователю.
 
@@ -581,6 +581,7 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                 if user_id == 0:
                     return Response(
                         {'detail': 'Поле ids не может содержать 0.'},
+                    status=status.HTTP_400_BAD_REQUEST
                     )
                 user = get_user_by_id(user_id)
                 pdf_cert_or_response = self.get_certificate(
@@ -636,6 +637,7 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                 if user_id == 0:
                     return Response(
                         {'detail': 'Поле ids не может содержать 0.'},
+                    status=status.HTTP_400_BAD_REQUEST
                     )
                 user = get_user_by_id(user_id)
                 pdf_cert_or_response = self.get_certificate(
