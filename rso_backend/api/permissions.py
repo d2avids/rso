@@ -483,7 +483,6 @@ class IsRegionalCommanderForCert(BasePermission):
         """Проверка прав пользователя для выдачи справки."""
 
         check_model_instance = True
-        request_user_id = request.user.id
         ids = request.data.get('ids')
         if ids is None:
             return Response(
@@ -492,8 +491,8 @@ class IsRegionalCommanderForCert(BasePermission):
             )
         try:
             commanders_regional_head_id = RegionalHeadquarter.objects.filter(
-                commander_id=request_user_id
-            ).id
+                commander_id=request.user.id
+            ).first().id
             for id in ids:
                 if id == 0:
                     return Response(
@@ -516,9 +515,9 @@ class IsRegionalCommanderForCert(BasePermission):
         ):
             check_model_instance = False
         return any([
-            is_safe_method(request),
             is_stuff_or_central_commander(request),
-            check_model_instance
+            check_model_instance,
+            is_safe_method(request),
         ])
 
 
@@ -755,7 +754,6 @@ class IsCommanderOrTrustedAnywhere(BasePermission):
     лицом хотя бы где-либо.
     """
     def has_object_permission(self, request, view, obj):
-        print('Пермишен отработал')
         commander_data = UserCommanderSerializer(request.user).data
         trusted_data = UserTrustedSerializer(request.user).data
         if any(commander_data.values()) or any(trusted_data.values()):
