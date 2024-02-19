@@ -568,6 +568,7 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                 if user_id == 0:
                     return Response(
                         {'detail': 'Поле ids не может содержать 0.'},
+                    status=status.HTTP_400_BAD_REQUEST
                     )
                 user = get_user_by_id(user_id)
                 pdf_cert_or_response = self.get_certificate(
@@ -623,6 +624,7 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                 if user_id == 0:
                     return Response(
                         {'detail': 'Поле ids не может содержать 0.'},
+                    status=status.HTTP_400_BAD_REQUEST
                     )
                 user = get_user_by_id(user_id)
                 pdf_cert_or_response = self.get_certificate(

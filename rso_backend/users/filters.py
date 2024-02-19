@@ -4,6 +4,13 @@ from users.models import RSOUser
 
 
 class RSOUserFilter(filters.FilterSet):
+    date_of_birth = filters.DateFilter()
+    date_of_birth_gte = filters.DateFilter(
+        field_name='date_of_birth', lookup_expr='gte'
+    )
+    date_of_birth_lte = filters.DateFilter(
+        field_name='date_of_birth', lookup_expr='lte'
+    )
     district_headquarter__name = filters.CharFilter(
         field_name='userdistrictheadquarterposition__headquarter__name',
         lookup_expr='icontains',
@@ -38,6 +45,9 @@ class RSOUserFilter(filters.FilterSet):
     class Meta:
         model = RSOUser
         fields = (
+            'date_of_birth',
+            'date_of_birth_gte',
+            'date_of_birth_lte',
             'district_headquarter__name',
             'regional_headquarter__name',
             'local_headquarter__name',
@@ -46,6 +56,5 @@ class RSOUserFilter(filters.FilterSet):
             'gender',
             'is_verified',
             'membership_fee',
-            'date_of_birth',
             'region',
         )

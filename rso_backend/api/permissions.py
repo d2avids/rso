@@ -1,4 +1,4 @@
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status
 from rest_framework.permissions import BasePermission
@@ -13,8 +13,6 @@ from api.utils import (check_commander_or_not, check_roles_for_edit,
                        check_trusted_in_headquarters, check_trusted_user,
                        is_regional_commander, is_safe_method,
                        is_stuff_or_central_commander)
-from django.db.models import Q
-from django.shortcuts import get_object_or_404
 from events.models import Event, EventOrganizationData
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
@@ -25,9 +23,6 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
-from rest_framework import permissions, status
-from rest_framework.permissions import BasePermission
-from rest_framework.response import Response
 from users.models import RSOUser
 from users.serializers import UserCommanderSerializer, UserTrustedSerializer
 
@@ -566,6 +561,11 @@ class IsEventOrganizer(BasePermission):
             organizer=request.user
         ).exists():
             return True
+        event = Event.objects.filter(  # Удалить, конда уйдет в продакшен
+            id=view.kwargs.get('event_pk')
+        ).first()
+        if event is not None:
+            return event.author == request.user
         return False
 
     def has_object_permission(self, request, view, obj):
@@ -601,13 +601,15 @@ class IsEventOrganizerOrAuthor(BasePermission):
 
 class IsApplicantOrOrganizer(BasePermission):
     """
-    Проверяет, является ли пользователь автором заявки
-    или организатором мероприятия. Только одиночных объектов.
+    Проверяет, является ли пользователь автором заявки, мероприятия
+    или организатором мероприятия. Только для одиночных объектов.
     """
     def has_object_permission(self, request, view, obj):
         if EventOrganizationData.objects.filter(
             organizer=request.user
         ).exists():
+            return True
+        if obj.event.author == request.user:
             return True
         return obj.user == request.user
 

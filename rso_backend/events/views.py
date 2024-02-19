@@ -13,15 +13,15 @@ from rest_framework.response import Response
 from api.mixins import (CreateListRetrieveDestroyViewSet,
                         CreateRetrieveUpdateViewSet,
                         ListRetrieveDestroyViewSet,
-                        RetrieveUpdateDestroyViewSet,
-                        RetrieveUpdateViewSet)
+                        RetrieveUpdateDestroyViewSet, RetrieveUpdateViewSet)
 from api.permissions import (IsApplicantOrOrganizer,
                              IsAuthorMultiEventApplication, IsAuthorPermission,
                              IsCommander, IsDetachmentCommander,
                              IsDistrictCommander, IsEducationalCommander,
-                             IsEventAuthor, IsEventOrganizer, IsLocalCommander,
+                             IsEventAuthor, IsEventOrganizer,
+                             IsEventOrganizerOrAuthor, IsLocalCommander,
                              IsRegionalCommander, IsStuffOrCentralCommander,
-                             IsVerifiedPermission, IsEventOrganizerOrAuthor)
+                             IsVerifiedPermission)
 from events.filters import EventFilter
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocumentData, EventIssueAnswer,
