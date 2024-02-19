@@ -13,11 +13,9 @@ class BaseRegistrySerializer(BaseShortUnitListSerializer):
     штабов при указании query-параметра registry как true.
     """
 
-    events_count = serializers.SerializerMethodField()
-
     class Meta:
         model = None
-        fields = BaseShortUnitListSerializer.Meta.fields + ('event_count',)
+        fields = BaseShortUnitListSerializer.Meta.fields
 
 
 class DistrictHeadquarterRegistrySerializer(BaseRegistrySerializer):
@@ -64,10 +62,6 @@ class DistrictHeadquarterRegistrySerializer(BaseRegistrySerializer):
         self._cached_units = None
         return super().to_representation(obj)
 
-    @staticmethod
-    def get_event_count(instance):
-        return Event.objects.filter(org_district_headquarter=instance).count()
-
 
 class RegionalHeadquarterRegistrySerializer(BaseRegistrySerializer):
     local_headquarters_count = serializers.SerializerMethodField()
@@ -108,10 +102,6 @@ class RegionalHeadquarterRegistrySerializer(BaseRegistrySerializer):
         self._cached_units = None
         return super().to_representation(obj)
 
-    @staticmethod
-    def get_event_count(instance):
-        return Event.objects.filter(org_regional_headquarter=instance).count()
-
 
 class LocalHeadquarterRegistrySerializer(BaseRegistrySerializer):
     educational_headquarters_count = serializers.SerializerMethodField()
@@ -127,10 +117,6 @@ class LocalHeadquarterRegistrySerializer(BaseRegistrySerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._cached_units = None
-
-    @staticmethod
-    def get_event_count(instance):
-        return Event.objects.filter(org_local_headquarter=instance).count()
 
     def _get_units(self, obj):
         """
@@ -167,20 +153,8 @@ class EducationalHeadquarterRegistrySerializer(BaseRegistrySerializer):
     def get_detachments_count(self, obj):
         return self._get_units(obj)['detachments'].count()
 
-    @staticmethod
-    def get_event_count(instance):
-        return Event.objects.filter(
-            org_educational_headquarter=instance
-        ).count()
-
 
 class DetachmentRegistrySerializer(BaseRegistrySerializer):
     class Meta:
         model = Detachment
         fields = BaseRegistrySerializer.Meta.fields
-
-    @staticmethod
-    def get_event_count(instance):
-        return Event.objects.filter(
-            org_detachment=instance
-        ).count()
