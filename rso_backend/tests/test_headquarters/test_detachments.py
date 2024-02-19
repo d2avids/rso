@@ -5,6 +5,7 @@ from http import HTTPStatus
 from tests.test_headquarters.conftest import user_with_position_in_detachment
 
 
+@pytest.mark.django_db
 class TestDetachmentsPositions:
     payload = {
         'user': user_with_position_in_detachment,
@@ -12,7 +13,6 @@ class TestDetachmentsPositions:
         'is_trusted': True
     }
 
-    @pytest.mark.django_db
     def test_get_detachment_memberships_commander(
             self, client, detachment_1a, detachment_commander_1a,
             authenticated_det_com_1a, detachment_positions,
@@ -86,7 +86,6 @@ class TestDetachmentsPositions:
             'admin_client',
         ]
     )
-    @pytest.mark.django_db
     def test_get_detachment_memberships(
             self, client, central_hq, district_hq_1a, district_hq_1b,
             regional_hq_1a, regional_hq_1b, local_hq_1a, local_hq_1b,
@@ -143,7 +142,6 @@ class TestDetachmentsPositions:
             'admin_client',
         ]
     )
-    @pytest.mark.django_db
     def test_bad_upd_del_detachment_memberships(
         self, client, central_hq, district_hq_1a, district_hq_1b,
         regional_hq_1a, regional_hq_1b, local_hq_1a, local_hq_1b,
@@ -192,7 +190,6 @@ class TestDetachmentsPositions:
             'Response code is not 403.'
         )
 
-    @pytest.mark.django_db
     def test_anon_upd_del_detachment_memberships(
         self, client, detachment_1a, detachment_positions
     ):
@@ -233,7 +230,6 @@ class TestDetachmentsPositions:
             'authenticated_det_com_1a',
         ]
     )
-    @pytest.mark.django_db
     def test_good_upd_del_detachment_memberships(
         self, client_name, request, detachment_1a, detachment_positions,
         positions_for_detachments, detachment_commander_1a,

@@ -5,6 +5,7 @@ from http import HTTPStatus
 from tests.test_headquarters.conftest import user_with_position_in_edu_hq
 
 
+@pytest.mark.django_db
 class TestEduHQPositions:
     payload = {
         'user': user_with_position_in_edu_hq,
@@ -12,7 +13,6 @@ class TestEduHQPositions:
         'is_trusted': True
     }
 
-    @pytest.mark.django_db
     def test_get_edu_hq_memberships_commander(
             self, client, edu_hq_1a, edu_hq_positions,
             authenticated_edu_commander_1a, user_with_position_in_edu_hq
@@ -85,7 +85,6 @@ class TestEduHQPositions:
             'admin_client',
         ]
     )
-    @pytest.mark.django_db
     def test_get_edu_hq_memberships(
             self, client, central_hq, district_hq_1a, district_hq_1b,
             regional_hq_1a, regional_hq_1b, local_hq_1a, local_hq_1b,
@@ -142,7 +141,6 @@ class TestEduHQPositions:
             'admin_client',
         ]
     )
-    @pytest.mark.django_db
     def test_bad_upd_del_edu_hq_memberships(
         self, client, central_hq, district_hq_1a, district_hq_1b,
         regional_hq_1a, regional_hq_1b, local_hq_1a, local_hq_1b,
@@ -195,7 +193,6 @@ class TestEduHQPositions:
             'Response code is not 403.'
         )
 
-    @pytest.mark.django_db
     def test_anon_upd_del_edu_hq_memberships(
         self, client, edu_hq_1a, edu_hq_positions
     ):
@@ -236,7 +233,6 @@ class TestEduHQPositions:
             'authenticated_edu_commander_1a',
         ]
     )
-    @pytest.mark.django_db
     def test_good_upd_del_edu_hq_memberships(
         self, client_name, request, edu_hq_1a, edu_hq_positions,
         positions_for_detachments, edu_commander_1a,

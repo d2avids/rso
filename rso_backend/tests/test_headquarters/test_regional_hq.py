@@ -5,6 +5,7 @@ from http import HTTPStatus
 from tests.test_headquarters.conftest import user_with_position_in_regional_hq
 
 
+@pytest.mark.django_db
 class TestRegionalHQPositions:
     payload = {
         'user': user_with_position_in_regional_hq,
@@ -12,7 +13,6 @@ class TestRegionalHQPositions:
         'is_trusted': True
     }
 
-    @pytest.mark.django_db
     def test_get_regional_hq_memberships_commander(
             self, client, regional_hq_1a, user_with_position_in_regional_hq,
             authenticated_regional_commander_1a, regional_hq_positions,
@@ -86,7 +86,6 @@ class TestRegionalHQPositions:
             'admin_client',
         ]
     )
-    @pytest.mark.django_db
     def test_get_regional_hq_memberships(
             self, client, central_hq, district_hq_1a, district_hq_1b,
             regional_hq_1a, regional_hq_1b, local_hq_1a, local_hq_1b,
@@ -146,7 +145,6 @@ class TestRegionalHQPositions:
             'authenticated_local_commander_1a',
         ]
     )
-    @pytest.mark.django_db
     def test_bad_upd_del_regional_hq_memberships(
         self, client, central_hq, district_hq_1a, district_hq_1b,
         regional_hq_1a, regional_hq_1b, local_hq_1a, local_hq_1b,
@@ -198,7 +196,6 @@ class TestRegionalHQPositions:
             'Response code is not 403.'
         )
 
-    @pytest.mark.django_db
     def test_anon_upd_del_regional_hq_memberships(
         self, client, regional_hq_1a, regional_hq_positions
     ):
@@ -239,7 +236,6 @@ class TestRegionalHQPositions:
             'authenticated_regional_commander_1a',
         ]
     )
-    @pytest.mark.django_db
     def test_good_upd_del_regional_hq_memberships(
         self, client_name, request, regional_hq_1a, regional_hq_positions,
         positions_for_detachments, regional_commander_1a,

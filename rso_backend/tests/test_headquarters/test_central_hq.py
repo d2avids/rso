@@ -5,7 +5,6 @@ from http import HTTPStatus
 import pytest
 from django.conf import settings
 
-from headquarters.models import Position
 from tests.test_headquarters.conftest import user_with_position_in_centr_hq
 from tests.conftest import (CENTRAL_HEADQUARTER_NAME,
                             DETACHMENTS_APPEARANCE_YEAR,
@@ -49,8 +48,8 @@ def test_central_hq_members(client, central_headquarter):
     response = client.get('/api/v1/centrals/1/members/')
     assert response.status_code == 200, '/members/ is not available'
 
-##TODO: запись должности не создается. Разобраться с созданием
-## и затем раскомментировать класс с тестами.
+# TODO: проблема с первым тестом в классе ниже. Пока не разобрался.
+
 
 # class TestCentralHQPositions:
 #     payload = {
@@ -58,6 +57,53 @@ def test_central_hq_members(client, central_headquarter):
 #         'position': 1,
 #         'is_trusted': True
 #     }
+
+#     @pytest.mark.django_db
+#     def test_get_central_hq_memberships_commander(
+#             self, client, central_hq, user_with_position_in_centr_hq,
+#             authenticated_centr_commander, central_hq_positions,
+
+#     ):
+#         """Получение списка участников центрального штаба команиром штаба.
+
+#         Тест выведен в отдельный для проверки ответа сериализатора,
+#         который не проверяется у остальных ролей.
+#         """
+
+#         response = authenticated_centr_commander.get(
+#             f'/api/v1/centrals/{central_hq.pk}'
+#             f'/members/{central_hq_positions[0].pk}/',
+#         )
+
+#         print(central_hq_positions)
+#         print(central_hq_positions[0])
+#         print(response.data)
+#         assert response.status_code == HTTPStatus.OK, (
+#             'Response code is not 200.'
+#         )
+
+#         expected_keys = ['id', 'user', 'position', 'is_trusted']
+#         assert set(response.data.keys()) == set(expected_keys), (
+#             'Ответ сериализатора не содержит все необходимые поля.'
+#         )
+#         expected_keys = [
+#             'id',
+#             'username',
+#             'avatar',
+#             'email',
+#             'first_name',
+#             'last_name',
+#             'patronymic_name',
+#             'date_of_birth',
+#             'membership_fee',
+#             'is_verified'
+#         ]
+#         assert set(response.data['user'].keys()) == set(expected_keys), (
+#             'Ответ сериализатора поля user не содержит все необходимые поля.'
+#         )
+#         assert response.data['user']['username'] == (
+#             user_with_position_in_centr_hq.username
+#         ), 'В ответе нет участника с должностью в штабе.'
 
 #     @pytest.mark.parametrize(
 #         'client_name',
@@ -76,7 +122,6 @@ def test_central_hq_members(client, central_headquarter):
 #             'authenticated_trusted_in_regional_hq',
 #             'authenticated_trusted_in_district_hq',
 #             'authenticated_trusted_in_centr_hq',
-#             'authenticated_centr_commander',
 #             'authenticated_distr_commander_1a',
 #             'authenticated_distr_commander_1b',
 #             'authenticated_regional_commander_1a',
@@ -118,14 +163,8 @@ def test_central_hq_members(client, central_headquarter):
 #             f'/api/v1/centrals/{central_hq.pk}'
 #             f'/members/{central_hq_positions[0].pk}/',
 #         )
-
 #         assert response.status_code == HTTPStatus.OK, (
 #             'Response code is not 200.'
-#         )
-
-#         assert response.data['user']['username'] == (
-#             user_with_position_in_centr_hq.username
-#         ), 'В ответе нет участника с должностью в окружном штабе.'
 
 #     @pytest.mark.parametrize(
 #         'client_name',
@@ -172,7 +211,8 @@ def test_central_hq_members(client, central_headquarter):
 #         local_commander_1b, regional_commander_1a, regional_commander_1b,
 #         distr_commander_1a,
 #     ):
-#         """Плохая попытка изменения/удаления позиции участника ЦШ.
+#         """
+#         Плохая попытка изменения/удаления позиции участника ЦШ.
 
 #         В тесте принимают участие все роли юзеров, кроме:
 #         - командира центрального штаба 1а;
@@ -254,7 +294,8 @@ def test_central_hq_members(client, central_headquarter):
 #         positions_for_detachments, centr_commander,
 #         user_trusted_in_centr_hq, client
 #     ):
-#         """Проверка изменения/удаления позиции участника центрального штаба.
+#         """
+#         Проверка изменения/удаления позиции участника центрального штаба.
 
 #         Действующие лица, которым разрешен update:
 #         - командира  центрального штаба 1a;
@@ -272,8 +313,8 @@ def test_central_hq_members(client, central_headquarter):
 #         assert response.status_code == HTTPStatus.OK, (
 #             'Response code is not 200.'
 #         )
-#         assert response.data['position']['name'] == (
-#             Position.objects.get(pk=2).name
+#         assert response.data['position']['id'] == (
+#             self.payload['position']
 #         ), 'Position is not changed.'
 
 #         self.payload['position'] = 3
@@ -285,8 +326,8 @@ def test_central_hq_members(client, central_headquarter):
 #         assert response.status_code == HTTPStatus.OK, (
 #             'Response code is not 200.'
 #         )
-#         assert response.data['position']['name'] == (
-#             Position.objects.get(pk=3).name
+#         assert response.data['position']['id'] == (
+#             self.payload['position']
 #         ), 'Position is not changed.'
 
 #         response = test_client.delete(
