@@ -20,7 +20,7 @@ from users.models import RSOUser
 
 """
 Тестовые данные представляют собой древовидную структуру.
-Отряды/штабы одного уровня испульзуются в тестах с проверкой 
+Отряды/штабы одного уровня испульзуются в тестах с проверкой
 одноуровнего доступа к эндпоинтам.
 Тестовая структура РСО:
 Один центральный штаб. Один командир центрального штаба.
@@ -947,6 +947,7 @@ def edu_hq_positions(
     )
     return edu_hq_position_regular, edu_hq_position_trusted
 
+
 @pytest.fixture
 def local_hq_positions(
     local_hq_1a, user_with_position_in_local_hq, position_jedi,
@@ -1002,14 +1003,15 @@ def regional_hq_positions(
     )
     return reg_hq_position_regular, reg_hq_position_trusted
 
+
 @pytest.fixture
 def district_hq_positions(
     district_hq_1a, user_with_position_in_district_hq, position_jedi,
     user_trusted_in_district_hq
 ):
     """
-    user_with_position_in_district_hq недоверенный в окружном штабе district_hq_1a
-    с должностью джедай.
+    user_with_position_in_district_hq недоверенный в окружном штабе
+    district_hq_1a с должностью джедай.
 
     user_trusted_in_district_hq доверенный в окружном штабе district_hq_1a
     с должностью джедай.
@@ -1029,6 +1031,7 @@ def district_hq_positions(
     )
     return distr_hq_position_regular, distr_hq_position_trusted
 
+
 @pytest.fixture
 def central_hq_positions(
     central_hq, user_with_position_in_centr_hq, position_jedi,
@@ -1041,7 +1044,7 @@ def central_hq_positions(
     user_trusted_in_central_hq доверенный в центральном штабе c должностью
     джедай.
     """
-    #TODO: записьне создается. Нужно разобраться как создать для тестов.
+    #TODO: запись не создается. Нужно разобраться как создать для тестов.
     central_hq_position_regular = UserCentralHeadquarterPosition.objects.create(
         headquarter=central_hq,
         user=user_with_position_in_centr_hq,

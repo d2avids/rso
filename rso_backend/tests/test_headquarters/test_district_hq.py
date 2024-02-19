@@ -2,7 +2,6 @@ import pytest
 
 from http import HTTPStatus
 
-from headquarters.models import Position
 from tests.test_headquarters.conftest import user_with_position_in_district_hq
 
 
@@ -12,6 +11,50 @@ class TestDistrictHQPositions:
         'position': 1,
         'is_trusted': True
     }
+
+    @pytest.mark.django_db
+    def test_get_district_hq_memberships_commander(
+            self, client, district_hq_1a, user_with_position_in_district_hq,
+            authenticated_distr_commander_1a, district_hq_positions,
+
+    ):
+        """Получение списка участников окружн. штаба командиром штаба.
+
+        Тест выведен в отдельный для проверки ответа сериализатора,
+        который не проверяется у остальных ролей.
+        """
+
+        response = authenticated_distr_commander_1a.get(
+            f'/api/v1/districts/{district_hq_1a.pk}'
+            f'/members/{district_hq_positions[0].pk}/',
+        )
+
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200.'
+        )
+
+        expected_keys = ['id', 'user', 'position', 'is_trusted']
+        assert set(response.data.keys()) == set(expected_keys), (
+            'Ответ сериализатора не содержит все необходимые поля.'
+        )
+        expected_keys = [
+            'id',
+            'username',
+            'avatar',
+            'email',
+            'first_name',
+            'last_name',
+            'patronymic_name',
+            'date_of_birth',
+            'membership_fee',
+            'is_verified'
+        ]
+        assert set(response.data['user'].keys()) == set(expected_keys), (
+            'Ответ сериализатора поля user не содержит все необходимые поля.'
+        )
+        assert response.data['user']['username'] == (
+            user_with_position_in_district_hq.username
+        ), 'В ответе нет участника с должностью в штабе.'
 
     @pytest.mark.parametrize(
         'client_name',
@@ -31,7 +74,6 @@ class TestDistrictHQPositions:
             'authenticated_trusted_in_district_hq',
             'authenticated_trusted_in_centr_hq',
             'authenticated_centr_commander',
-            'authenticated_distr_commander_1a',
             'authenticated_distr_commander_1b',
             'authenticated_regional_commander_1a',
             'authenticated_regional_commander_1b',
@@ -75,7 +117,10 @@ class TestDistrictHQPositions:
         assert response.status_code == HTTPStatus.OK, (
             'Response code is not 200.'
         )
-
+        expected_keys = ['id', 'user', 'position', 'is_trusted']
+        assert set(response.data.keys()) == set(expected_keys), (
+            'Ответ сериализатора не содержит все необходимые поля.'
+        )
         assert response.data['user']['username'] == (
             user_with_position_in_district_hq.username
         ), 'В ответе нет участника с должностью в окружном штабе.'
@@ -125,7 +170,8 @@ class TestDistrictHQPositions:
         local_commander_1b, regional_commander_1a, regional_commander_1b,
         distr_commander_1a,
     ):
-        """Плохая попытка изменения/удаления позиции участника Окр. штаба.
+        """
+        Плохая попытка изменения/удаления позиции участника Окр. штаба.
 
         В тесте принимают участие все роли юзеров, кроме:
         - командира окружного штаба 1а;
@@ -207,7 +253,8 @@ class TestDistrictHQPositions:
         positions_for_detachments, distr_commander_1a,
         user_trusted_in_district_hq, client
     ):
-        """Проверка изменения/удаления позиции участника окружного штаба.
+        """
+        Проверка изменения/удаления позиции участника окружного штаба.
 
         Действующие лица, которым разрешен update:
         - командира  окружного штаба 1a;
@@ -225,8 +272,8 @@ class TestDistrictHQPositions:
         assert response.status_code == HTTPStatus.OK, (
             'Response code is not 200.'
         )
-        assert response.data['position']['name'] == (
-            Position.objects.get(pk=2).name
+        assert response.data['position']['id'] == (
+            self.payload['position']
         ), 'Position is not changed.'
 
         self.payload['position'] = 3
@@ -238,8 +285,8 @@ class TestDistrictHQPositions:
         assert response.status_code == HTTPStatus.OK, (
             'Response code is not 200.'
         )
-        assert response.data['position']['name'] == (
-            Position.objects.get(pk=3).name
+        assert response.data['position']['id'] == (
+            self.payload['position']
         ), 'Position is not changed.'
 
         response = test_client.delete(

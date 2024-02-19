@@ -2,7 +2,6 @@ import pytest
 
 from http import HTTPStatus
 
-from headquarters.models import Position
 from tests.test_headquarters.conftest import user_with_position_in_detachment
 
 
@@ -12,6 +11,50 @@ class TestDetachmentsPositions:
         'position': 1,
         'is_trusted': True
     }
+
+    @pytest.mark.django_db
+    def test_get_detachment_memberships_commander(
+            self, client, detachment_1a, detachment_commander_1a,
+            authenticated_det_com_1a, detachment_positions,
+            user_with_position_in_detachment
+    ):
+        """Получение списка участников отряда командиром отряда.
+
+        Тест выведен в отдельный для проверки ответа сериализатора,
+        который не проверяется у остальных ролей.
+        """
+
+        response = authenticated_det_com_1a.get(
+            f'/api/v1/detachments/{detachment_1a.pk}'
+            f'/members/{detachment_positions[0].pk}/'
+        )
+
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200.'
+        )
+
+        expected_keys = ['id', 'user', 'position', 'is_trusted']
+        assert set(response.data.keys()) == set(expected_keys), (
+            'Ответ сериализатора не содержит все необходимые поля.'
+        )
+        expected_keys = [
+            'id',
+            'username',
+            'avatar',
+            'email',
+            'first_name',
+            'last_name',
+            'patronymic_name',
+            'date_of_birth',
+            'membership_fee',
+            'is_verified'
+        ]
+        assert set(response.data['user'].keys()) == set(expected_keys), (
+            'Ответ сериализатора поля user не содержит все необходимые поля.'
+        )
+        assert response.data['user']['username'] == (
+            user_with_position_in_detachment.username
+        ), 'В ответе нет участника с должностью в отряде.'
 
     @pytest.mark.parametrize(
         'client_name',
@@ -39,7 +82,6 @@ class TestDetachmentsPositions:
             'authenticated_local_commander_1b',
             'authenticated_edu_commander_1a',
             'authenticated_edu_commander_1b',
-            'authenticated_det_com_1a',
             'authenticated_det_com_1b',
             'admin_client',
         ]
@@ -72,10 +114,6 @@ class TestDetachmentsPositions:
         assert response.status_code == HTTPStatus.OK, (
             'Response code is not 200.'
         )
-
-        assert response.data['user']['username'] == (
-            user_with_position_in_detachment.username
-        ), 'В ответе нет участника с должностью в отряде.'
 
     @pytest.mark.parametrize(
         'client_name',
@@ -118,7 +156,8 @@ class TestDetachmentsPositions:
         user_trusted_in_local_hq, user_trusted_in_regional_hq,
         user_trusted_in_district_hq
     ):
-        """Плохая попытка изменения/удаления позиции участника отряда.
+        """
+        Плохая попытка изменения/удаления позиции участника отряда.
 
         В тесте принимают участие все роли юзеров, кроме:
         - командира отряда 1а;
@@ -152,7 +191,6 @@ class TestDetachmentsPositions:
         assert response.status_code == HTTPStatus.FORBIDDEN, (
             'Response code is not 403.'
         )
-
 
     @pytest.mark.django_db
     def test_anon_upd_del_detachment_memberships(
@@ -201,7 +239,8 @@ class TestDetachmentsPositions:
         positions_for_detachments, detachment_commander_1a,
         user_trusted_in_detachment, client
     ):
-        """Проверка изменения/удаления позиции участника отряда.
+        """
+        Проверка изменения/удаления позиции участника отряда.
 
         Действующие лица, которым разрешен update:
         - командира отряда 1a;
@@ -219,8 +258,9 @@ class TestDetachmentsPositions:
         assert response.status_code == HTTPStatus.OK, (
             'Response code is not 200.'
         )
-        assert response.data['position']['name'] == (
-            Position.objects.get(pk=2).name
+        print(response.data['position'])
+        assert response.data['position']['id'] == (
+            self.payload['position']
         ), 'Position is not changed.'
 
         self.payload['position'] = 3
@@ -232,8 +272,8 @@ class TestDetachmentsPositions:
         assert response.status_code == HTTPStatus.OK, (
             'Response code is not 200.'
         )
-        assert response.data['position']['name'] == (
-            Position.objects.get(pk=3).name
+        assert response.data['position']['id'] == (
+            self.payload['position']
         ), 'Position is not changed.'
 
         response = test_client.delete(

@@ -2,7 +2,6 @@ import pytest
 
 from http import HTTPStatus
 
-from headquarters.models import Position
 from tests.test_headquarters.conftest import user_with_position_in_edu_hq
 
 
@@ -12,6 +11,49 @@ class TestEduHQPositions:
         'position': 1,
         'is_trusted': True
     }
+
+    @pytest.mark.django_db
+    def test_get_edu_hq_memberships_commander(
+            self, client, edu_hq_1a, edu_hq_positions,
+            authenticated_edu_commander_1a, user_with_position_in_edu_hq
+    ):
+        """Получение списка участников обр. штаба командиром штаба.
+
+        Тест выведен в отдельный для проверки ответа сериализатора,
+        который не проверяется у остальных ролей.
+        """
+
+        response = authenticated_edu_commander_1a.get(
+            f'/api/v1/educationals/{edu_hq_1a.pk}'
+            f'/members/{edu_hq_positions[0].pk}/'
+        )
+
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200.'
+        )
+
+        expected_keys = ['id', 'user', 'position', 'is_trusted']
+        assert set(response.data.keys()) == set(expected_keys), (
+            'Ответ сериализатора не содержит все необходимые поля.'
+        )
+        expected_keys = [
+            'id',
+            'username',
+            'avatar',
+            'email',
+            'first_name',
+            'last_name',
+            'patronymic_name',
+            'date_of_birth',
+            'membership_fee',
+            'is_verified'
+        ]
+        assert set(response.data['user'].keys()) == set(expected_keys), (
+            'Ответ сериализатора поля user не содержит все необходимые поля.'
+        )
+        assert response.data['user']['username'] == (
+            user_with_position_in_edu_hq.username
+        ), 'В ответе нет участника с должностью в штабе.'
 
     @pytest.mark.parametrize(
         'client_name',
@@ -37,7 +79,6 @@ class TestEduHQPositions:
             'authenticated_regional_commander_1b',
             'authenticated_local_commander_1a',
             'authenticated_local_commander_1b',
-            'authenticated_edu_commander_1a',
             'authenticated_edu_commander_1b',
             'authenticated_det_com_1a',
             'authenticated_det_com_1b',
@@ -72,10 +113,6 @@ class TestEduHQPositions:
         assert response.status_code == HTTPStatus.OK, (
             'Response code is not 200.'
         )
-
-        assert response.data['user']['username'] == (
-            user_with_position_in_edu_hq.username
-        ), 'В ответе нет участника с должностью в обр.штабе.'
 
     @pytest.mark.parametrize(
         'client_name',
@@ -122,7 +159,8 @@ class TestEduHQPositions:
         local_commander_1b, regional_commander_1a, regional_commander_1b,
         distr_commander_1a,
     ):
-        """Плохая попытка изменения/удаления позиции участника обр.штаба.
+        """
+        Плохая попытка изменения/удаления позиции участника обр.штаба.
 
         В тесте принимают участие все роли юзеров, кроме:
         - командира обр.штаба 1а;
@@ -156,7 +194,6 @@ class TestEduHQPositions:
         assert response.status_code == HTTPStatus.FORBIDDEN, (
             'Response code is not 403.'
         )
-
 
     @pytest.mark.django_db
     def test_anon_upd_del_edu_hq_memberships(
@@ -205,7 +242,8 @@ class TestEduHQPositions:
         positions_for_detachments, edu_commander_1a,
         user_trusted_in_edu_hq, client
     ):
-        """Проверка изменения/удаления позиции участника местного штаба.
+        """
+        Проверка изменения/удаления позиции участника местного штаба.
 
         Действующие лица, которым разрешен update:
         - командира местного штаба 1a;
@@ -223,8 +261,8 @@ class TestEduHQPositions:
         assert response.status_code == HTTPStatus.OK, (
             'Response code is not 200.'
         )
-        assert response.data['position']['name'] == (
-            Position.objects.get(pk=2).name
+        assert response.data['position']['id'] == (
+            self.payload['position']
         ), 'Position is not changed.'
 
         self.payload['position'] = 3
@@ -236,8 +274,8 @@ class TestEduHQPositions:
         assert response.status_code == HTTPStatus.OK, (
             'Response code is not 200.'
         )
-        assert response.data['position']['name'] == (
-            Position.objects.get(pk=3).name
+        assert response.data['position']['id'] == (
+            self.payload['position']
         ), 'Position is not changed.'
 
         response = test_client.delete(
