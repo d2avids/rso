@@ -1,6 +1,5 @@
 from rest_framework import serializers
 
-from events.models import Event
 from headquarters.models import (Detachment, DistrictHeadquarter,
                                  EducationalHeadquarter, LocalHeadquarter,
                                  RegionalHeadquarter)

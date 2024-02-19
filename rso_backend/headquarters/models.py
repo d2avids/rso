@@ -489,7 +489,7 @@ class Detachment(Unit):
                     'region': 'Выбранный регион не совпадает с регионом '
                               'выбранного регионального штаба.'
                 })
-        if self.educational_headquarter:
+        if self.educational_headquarter and self.educational_institution:
             if (
                     self.educational_headquarter.educational_institution !=
                     self.educational_institution
