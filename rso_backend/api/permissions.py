@@ -798,9 +798,7 @@ class IsCommanderAndCompetitionParticipant(BasePermission):
     из инстанса(отчета), и этот отряд является участником конкурса.
     """
     def has_permission(self, request, view):
-        competition = Competitions.objects.get(
-            pk=view.kwargs.get('competition_pk')
-        )
+        competition = view.get_competitions()
         try:
             detachment = request.user.detachment_commander
         except Detachment.DoesNotExist:

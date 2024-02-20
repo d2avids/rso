@@ -7,7 +7,7 @@ from competitions.models import ParticipationInDistrAndInterregEvents, Score
 @pytest.mark.django_db(transaction=True, reset_sequences=True)
 class TestParticipationInDistrictAndInterregionalEventsViewSet:
     competition_url = '/api/v1/competitions/'
-    question_url = '/reports/participation_in_district_and_interregional_events/'
+    question_url = '/reports/participation_in_distr_and_interreg_events/'
 
     report = {
         "event_name": "Мероприятие New",
@@ -20,6 +20,16 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
                 "link": "http://127.0.0.1:8000/api/v1/competitions/"
             }
         ]
+    }
+    report_with_verif = {
+        "event_name": "Мероприятие New",
+        "number_of_participants": 10,
+        "links": [
+            {
+                "link": "http://127.0.0.1:8000/swagger/"
+            }
+        ],
+        "is_verified": True
     }
     report_without_link = {
         "event_name": "Мероприятие 1",
@@ -164,6 +174,11 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
         assert response.status_code == HTTPStatus.BAD_REQUEST, (
             'Response code is not 400'
         )
+        assert response.data == {
+            "links": [
+                "Обязательное поле."
+            ]
+        }, 'Response data is not correct'
 
     def test_create_report_participant_with_link_0(
         self, authenticated_client, participants_competition_tandem,
@@ -180,6 +195,11 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
         assert response.status_code == HTTPStatus.BAD_REQUEST, (
             'Response code is not 400'
         )
+        assert response.data == {
+            "links": [
+                "Добавьте хотя бы одну ссылку на фотоотчет"
+            ]
+        }, 'Response data is not correct'
 
     def test_create_report_participant_without_event_name(
         self, authenticated_client, participants_competition_tandem,
@@ -197,6 +217,11 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
         assert response.status_code == HTTPStatus.BAD_REQUEST, (
             'Response code is not 400'
         )
+        assert response.data == {
+            "event_name": [
+                "Обязательное поле."
+            ]
+        }
 
     def test_create_report_participant_without_number_of_participants(
         self, authenticated_client, participants_competition_tandem,
@@ -214,6 +239,11 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
         assert response.status_code == HTTPStatus.BAD_REQUEST, (
             'Response code is not 400'
         )
+        assert response.data == {
+            "number_of_participants": [
+                "Укажите количество участников."
+            ]
+        }
 
     def test_create_report_not_auth(
         self, client, competition
@@ -361,10 +391,13 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
         response = authenticated_client_3.put(
             f'{self.competition_url}{competition.id}'
             f'{self.question_url}{report_question7_not_verif.id}/',
-            data=self.report.update({'is_verified': True}), format='json'
+            data=self.report_with_verif, format='json'
         )
-        assert response.status_code == HTTPStatus.BAD_REQUEST, (
-            'Response code is not 400'
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200'
+        )
+        assert response.data['is_verified'] is False, (
+            'Простой пользователь смог изменить поле is_verified'
         )
 
     def test_put_verif_report_participant(
@@ -501,10 +534,13 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
         response = authenticated_client_3.patch(
             f'{self.competition_url}{competition.id}'
             f'{self.question_url}{report_question7_not_verif.id}/',
-            data=self.report.update({'is_verified': True}), format='json'
+            data=self.report_with_verif, format='json'
         )
-        assert response.status_code == HTTPStatus.BAD_REQUEST, (
-            'Response code is not 400'
+        assert response.status_code == HTTPStatus.OK, (
+            'Response code is not 200'
+        )
+        assert response.data['is_verified'] is False, (
+            'Простой пользователь смог изменить поле is_verified'
         )
 
     def test_patch_verif_report_participant(
@@ -769,3 +805,59 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
         assert response.status_code == HTTPStatus.UNAUTHORIZED, (
             'Response code is not 401'
         )
+
+    def test_post_double_report(
+        self, authenticated_client_3, participants_competition_tandem,
+        competition, report_question7_verif
+    ):
+        """
+        Проверка, что пользователь не может подать дубликат отчета.
+        """
+        response = authenticated_client_3.post(
+            f'{self.competition_url}{competition.id}'
+            f'{self.question_url}', data={
+                "event_name": report_question7_verif.event_name,
+                "number_of_participants": report_question7_verif.number_of_participants,
+                "competition": report_question7_verif.competition.id,
+                "links": [{"link": report_question7_verif.links.all()[0].link}]
+            },
+            format='json'
+        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST, (
+            'Response code is not 400'
+        )
+        assert response.data == {
+            "event_name": [
+                "Отчетность по этому мероприятию уже подана."
+            ]
+        }, 'Response data is not correct'
+
+    def test_post_double_links(
+        self, authenticated_client_3, participants_competition_tandem,
+        competition, report_question7_verif
+    ):
+        """
+        Проверка, что пользователь не может подать отчет c
+        одинаковыми ссылками.
+        """
+        response = authenticated_client_3.post(
+            f'{self.competition_url}{competition.id}'
+            f'{self.question_url}', data={
+                "event_name": self.report['event_name'],
+                "number_of_participants": self.report['number_of_participants'],
+                "competition": competition.id,
+                "links": [
+                    {"link": report_question7_verif.links.all()[0].link},
+                    {"link": report_question7_verif.links.all()[0].link}
+                ]
+            },
+            format='json'
+        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST, (
+            'Response code is not 400'
+        )
+        assert response.data == {
+            "links": [
+                "Указаны одинаковые ссылки."
+            ]
+        }, 'Response data is not correct'

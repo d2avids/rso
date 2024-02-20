@@ -2,12 +2,13 @@ from datetime import date
 
 from django.db import transaction
 from django.conf import settings
+from django.urls import reverse
 from rest_framework import serializers
 
 from competitions.models import (
     CompetitionApplications, CompetitionParticipants, Competitions, LinksOfParticipationInAllRussianEvents,
     LinksOfParticipationInDistrAndInterregEvents, ParticipationInAllRussianEvents,
-    ParticipationInDistrAndInterregEvents,
+    ParticipationInDistrAndInterregEvents, PrizePlacesInDistrAndInterregEvents,
     Score)
 from headquarters.models import Detachment
 from headquarters.serializers import BaseShortUnitSerializer
@@ -173,21 +174,21 @@ class LinksOfParticipationInDistrAndInterregEventsSerializer(
             'link'
         )
 
-    def validate(self, attrs):
-        request = self.context.get('request')
-        if request.method == 'POST':
-            event = self.context.get('event')
-            if (
-                self.Meta.model.objects
-                .filter(
-                    event=event,
-                    link=attrs.get('link')
-                )
-            ).exists():
-                raise serializers.ValidationError(
-                    'Ссылка уже привязана к этому мероприятию.'
-                )
-        return attrs
+    # def validate(self, attrs):
+    #     request = self.context.get('request')
+    #     if request.method == 'POST':
+    #         event = self.context.get('event')
+    #         if (
+    #             self.Meta.model.objects
+    #             .filter(
+    #                 event=event,
+    #                 link=attrs.get('link')
+    #             )
+    #         ).exists():
+    #             raise serializers.ValidationError(
+    #                 'Ссылка уже привязана к этому мероприятию.'
+    #             )
+    #     return attrs
 
 
 class ParticipationInDistrAndInterregEventsSerializer(
@@ -219,33 +220,38 @@ class ParticipationInDistrAndInterregEventsSerializer(
 
     def validate(self, attrs):
         request = self.context.get('request')
-        if not request.data.get('links'):
+        links = request.data.get('links')
+        if not links or len(links) == 0:
             raise serializers.ValidationError(
-                'Добавьте хотя бы одну ссылку на фотоотчет.'
+                {'links': 'Добавьте хотя бы одну ссылку на фотоотчет.'}
             )
-        if len(attrs.get('links')) == 0:
+        link_values = [link['link'] for link in links]
+        if len(link_values) != len(set(link_values)):
             raise serializers.ValidationError(
-                    'Добавьте хотя бы одну ссылку на фотоотчет.'
-                )
+                {'links': 'Указаны одинаковые ссылки на фотоотчет.'}
+            )
         return attrs
 
     def update(self, instance, validated_data):
         links = validated_data.pop('links')
         if links:
-            with transaction.atomic():
-                event = super().update(instance, validated_data)
-                event.links.all().delete()
-                serializer = (
-                    LinksOfParticipationInDistrAndInterregEventsSerializer(
-                        many=True,
-                        data=links,
-                        context={'request': self.context.get('request'),
-                                 'detachment': event.detachment,
-                                 'event': event}
+            try:
+                with transaction.atomic():
+                    event = super().update(instance, validated_data)
+                    event.links.all().delete()
+                    serializer = (
+                        LinksOfParticipationInDistrAndInterregEventsSerializer(
+                            many=True,
+                            data=links,
+                            context={'request': self.context.get('request'),
+                                     'detachment': event.detachment,
+                                     'event': event}
+                        )
                     )
-                )
-                serializer.is_valid(raise_exception=True)
-                serializer.save(event=event)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save(event=event)
+            except Exception as e:
+                raise serializers.ValidationError(e)
         else:
             event = super().update(instance, validated_data)
         return event
@@ -272,7 +278,7 @@ class ConfirmParticipationInDistrictAndInterregionalEventsSerializer(
         )
 
 
-class ParticipationInDistrAndInterregEventsCreateSerializer(
+class CreateParticipationInDistrAndInterregEventsSerializer(
         serializers.ModelSerializer
 ):
     links = LinksOfParticipationInDistrAndInterregEventsSerializer(
@@ -300,21 +306,22 @@ class ParticipationInDistrAndInterregEventsCreateSerializer(
 
     def validate(self, attrs):
         request = self.context.get('request')
-        if not request.data.get('links'):
+        links = request.data.get('links')
+        if not links:
             raise serializers.ValidationError(
-                'Добавьте хотя бы одну ссылку на фотоотчет.'
+                {"links": "Добавьте хотя бы одну ссылку на фотоотчет"}
             )
         if not request.data.get('event_name'):
             raise serializers.ValidationError(
-                'Укажите название мероприятия.'
+                {'event_name': 'Укажите название мероприятия.'}
             )
         if not request.data.get('number_of_participants'):
             raise serializers.ValidationError(
-                'Укажите количество участников.'
+                {'number_of_participants': 'Укажите количество участников.'}
             )
-        if len(attrs.get('links')) == 0:
+        if not links or len(links) == 0:
             raise serializers.ValidationError(
-                    'Добавьте хотя бы одну ссылку на фотоотчет.'
+                {'links': 'Добавьте хотя бы одну ссылку на фотоотчет.'}
             )
         if self.Meta.model.objects.filter(
             competition=self.context.get('competition'),
@@ -322,25 +329,33 @@ class ParticipationInDistrAndInterregEventsCreateSerializer(
             event_name=attrs.get('event_name')
         ).exists():
             raise serializers.ValidationError(
-                'Отчетность по этому мероприятию уже подана.'
+                {'event_name': 'Отчетность по этому мероприятию уже подана.'}
+            )
+        link_values = [link['link'] for link in links]
+        if len(link_values) != len(set(link_values)):
+            raise serializers.ValidationError(
+                {'links': 'Указаны одинаковые ссылки.'}
             )
         return attrs
 
     def create(self, validated_data):
         links = validated_data.pop('links')
-        with transaction.atomic():
-            event = super().create(validated_data)
-            serializer = (
-                LinksOfParticipationInDistrAndInterregEventsSerializer(
-                    many=True,
-                    data=links,
-                    context={'request': self.context.get('request'),
-                             'detachment': event.detachment,
-                             'event': event}
+        try:
+            with transaction.atomic():
+                event = super().create(validated_data)
+                serializer = (
+                    LinksOfParticipationInDistrAndInterregEventsSerializer(
+                        many=True,
+                        data=links,
+                        context={'request': self.context.get('request'),
+                                 'detachment': event.detachment,
+                                 'event': event}
+                    )
                 )
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.save(event=event)
+                serializer.is_valid(raise_exception=True)
+                serializer.save(event=event)
+        except Exception as e:
+            raise serializers.ValidationError(e)
         return event
 
 
@@ -383,34 +398,38 @@ class ParticipationInAllRussianEventsSerializer(
         )
 
     def validate(self, attrs):
-        request = self.context.get('request')
-        if not request.data.get('links'):
-            raise serializers.ValidationError(
-                'Добавьте хотя бы одну ссылку на фотоотчет.'
-            )
-        if len(attrs.get('links')) == 0:
+        links = attrs.get('links')
+        if not links or len(links) == 0:
             raise serializers.ValidationError(
                     'Добавьте хотя бы одну ссылку на фотоотчет.'
                 )
+        link_values = [link['link'] for link in links]
+        if len(link_values) != len(set(link_values)):
+            raise serializers.ValidationError(
+                'Ссылки должны быть уникальными.'
+            )
         return attrs
 
     def update(self, instance, validated_data):
         links = validated_data.pop('links')
         if links:
-            with transaction.atomic():
-                event = super().update(instance, validated_data)
-                event.links.all().delete()
-                serializer = (
-                    LinksOfParticipationInAllRussianEventsSerializer(
-                        many=True,
-                        data=links,
-                        context={'request': self.context.get('request'),
-                                 'detachment': event.detachment,
-                                 'event': event}
+            try:
+                with transaction.atomic():
+                    event = super().update(instance, validated_data)
+                    event.links.all().delete()
+                    serializer = (
+                        LinksOfParticipationInAllRussianEventsSerializer(
+                            many=True,
+                            data=links,
+                            context={'request': self.context.get('request'),
+                                     'detachment': self.context.get('detachment'),
+                                     'event': event}
+                        )
                     )
-                )
-                serializer.is_valid(raise_exception=True)
-                serializer.save(event=event)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save(event=event)
+            except Exception as e:
+                raise serializers.ValidationError(e)
         else:
             event = super().update(instance, validated_data)
         return event
@@ -437,7 +456,7 @@ class ConfirmParticipationInAllRussianEventsSerializer(
         )
 
 
-class ParticipationInAllRussianEventsCreateSerializer(
+class CreateParticipationInAllRussianEventsSerializer(
     serializers.ModelSerializer
 ):
     links = LinksOfParticipationInAllRussianEventsSerializer(
@@ -454,7 +473,7 @@ class ParticipationInAllRussianEventsCreateSerializer(
             'certificate_scans',
             'number_of_participants',
             'links',
-            'is_verified'
+            'is_verified',
         )
         read_only_fields = (
             'id',
@@ -465,21 +484,22 @@ class ParticipationInAllRussianEventsCreateSerializer(
 
     def validate(self, attrs):
         request = self.context.get('request')
-        if not request.data.get('links'):
+        links = attrs.get('links')
+        if not links:
             raise serializers.ValidationError(
-                'Добавьте хотя бы одну ссылку на фотоотчет.'
+                {'links': 'Добавьте хотя бы одну ссылку на фотоотчет.'}
             )
         if not request.data.get('event_name'):
             raise serializers.ValidationError(
-                'Укажите название мероприятия.'
+                {'event_name': 'Укажите название мероприятия.'}
             )
         if not request.data.get('number_of_participants'):
             raise serializers.ValidationError(
-                'Укажите количество участников.'
+                {'number_of_participants': 'Укажите количество участников.'}
             )
-        if len(attrs.get('links')) == 0:
+        if len(links) == 0:
             raise serializers.ValidationError(
-                    'Добавьте хотя бы одну ссылку на фотоотчет.'
+                {'links': 'Добавьте хотя бы одну ссылку на фотоотчет.'}
             )
         if self.Meta.model.objects.filter(
             competition=self.context.get('competition'),
@@ -487,23 +507,117 @@ class ParticipationInAllRussianEventsCreateSerializer(
             event_name=attrs.get('event_name')
         ).exists():
             raise serializers.ValidationError(
-                'Отчетность по этому мероприятию уже подана.'
+                {'event_name': 'Отчетность по этому мероприятию уже подана.'}
+            )
+        link_values = [link['link'] for link in links]
+        if len(link_values) != len(set(link_values)):
+            raise serializers.ValidationError(
+                {'links': 'Ссылки должны быть уникальными.'}
             )
         return attrs
 
     def create(self, validated_data):
-        links = validated_data.pop('links')
-        with transaction.atomic():
-            event = super().create(validated_data)
-            serializer = (
-                LinksOfParticipationInAllRussianEventsSerializer(
-                    many=True,
-                    data=links,
-                    context={'request': self.context.get('request'),
-                             'detachment': event.detachment,
-                             'event': event}
+        try:
+            links = validated_data.pop('links')
+            with transaction.atomic():
+                event = super().create(validated_data)
+                serializer = (
+                    LinksOfParticipationInAllRussianEventsSerializer(
+                        many=True,
+                        data=links,
+                        context={'request': self.context.get('request'),
+                                 'detachment': self.context.get('detachment'),
+                                 'event': event}
+                    )
                 )
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.save(event=event)
+                serializer.is_valid(raise_exception=True)
+                serializer.save(event=event)
+        except Exception as e:
+            raise serializers.ValidationError(e)
         return event
+
+
+class PrizePlacesInDistrAndInterregEventsSerializer(
+    serializers.ModelSerializer
+):
+    class Meta:
+        model = PrizePlacesInDistrAndInterregEvents
+        fields = (
+            'id',
+            'competition',
+            'detachment',
+            'certificate_scans',
+            'event_name',
+            'prize_place',
+            'is_verified'
+        )
+        read_only_fields = (
+            'id',
+            'competition',
+            'event_name',
+            'detachment',
+            'is_verified'
+        )
+
+
+class ConfirmPrizePlacesInDistrAndInterregEventsSerializer(
+    serializers.ModelSerializer
+):
+    class Meta:
+        model = PrizePlacesInDistrAndInterregEvents
+        fields = '__all__'
+        read_only_fields = (
+            'id',
+            'competition',
+            'detachment',
+            'event_name',
+            'certificate_scans',
+            'prize_place'
+        )
+
+
+class CreatePrizePlacesInDistrAndInterregEventsSerializer(
+        serializers.ModelSerializer
+):
+    class Meta:
+        model = PrizePlacesInDistrAndInterregEvents
+        fields = (
+            'id',
+            'competition',
+            'detachment',
+            'event_name',
+            'certificate_scans',
+            'prize_place',
+            'is_verified'
+        )
+        read_only_fields = (
+            'id',
+            'competition',
+            'detachment',
+            'is_verified'
+        )
+
+    def validate(self, attrs):
+        prize_place = attrs.get('prize_place', None)
+        if not attrs.get('event_name'):
+            raise serializers.ValidationError(
+                {'event_name': 'Укажите название мероприятия/конкурса.'}
+            )
+        if not prize_place:
+            raise serializers.ValidationError(
+                {'prize_place': 'Не указано призовое место.'}
+            )
+        if prize_place <= 0 or prize_place > 3:
+            raise serializers.ValidationError(
+                {'prize_place': 'Призовое место должно быть от 1 до 3.'}
+            )
+        if self.Meta.model.objects.filter(
+            competition=self.context.get('competition'),
+            detachment=self.context.get('detachment'),
+            event_name=attrs.get('event_name')
+        ).exists():
+            raise serializers.ValidationError(
+                {'event_name':
+                 'Отчетность по этому мероприятию/конкурсу уже подана.'}
+            )
+        return attrs

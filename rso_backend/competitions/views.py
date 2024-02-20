@@ -23,19 +23,21 @@ from api.permissions import (
 from competitions.models import (
     CompetitionApplications, CompetitionParticipants, Competitions,
     ParticipationInAllRussianEvents,
-    ParticipationInDistrAndInterregEvents,
+    ParticipationInDistrAndInterregEvents, PrizePlacesInDistrAndInterregEvents,
 )
 from competitions.serializers import (
     CompetitionApplicationsObjectSerializer, CompetitionApplicationsSerializer,
     CompetitionParticipantsObjectSerializer, CompetitionParticipantsSerializer,
     CompetitionSerializer, ConfirmParticipationInAllRussianEventsSerializer,
-    ConfirmParticipationInDistrictAndInterregionalEventsSerializer,
-    ParticipationInAllRussianEventsCreateSerializer,
+    ConfirmParticipationInDistrictAndInterregionalEventsSerializer, ConfirmPrizePlacesInDistrAndInterregEventsSerializer,
+    CreateParticipationInAllRussianEventsSerializer, CreatePrizePlacesInDistrAndInterregEventsSerializer,
     ParticipationInAllRussianEventsSerializer,
-    ParticipationInDistrAndInterregEventsCreateSerializer,
+    CreateParticipationInDistrAndInterregEventsSerializer,
     ParticipationInDistrAndInterregEventsSerializer,
+    PrizePlacesInDistrAndInterregEventsSerializer,
     ShortDetachmentCompetitionSerializer
 )
+# сигналы ниже не удалять, иначе сломается
 from competitions.signal_handlers import create_score_q7, create_score_q8
 from competitions.swagger_schemas import (request_update_application,
                                           response_competitions_applications,
@@ -588,31 +590,32 @@ class ParticipationInDistrictAndInterregionalEventsViewSet(
                     IsRegionalCommissionerOrCommanderDetachmentWithVerif()]
         return super().get_permissions()
 
+    def get_competitions(self):
+        return get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+
     def create(self, request, *args, **kwargs):
         """Action для создания отчета.
 
         Доступ: командиры отрядов, которые участвуют в конкурсе.
+        'event_name' к передаче обязателен.
         """
-        competition = get_object_or_404(
-            Competitions, id=self.kwargs.get('competition_pk')
-        )
+        # TODO: как согласуем схему ответа, дописать event_name в сваггере как обязательный
+        competition = self.get_competitions()
         detachment = get_object_or_404(
             Detachment, id=request.user.detachment_commander.id
         )
-        serializer = ParticipationInDistrAndInterregEventsCreateSerializer(
+        serializer = CreateParticipationInDistrAndInterregEventsSerializer(
             data=request.data,
             context={'request': request,
-                     'action': 'create',
                      'competition': competition,
                      'detachment': detachment})
         serializer.is_valid(raise_exception=True)
         serializer.save(competition=competition,
                         detachment=detachment,
                         is_verified=False)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data,
-                        status=status.HTTP_201_CREATED,
-                        headers=headers)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True,
             methods=['post'],
@@ -693,27 +696,25 @@ class ParticipationInAllRussianEventsViewSet(
         """Action для создания отчета.
 
         Доступ: командиры отрядов, которые участвуют в конкурсе.
+        'event_name' к передаче обязателен.
         """
+        # TODO: как согласуем схему ответа, дописать event_name в сваггере как обязательный
         competition = get_object_or_404(
             Competitions, id=self.kwargs.get('competition_pk')
         )
         detachment = get_object_or_404(
             Detachment, id=request.user.detachment_commander.id
         )
-        serializer = ParticipationInAllRussianEventsCreateSerializer(
+        serializer = CreateParticipationInAllRussianEventsSerializer(
             data=request.data,
             context={'request': request,
-                     'action': 'create',
                      'competition': competition,
                      'detachment': detachment})
         serializer.is_valid(raise_exception=True)
         serializer.save(competition=competition,
                         detachment=detachment,
                         is_verified=False)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data,
-                        status=status.HTTP_201_CREATED,
-                        headers=headers)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True,
             methods=['post'],
@@ -735,6 +736,91 @@ class ParticipationInAllRussianEventsViewSet(
                             status=status.HTTP_400_BAD_REQUEST)
         serializer = (
             ConfirmParticipationInAllRussianEventsSerializer(
+                report,
+                data={'is_verified': True},
+                context={'request': request},
+                partial=True)
+        )
+        try:
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as error:
+            return Response({'error': str(error)},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+
+class PrizePlacesInDistrAndInterregEventsViewSet(
+    ParticipationInDistrictAndInterregionalEventsViewSet
+):
+    """Вью сет для показателя 'Призовые места отряда в
+    окружных и межрегиональных мероприятиях и конкурсах РСО.'.
+
+    Доступ:
+        - чтение: Командир отряда из инстанса объекта к которому
+                  нужен доступ, а также комиссары региональных штабов.
+        - чтение(list): только комиссары региональных штабов.
+        - изменение: Если заявка не подтверждена - командир отряда из
+                     инстанса объекта который изменяют,
+                     а также комиссары региональных штабов.
+                     Если подтверждена - только комиссар регионального штаба.
+        - удаление: Если заявка не подтверждена - командир отряда из
+                    инстанса объекта который удаляют,
+                    а также комиссары региональных штабов.
+                    Если подтверждена - только комиссар регионального штаба.
+    ! При редактировании нельзя изменять event_name.
+    Поиск:
+        - ключ для поиска: ?search
+        - поле для поиска: id отряда и id конкурса.
+    """
+    queryset = PrizePlacesInDistrAndInterregEvents.objects.all()
+    serializer_class = PrizePlacesInDistrAndInterregEventsSerializer
+
+    def create(self, request, *args, **kwargs):
+        """Action для создания отчета.
+
+        Доступ: командиры отрядов, которые участвуют в конкурсе.
+        'event_name' к передаче обязателен.
+        """
+        # TODO: как согласуем схему ответа, дописать event_name в сваггере как обязательный
+        competition = get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+        detachment = get_object_or_404(
+            Detachment, id=request.user.detachment_commander.id
+        )
+        serializer = CreatePrizePlacesInDistrAndInterregEventsSerializer(
+            data=request.data,
+            context={'request': request,
+                     'competition': competition,
+                     'detachment': detachment})
+        serializer.is_valid(raise_exception=True)
+        serializer.save(competition=competition,
+                        detachment=detachment,
+                        is_verified=False)
+        return Response(serializer.data,
+                        status=status.HTTP_201_CREATED)
+
+    @action(detail=True,
+            methods=['post'],
+            url_path='accept',
+            permission_classes=(permissions.IsAuthenticated,
+                                IsRegionalCommissioner,))
+    @swagger_auto_schema(
+        request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={})
+    )
+    def accept_report(self, request, competition_pk, pk, *args, **kwargs):
+        """
+        Action для верификации отчета рег. комиссаром.
+
+        Принимает пустой POST запрос.
+        """
+        report = self.get_object()
+        if report.is_verified:
+            return Response({'error': 'Отчет уже подтвержден.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        serializer = (
+            ConfirmPrizePlacesInDistrAndInterregEventsSerializer(
                 report,
                 data={'is_verified': True},
                 context={'request': request},

@@ -14,7 +14,7 @@ from api.views import (AreaViewSet, EducationalInstitutionViewSet,
 from competitions.views import (
     CompetitionApplicationsViewSet, CompetitionParticipantsViewSet,
     CompetitionViewSet, ParticipationInAllRussianEventsViewSet,
-    ParticipationInDistrictAndInterregionalEventsViewSet,
+    ParticipationInDistrictAndInterregionalEventsViewSet, PrizePlacesInDistrAndInterregEventsViewSet,
 )
 from events.views import (AnswerDetailViewSet, EventAdditionalIssueViewSet,
                           EventApplicationsViewSet,
@@ -102,7 +102,7 @@ router.register(
 #     basename='participation_in_district_and_interregional_events'
 # )
 router.register(
-    r'competitions/(?P<competition_pk>\d+)/reports/participation_in_district_and_interregional_events',
+    r'competitions/(?P<competition_pk>\d+)/reports/participation_in_distr_and_interreg_events',
     ParticipationInDistrictAndInterregionalEventsViewSet,
     basename='participation_in_district_and_interregional_events'
 )
@@ -110,6 +110,11 @@ router.register(
     r'competitions/(?P<competition_pk>\d+)/reports/participation_in_all_russian_events',
     ParticipationInAllRussianEventsViewSet,
     basename='participation_in_all_russian_events'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/prize_places_in_distr_and_interreg_events',
+    PrizePlacesInDistrAndInterregEventsViewSet,
+    basename='prize_places_in_distr_and_interreg_events'
 )
 
 

@@ -1,3 +1,4 @@
+import re
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
@@ -150,16 +151,22 @@ class Score(models.Model):
         related_name='competition_scores',
         verbose_name='Конкурс'
     )
-    participation_in_distr_and_interreg_events = (
+    participation_in_distr_and_interreg_events = ( # чем больше, тем выше место
         models.PositiveSmallIntegerField(
-            verbose_name='Оценка',
+            verbose_name='Общее количество участий',
             default=0
         )
     )
-    participation_in_all_russian_events = (
+    participation_in_all_russian_events = ( # чем больше, тем выше место
         models.PositiveSmallIntegerField(
-            verbose_name='Оценка',
+            verbose_name='Общее количество участий',
             default=0
+        )
+    )
+    participation_in_all_russian_events = ( # чем меньше, тем выше место
+        models.PositiveSmallIntegerField(
+            verbose_name='Среднее место',
+            default=100
         )
     )
 
@@ -196,6 +203,23 @@ class Links(models.Model):
 
 class Report(models.Model):
     """Абстрактная модель для отчетов."""
+    class PrizePlaces(models.IntegerChoices):
+        FIRST_PLACE = 1, 'Первое место'
+        SECOND_PLACE = 2, 'Второе место'
+        THIRD_PLACE = 3, 'Третье место'
+
+    competition = models.ForeignKey(
+        to='Competitions',
+        on_delete=models.CASCADE,
+        related_name='%(class)s',
+        verbose_name='Конкурс',
+    )
+    detachment = models.ForeignKey(
+        to='headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='%(class)s',
+        verbose_name='Отряд'
+    )
     event_name = models.CharField(
         verbose_name='Название мероприятия',
         max_length=255
@@ -205,11 +229,6 @@ class Report(models.Model):
         upload_to=get_certificate_scans_path,
         blank=True,
         null=True
-    )
-    number_of_participants = models.PositiveIntegerField(
-        verbose_name='Количество участников',
-        default=0,
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
     )
     created_at = models.DateTimeField(
         verbose_name='Дата и время создания заявки',
@@ -223,14 +242,25 @@ class Report(models.Model):
     class Meta:
         abstract = True
 
-    def score_calculation(self, events, report):
-        """Функция вычисления очков."""
-        if events.__len__() == 0:
-            return 0
+    def score_calculation_sum(self, events, field_name: str):
+        """
+        Функция вычисления очков.
+        Считает сумму по всем полям total_participants.
+        """
         total_participants = events.aggregate(
-            total_participants=models.Sum('number_of_participants')
-        )
-        return total_participants['total_participants']
+            sum=models.Sum(field_name)
+        ).get('sum') or 0
+        return total_participants
+
+    def score_calculation_avg(self, events, field_name: str):
+        """
+        Функция вычисления среднего места.
+        Считает среднее число мест по всем полям prize_place.
+        """
+        average_prize = events.aggregate(
+            average=models.Avg(field_name)
+        ).get('average') or 0
+        return average_prize
 
 
 class LinksOfParticipationInDistrAndInterregEvents(Links):
@@ -247,9 +277,6 @@ class LinksOfParticipationInDistrAndInterregEvents(Links):
         related_name='links',
         verbose_name='Участие в окружных и межрегиональных мероприятиях'
     )
-
-    def __str__(self):
-        return (f'Ссылка участия в конкурсе, id {self.id}')
 
     class Meta:
         verbose_name_plural = (
@@ -273,17 +300,10 @@ class ParticipationInDistrAndInterregEvents(Report):
     Участие членов студенческого отряда в окружных и межрегиональных
     мероприятиях. Модель для хранения каждого участия.
     """
-    competition = models.ForeignKey(
-        to='Competitions',
-        on_delete=models.CASCADE,
-        related_name='participation_in_distr_and_interreg_events',
-        verbose_name='Конкурс',
-    )
-    detachment = models.ForeignKey(
-        to='headquarters.Detachment',
-        on_delete=models.CASCADE,
-        related_name='participation_in_distr_and_interreg_events',
-        verbose_name='Отряд'
+    number_of_participants = models.PositiveIntegerField(
+        verbose_name='Количество участников',
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
     )
 
     def __str__(self):
@@ -339,17 +359,10 @@ class ParticipationInAllRussianEvents(Report):
     Участие членов студенческого отряда во всероссийских
     мероприятиях. Модель для хранения каждого участия.
     """
-    competition = models.ForeignKey(
-        to='Competitions',
-        on_delete=models.CASCADE,
-        related_name='participation_in_all_russian_events',
-        verbose_name='Конкурс',
-    )
-    detachment = models.ForeignKey(
-        to='headquarters.Detachment',
-        on_delete=models.CASCADE,
-        related_name='participation_in_all_russian_events',
-        verbose_name='Отряд'
+    number_of_participants = models.PositiveIntegerField(
+        verbose_name='Количество участников',
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
     )
 
     def __str__(self):
@@ -365,5 +378,39 @@ class ParticipationInAllRussianEvents(Report):
             models.UniqueConstraint(
                 fields=('competition', 'detachment', 'event_name'),
                 name='unique_participation_in_all_russian_events'
+            )
+        ]
+
+
+class PrizePlacesInDistrAndInterregEvents(Report):
+    """
+    Призовые места в окружных и межрегиональных мероприятиях и
+    конкурсах РСО.
+    Модель для хранения каждого места.
+    """
+    prize_place = models.IntegerField(
+        choices=Report.PrizePlaces.choices,
+        verbose_name='Призовое место'
+    )
+
+    def __str__(self):
+        return (f'Призовое место СО {self.detachment.name} в окружных '
+                f'и межрегиональных  мероприятиях, id {self.id}')
+
+    class Meta:
+        verbose_name = (
+            'Участие в окружных и межрегиональных мероприятиях и конкурсах РСО'
+        )
+        ordering = ['-competition__id']
+        verbose_name = (
+            'Участие в окружных и межрегиональных мероприятиях и конкурсах РСО'
+        )
+        verbose_name_plural = (
+            'Участия в окружных и межрегиональных мероприятиях и конкурсах РСО'
+        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=('competition', 'detachment', 'event_name'),
+                name='unique_prize_places_in_distr_and_interreg_events'
             )
         ]
