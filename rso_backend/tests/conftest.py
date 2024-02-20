@@ -2,12 +2,9 @@ import datetime
 
 import pytest
 from django.conf import settings
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import connection
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from competitions.models import CompetitionApplications, Competitions
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -145,7 +142,6 @@ def user_uncommander_untrusted_2():
     return user
 
 
-
 @pytest.fixture
 def user_commander():
     """Командир всех структурных единиц выше отряда региона 1."""
@@ -166,6 +162,22 @@ def user_commander_2():
         last_name='Всего2',
         username='командир2',
         password='ПарольКомандира2'
+    )
+    return user
+
+
+@pytest.fixture
+def user_commander_2b():
+    """Еще один командир всех структурных единиц выше отряда региона 2.
+
+    Используется для проверок одноуровневых доступов
+    внутри одной ветки иерархии.
+    """
+    user = RSOUser.objects.create_user(
+        first_name='Командир2бэ',
+        last_name='Всего2бэ',
+        username='командир2бэ',
+        password='ПарольКомандира2бэ'
     )
     return user
 
@@ -270,6 +282,21 @@ def authenticated_client_8(client, user_uncommander_untrusted_2):
     login_payload = {
         'username': user_uncommander_untrusted_2.username,
         'password': 'Passw0rd!!',
+    }
+    client = APIClient()
+    response = client.post('/api/v1/token/login/', login_payload)
+    assert response.status_code == 200
+    token = response.data['auth_token']
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+    return client
+
+
+@pytest.fixture
+def authenticated_client_9(client, user_uncommander_untrusted_2):
+    """Авторизованный клиент сущности юзера командира ОбрШ по ветке 2."""
+    login_payload = {
+        'username': 'командир2бэ',
+        'password': 'ПарольКомандира2бэ',
     }
     client = APIClient()
     response = client.post('/api/v1/token/login/', login_payload)
@@ -494,6 +521,22 @@ def educational_headquarter_2(
 
 
 @pytest.fixture
+def educational_headquarter_2b(
+    local_headquarter_2, regional_headquarter_2, educational_institution_2,
+    user_commander_2b
+):
+    educational_headquarter = EducationalHeadquarter.objects.create(
+        name='Второй бэ образовательный штаб',
+        commander=user_commander_2b,
+        local_headquarter=local_headquarter_2,
+        regional_headquarter=regional_headquarter_2,
+        educational_institution=educational_institution_2,
+        founding_date=datetime.date.fromisoformat("2022-04-30"),
+    )
+    return educational_headquarter
+
+
+@pytest.fixture
 def detachment(
     user, regional_headquarter,
     region, educational_institution, area
@@ -514,12 +557,13 @@ def detachment(
 
 @pytest.fixture
 def detachment_2(
-    user_2, regional_headquarter_2, region_2, educational_institution_2, area_2
+    user_commander_2b, regional_headquarter_2, region_2,
+    educational_institution_2, area_2
 ):
     """Стандартный отряд региона 2"""
     detachment = Detachment.objects.create(
         name='Второй отряд',
-        commander=user_2,
+        commander=user_commander_2b,
         regional_headquarter=regional_headquarter_2,
         region=region_2,
         educational_institution=educational_institution_2,
@@ -532,7 +576,7 @@ def detachment_2(
 @pytest.fixture
 def detachment_3(
         user_6, regional_headquarter,
-    region, educational_institution, area
+        region, educational_institution, area
 ):
     """Такой же отряд как и 1(тот же регион), но с другим командиром"""
     detachment = Detachment.objects.create(
@@ -545,36 +589,3 @@ def detachment_3(
         founding_date=datetime.date.fromisoformat("2023-01-20"),
     )
     return detachment
-
-
-@pytest.fixture
-def position_jedi():
-    """Должность джедай"""
-
-    position_jedi = Position.objects.create(
-        name='Джедай'
-    )
-    return position_jedi
-
-
-@pytest.fixture
-def position_dart():
-    """Должность дарт"""
-
-    position_dart = Position.objects.create(
-        name='Дарт'
-    )
-    return position_dart
-
-
-@pytest.fixture
-def detachment_positions(detachment_2, user_6, position_jedi):
-    """user_6 в отряде detachment с должностью джедай."""
-
-    detachment_position = UserDetachmentPosition.objects.create(
-        headquarter=detachment_2,
-        user=user_6,
-        position=position_jedi,
-        is_trusted=False
-    )
-    return detachment_position
