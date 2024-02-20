@@ -516,11 +516,15 @@ class ShortMultiEventApplicationSerializer(serializers.ModelSerializer):
     is_approved = serializers.SerializerMethodField(
         label='Подтверждена ли заявка'
     )
+    organizer_id = serializers.SerializerMethodField(
+        label='ID организатора'
+    )
 
     class Meta:
         model = RSOUser
         fields = (
             'id',
+            'organizer_id',
             'headquarter_name',
             'emblem',
             'is_approved',
@@ -556,6 +560,9 @@ class ShortMultiEventApplicationSerializer(serializers.ModelSerializer):
             organizer_id=instance.id
         ).first()
         return first_application.is_approved
+
+    def get_organizer_id(self, instance):
+        return instance.id
 
 
 class EventApplicationsCreateSerializer(serializers.ModelSerializer):
