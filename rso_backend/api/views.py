@@ -144,6 +144,10 @@ def change_membership_fee_status(request, pk):
 
 
 class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
+    """Представляет сертификаты пользователей.
+
+    Разрешение на выдачу справок имеет только командир РШ.
+    """
 
     TIMES_HEAD_SIZE = 15
     TIMES_TEXT_SIZE = 14
@@ -200,6 +204,7 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
 
         """Сбор данных из БД и запроса к эндпоинту."""
         data = request.data
+
         username = user.username
         first_name = user.first_name
         last_name = user.last_name
@@ -211,6 +216,14 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
             )
             inn = user_docs.inn
             snils = user_docs.snils
+            if inn is None or snils is None:
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST,
+                    data={
+                        'detail': 'Документы пользователя '
+                        f'{username} не заполнены.'
+                    }
+                )
         except UserDocuments.DoesNotExist:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
@@ -568,6 +581,7 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                 if user_id == 0:
                     return Response(
                         {'detail': 'Поле ids не может содержать 0.'},
+                    status=status.HTTP_400_BAD_REQUEST
                     )
                 user = get_user_by_id(user_id)
                 pdf_cert_or_response = self.get_certificate(
@@ -623,6 +637,7 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                 if user_id == 0:
                     return Response(
                         {'detail': 'Поле ids не может содержать 0.'},
+                    status=status.HTTP_400_BAD_REQUEST
                     )
                 user = get_user_by_id(user_id)
                 pdf_cert_or_response = self.get_certificate(

@@ -1,9 +1,8 @@
 from http import HTTPStatus
+
 import pytest
 
-from events.models import (
-    EventApplications, EventParticipants
-)
+from events.models import EventApplications, EventParticipants
 from events.serializers import AnswerSerializer
 
 

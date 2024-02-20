@@ -15,7 +15,7 @@ from api.utils import (check_commander_or_not, check_roles_for_edit,
                        is_regional_commander, is_regional_commissioner,
                        is_safe_method,
                        is_stuff_or_central_commander)
-from competitions.models import CompetitionParticipants, Competitions
+from competitions.models import CompetitionParticipants
 from competitions.utils import is_competition_participant
 from events.models import Event, EventOrganizationData
 from headquarters.models import (CentralHeadquarter, Detachment,
@@ -487,7 +487,6 @@ class IsRegionalCommanderForCert(BasePermission):
         """Проверка прав пользователя для выдачи справки."""
 
         check_model_instance = True
-        request_user_id = request.user.id
         ids = request.data.get('ids')
         if ids is None:
             return Response(
@@ -496,8 +495,8 @@ class IsRegionalCommanderForCert(BasePermission):
             )
         try:
             commanders_regional_head_id = RegionalHeadquarter.objects.filter(
-                commander_id=request_user_id
-            ).id
+                commander_id=request.user.id
+            ).first().id
             for id in ids:
                 if id == 0:
                     return Response(
@@ -520,9 +519,9 @@ class IsRegionalCommanderForCert(BasePermission):
         ):
             check_model_instance = False
         return any([
-            is_safe_method(request),
             is_stuff_or_central_commander(request),
-            check_model_instance
+            check_model_instance,
+            is_safe_method(request),
         ])
 
 
@@ -565,6 +564,11 @@ class IsEventOrganizer(BasePermission):
             organizer=request.user
         ).exists():
             return True
+        event = Event.objects.filter(  # Удалить, конда уйдет в продакшен
+            id=view.kwargs.get('event_pk')
+        ).first()
+        if event is not None:
+            return event.author == request.user
         return False
 
     def has_object_permission(self, request, view, obj):
@@ -600,13 +604,15 @@ class IsEventOrganizerOrAuthor(BasePermission):
 
 class IsApplicantOrOrganizer(BasePermission):
     """
-    Проверяет, является ли пользователь автором заявки
-    или организатором мероприятия. Только одиночных объектов.
+    Проверяет, является ли пользователь автором заявки, мероприятия
+    или организатором мероприятия. Только для одиночных объектов.
     """
     def has_object_permission(self, request, view, obj):
         if EventOrganizationData.objects.filter(
             organizer=request.user
         ).exists():
+            return True
+        if obj.event.author == request.user:
             return True
         return obj.user == request.user
 
@@ -752,7 +758,6 @@ class IsCommanderOrTrustedAnywhere(BasePermission):
     лицом хотя бы где-либо.
     """
     def has_object_permission(self, request, view, obj):
-        print('Пермишен отработал')
         commander_data = UserCommanderSerializer(request.user).data
         trusted_data = UserTrustedSerializer(request.user).data
         if any(commander_data.values()) or any(trusted_data.values()):

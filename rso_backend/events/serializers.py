@@ -442,12 +442,16 @@ class ShortLocalHeadquarterSerializerME(ShortUnitSerializer):
 
 class ShortRegionalHeadquarterSerializerME(ShortUnitSerializer):
     local_headquarters = ShortLocalHeadquarterSerializerME(many=True)
+    educational_headquarters = ShortEducationalHeadquarterSerializerME(
+        many=True
+    )
     detachments = ShortDetachmentSerializerME(many=True)
 
     class Meta:
         model = RegionalHeadquarter
         fields = ShortUnitSerializer.Meta.fields + (
             'local_headquarters',
+            'educational_headquarters',
             'detachments',
         )
 

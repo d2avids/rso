@@ -47,6 +47,10 @@ from headquarters.serializers import (
     ShortRegionalHeadquarterSerializer,
     UserDetachmentApplicationReadSerializer,
     UserDetachmentApplicationSerializer)
+from headquarters.registry_serializers import (
+    DistrictHeadquarterRegistrySerializer,
+    RegionalHeadquarterRegistrySerializer, LocalHeadquarterRegistrySerializer,
+    EducationalHeadquarterRegistrySerializer, DetachmentRegistrySerializer)
 from headquarters.swagger_schemas import applications_response
 from users.models import UserVerificationRequest
 from users.serializers import UserVerificationReadSerializer
@@ -77,6 +81,7 @@ class CentralViewSet(ListRetrieveUpdateViewSet):
     queryset = CentralHeadquarter.objects.all()
     serializer_class = CentralHeadquarterSerializer
     permission_classes = (IsStuffOrCentralCommander,)
+    ordering = ('name',)
 
     def get_permissions(self):
         if self.action == 'create':
@@ -95,14 +100,22 @@ class DistrictViewSet(viewsets.ModelViewSet):
     members.
     Доступен поиск по name при передаче ?search=<value> query-параметра.
     Сортировка по умолчанию - количество участников
+    При указании registry=True в качестве query_param, выводит список объектов,
+    адаптированный под блок "Реестр участников".
     """
 
     queryset = DistrictHeadquarter.objects.all()
     serializer_class = DistrictHeadquarterSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+    ordering = ('name',)
 
     def get_serializer_class(self):
+        if (
+                self.request.query_params.get('registry') == 'true' and
+                self.action == 'list'
+        ):
+            return DistrictHeadquarterRegistrySerializer
         if self.action == 'list':
             return ShortDistrictHeadquarterListSerializer
         return DistrictHeadquarterSerializer
@@ -131,6 +144,8 @@ class RegionalViewSet(viewsets.ModelViewSet):
     Сортировка по умолчанию - количество участников.
     Доступна фильтрация по Окружным Штабам. Ключ - district_headquarter__name.
     Доступна фильтрация по имени региона. Ключ - region.
+    При указании registry=True в качестве query_param, выводит список объектов,
+    адаптированный под блок "Реестр участников".
     """
 
     queryset = RegionalHeadquarter.objects.all()
@@ -140,6 +155,11 @@ class RegionalViewSet(viewsets.ModelViewSet):
     filterset_class = RegionalHeadquarterFilter
 
     def get_serializer_class(self):
+        if (
+                self.request.query_params.get('registry') == 'true' and
+                self.action == 'list'
+        ):
+            return RegionalHeadquarterRegistrySerializer
         if self.action == 'list':
             return ShortRegionalHeadquarterListSerializer
         return RegionalHeadquarterSerializer
@@ -167,6 +187,7 @@ class RegionalViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+
 class LocalViewSet(viewsets.ModelViewSet):
     """Представляет местные штабы.
 
@@ -178,6 +199,8 @@ class LocalViewSet(viewsets.ModelViewSet):
     Доступна сортировка по ключам name, founding_date, count_related.
     Доступна фильтрация по РШ и ОШ. Ключи - regional_headquarter__name,
     district_headquarter__name.
+    При указании registry=True в качестве query_param, выводит список объектов,
+    адаптированный под блок "Реестр участников".
     """
 
     queryset = LocalHeadquarter.objects.all()
@@ -187,6 +210,11 @@ class LocalViewSet(viewsets.ModelViewSet):
     filterset_class = LocalHeadquarterFilter
 
     def get_serializer_class(self):
+        if (
+                self.request.query_params.get('registry') == 'true' and
+                self.action == 'list'
+        ):
+            return LocalHeadquarterRegistrySerializer
         if self.action == 'list':
             return ShortLocalHeadquarterListSerializer
         return LocalHeadquarterSerializer
@@ -215,6 +243,8 @@ class EducationalViewSet(viewsets.ModelViewSet):
     Доступна сортировка по ключам name, founding_date, count_related.
     Доступна фильтрация по РШ, ОШ и ОИ. Ключи - regional_headquarter__name,
     district_headquarter__name, local_headquarter__name.
+    При указании registry=True в качестве query_param, выводит список объектов,
+    адаптированный под блок "Реестр участников".
     """
 
     queryset = EducationalHeadquarter.objects.all()
@@ -224,6 +254,11 @@ class EducationalViewSet(viewsets.ModelViewSet):
     ordering_fields = ('name', 'founding_date',)
 
     def get_serializer_class(self):
+        if (
+                self.request.query_params.get('registry') == 'true' and
+                self.action == 'list'
+        ):
+            return EducationalHeadquarterRegistrySerializer
         if self.action == 'list':
             return ShortEducationalHeadquarterListSerializer
         return EducationalHeadquarterSerializer
@@ -256,7 +291,9 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     вступление в отряд по эндпоинту /applications/.
     Доступен поиск по name при передаче ?search=<value> query-параметра.
     Доступна сортировка по ключам name, founding_date, count_related.
-    Доступна фильтрация по ключам area__name, educational_institution__name,
+    Доступна фильтрация по ключам area__name, educational_institution__name.
+    При указании registry=True в качестве query_param, выводит список объектов,
+    адаптированный под блок "Реестр участников".
     """
 
     queryset = Detachment.objects.all()
@@ -266,6 +303,11 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     ordering_fields = ('name', 'founding_date',)
 
     def get_serializer_class(self):
+        if (
+                self.request.query_params.get('registry') == 'true' and
+                self.action == 'list'
+        ):
+            return DetachmentRegistrySerializer
         if self.action == 'list':
             return ShortDetachmentListSerializer
         return DetachmentSerializer

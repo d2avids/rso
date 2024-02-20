@@ -53,6 +53,12 @@ class EventAdmin(admin.ModelAdmin):
     fieldsets = [
         ('Basic Information', {'fields': ['name', 'author', 'format', 'direction', 'scale', 'status']}),
         ('Time Information', {'fields': ['participants_number', 'description']}),
+        ('Organization Information', {'fields': ['org_central_headquarter',
+                                                 'org_district_headquarter',
+                                                 'org_regional_headquarter',
+                                                 'org_local_headquarter',
+                                                 'org_educational_headquarter',
+                                                 'org_detachment']}),
         ('Location Information', {'fields': ['address', 'conference_link']}),
         ('Application Information', {'fields': ['application_type', 'available_structural_units']}),
         ('Banner and Documents', {'fields': ['banner']}),
