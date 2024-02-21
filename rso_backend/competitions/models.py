@@ -163,7 +163,13 @@ class Score(models.Model):
             default=0
         )
     )
-    participation_in_all_russian_events = ( # чем меньше, тем выше место
+    prize_places_in_distr_and_interreg_events = ( # чем меньше, тем выше место
+        models.PositiveSmallIntegerField(
+            verbose_name='Среднее место',
+            default=100
+        )
+    )
+    prize_places_in_all_russian_events = ( # чем меньше, тем выше место
         models.PositiveSmallIntegerField(
             verbose_name='Среднее место',
             default=100
@@ -398,19 +404,49 @@ class PrizePlacesInDistrAndInterregEvents(Report):
                 f'и межрегиональных  мероприятиях, id {self.id}')
 
     class Meta:
-        verbose_name = (
-            'Участие в окружных и межрегиональных мероприятиях и конкурсах РСО'
-        )
         ordering = ['-competition__id']
         verbose_name = (
-            'Участие в окружных и межрегиональных мероприятиях и конкурсах РСО'
+            'Призовое место в окружных и межрегиональных мероприятиях '
+            'и конкурсах РСО'
         )
         verbose_name_plural = (
-            'Участия в окружных и межрегиональных мероприятиях и конкурсах РСО'
+            'Призовые места в окружных и межрегиональных мероприятиях '
+            'и конкурсах РСО'
         )
         constraints = [
             models.UniqueConstraint(
                 fields=('competition', 'detachment', 'event_name'),
                 name='unique_prize_places_in_distr_and_interreg_events'
+            )
+        ]
+
+
+class PrizePlacesInAllRussianEvents(Report):
+    """
+    Призовые места всероссийских мероприятиях и
+    конкурсах РСО.
+    Модель для хранения каждого места.
+    """
+    prize_place = models.IntegerField(
+        choices=Report.PrizePlaces.choices,
+        verbose_name='Призовое место'
+    )
+
+    def __str__(self):
+        return (f'Призовое место СО {self.detachment.name} во всероссийских '
+                f'мероприятиях и конкурсах РСО, id {self.id}')
+
+    class Meta:
+        ordering = ['-competition__id']
+        verbose_name = (
+            'Призовое место во всероссийских мероприятиях и конкурсах РСО'
+        )
+        verbose_name_plural = (
+            'Призовые места во всероссийских мероприятиях и конкурсах РСО'
+        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=('competition', 'detachment', 'event_name'),
+                name='unique_prize_places_in_all_russian_events'
             )
         ]

@@ -6,7 +6,7 @@ from competitions.models import (
     Competitions, LinksOfParticipationInAllRussianEvents,
     LinksOfParticipationInDistrAndInterregEvents,
     ParticipationInAllRussianEvents,
-    ParticipationInDistrAndInterregEvents, PrizePlacesInDistrAndInterregEvents
+    ParticipationInDistrAndInterregEvents, PrizePlacesInAllRussianEvents, PrizePlacesInDistrAndInterregEvents
 )
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
@@ -766,6 +766,156 @@ def report_question9_verif3(
     старт- участник конкурса. Регион 2.
     """
     report = PrizePlacesInDistrAndInterregEvents.objects.create(
+        event_name='Мероприятие 1',
+        prize_place=1,
+        competition=competition,
+        detachment=junior_detachment_2,
+        is_verified=True
+    )
+    return report
+
+
+
+
+
+
+
+
+@pytest.fixture
+def report_question10_not_verif(
+    competition, participants_competition_tandem,
+    junior_detachment
+):
+    """
+    Не верифицированный отчет отряда по занятому призовому месту во
+    всероссийских мероприятиях и конкурсах РСО.
+    Подал отчет участник отряда
+    тандем-младший отряд - участник конкурса. Регион 1.
+    """
+    report = PrizePlacesInAllRussianEvents.objects.create(
+        event_name='Мероприятие 1',
+        prize_place=2,
+        competition=competition,
+        detachment=junior_detachment,
+    )
+    return report
+
+
+@pytest.fixture
+def report_question10_verif(
+    competition, participants_competition_tandem,
+    junior_detachment
+):
+    """
+    Верифицированный отчет отряда по занятому призовому месту во
+    всероссийских мероприятиях и конкурсах РСО.
+    Подал отчет участник отряда
+    тандем-младший отряд - участник конкурса. Регион 1.
+    """
+    report = PrizePlacesInAllRussianEvents.objects.create(
+        event_name='Мероприятие 1',
+        prize_place=2,
+        competition=competition,
+        detachment=junior_detachment,
+        is_verified=True
+    )
+    return report
+
+
+@pytest.fixture
+def report_question10_verif_second(
+    competition, participants_competition_tandem,
+    junior_detachment
+):
+    """
+    Второй верифицированный отчет отряда по занятому призовому месту во
+    всероссийских мероприятиях и конкурсах РСО.
+    Подал отчет участник отряда
+    тандем-младший отряд - участник конкурса. Регион 1.
+    """
+    report = PrizePlacesInAllRussianEvents.objects.create(
+        event_name='Мероприятие 2',
+        prize_place=1,
+        competition=competition,
+        detachment=junior_detachment,
+        is_verified=True
+    )
+    return report
+
+
+@pytest.fixture
+def report_question10_not_verif2(
+    competition, participants_competition_start,
+    junior_detachment_3
+):
+    """
+    Не верифицированный отчет отряда по занятому призовому месту во
+    всероссийских мероприятиях и конкурсах РСО.
+    Подал отчет участник отряда
+    старт- участник конкурса. Регион 1.
+    """
+    report = PrizePlacesInAllRussianEvents.objects.create(
+        event_name='Мероприятие 1',
+        prize_place=1,
+        competition=competition,
+        detachment=junior_detachment_3,
+    )
+    return report
+
+
+@pytest.fixture
+def report_question10_verif2(
+    competition, participants_competition_start,
+    junior_detachment_3
+):
+    """
+    Верифицированный отчет отряда по занятому призовому месту во
+    всероссийских мероприятиях и конкурсах РСО.
+    Подал отчет участник отряда
+    старт- участник конкурса. Регион 1
+    """
+    report = PrizePlacesInAllRussianEvents.objects.create(
+        event_name='Мероприятие 1',
+        prize_place=1,
+        competition=competition,
+        detachment=junior_detachment_3,
+        is_verified=True
+    )
+    return report
+
+
+@pytest.fixture
+def report_question10_not_verif3(
+    competition, participants_competition_start_2,
+    junior_detachment_2
+):
+    """
+    Не верифицированный отчет отряда по занятому призовому месту во
+    всероссийских мероприятиях и конкурсах РСО.
+    Подал отчет участник отряда
+    старт- участник конкурса. Регион 2.
+    """
+    report = PrizePlacesInAllRussianEvents.objects.create(
+        event_name='Мероприятие 1',
+        prize_place=1,
+        competition=competition,
+        detachment=junior_detachment_2,
+    )
+    return report
+
+
+@pytest.fixture
+def report_question10_verif3(
+    competition, participants_competition_start_2,
+    junior_detachment_2
+):
+    """
+    Верифицированный отчет отряда по занятому призовому месту во
+    всероссийских мероприятиях и конкурсах РСО.
+    Подал отчет участник отряда
+    старт- участник конкурса. Регион 2.
+    """
+    report = PrizePlacesInAllRussianEvents.objects.create(
         event_name='Мероприятие 1',
         prize_place=1,
         competition=competition,

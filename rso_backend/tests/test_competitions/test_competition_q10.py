@@ -1,13 +1,13 @@
 from http import HTTPStatus
 import pytest
 
-from competitions.models import PrizePlacesInDistrAndInterregEvents, Score
+from competitions.models import PrizePlacesInAllRussianEvents, Score
 
 
 @pytest.mark.django_db(transaction=True, reset_sequences=True)
-class TestPrizePlacesInDistrAndInterregEventsViewSet:
+class TestPrizePlacesInAllRussianEventsViewSet:
     competition_url = '/api/v1/competitions/'
-    question_url = '/reports/prize_places_in_distr_and_interreg_events/'
+    question_url = '/reports/prize_places_in_all_russian_events/'
 
     report = {
         "event_name": "Мероприятие New",
@@ -32,8 +32,8 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
     def test_get_list_reg_commissar(
             self, authenticated_client_commissar_regional_headquarter,
             authenticated_client_commissar_regional_headquarter_2,
-            competition, report_question9_not_verif, report_question9_verif2,
-            report_question9_not_verif3
+            competition, report_question10_not_verif, report_question10_verif2,
+            report_question10_not_verif3
     ):
         """
         Проверка, что при запросе общего списка региональным командиром,
@@ -63,7 +63,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         )
 
     def test_get_list_not_auth(
-            self, client, competition, report_question9_not_verif,
+            self, client, competition, report_question10_not_verif,
     ):
         """
         Проверка, что неавторизованный пользователь не может
@@ -79,7 +79,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
 
     def test_get_list_auth(
             self, free_authenticated_client, competition,
-            report_question9_not_verif
+            report_question10_not_verif
     ):
         """
         Проверка, что авторизованный пользователь не может
@@ -95,7 +95,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
 
     def test_create_report_participant(
         self, authenticated_client, participants_competition_tandem,
-        competition, detachment_competition, report_question9_not_verif2
+        competition, detachment_competition, report_question10_not_verif2
     ):
         """
         Проверка, что пользователь - участник конкурса, может создать отчет.
@@ -107,7 +107,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         assert response.status_code == HTTPStatus.CREATED, (
             'Response code is not 201'
         )
-        new_report = PrizePlacesInDistrAndInterregEvents.objects.filter(
+        new_report = PrizePlacesInAllRussianEvents.objects.filter(
             competition=competition,
             detachment=detachment_competition
         ).all()
@@ -218,7 +218,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         )
 
     def test_get_report_id_not_auth(
-        self, client, competition, report_question9_not_verif
+        self, client, competition, report_question10_not_verif
     ):
         """
         Проверка, что неавторизованный пользователь не может
@@ -226,14 +226,14 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         """
         response = client.get(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_not_verif.id}/'
+            f'{self.question_url}{report_question10_not_verif.id}/'
         )
         assert response.status_code == HTTPStatus.UNAUTHORIZED, (
             'Response code is not 401'
         )
 
     def test_get_report_id_auth(
-        self, authenticated_client, competition, report_question9_not_verif
+        self, authenticated_client, competition, report_question10_not_verif
     ):
         """
         Проверка, что авторизованный пользователь не может
@@ -241,7 +241,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         """
         response = authenticated_client.get(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_not_verif.id}/'
+            f'{self.question_url}{report_question10_not_verif.id}/'
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, (
             'Response code is not 403'
@@ -249,7 +249,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
 
     def test_get_report_id_participant(
         self, authenticated_client, participants_competition_tandem,
-        competition, report_question9_not_verif, report_question9_not_verif2
+        competition, report_question10_not_verif, report_question10_not_verif2
     ):
         """
         Проверка, что пользователь - участник конкурса, не может
@@ -257,7 +257,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         """
         response = authenticated_client.get(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_not_verif2.id}/'
+            f'{self.question_url}{report_question10_not_verif2.id}/'
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, (
             'Response code is not 403'
@@ -265,7 +265,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
 
     def test_get_report_id_author(
         self, authenticated_client_3, participants_competition_tandem,
-        competition, report_question9_not_verif, report_question9_not_verif2
+        competition, report_question10_not_verif, report_question10_not_verif2
     ):
         """
         Проверка, что пользователь - участник конкурса, может
@@ -273,23 +273,23 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         """
         response = authenticated_client_3.get(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_not_verif.id}/'
+            f'{self.question_url}{report_question10_not_verif.id}/'
         )
         assert response.status_code == HTTPStatus.OK, (
             'Response code is not 200'
         )
         report = response.data
         assert report['event_name'] == (
-            report_question9_not_verif.event_name
+            report_question10_not_verif.event_name
         ), 'Incorrect event_name'
         assert report['prize_place'] == (
-            report_question9_not_verif.prize_place
+            report_question10_not_verif.prize_place
         ), 'Incorrect prize_place'
         assert report['is_verified'] is False, 'Incorrect is_verified'
 
     def test_put_report_participant(
         self, authenticated_client_3, participants_competition_tandem,
-        competition, report_question9_not_verif, report_question9_not_verif2
+        competition, report_question10_not_verif, report_question10_not_verif2
     ):
         """
         Проверка, что пользователь - участник конкурса, может
@@ -297,7 +297,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         """
         response = authenticated_client_3.put(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_not_verif.id}/',
+            f'{self.question_url}{report_question10_not_verif.id}/',
             data=self.report, format='json'
         )
         assert response.status_code == HTTPStatus.OK, (
@@ -305,16 +305,16 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         )
         report = response.data
         assert report['event_name'] == (
-            report_question9_not_verif.event_name
+            report_question10_not_verif.event_name
         ), 'Incorrect event_name'
         assert report['prize_place'] == (
-            report_question9_not_verif.prize_place
+            report_question10_not_verif.prize_place
         ), 'Incorrect prize_place'
         assert report['is_verified'] is False, 'Incorrect is_verified'
 
     def test_put_report_participant_verif(
         self, authenticated_client_3, participants_competition_tandem,
-        competition, report_question9_not_verif, report_question9_not_verif2
+        competition, report_question10_not_verif, report_question10_not_verif2
     ):
         """
         Проверка, что пользователь - участник конкурса, не может
@@ -322,7 +322,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         """
         response = authenticated_client_3.put(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_not_verif.id}/',
+            f'{self.question_url}{report_question10_not_verif.id}/',
             data=self.report_with_verif, format='json'
         )
         assert response.status_code == HTTPStatus.OK, (
@@ -334,7 +334,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
 
     def test_put_verif_report_participant(
         self, authenticated_client_3, participants_competition_tandem,
-        competition, report_question9_verif, report_question9_not_verif2
+        competition, report_question10_verif, report_question10_not_verif2
     ):
         """
         Проверка, что автор отчета не может изменить его после того,
@@ -342,7 +342,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         """
         response = authenticated_client_3.put(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_verif.id}/',
+            f'{self.question_url}{report_question10_verif.id}/',
             data=self.report, format='json'
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, (
@@ -351,7 +351,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
 
     def test_put_report_not_auth(
         self, client, participants_competition_tandem,
-        competition, report_question9_not_verif
+        competition, report_question10_not_verif
     ):
         """
         Проверка, что неавторизованный пользователь не может
@@ -359,7 +359,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         """
         response = client.put(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_not_verif.id}/',
+            f'{self.question_url}{report_question10_not_verif.id}/',
             data=self.report, format='json'
         )
         assert response.status_code == HTTPStatus.UNAUTHORIZED, (
@@ -368,7 +368,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
 
     def test_put_report_auth(
         self, free_authenticated_client, participants_competition_tandem,
-        competition, report_question9_not_verif
+        competition, report_question10_not_verif
     ):
         """
         Проверка, что простой пользователь не может
@@ -376,7 +376,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         """
         response = free_authenticated_client.put(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_not_verif.id}/',
+            f'{self.question_url}{report_question10_not_verif.id}/',
             data=self.report, format='json'
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, (
@@ -386,7 +386,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
     def test_put_report_reg_commissar(
         self, authenticated_client_commissar_regional_headquarter,
         participants_competition_tandem,
-        competition, report_question9_verif, report_question9_verif2
+        competition, report_question10_verif, report_question10_verif2
     ):
         """
         Проверка, что рег.комиссар может изменить верифицированный отчет, но
@@ -394,7 +394,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         """
         response = authenticated_client_commissar_regional_headquarter.put(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_verif.id}/',
+            f'{self.question_url}{report_question10_verif.id}/',
             data=self.report, format='json'
         )
         assert response.status_code == HTTPStatus.OK, (
@@ -414,7 +414,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
 
     def test_patch_report_participant(
         self, authenticated_client_3, participants_competition_tandem,
-        competition, report_question9_not_verif, report_question9_not_verif2
+        competition, report_question10_not_verif, report_question10_not_verif2
     ):
         """
         Проверка, что пользователь - участник конкурса, может
@@ -422,7 +422,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         """
         response = authenticated_client_3.patch(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_not_verif.id}/',
+            f'{self.question_url}{report_question10_not_verif.id}/',
             data=self.report, format='json'
         )
         assert response.status_code == HTTPStatus.OK, (
@@ -430,16 +430,16 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         )
         report = response.data
         assert report['event_name'] == (
-            report_question9_not_verif.event_name
+            report_question10_not_verif.event_name
         ), 'Incorrect event_name'
         assert report['prize_place'] == (
-            report_question9_not_verif.prize_place
+            report_question10_not_verif.prize_place
         ), 'Incorrect prize_place'
         assert report['is_verified'] is False, 'Incorrect is_verified'
 
     def test_patch_report_participant_verif(
         self, authenticated_client_3, participants_competition_tandem,
-        competition, report_question9_not_verif, report_question9_not_verif2
+        competition, report_question10_not_verif, report_question10_not_verif2
     ):
         """
         Проверка, что пользователь - участник конкурса, не может
@@ -447,7 +447,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         """
         response = authenticated_client_3.patch(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_not_verif.id}/',
+            f'{self.question_url}{report_question10_not_verif.id}/',
             data=self.report_with_verif, format='json'
         )
         assert response.status_code == HTTPStatus.OK, (
@@ -459,7 +459,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
 
     def test_patch_verif_report_participant(
         self, authenticated_client_3, participants_competition_tandem,
-        competition, report_question9_verif, report_question9_not_verif2
+        competition, report_question10_verif, report_question10_not_verif2
     ):
         """
         Проверка, что автор отчета не может изменить его после того,
@@ -467,7 +467,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         """
         response = authenticated_client_3.patch(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_verif.id}/',
+            f'{self.question_url}{report_question10_verif.id}/',
             data=self.report, format='json'
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, (
@@ -476,7 +476,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
 
     def test_patch_report_not_auth(
         self, client, participants_competition_tandem,
-        competition, report_question9_not_verif
+        competition, report_question10_not_verif
     ):
         """
         Проверка, что неавторизованный пользователь не может
@@ -484,7 +484,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         """
         response = client.patch(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_not_verif.id}/',
+            f'{self.question_url}{report_question10_not_verif.id}/',
             data=self.report, format='json'
         )
         assert response.status_code == HTTPStatus.UNAUTHORIZED, (
@@ -493,7 +493,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
 
     def test_patch_report_auth(
         self, free_authenticated_client, participants_competition_tandem,
-        competition, report_question9_not_verif
+        competition, report_question10_not_verif
     ):
         """
         Проверка, что простой пользователь не может
@@ -501,7 +501,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         """
         response = free_authenticated_client.patch(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_not_verif.id}/',
+            f'{self.question_url}{report_question10_not_verif.id}/',
             data=self.report, format='json'
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, (
@@ -511,7 +511,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
     def test_patch_report_reg_commissar(
         self, authenticated_client_commissar_regional_headquarter,
         participants_competition_tandem,
-        competition, report_question9_verif, report_question9_verif2
+        competition, report_question10_verif, report_question10_verif2
     ):
         """
         Проверка, что рег.комиссар может изменить верифицированный отчет, но
@@ -519,7 +519,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         """
         response = authenticated_client_commissar_regional_headquarter.patch(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_verif.id}/',
+            f'{self.question_url}{report_question10_verif.id}/',
             data=self.report, format='json'
         )
         assert response.status_code == HTTPStatus.OK, (
@@ -549,7 +549,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
     def test_delete_report(
         self, client_name, expected_status,
         participants_competition_tandem, competition,
-        report_question9_not_verif, report_question9_verif2,
+        report_question10_not_verif, report_question10_verif2,
         request
     ):
         """
@@ -558,7 +558,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         test_client = request.getfixturevalue(client_name)
         response = test_client.delete(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_not_verif.id}/'
+            f'{self.question_url}{report_question10_not_verif.id}/'
         )
         assert response.status_code == expected_status, (
             'Response code is not ' + str(expected_status)
@@ -576,7 +576,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
     def test_accept_report(
         self, client_name, request, expected_status,
         participants_competition_tandem, competition,
-        report_question9_not_verif, report_question9_verif2,
+        report_question10_not_verif, report_question10_verif2,
     ):
         """
         Проверка прав подтверждения отчетов.
@@ -584,14 +584,14 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         test_client = request.getfixturevalue(client_name)
         response = test_client.post(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_not_verif.id}/accept/'
+            f'{self.question_url}{report_question10_not_verif.id}/accept/'
         )
         assert response.status_code == expected_status, (
             'Response code is not ' + str(expected_status)
         )
         if response.status_code == HTTPStatus.OK:
-            verif_report = PrizePlacesInDistrAndInterregEvents.objects.get(
-                id=report_question9_not_verif.id
+            verif_report = PrizePlacesInAllRussianEvents.objects.get(
+                id=report_question10_not_verif.id
             )
             assert verif_report.is_verified is True, 'Отчет не подтвержден'
             scores = Score.objects.filter(
@@ -600,14 +600,14 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
             ).all()
             assert scores.count() == 1, 'Оценка не создана'
             assert (
-                scores[0].prize_places_in_distr_and_interreg_events ==
+                scores[0].prize_places_in_all_russian_events ==
                 verif_report.prize_place
             ), 'Среднее призовое место не соответствует ожидаемому'
 
     def test_put_number_participants_reg_commander(
             self, authenticated_client_commissar_regional_headquarter,
             participants_competition_tandem, competition,
-            report_question9_verif, report_question9_verif_second
+            report_question10_verif, report_question10_verif_second
     ):
         """
         Проверка работы сигнала, который пересчитывает среднее призовое место,
@@ -616,7 +616,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         """
         response = authenticated_client_commissar_regional_headquarter.patch(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}{report_question9_verif_second.id}/',
+            f'{self.question_url}{report_question10_verif_second.id}/',
             data=self.report,
             format='json'
         )
@@ -625,23 +625,24 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         )
         scores = Score.objects.filter(
             competition=competition,
-            detachment=report_question9_verif.detachment
+            detachment=report_question10_verif.detachment
         ).all()
         assert scores.count() == 1, (
             "Количество записей не соответствует ожидаемому"
         )
         assert (
-            scores[0].prize_places_in_distr_and_interreg_events ==
+            scores[0].prize_places_in_all_russian_events ==
             (self.report['prize_place'] +
-             report_question9_verif.prize_place) / 2
+             report_question10_verif.prize_place) / 2
         ), (
             "Среднее призовое место не пересчиталось, сигнал не отработал."
         )
 
     def test_me_with_raport(
         self, authenticated_client_3, participants_competition_tandem,
-        competition, report_question9_not_verif, report_question9_verif_second,
-        report_question9_verif2
+        competition, report_question10_not_verif,
+        report_question10_verif_second,
+        report_question10_verif2
     ):
         """
         Проверка, что пользователь с подаными отчетами по запросу на
@@ -661,16 +662,16 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         assert len(data) == 2, (
             'Количество отчетов не соответствует ожидаемому'
         )
-        assert data[0]['id'] == report_question9_not_verif.id, (
+        assert data[0]['id'] == report_question10_not_verif.id, (
             'Отчет не соответствует ожидаемому'
         )
-        assert data[1]['id'] == report_question9_verif_second.id, (
+        assert data[1]['id'] == report_question10_verif_second.id, (
             'Отчет не соответствует ожидаемому'
         )
 
     def test_me_without_raport(
         self, authenticated_client_3, participants_competition_tandem,
-        competition, report_question9_verif2
+        competition, report_question10_verif2
     ):
         """
         Проверка, что пользователь отряд которого не имеет
@@ -693,7 +694,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
 
     def test_me_not_auth(
         self, client, participants_competition_tandem,
-        competition, report_question9_not_verif
+        competition, report_question10_not_verif
     ):
         """
         Проверка, что неавторизованный пользователь не может
@@ -709,7 +710,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
 
     def test_post_double_report(
         self, authenticated_client_3, participants_competition_tandem,
-        competition, report_question9_verif
+        competition, report_question10_verif
     ):
         """
         Проверка, что пользователь не может подать дубликат отчета.
@@ -717,9 +718,9 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
         response = authenticated_client_3.post(
             f'{self.competition_url}{competition.id}'
             f'{self.question_url}', data={
-                "event_name": report_question9_verif.event_name,
-                "prize_place": report_question9_verif.prize_place,
-                "competition": report_question9_verif.competition.id,
+                "event_name": report_question10_verif.event_name,
+                "prize_place": report_question10_verif.prize_place,
+                "competition": report_question10_verif.competition.id,
             },
             format='json'
         )
