@@ -503,12 +503,13 @@ class AnswerDetailViewSet(RetrieveUpdateDestroyViewSet):
         return Response(serializer.data)
 
 
-class EventUserDocumentViewSet(CreateRetrieveUpdateViewSet):
+class EventUserDocumentViewSet(viewsets.ModelViewSet):
     """Представление сохраненных документов пользователя (сканов).
 
     Доступ:
         - создание(загрузка) только авторизованные пользователи;
-        - чтение/редактирование/удаление только пользователи
+        - чтение/редактирование/удаление - организаторы и авторы записей.
+        - чтение(лист) - только пользователи
           из модели организаторов мероприятий.
     """
     queryset = EventUserDocument.objects.all()
@@ -525,7 +526,7 @@ class EventUserDocumentViewSet(CreateRetrieveUpdateViewSet):
     def get_permissions(self):
         if self.action == 'create':
             return [permissions.IsAuthenticated()]
-        if (self.action in ['update', 'partial_update'] and
+        if (self.action in ['update', 'partial_update', 'destroy'] and
                 self.request.user.is_authenticated):
             if EventApplications.objects.filter(
                 event_id=self.kwargs.get('event_pk'),
