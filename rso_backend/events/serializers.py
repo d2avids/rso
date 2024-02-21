@@ -303,39 +303,89 @@ class EventUserDocumentSerializer(serializers.ModelSerializer):
         )
 
 
+class SuperShortCentralHeadquarterSerializerME(serializers.ModelSerializer):
+    class Meta:
+        model = CentralHeadquarter
+        fields = (
+            'id',
+            'name'
+        )
+
+
+class SuperShortDistrictHeadquarterSerializerME(serializers.ModelSerializer):
+    class Meta:
+        model = DistrictHeadquarter
+        fields = (
+            'id',
+            'name'
+        )
+
+
+class SuperShortRegionalHeadquarterSerializerME(serializers.ModelSerializer):
+    class Meta:
+        model = RegionalHeadquarter
+        fields = (
+            'id',
+            'name'
+        )
+
+
+class SuperShortLocalHeadquarterSerializerME(serializers.ModelSerializer):
+    class Meta:
+        model = LocalHeadquarter
+        fields = (
+            'id',
+            'name'
+        )
+
+
+class SuperShortEducationalHeadquarterSerializerME(
+    serializers.ModelSerializer
+):
+    class Meta:
+        model = EducationalHeadquarter
+        fields = (
+            'id',
+            'name'
+        )
+
+
+class SuperShortDetachmentSerializerME(serializers.ModelSerializer):
+    class Meta:
+        model = Detachment
+        fields = (
+            'id',
+            'name'
+        )
+
+
 class MultiEventApplicationSerializer(serializers.ModelSerializer):
-    central_headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=CentralHeadquarter.objects.all(),
+    central_headquarter = SuperShortCentralHeadquarterSerializerME(
         required=False,
         allow_null=True,
         label='Центральный штаб'
     )
-    district_headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=DistrictHeadquarter.objects.all(),
+    district_headquarter = SuperShortDistrictHeadquarterSerializerME(
         required=False,
         allow_null=True,
         label='Окружной штаб'
     )
-    regional_headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=RegionalHeadquarter.objects.all(),
+    regional_headquarter = SuperShortRegionalHeadquarterSerializerME(
         required=False,
         allow_null=True,
         label='Региональный штаб'
     )
-    local_headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=LocalHeadquarter.objects.all(),
+    local_headquarter = SuperShortLocalHeadquarterSerializerME(
         required=False,
         allow_null=True,
         label='Местный штаб'
     )
-    educational_headquarter = serializers.PrimaryKeyRelatedField(
-        queryset=EducationalHeadquarter.objects.all(),
+    educational_headquarter = SuperShortEducationalHeadquarterSerializerME(
         required=False,
         allow_null=True,
         label='Образовательный штаб'
     )
-    detachment = serializers.PrimaryKeyRelatedField(
-        queryset=Detachment.objects.all(),
+    detachment = SuperShortDetachmentSerializerME(
         required=False,
         allow_null=True,
         label='Отряд'
@@ -390,6 +440,55 @@ class MultiEventApplicationSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         return {key: value for key, value in representation.items()
                 if value is not None}
+
+
+class CreateMultiEventApplicationSerializer(MultiEventApplicationSerializer):
+    central_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=CentralHeadquarter.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Центральный штаб'
+    )
+    district_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=DistrictHeadquarter.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Окружной штаб'
+    )
+    regional_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=RegionalHeadquarter.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Региональный штаб'
+    )
+    local_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=LocalHeadquarter.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Местный штаб'
+    )
+    educational_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=EducationalHeadquarter.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Образовательный штаб'
+    )
+    detachment = serializers.PrimaryKeyRelatedField(
+        queryset=Detachment.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Отряд'
+    )
+
+    class Meta:
+        model = MultiEventApplication
+        fields = '__all__'
+        read_only_fields = (
+            'id',
+            'event',
+            'organizer_id',
+            'created_at'
+        )
 
 
 class ShortUnitSerializer(serializers.ModelSerializer):
@@ -516,14 +615,22 @@ class ShortMultiEventApplicationSerializer(serializers.ModelSerializer):
     is_approved = serializers.SerializerMethodField(
         label='Подтверждена ли заявка'
     )
+    organizer_id = serializers.SerializerMethodField(
+        label='ID организатора'
+    )
+    documents = serializers.SerializerMethodField(
+        label='Документы'
+    )
 
     class Meta:
         model = RSOUser
         fields = (
             'id',
+            'organizer_id',
             'headquarter_name',
             'emblem',
             'is_approved',
+            'documents',
             'created_at',
         )
 
@@ -556,6 +663,16 @@ class ShortMultiEventApplicationSerializer(serializers.ModelSerializer):
             organizer_id=instance.id
         ).first()
         return first_application.is_approved
+
+    def get_organizer_id(self, instance):
+        return instance.id
+
+    def get_documents(self, instance):
+        return EventUserDocumentSerializer(
+            instance.event_user_documents.filter(
+                event__id=self.context.get('event_pk')
+            ), many=True
+        ).data
 
 
 class EventApplicationsCreateSerializer(serializers.ModelSerializer):
