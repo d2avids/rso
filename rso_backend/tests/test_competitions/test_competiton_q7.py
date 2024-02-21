@@ -311,7 +311,7 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
     ):
         """
         Проверка, что пользователь - участник конкурса, не может
-        получить доступ к не своему отчету.
+        получить доступ к чужому отчету.
         """
         response = authenticated_client.get(
             f'{self.competition_url}{competition.id}'
@@ -737,7 +737,7 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
             "Количество участников не пересчиталось, сигнал не отработал."
         )
 
-    def test_me_with_raport(
+    def test_me_with_report(
         self, authenticated_client_3, participants_competition_tandem,
         competition, report_question7_not_verif, report_question7_verif_second,
         report_question7_verif2
@@ -767,7 +767,7 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
             'Отчет не соответствует ожидаемому'
         )
 
-    def test_me_without_raport(
+    def test_me_without_report(
         self, authenticated_client_3, participants_competition_tandem,
         competition, report_question7_verif2
     ):
@@ -837,7 +837,7 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
         competition, report_question7_verif
     ):
         """
-        Проверка, что пользователь не может подать отчет c
+        Проверка, что пользователь не может подать отчет с
         одинаковыми ссылками.
         """
         response = authenticated_client_3.post(

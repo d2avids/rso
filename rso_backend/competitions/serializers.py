@@ -2,14 +2,17 @@ from datetime import date
 
 from django.db import transaction
 from django.conf import settings
-from django.urls import reverse
 from rest_framework import serializers
 
 from competitions.models import (
-    CompetitionApplications, CompetitionParticipants, Competitions, LinksOfParticipationInAllRussianEvents,
-    LinksOfParticipationInDistrAndInterregEvents, ParticipationInAllRussianEvents,
-    ParticipationInDistrAndInterregEvents, PrizePlacesInAllRussianEvents, PrizePlacesInDistrAndInterregEvents,
-    Score)
+    CompetitionApplications, CompetitionParticipants, Competitions,
+    LinksOfParticipationInAllRussianEvents,
+    LinksOfParticipationInDistrAndInterregEvents,
+    ParticipationInAllRussianEvents,
+    ParticipationInDistrAndInterregEvents, PrizePlacesInAllRussianEvents,
+    PrizePlacesInAllRussianLaborProjects,
+    PrizePlacesInDistrAndInterregEvents,
+    PrizePlacesInDistrAndInterregLaborProjects)
 from headquarters.models import Detachment
 from headquarters.serializers import BaseShortUnitSerializer
 
@@ -421,9 +424,11 @@ class ParticipationInAllRussianEventsSerializer(
                         LinksOfParticipationInAllRussianEventsSerializer(
                             many=True,
                             data=links,
-                            context={'request': self.context.get('request'),
-                                     'detachment': self.context.get('detachment'),
-                                     'event': event}
+                            context={
+                                'request': self.context.get('request'),
+                                'detachment': self.context.get('detachment'),
+                                'event': event
+                            }
                         )
                     )
                     serializer.is_valid(raise_exception=True)
@@ -623,12 +628,6 @@ class CreatePrizePlacesInDistrAndInterregEventsSerializer(
         return attrs
 
 
-
-
-
-
-
-
 class PrizePlacesInAllRussianEventsSerializer(
     serializers.ModelSerializer
 ):
@@ -711,5 +710,177 @@ class CreatePrizePlacesInAllRussianEventsSerializer(
             raise serializers.ValidationError(
                 {'event_name':
                  'Отчетность по этому мероприятию/конкурсу уже подана.'}
+            )
+        return attrs
+
+
+class PrizePlacesInDistrAndInterregLaborProjectsSerializer(
+    serializers.ModelSerializer
+):
+    class Meta:
+        model = PrizePlacesInDistrAndInterregLaborProjects
+        fields = (
+            'id',
+            'competition',
+            'detachment',
+            'certificate_scans',
+            'event_name',
+            'prize_place',
+            'is_verified'
+        )
+        read_only_fields = (
+            'id',
+            'competition',
+            'event_name',
+            'detachment',
+            'is_verified'
+        )
+
+
+class ConfirmPrizePlacesInDistrAndInterregLaborProjectsSerializer(
+    serializers.ModelSerializer
+):
+    class Meta:
+        model = PrizePlacesInDistrAndInterregLaborProjects
+        fields = '__all__'
+        read_only_fields = (
+            'id',
+            'competition',
+            'detachment',
+            'event_name',
+            'certificate_scans',
+            'prize_place'
+        )
+
+
+class CreatePrizePlacesInDistrAndInterregLaborProjectsSerializer(
+        serializers.ModelSerializer
+):
+    class Meta:
+        model = PrizePlacesInDistrAndInterregLaborProjects
+        fields = (
+            'id',
+            'competition',
+            'detachment',
+            'event_name',
+            'certificate_scans',
+            'prize_place',
+            'is_verified'
+        )
+        read_only_fields = (
+            'id',
+            'competition',
+            'detachment',
+            'is_verified'
+        )
+
+    def validate(self, attrs):
+        prize_place = attrs.get('prize_place', None)
+        if not attrs.get('event_name'):
+            raise serializers.ValidationError(
+                {'event_name': 'Укажите название трудового проекта.'}
+            )
+        if not prize_place:
+            raise serializers.ValidationError(
+                {'prize_place': 'Не указано призовое место.'}
+            )
+        if prize_place <= 0 or prize_place > 3:
+            raise serializers.ValidationError(
+                {'prize_place': 'Призовое место должно быть от 1 до 3.'}
+            )
+        if self.Meta.model.objects.filter(
+            competition=self.context.get('competition'),
+            detachment=self.context.get('detachment'),
+            event_name=attrs.get('event_name')
+        ).exists():
+            raise serializers.ValidationError(
+                {'event_name':
+                 'Отчетность по этому трудовому проекту уже подана.'}
+            )
+        return attrs
+
+
+class PrizePlacesInAllRussianLaborProjectsSerializer(
+    serializers.ModelSerializer
+):
+    class Meta:
+        model = PrizePlacesInAllRussianLaborProjects
+        fields = (
+            'id',
+            'competition',
+            'detachment',
+            'certificate_scans',
+            'event_name',
+            'prize_place',
+            'is_verified'
+        )
+        read_only_fields = (
+            'id',
+            'competition',
+            'event_name',
+            'detachment',
+            'is_verified'
+        )
+
+
+class ConfirmPrizePlacesInAllRussianLaborProjectsSerializer(
+    serializers.ModelSerializer
+):
+    class Meta:
+        model = PrizePlacesInAllRussianLaborProjects
+        fields = '__all__'
+        read_only_fields = (
+            'id',
+            'competition',
+            'detachment',
+            'event_name',
+            'certificate_scans',
+            'prize_place'
+        )
+
+
+class CreatePrizePlacesInAllRussianLaborProjectsSerializer(
+        serializers.ModelSerializer
+):
+    class Meta:
+        model = PrizePlacesInAllRussianLaborProjects
+        fields = (
+            'id',
+            'competition',
+            'detachment',
+            'event_name',
+            'certificate_scans',
+            'prize_place',
+            'is_verified'
+        )
+        read_only_fields = (
+            'id',
+            'competition',
+            'detachment',
+            'is_verified'
+        )
+
+    def validate(self, attrs):
+        prize_place = attrs.get('prize_place', None)
+        if not attrs.get('event_name'):
+            raise serializers.ValidationError(
+                {'event_name': 'Укажите название трудового проекта.'}
+            )
+        if not prize_place:
+            raise serializers.ValidationError(
+                {'prize_place': 'Не указано призовое место.'}
+            )
+        if prize_place <= 0 or prize_place > 3:
+            raise serializers.ValidationError(
+                {'prize_place': 'Призовое место должно быть от 1 до 3.'}
+            )
+        if self.Meta.model.objects.filter(
+            competition=self.context.get('competition'),
+            detachment=self.context.get('detachment'),
+            event_name=attrs.get('event_name')
+        ).exists():
+            raise serializers.ValidationError(
+                {'event_name':
+                 'Отчетность по этому трудовому проекту уже подана.'}
             )
         return attrs

@@ -164,15 +164,27 @@ class Score(models.Model):
         )
     )
     prize_places_in_distr_and_interreg_events = ( # чем меньше, тем выше место
-        models.PositiveSmallIntegerField(
+        models.FloatField(
             verbose_name='Среднее место',
-            default=100
+            default=100.0
         )
     )
     prize_places_in_all_russian_events = ( # чем меньше, тем выше место
-        models.PositiveSmallIntegerField(
+        models.FloatField(
             verbose_name='Среднее место',
-            default=100
+            default=100.0
+        )
+    )
+    prize_places_in_distr_and_interreg_labor_projects = ( # чем меньше, тем выше место
+        models.FloatField(
+            verbose_name='Среднее место',
+            default=100.0
+        )
+    )
+    prize_places_in_all_russian_labor_projects = ( # чем меньше, тем выше место
+        models.FloatField(
+            verbose_name='Среднее место',
+            default=100.0
         )
     )
 
@@ -448,5 +460,71 @@ class PrizePlacesInAllRussianEvents(Report):
             models.UniqueConstraint(
                 fields=('competition', 'detachment', 'event_name'),
                 name='unique_prize_places_in_all_russian_events'
+            )
+        ]
+
+
+class PrizePlacesInDistrAndInterregLaborProjects(Report):
+    """
+    Призовые места отряда на окружных и межрегиональных
+    трудовых проектах.
+    Модель для хранения каждого места.
+    """
+    prize_place = models.IntegerField(
+        choices=Report.PrizePlaces.choices,
+        verbose_name='Призовое место'
+    )
+
+    def __str__(self):
+        return (f'Призовое место СО {self.detachment.name} в окружных '
+                f'и межрегиональных  трудовых проектах, id {self.id}')
+
+    class Meta:
+        ordering = ['-competition__id']
+        verbose_name = (
+            'Призовое место в окружных и межрегиональных '
+            'трудовых проектах'
+        )
+        verbose_name_plural = (
+            'Призовые места в окружных и межрегиональных '
+            'трудовых проектах'
+        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=('competition', 'detachment', 'event_name'),
+                name='unique_prize_places_in_distr_and_interreg_labor_projects'
+            )
+        ]
+
+
+class PrizePlacesInAllRussianLaborProjects(Report):
+    """
+    Призовые места отряда на всероссийских
+    трудовых проектах.
+    Модель для хранения каждого места.
+    """
+    prize_place = models.IntegerField(
+        choices=Report.PrizePlaces.choices,
+        verbose_name='Призовое место'
+    )
+
+    def __str__(self):
+        return (f'Призовое место СО {self.detachment.name} на всероссийских'
+                f' трудовых проектах, id {self.id}')
+
+    class Meta:
+        ordering = ['-competition__id']
+        verbose_name = (
+            'Призовое место на всероссийских'
+            'трудовых проектах'
+        )
+        verbose_name_plural = (
+            'Призовые места на всероссийских '
+            'трудовых проектах'
+        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=('competition', 'detachment', 'event_name'),
+                name='unique_prize_places_in_all_russian_labor_projects'
             )
         ]

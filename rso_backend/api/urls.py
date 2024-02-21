@@ -14,7 +14,11 @@ from api.views import (AreaViewSet, EducationalInstitutionViewSet,
 from competitions.views import (
     CompetitionApplicationsViewSet, CompetitionParticipantsViewSet,
     CompetitionViewSet, ParticipationInAllRussianEventsViewSet,
-    ParticipationInDistrictAndInterregionalEventsViewSet, PrizePlacesInAllRussianEventsViewSet, PrizePlacesInDistrAndInterregEventsViewSet,
+    ParticipationInDistrictAndInterregionalEventsViewSet,
+    PrizePlacesInAllRussianEventsViewSet,
+    PrizePlacesInAllRussianLaborProjectsViewSet,
+    PrizePlacesInDistrAndInterregEventsViewSet,
+    PrizePlacesInDistrAndInterregLaborProjectsViewSet
 )
 from events.views import (AnswerDetailViewSet, EventAdditionalIssueViewSet,
                           EventApplicationsViewSet,
@@ -120,6 +124,16 @@ router.register(
     r'competitions/(?P<competition_pk>\d+)/reports/prize_places_in_all_russian_events',
     PrizePlacesInAllRussianEventsViewSet,
     basename='prize_places_in_all_russian_events'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/prize_places_in_distr_and_interreg_labor_projects',
+    PrizePlacesInDistrAndInterregLaborProjectsViewSet,
+    basename='prize_places_in_distr_and_interreg_labor_projects'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/prize_places_in_all_russian_labor_projects',
+    PrizePlacesInAllRussianLaborProjectsViewSet,
+    basename='prize_places_in_all_russian_labor_projects'
 )
 
 
