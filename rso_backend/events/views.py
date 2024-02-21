@@ -28,6 +28,7 @@ from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventOrganizationData, EventParticipants,
                            EventTimeData, EventUserDocument)
 from events.serializers import (AnswerSerializer,
+                                CreateMultiEventApplicationSerializer,
                                 EventAdditionalIssueSerializer,
                                 EventApplicationsCreateSerializer,
                                 EventApplicationsSerializer,
@@ -636,7 +637,7 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
         return Response(serializer.data)
 
     @swagger_auto_schema(
-            request_body=MultiEventApplicationSerializer(many=True)
+            request_body=CreateMultiEventApplicationSerializer(many=True)
     )
     def create(self, request, event_pk, *args, **kwargs):
         """Создание многоэтапной заявки на мероприятие.
@@ -685,13 +686,15 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
                 'разрешенное количество участников мероприятя.'
             )
 
-        serializer = self.get_serializer(data=data_set,
-                                         many=True)
+        serializer = CreateMultiEventApplicationSerializer(
+            data=data_set,
+            many=True
+        )
         if serializer.is_valid(raise_exception=True):
             serializer.save(event=event,
                             organizer_id=request.user.id,
                             is_approved=False)
-            return Response(status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False,

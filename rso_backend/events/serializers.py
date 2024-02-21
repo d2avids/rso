@@ -442,6 +442,55 @@ class MultiEventApplicationSerializer(serializers.ModelSerializer):
                 if value is not None}
 
 
+class CreateMultiEventApplicationSerializer(MultiEventApplicationSerializer):
+    central_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=CentralHeadquarter.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Центральный штаб'
+    )
+    district_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=DistrictHeadquarter.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Окружной штаб'
+    )
+    regional_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=RegionalHeadquarter.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Региональный штаб'
+    )
+    local_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=LocalHeadquarter.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Местный штаб'
+    )
+    educational_headquarter = serializers.PrimaryKeyRelatedField(
+        queryset=EducationalHeadquarter.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Образовательный штаб'
+    )
+    detachment = serializers.PrimaryKeyRelatedField(
+        queryset=Detachment.objects.all(),
+        required=False,
+        allow_null=True,
+        label='Отряд'
+    )
+
+    class Meta:
+        model = MultiEventApplication
+        fields = '__all__'
+        read_only_fields = (
+            'id',
+            'event',
+            'organizer_id',
+            'created_at'
+        )
+
+
 class ShortUnitSerializer(serializers.ModelSerializer):
     """Базовый сериализатор для хранения общей логики штабов."""
     members_count = serializers.SerializerMethodField()
