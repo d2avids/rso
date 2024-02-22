@@ -464,8 +464,6 @@ class AnswerDetailViewSet(RetrieveUpdateDestroyViewSet):
     permission_classes = (permissions.IsAuthenticated, IsApplicantOrOrganizer)
 
     def get_permissions(self):
-        if self.action == 'destroy':
-            return [permissions.IsAuthenticated(), IsEventOrganizer()]
         if (self.action in ['update', 'partial_update'] and
                 self.request.user.is_authenticated):
             if not EventApplications.objects.filter(
@@ -526,7 +524,7 @@ class EventUserDocumentViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action == 'create':
             return [permissions.IsAuthenticated()]
-        if (self.action in ['update', 'partial_update', 'destroy'] and
+        if (self.action in ['update', 'partial_update'] and
                 self.request.user.is_authenticated):
             if EventApplications.objects.filter(
                 event_id=self.kwargs.get('event_pk'),
@@ -534,7 +532,7 @@ class EventUserDocumentViewSet(viewsets.ModelViewSet):
             ).exists():
                 return [permissions.IsAuthenticated(),
                         IsApplicantOrOrganizer()]
-        if self.action == 'retrieve':
+        if self.action in ['retrieve', 'destroy']:
             return [permissions.IsAuthenticated(), IsApplicantOrOrganizer()]
         return super().get_permissions()
 
