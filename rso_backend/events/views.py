@@ -28,6 +28,7 @@ from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventOrganizationData, EventParticipants,
                            EventTimeData, EventUserDocument)
 from events.serializers import (AnswerSerializer,
+                                CreateMultiEventApplicationSerializer,
                                 EventAdditionalIssueSerializer,
                                 EventApplicationsCreateSerializer,
                                 EventApplicationsSerializer,
@@ -463,8 +464,6 @@ class AnswerDetailViewSet(RetrieveUpdateDestroyViewSet):
     permission_classes = (permissions.IsAuthenticated, IsApplicantOrOrganizer)
 
     def get_permissions(self):
-        if self.action == 'destroy':
-            return [permissions.IsAuthenticated(), IsEventOrganizer()]
         if (self.action in ['update', 'partial_update'] and
                 self.request.user.is_authenticated):
             if not EventApplications.objects.filter(
@@ -502,12 +501,13 @@ class AnswerDetailViewSet(RetrieveUpdateDestroyViewSet):
         return Response(serializer.data)
 
 
-class EventUserDocumentViewSet(CreateRetrieveUpdateViewSet):
+class EventUserDocumentViewSet(viewsets.ModelViewSet):
     """Представление сохраненных документов пользователя (сканов).
 
     Доступ:
         - создание(загрузка) только авторизованные пользователи;
-        - чтение/редактирование/удаление только пользователи
+        - чтение/редактирование/удаление - организаторы и авторы записей.
+        - чтение(лист) - только пользователи
           из модели организаторов мероприятий.
     """
     queryset = EventUserDocument.objects.all()
@@ -532,7 +532,7 @@ class EventUserDocumentViewSet(CreateRetrieveUpdateViewSet):
             ).exists():
                 return [permissions.IsAuthenticated(),
                         IsApplicantOrOrganizer()]
-        if self.action == 'retrieve':
+        if self.action in ['retrieve', 'destroy']:
             return [permissions.IsAuthenticated(), IsApplicantOrOrganizer()]
         return super().get_permissions()
 
@@ -636,7 +636,7 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
         return Response(serializer.data)
 
     @swagger_auto_schema(
-            request_body=MultiEventApplicationSerializer(many=True)
+            request_body=CreateMultiEventApplicationSerializer(many=True)
     )
     def create(self, request, event_pk, *args, **kwargs):
         """Создание многоэтапной заявки на мероприятие.
@@ -685,13 +685,15 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
                 'разрешенное количество участников мероприятя.'
             )
 
-        serializer = self.get_serializer(data=data_set,
-                                         many=True)
+        serializer = CreateMultiEventApplicationSerializer(
+            data=data_set,
+            many=True
+        )
         if serializer.is_valid(raise_exception=True):
             serializer.save(event=event,
                             organizer_id=request.user.id,
                             is_approved=False)
-            return Response(status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False,

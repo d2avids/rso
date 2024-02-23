@@ -9,12 +9,12 @@ def image_path(instance, filename):
     :param instance: Экземпляр модели.
     :param filename: Имя файла. Добавляем к имени текущую дату и время.
     :return: Путь к изображению.
-    Сохраняем в filepath/{instance.name}/filename
+    Сохраняем в filepath/{instance.id}/filename
     """
 
-    filename = dt.today().strftime('%Y%m%d%H%M%S') + '_' + filename
+    filename = dt.today().strftime('%Y%m%d%') + '_' + filename[:15]
     filepath = 'images/headquarters'
-    return os.path.join(filepath, instance.name, filename)
+    return os.path.join(filepath, instance.id, filename)
 
 
 def headquarter_media_folder_delete(instance):

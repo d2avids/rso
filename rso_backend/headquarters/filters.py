@@ -79,15 +79,24 @@ class DetachmentFilter(filters.FilterSet):
 
     area__name = filters.CharFilter(
         field_name='area__name',
-        lookup_expr='icontains',
+        lookup_expr='iexact',
         label='Название направления'
     )
     educational_institution__name = filters.CharFilter(
         field_name='educational_institution__name',
-        lookup_expr='icontains',
+        lookup_expr='iexact',
+        label='Название образовательной организации'
+    )
+    educational_headquarter__name = filters.CharFilter(
+        field_name='educational_headquarter__name',
+        lookup_expr='iexact',
         label='Название образовательной организации'
     )
 
     class Meta:
         model = Detachment
-        fields = ('area__name', 'educational_institution__name')
+        fields = (
+            'area__name',
+            'educational_institution__name',
+            'educational_headquarter__name',
+        )
