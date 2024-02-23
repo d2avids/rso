@@ -187,7 +187,6 @@ class RegionalViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-
 class LocalViewSet(viewsets.ModelViewSet):
     """Представляет местные штабы.
 
