@@ -300,7 +300,7 @@ class UserDocuments(models.Model):
     )
     pass_address = models.CharField(
         verbose_name='Место регистрации по паспорту',
-        max_length=100,
+        max_length=250,
         blank=True,
         null=True,
     )
@@ -355,7 +355,7 @@ class UserForeignDocuments(models.Model):
         related_name='foreign_documents',
     )
     name = models.CharField(
-        max_length=30,
+        max_length=200,
         verbose_name='Документ, удостоверяющий личность'
     )
     snils = models.CharField(
@@ -435,7 +435,7 @@ class UserRegion(models.Model):
         verbose_name='Населенный пункт прописки'
     )
     reg_house = models.CharField(
-        max_length=40,
+        max_length=180,
         blank=True,
         null=True,
         verbose_name='Улица, дом, кв. прописки'
@@ -769,7 +769,7 @@ class UserParent(models.Model):
         null=True,
         blank=True,
         verbose_name='Кем выдан',
-        max_length=150,
+        max_length=250,
     )
     region = models.ForeignKey(
         null=True,
@@ -788,7 +788,7 @@ class UserParent(models.Model):
         null=True,
         blank=True,
         verbose_name='Улица, дом, квартира',
-        max_length=200,
+        max_length=250,
     )
 
     class Meta:
