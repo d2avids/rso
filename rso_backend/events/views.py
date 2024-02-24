@@ -1080,7 +1080,11 @@ def group_applications(request, event_pk):
         существует, возвращается ошибка с соответствующим уведомлением.
         Если среди предоставленных айдишников есть такие, которые не найдены
         среди пользователей штаба, подающего участников, возвращается ошибка
-        400 Bad Request с указанием неверных идентификаторов.
+        400 Bad Request с указанием неверных идентификаторов. При
+        использовании эндпоинта с передачей pk мероприятия не
+        принимающего групповые заявки бэкенд возвращает ошибку 400 Bad
+        Request с уточнением типа принимающих заявок у соответствующего
+        мероприятия
 
     Примечания:
         - При подаче заявки через метод `POST` производится проверка на
@@ -1091,11 +1095,21 @@ def group_applications(request, event_pk):
           корректность айдишников пользователей, поданных к участию
           в мероприятии. В случае обнаружения такой заявки бэкенд возвращает
           ошибку 400 Bad Request с сообщением о дублировании заявки.
+        - При использовании эндпоинта с передачей pk мероприятия не
+          принимающего групповые заявки бэкенд возвращает ошибку 400 Bad
+          Request с уточнением типа принимающих заявок у соответствующего
+          мероприятия
         - Фильтрация в запросе `GET` позволяет более точно подобрать кандидатов
           для участия в мероприятии, учитывая членский взнос, возраст и пол
           участников.
     """
     event = get_object_or_404(Event, pk=event_pk)
+    event_application_type = event.application_type
+    if event_application_type != 'Групповая':
+        return Response({
+            'detail': f'Мероприятие принимает заявки типа '
+                      f'"{event_application_type}"'
+        }, status=status.HTTP_400_BAD_REQUEST)
     headquarters_level = event.available_structural_units
     model = MODELS_MAPPING[headquarters_level]
     try:
@@ -1157,6 +1171,12 @@ def group_applications(request, event_pk):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         user_ids = request.data.get('user_ids')
+        if not user_ids or not isinstance(user_ids, list):
+            return Response({
+                'detail': 'В теле запроса должен '
+                          'присутствовать ключ user_ids, '
+                          'состоящий из списка числовых значений.'
+            }, status=status.HTTP_400_BAD_REQUEST)
         member_user_ids = headquarter.members.values_list(
             'user__id', flat=True
         )
