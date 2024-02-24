@@ -1,4 +1,5 @@
 import itertools
+from datetime import datetime, timedelta
 
 from dal import autocomplete
 from django.db import transaction
@@ -22,11 +23,13 @@ from api.permissions import (IsApplicantOrOrganizer,
                              IsEventOrganizerOrAuthor, IsLocalCommander,
                              IsRegionalCommander, IsStuffOrCentralCommander,
                              IsVerifiedPermission)
+from events.constants import MODELS_MAPPING
 from events.filters import EventFilter
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
-                           EventTimeData, EventUserDocument)
+                           EventTimeData, EventUserDocument,
+                           GroupEventApplication, GroupEventApplicant)
 from events.serializers import (AnswerSerializer,
                                 CreateMultiEventApplicationSerializer,
                                 EventAdditionalIssueSerializer,
@@ -46,10 +49,13 @@ from events.serializers import (AnswerSerializer,
                                 ShortEducationalHeadquarterSerializerME,
                                 ShortLocalHeadquarterSerializerME,
                                 ShortMultiEventApplicationSerializer,
-                                ShortRegionalHeadquarterSerializerME)
+                                ShortRegionalHeadquarterSerializerME,
+                                GroupEventApplicationSerializer)
 from events.swagger_schemas import (EventSwaggerSerializer, answer_response,
                                     application_me_response,
-                                    participant_me_response)
+                                    participant_me_response,
+                                    GroupApplicantIdSerializer, MEMBERSHIP_FEE,
+                                    BIRTH_DATE_FROM, BIRTH_DATE_TO, GENDER)
 from users.models import RSOUser
 from users.serializers import ShortUserSerializer
 
@@ -681,8 +687,8 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
         if (event.participants_number and
                 total_participants > event.participants_number):
             raise serializers.ValidationError(
-                'Общее количество поданых участников превышает общее '
-                'разрешенное количество участников мероприятя.'
+                'Общее количество поданных участников превышает общее '
+                'разрешенное количество участников мероприятия.'
             )
 
         serializer = CreateMultiEventApplicationSerializer(
@@ -958,6 +964,277 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
         return Response(serializer.data)
 
 
+class GroupEventApplicationViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = GroupEventApplication.objects.all()
+    serializer_class = GroupEventApplicationSerializer
+
+    def get_queryset(self):
+        """Возвращает заявки на участие в мероприятии,
+        которые еще не были одобрены.
+        """
+        event_pk = self.kwargs.get('event_pk')
+        return self.queryset.filter(event_id=event_pk, is_approved=False)
+
+    @swagger_auto_schema(
+        method='post',
+        responses={status.HTTP_200_OK: 'Заявка успешно принята'},
+        operation_description='Принимает заявку на участие в мероприятии, '
+                              'устанавливая is_approved в True и добавляя '
+                              'участников в мероприятие '
+                              'с помощью bulk_create.',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={}
+        ),
+    )
+    @action(
+        detail=True,
+        methods=['post'],
+        url_path='approve',
+        permission_classes=(permissions.IsAuthenticated, IsEventOrganizer),
+    )
+    def approve_application(self, request, event_pk=None, pk=None):
+        """Принимает заявку на участие в мероприятии,
+        устанавливая is_approved в True и добавляя участников в мероприятие
+        с помощью bulk_create.
+
+        Доступ:
+        - Доступно автору или организатору соответствущего мероприятия.
+        """
+        application = self.get_object()
+        with transaction.atomic():
+            application.is_approved = True
+            application.save()
+            event_participants = [
+                EventParticipants(event=application.event, user=applicant)
+                for applicant in application.applicants.all()
+            ]
+            EventParticipants.objects.bulk_create(event_participants)
+        return Response(
+            {'status': 'Заявка принята'}, status=status.HTTP_200_OK
+        )
+
+    @swagger_auto_schema(
+        method='delete',
+        responses={status.HTTP_204_NO_CONTENT: 'Заявка успешно отклонена'},
+        operation_description="Отклоняет заявку на участие в мероприятии, "
+                              "удаляя её из базы данных.",
+    )
+    @action(
+        detail=True,
+        methods=['delete'],
+        url_path='reject',
+        permission_classes=(permissions.IsAuthenticated, IsEventOrganizer),
+    )
+    def reject_application(self, request, event_pk=None, pk=None):
+        """
+        Отклоняет заявку на участие в мероприятии,
+        удаляя её из базы данных.
+
+        Доступ:
+        - Доступно автору или организатору соответствущего мероприятия.
+        """
+        application = self.get_object()
+        application.delete()
+        return Response(
+            {'status': 'Заявка отклонена'},
+            status=status.HTTP_204_NO_CONTENT
+        )
+
+
+@swagger_auto_schema(
+    method='POST',
+    request_body=GroupApplicantIdSerializer,
+    manual_parameters=[MEMBERSHIP_FEE, BIRTH_DATE_FROM, BIRTH_DATE_TO, GENDER]
+)
+@api_view(['GET', 'POST'])
+@permission_classes([permissions.IsAuthenticated])
+def group_applications(request, event_pk):
+    """Обрабатывает запросы на получение списка доступных
+    участников для подачи на участие в групповом мероприятии и на подачу
+    заявки на участие.
+
+    Доступ:
+        - Доступно командиру структурной единицы соответствующего уровня,
+          разрешенного при создании мероприятия. В противном случае выдается
+          ошибка 403 с оповещением о том, на каком уровне необходимо быть
+          командиром.
+
+    Параметры:
+        - event_pk (в URL): Идентификатор мероприятия, для которого была создана
+          заявка. Используется для поиска конкретной заявки в базе данных.
+
+
+    Метод `GET`:
+        Возвращает список доступных для подачи участников. Поддерживает
+        фильтрацию по следующим критериям:
+            - `membership_fee`: фильтрация по статусу взносов (True/False).
+            - `birth_date_from` и `birth_date_to`: фильтрация участников по
+            диапазону возрастов, основываясь на дате рождения.
+            - `gender`: фильтрация по полу (male/female).
+
+    Метод `POST`:
+        Обрабатывает подачу айдишников участников на участие в мероприятии.
+        Перед созданием заявки проверяется, не была ли уже подана заявка от
+        данного пользователя на участие в данном мероприятии. Если заявка уже
+        существует, возвращается ошибка с соответствующим уведомлением.
+        Если среди предоставленных айдишников есть такие, которые не найдены
+        среди пользователей штаба, подающего участников, возвращается ошибка
+        400 Bad Request с указанием неверных идентификаторов.
+
+    Примечания:
+        - При подаче заявки через метод `POST` производится проверка на
+          существование уже поданной заявки от данного пользователя на участие
+          в мероприятии. В случае обнаружения такой заявки бэкенд возвращает
+          ошибку 400 Bad Request с сообщением о дублировании заявки.
+        - При подаче заявки через метод `POST` производится проверка на
+          корректность айдишников пользователей, поданных к участию
+          в мероприятии. В случае обнаружения такой заявки бэкенд возвращает
+          ошибку 400 Bad Request с сообщением о дублировании заявки.
+        - Фильтрация в запросе `GET` позволяет более точно подобрать кандидатов
+          для участия в мероприятии, учитывая членский взнос, возраст и пол
+          участников.
+    """
+    event = get_object_or_404(Event, pk=event_pk)
+    headquarters_level = event.available_structural_units
+    model = MODELS_MAPPING[headquarters_level]
+    try:
+        headquarter = model.objects.get(commander=request.user)
+    except model.DoesNotExist:
+        return Response({
+            'detail': f'Подать заявку может только командир одной из '
+                      f'структурных единиц на уровне '
+                      f'"{headquarters_level}"'
+        }, status=status.HTTP_403_FORBIDDEN)
+
+    if request.method == 'GET':
+        membership_fee = request.query_params.get('membership_fee')
+        birth_date_from = request.query_params.get('birth_date_from')
+        birth_date_to = request.query_params.get('birth_date_to')
+        gender = request.query_params.get('gender')
+
+        # Получение списка пользователей штаба
+        users_query = headquarter.members.all()
+
+        # Фильтрация по взносу
+        if membership_fee is not None:
+            membership_fee_bool = membership_fee.lower() in ['true', '1']
+            users_query = users_query.filter(
+                user__membership_fee=membership_fee_bool
+            )
+
+        # Фильтрация по возрасту
+        if birth_date_from:
+            birth_date_from_date = datetime.strptime(birth_date_from,
+                                                     '%Y-%m-%d').date()
+            users_query = users_query.filter(
+                user__birth_date__lte=birth_date_from_date)
+
+        if birth_date_to:
+            birth_date_to_date = datetime.strptime(birth_date_to,
+                                                   '%Y-%m-%d').date()
+            # Для фильтрации по "до", добавляем 1
+            # день для включения этой даты в диапазон
+            users_query = users_query.filter(
+                user__birth_date__gte=birth_date_to_date - timedelta(days=1))
+
+        # Фильтрация по полу
+        if gender:
+            users_query = users_query.filter(user__gender=gender)
+
+        users = [user.user for user in users_query]
+        serializer = ShortUserSerializer(users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    if request.method == 'POST':
+        existing_application = GroupEventApplication.objects.filter(
+            event=event, author=request.user
+        ).exists()
+
+        if existing_application:
+            return Response({
+                'detail': 'Групповая заявка на данное мероприятие '
+                          'от этого пользователя уже была создана.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        user_ids = request.data.get('user_ids')
+        member_user_ids = headquarter.members.values_list(
+            'user__id', flat=True
+        )
+        if not all(user_id in member_user_ids for user_id in user_ids):
+            return Response({
+                'detail': 'Один или несколько предоставленных ID '
+                          'пользователей не найдены в списке членов штаба.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            application = GroupEventApplication.objects.create(
+                event=event,
+                author=request.user,
+            )
+
+            for user_id in user_ids:
+                GroupEventApplicant.objects.create(
+                    application=application,
+                    user_id=user_id
+                )
+
+        return Response({'detail': 'Заявка успешно создана.'},
+                        status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET', 'DELETE'])
+@permission_classes([permissions.IsAuthenticated])
+def group_applications_me(request, event_pk):
+    """Обрабатывает получение и удаление существующей заявки на участие
+    в мероприятии для текущего пользователя.
+
+    Поддерживаемые методы: GET, DELETE.
+
+    - GET: Возвращает детали существующей заявки на участие в мероприятии,
+      созданной текущим пользователем. Заявка идентифицируется с помощью
+      идентификатора мероприятия (event_pk). Если заявка не найдена, возвращает
+      ошибку 404 Not Found.
+
+    - DELETE: Удаляет существующую заявку на участие в мероприятии, созданную
+      текущим пользователем. Это действие необратимо. После удаления возвращает
+      статус 204 No Content без тела ответа. !!! Не удаляет уже принятые заявки
+      во избежание ошибок, связанных с повторным созданием заявки с уже
+      принятыми к участию участниками (возвращает ошибку 400 Bad Request) !!!.
+
+    Параметры:
+    - event_pk (в URL): Идентификатор мероприятия, для которого была создана
+      заявка. Используется для поиска конкретной заявки в базе данных.
+
+    Доступ:
+    - Только аутентифицированные пользователи могут получить доступ к этому
+      эндпоинту. Пользователь должен быть автором заявки, чтобы иметь
+      возможность её просмотреть или удалить. В противном случае получит 404.
+
+    Возвращает:
+    - При использовании метода GET: Сериализованные данные заявки, включая
+      информацию о мероприятии, авторе заявки и статусе одобрения.
+    - При использовании метода DELETE: Пустой ответ со статусом 204 No Content
+      как подтверждение успешного удаления заявки.
+    """
+
+    event = get_object_or_404(Event, pk=event_pk)
+    existing_application = get_object_or_404(
+        GroupEventApplication, event=event, author=request.user
+    )
+    if request.method == 'GET':
+        return Response(
+            GroupEventApplicationSerializer(existing_application).data,
+            status=status.HTTP_200_OK
+        )
+    if request.method == 'DELETE':
+        if existing_application.is_approved:
+            return Response({
+                'detail': 'Нельзя удалить уже принятую заявку.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        existing_application.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class EventAutoComplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         qs = Event.objects.all()
@@ -965,7 +1242,7 @@ class EventAutoComplete(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(name__icontains=self.q)
 
-        return qs.order_by('name')
+        return qs.order_by('id')
 
     def get_ordering(self):
         pass

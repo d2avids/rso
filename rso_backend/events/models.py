@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from events.constants import MODELS_MAPPING
 from events.utils import document_path, image_path
 
 
@@ -175,7 +176,7 @@ class Event(models.Model):
 
         EventTimeData.objects.get_or_create(event_id=self.id)
         EventDocumentData.objects.get_or_create(event_id=self.id)
-        EventOrganizationData.objects.create(
+        EventOrganizationData.objects.get_or_create(
             event_id=self.id,
             organizer=self.author,
         )
@@ -190,7 +191,8 @@ class Event(models.Model):
             'org_detachment',]]
         if sum(filled_fields) != 1:
             raise ValidationError(
-                'Структурная единица-организатор может быть только один'
+                'Структурная единица-организатор должна быть '
+                'заполнена в одном из полей и только в одном.'
             )
 
     def __str__(self):
@@ -580,6 +582,168 @@ class EventUserDocument(models.Model):
         )
 
 
+class GroupEventApplication(models.Model):
+    """Таблица для хранения заявок на участие в групповом мероприятии."""
+    event = models.ForeignKey(
+        to='Event',
+        on_delete=models.CASCADE,
+        related_name='group_event_applications',
+        verbose_name='Мероприятие',
+    )
+    author = models.ForeignKey(
+        to='users.RSOUser',
+        on_delete=models.CASCADE,
+        related_name='group_event_applications',
+        verbose_name='Автор заявки'
+    )
+    central_headquarter = models.ForeignKey(
+        to='headquarters.CentralHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='group_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Центральный штаб заявки',
+    )
+    district_headquarter = models.ForeignKey(
+        to='headquarters.DistrictHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='group_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Окружной штаб заявки',
+    )
+    regional_headquarter = models.ForeignKey(
+        to='headquarters.RegionalHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='group_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Региональный штаб',
+    )
+    local_headquarter = models.ForeignKey(
+        to='headquarters.LocalHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='group_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Местный штаб',
+    )
+    educational_headquarter = models.ForeignKey(
+        to='headquarters.EducationalHeadquarter',
+        on_delete=models.CASCADE,
+        related_name='group_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Образовательный штаб',
+    )
+    detachment = models.ForeignKey(
+        to='headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='group_event_applications',
+        null=True,
+        blank=True,
+        verbose_name='Отряд',
+    )
+    is_approved = models.BooleanField(
+        verbose_name='Одобрено',
+        default=False
+    )
+    created_at = models.DateTimeField(
+        verbose_name='Дата и время создания заявки',
+        auto_now_add=True
+    )
+    applicants = models.ManyToManyField(
+        to='users.RSOUser',
+        through='GroupEventApplicant',
+        verbose_name='Участники',
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ['-id']
+        verbose_name_plural = 'Заявки на участие в групповых мероприятиях'
+        verbose_name = 'Заявка на участие в групповом мероприятии'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('event', 'central_headquarter'),
+                name='group_unique_central_headquarter_application'
+            ),
+            models.UniqueConstraint(
+                fields=('event', 'district_headquarter'),
+                name='group_unique_district_headquarter_application'
+            ),
+            models.UniqueConstraint(
+                fields=('event', 'regional_headquarter'),
+                name='group_unique_regional_headquarter_application'
+            ),
+            models.UniqueConstraint(
+                fields=('event', 'local_headquarter'),
+                name='group_unique_local_headquarter_application'
+            ),
+            models.UniqueConstraint(
+                fields=('event', 'educational_headquarter'),
+                name='group_unique_educational_headquarter_application'
+            ),
+            models.UniqueConstraint(
+                fields=('event', 'detachment'),
+                name='group_unique_detachment_application'
+            ),
+        ]
+
+    def __str__(self):
+        return f'Заявка {self.event.name} id {self.id}'
+
+    def save(self, *args, **kwargs):
+        """
+        Устанавливает стр.ед.-организатор в
+        зависимости от автора и мероприятия.
+        """
+        structures_attribute_mapping = {
+            'Центральные штабы': 'central_headquarter',
+            'Окружные штабы': 'district_headquarter',
+            'Региональные штабы': 'regional_headquarter',
+            'Местные штабы': 'local_headquarter',
+            'Образовательные штабы': 'educational_headquarter',
+            'Отряды': 'detachment'
+        }
+        headquarters_level = self.event.available_structural_units
+        model = MODELS_MAPPING[headquarters_level]
+        headquarter = model.objects.get(commander=self.author)
+        attribute_name = structures_attribute_mapping.get(
+            headquarters_level)
+        setattr(self, attribute_name, headquarter)
+        super().save(*args, **kwargs)
+
+
+class GroupEventApplicant(models.Model):
+    """Таблица для хранения поданных в груп. заявке участников мероприятия."""
+    application = models.ForeignKey(
+        to='GroupEventApplication',
+        on_delete=models.CASCADE,
+        related_name='group_applicants',
+        verbose_name='Заявка на участие'
+    )
+    user = models.ForeignKey(
+        to='users.RSOUser',
+        on_delete=models.CASCADE,
+        related_name='group_event_applicant',
+        verbose_name='Участник'
+    )
+
+    class Meta:
+        verbose_name = 'Участник группового мероприятия'
+        verbose_name_plural = 'Участники групповых мероприятий'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['application', 'user'],
+                name='unique_group_event_application_participant'
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.user} в заявке {self.application}'
+
+
 class MultiEventApplication(models.Model):
     """Таблица для хранения заявок на участие в многоэтапном мероприятии."""
     event = models.ForeignKey(
@@ -659,7 +823,7 @@ class MultiEventApplication(models.Model):
 
     class Meta:
         ordering = ['-id']
-        verbose_name_plural = 'Заявки на участие в многоэтапном мероприятии'
+        verbose_name_plural = 'Заявки на участие в многоэтапных мероприятиях'
         verbose_name = 'Заявка на участие в многоэтапном мероприятии'
         constraints = [
             models.UniqueConstraint(

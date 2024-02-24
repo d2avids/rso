@@ -8,10 +8,12 @@ from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocument, EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
                            EventTimeData, EventUserDocument,
-                           MultiEventApplication)
+                           MultiEventApplication, GroupEventApplicant,
+                           GroupEventApplication)
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, RegionalHeadquarter)
+from headquarters.serializers import ShortDistrictHeadquarterSerializer, ShortRegionalHeadquarterSerializer, ShortLocalHeadquarterSerializer, ShortEducationalHeadquarterSerializer, ShortDetachmentSerializer
 from users.models import RSOUser
 from users.serializers import ShortUserSerializer
 
@@ -744,3 +746,52 @@ class EventApplicationsCreateSerializer(serializers.ModelSerializer):
         except Exception as e:
             raise serializers.ValidationError({'error': str(e)})
         return super().create(validated_data)
+
+
+class GroupEventApplicantSerializer(serializers.ModelSerializer):
+    user = ShortUserSerializer(read_only=True)
+
+    class Meta:
+        model = GroupEventApplicant
+        fields = ('user',)
+
+
+class GroupEventApplicationSerializer(serializers.ModelSerializer):
+    applicants = GroupEventApplicantSerializer(
+        source='group_applicants', many=True
+    )
+    author = ShortUserSerializer(read_only=True)
+    district_headquarter = ShortDistrictHeadquarterSerializer(read_only=True)
+    regional_headquarter = ShortRegionalHeadquarterSerializer(read_only=True)
+    local_headquarter = ShortLocalHeadquarterSerializer(read_only=True)
+    educational_headquarter = ShortEducationalHeadquarterSerializer(
+        read_only=True
+    )
+    detachment = ShortDetachmentSerializer(read_only=True)
+    documents = serializers.SerializerMethodField(label='Документы')
+
+    class Meta:
+        model = GroupEventApplication
+        fields = (
+            'id',
+            'event',
+            'author',
+            'is_approved',
+            'applicants',
+            'central_headquarter',
+            'district_headquarter',
+            'regional_headquarter',
+            'local_headquarter',
+            'educational_headquarter',
+            'detachment',
+            'documents'
+        )
+
+    @staticmethod
+    def get_documents(instance):
+        author = instance.author
+        return EventUserDocumentSerializer(
+            author.event_user_documents.filter(
+                event__id=instance.event.id
+            ), many=True
+        ).data
