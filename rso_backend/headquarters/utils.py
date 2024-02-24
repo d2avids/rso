@@ -12,9 +12,12 @@ def image_path(instance, filename):
     Сохраняем в filepath/{instance.id}/filename
     """
 
-    filename = dt.today().strftime('%Y%m%d%') + '_' + filename[:15]
+    filename = (
+            dt.today().strftime('%Y%m%d%') + '_' + filename[:15] +
+            filename[-5:]
+    )
     filepath = 'images/headquarters'
-    return os.path.join(filepath, instance.id, filename)
+    return os.path.join(filepath, instance.name[:15], filename)
 
 
 def headquarter_media_folder_delete(instance):
