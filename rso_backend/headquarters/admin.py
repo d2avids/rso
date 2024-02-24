@@ -42,7 +42,6 @@ class BaseUnitAdmin(admin.ModelAdmin):
                                   f"Возникли ошибки при "
                                   f"сохранении: {','.join(errors)}",
                                   level=messages.ERROR)
-            return HttpResponseRedirect(request.path)
 
 
 @admin.register(CentralHeadquarter)
