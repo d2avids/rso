@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.core.exceptions import ValidationError
+from django.http import HttpResponseRedirect
 from import_export.admin import ImportExportModelAdmin
+from django.contrib import messages
 
 from headquarters.forms import (CentralForm, CentralPositionForm,
                                 DetachmentForm, DetachmentPositionAddForm,
@@ -28,6 +30,18 @@ from headquarters.resources import (DistrictHeadquarterResource,
 class BaseUnitAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'commander', 'city',)
     search_fields = ('name', 'city')
+
+    def save_model(self, request, obj, form, change):
+        try:
+            super().save_model(request, obj, form, change)
+        except ValidationError as e:
+            for field, errors in e.message_dict.items():
+                for error in errors:
+                    form.add_error(field, error)
+                self.message_user(request,
+                                  f"Возникли ошибки при "
+                                  f"сохранении: {','.join(errors)}",
+                                  level=messages.ERROR)
 
 
 @admin.register(CentralHeadquarter)
