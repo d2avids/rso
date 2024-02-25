@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
 
 class Competitions(models.Model):
@@ -129,3 +130,100 @@ class CompetitionParticipants(models.Model):
                 name='unique_tandem_participant'
             )
         ]
+
+
+class CommandSchoolTest(models.Model):
+    competition = models.ForeignKey(
+        to='Competitions',
+        on_delete=models.CASCADE,
+        related_name='command_school_test',
+        verbose_name='Конкурс',
+    )
+    detachment = models.ForeignKey(
+        to='headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='command_school_test',
+    )
+    commander_achievment = models.BooleanField(
+        verbose_name=('Региональная школа командного состава'
+                      ' пройдена командиром отряда'),
+        default=False,
+        null=False,
+        blank=False
+    )
+    commissioner_achievment = models.BooleanField(
+        verbose_name=('Региональная школа командного состава'
+                      ' пройдена комиссаром отряда'),
+        default=False,
+        null=False,
+        blank=False
+    )
+    commander_link = models.URLField(
+        verbose_name=('Ссылка на публикацию о прохождении'
+                      ' школы командного состава командиром отряда'),
+    )
+    commissioner_link = models.URLField(
+        verbose_name=('Ссылка на публикацию о прохождении'
+                      ' школы командного состава комиссаром отряда'),
+    )
+    place = models.IntegerField(
+        verbose_name='Место в конкурсе',
+        default=3
+    )
+    points = models.IntegerField(
+        verbose_name='Перевод полученного места в баллы',
+        default=0
+    )
+
+    class Meta:
+        verbose_name_plural = 'Тесты прохождения школы командного состава'
+        verbose_name = 'Тест прохождения школы командного состава'
+
+    def __str__(self):
+        return f'Тест прохождения школы командного состава id {self.id}'
+
+    def clean(self):
+        if self.commander_achievment and not self.commander_link:
+            raise ValidationError(
+                {
+                    'commander_link': (
+                        'Необходимо указать ссылку на публикацию о '
+                        'прохождении школы командного состава'
+                        ' командиром отряда'
+                    )
+                }
+            )
+        if self.commissioner_achievment and not self.commissioner_link:
+            raise ValidationError(
+                {
+                    'commissioner_link': (
+                        'Необходимо указать ссылку на публикацию о '
+                        'прохождении школы командного состава'
+                        ' комиссаром отряда'
+                    )
+                }
+            )
+
+    def save(self, *args, **kwargs):
+        """Распределение мест и баллов при сохранении объекта.
+
+        Командир выбрал “Да” + Комиссар выбрал “Да” - 1 место (2 балла)
+        Командир выбрал “Да” + Комиссар выбрал “Нет” - 2 место (1 балл)
+        Командир выбрал “Нет” + Комиссар выбрал “Да” - 2 место (1 балл)
+        Командир выбрал “Нет” + Комиссар выбрал “Нет” - 3 место (0 баллов)
+        """
+        self.clean()
+        if self.commander_achievment and self.commissioner_achievment:
+            self.points = 2
+            self.place = 1
+        if (
+            self.commander_achievment and not self.commissioner_achievment
+        ) or (
+            not self.commander_achievment and self.commissioner_achievment
+        ):
+            self.points = 1
+            self.place = 2
+        if not self.commander_achievment and not self.commissioner_achievment:
+            self.points = 0
+            self.place = 3
+        super().save(*args, **kwargs)

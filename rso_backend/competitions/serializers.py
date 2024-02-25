@@ -3,7 +3,7 @@ from datetime import date
 from django.conf import settings
 from rest_framework import serializers
 
-from competitions.models import (CompetitionApplications,
+from competitions.models import (CommandSchoolTest, CompetitionApplications,
                                  CompetitionParticipants, Competitions)
 from headquarters.models import Detachment
 from headquarters.serializers import BaseShortUnitSerializer
@@ -157,3 +157,27 @@ class CompetitionParticipantsSerializer(serializers.ModelSerializer):
                     'Заявка еще не подтверждена младшим отрядом.'
                 )
         return attrs
+
+
+class CommandSchoolTestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CommandSchoolTest
+        fields = (
+            'id',
+            'competition',
+            'detachment',
+            'commander_achievment',
+            'commissioner_achievment',
+            'commander_link',
+            'commissioner_link',
+        )
+
+
+class CommandSchoolTestListSerializer(CommandSchoolTestSerializer):
+    class Meta:
+        model = CommandSchoolTest
+        fields = (
+            CommandSchoolTestSerializer.Meta.fields +
+            'place',
+            'points'
+        )
