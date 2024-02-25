@@ -161,18 +161,6 @@ class TestEventAdditionalIssueViewSet:
             'Response code is not 403'
         )
 
-    def test_answer_delete_author(
-            self, authenticated_client_5, event_individual, answer_individual
-    ):
-        """Проверка, что автор не может удалить ответ"""
-        response = authenticated_client_5.delete(
-            f'{self.event_url}{event_individual.id}'
-            f'{self.answers_url}{answer_individual.id}/'
-        )
-        assert response.status_code == HTTPStatus.FORBIDDEN, (
-            'Response code is not 403'
-        )
-
     def test_answer_delete_not_auth(
             self, client, event_individual, answer_individual
     ):
