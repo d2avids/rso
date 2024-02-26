@@ -60,7 +60,8 @@ urlpatterns = [
     ),
     path('', include('headquarters.urls')),
     path('', include('events.urls')),
-    path('', include('users.urls'))
+    path('', include('users.urls')),
+    path('', include('competitions.urls')),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
