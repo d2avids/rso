@@ -1,6 +1,8 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 
+from rso_backend.competitions.constants import StatusIndicator
+
 
 class Competitions(models.Model):
     name = models.CharField(
@@ -133,12 +135,8 @@ class CompetitionParticipants(models.Model):
 
 
 class CommandSchoolTest(models.Model):
-    competition = models.ForeignKey(
-        to='Competitions',
-        on_delete=models.CASCADE,
-        related_name='command_school_test',
-        verbose_name='Конкурс',
-    )
+    """Таблица тестов прохождения школы командного состава."""
+
     detachment = models.ForeignKey(
         to='headquarters.Detachment',
         on_delete=models.CASCADE,
@@ -173,6 +171,16 @@ class CommandSchoolTest(models.Model):
     points = models.IntegerField(
         verbose_name='Перевод полученного места в баллы',
         default=0
+    )
+    accept = models.BooleanField(
+        verbose_name='Подтверждено комиссаром РШ',
+        default=False
+    )
+    status = models.CharField(
+        verbose_name='Статус показателя',
+        max_length=150,
+        choices=StatusIndicator.choices,
+        default=StatusIndicator.IN_PROCESSING
     )
 
     class Meta:

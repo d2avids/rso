@@ -163,8 +163,6 @@ class CommandSchoolTestSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommandSchoolTest
         fields = (
-            'id',
-            'competition',
             'detachment',
             'commander_achievment',
             'commissioner_achievment',
@@ -173,11 +171,12 @@ class CommandSchoolTestSerializer(serializers.ModelSerializer):
         )
 
 
-class CommandSchoolTestListSerializer(CommandSchoolTestSerializer):
+class CommandSchoolTestAcceptSerializer(CommandSchoolTestSerializer):
     class Meta:
         model = CommandSchoolTest
         fields = (
             CommandSchoolTestSerializer.Meta.fields +
             'place',
-            'points'
+            'points',
+            'id'
         )

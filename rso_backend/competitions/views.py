@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import filters, permissions, status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
 from api.mixins import ListRetrieveDestroyViewSet
@@ -17,7 +17,7 @@ from api.permissions import (IsRegionalCommanderOrAdmin,
                              IsRegionalCommanderOrAdminOrAuthor)
 from competitions.models import (CompetitionApplications,
                                  CompetitionParticipants, Competitions)
-from competitions.serializers import (CompetitionApplicationsObjectSerializer,
+from competitions.serializers import (CommandSchoolTestAcceptSerializer, CommandSchoolTestSerializer, CompetitionApplicationsObjectSerializer,
                                       CompetitionApplicationsSerializer,
                                       CompetitionParticipantsObjectSerializer,
                                       CompetitionParticipantsSerializer,
@@ -28,7 +28,7 @@ from competitions.swagger_schemas import (request_update_application,
                                           response_competitions_participants,
                                           response_create_application,
                                           response_junior_detachments)
-from headquarters.models import Detachment, RegionalHeadquarter
+from headquarters.models import Detachment, RegionalHeadquarter, UserDetachmentPosition
 from headquarters.serializers import ShortDetachmentSerializer
 from rso_backend.settings import BASE_DIR
 
@@ -510,3 +510,57 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = CompetitionParticipantsObjectSerializer(participant_unit)
         return Response(serializer.data)
+
+
+@api_view(['POST', 'PUT'])
+@permission_classes([permissions.IsAuthenticated])
+def input_command_test_school(request):
+    """Прохождение региональной школы командного состава.
+
+    Доступен ввод в следующие поля:
+    - detachment - id отряда,
+    - commander_achievement - булево поле, обозначающее прохождение обучения
+    командиром отряда,
+    - comissioner_achievement - булево поле, обозначающее прохождение обучения
+    комиссаром отряда,
+    - commander_link - ссылка на прохождение обучения командиром отряда,
+    - comissioner_link - ссылка на прохождение обучения комиссаром отряда.
+    """
+
+    serializer = CommandSchoolTestSerializer(data=request.data)
+    try:
+        detachment_id = Detachment.objects.filter(commander=request.user).first().id
+    except (
+        Detachment.DoesNotExist, Detachment.MultipleObjectsReturned, ValueError
+    ):
+        try:
+            detachment_id = UserDetachmentPosition.objects.filter(
+                user=request.user,
+            )
+        except UserDetachmentPosition.DoesNotExist:
+            return Response(
+                status=status.HTTP_404_NOT_FOUND,
+                data={
+                    'message': 'Вы не являетесь командиром'
+                    ' или участником какого-либо отряда.'
+                }
+            )
+    if detachment_id:
+        serializer.data['detachment'] = detachment_id
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST', 'PUT'])
+@permission_classes([permissions.IsAuthenticated])
+def accept_command_test_school(request):
+    """
+    Подтверждение комиссаром РШ прохождения командиром / комиссаром отряда
+    региональной школы командного состава.
+    """
+    #TODO: дописать подтверждение показателя, изменение статуса в таблице, сериализатор
+    serializer = CommandSchoolTestAcceptSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
