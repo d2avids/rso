@@ -1,3 +1,4 @@
+from dal import autocomplete
 import os
 from datetime import date
 
@@ -510,3 +511,31 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = CompetitionParticipantsObjectSerializer(participant_unit)
         return Response(serializer.data)
+
+
+class CompetitionDetachmentAutoComplete(
+    autocomplete.Select2QuerySetView
+):
+    def get_queryset(self):
+        qs = Detachment.objects.filter(
+            founding_date__lt=date(*settings.DATE_JUNIOR_SQUAD)
+        )
+
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+
+        return qs.order_by('name')
+
+
+class CompetitionJuniorDetachmentAutoComplete(
+    autocomplete.Select2QuerySetView
+):
+    def get_queryset(self):
+        qs = Detachment.objects.filter(
+            founding_date__gte=date(*settings.DATE_JUNIOR_SQUAD)
+        )
+
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+
+        return qs.order_by('name')
