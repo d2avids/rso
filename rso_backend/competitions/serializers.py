@@ -114,9 +114,23 @@ class CompetitionApplicationsSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class ShortRegionalDetachmentCompetitionSerializer(
+    ShortDetachmentCompetitionSerializer
+):
+    regional_headquarter_name = serializers.CharField(
+        source='regional_headquarter.name'
+    )
+
+    class Meta:
+        model = Detachment
+        fields = ShortDetachmentCompetitionSerializer.Meta.fields + (
+            'regional_headquarter_name',
+        )
+
+
 class CompetitionParticipantsObjectSerializer(serializers.ModelSerializer):
-    detachment = ShortDetachmentCompetitionSerializer()
-    junior_detachment = ShortDetachmentCompetitionSerializer()
+    detachment = ShortRegionalDetachmentCompetitionSerializer()
+    junior_detachment = ShortRegionalDetachmentCompetitionSerializer()
 
     class Meta:
         model = CompetitionParticipants
