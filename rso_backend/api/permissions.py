@@ -445,28 +445,34 @@ class MembershipFeePermission(BasePermission):
     def has_permission(self, request, view):
         user = request.user
         user_to_change = get_object_or_404(RSOUser, id=view.kwargs.get('pk'))
-        try:
-            reg_headquarter = (
-                UserRegionalHeadquarterPosition.
-                objects.get(user=user_to_change)
-            ).headquarter
-        except (UserRegionalHeadquarterPosition.DoesNotExist, AttributeError):
-            return False
-
-        if reg_headquarter.commander == user:
-            return True
 
         try:
-            reg_headquarter_member = (
-                UserRegionalHeadquarterPosition.
-                objects.get(user=user, headquarter=reg_headquarter)
-            )
-        except (UserRegionalHeadquarterPosition.DoesNotExist, AttributeError):
-            return False
-        if reg_headquarter_member:
-            if reg_headquarter_member.is_trusted:
+            reg_headquarter = RegionalHeadquarter.objects.get(commander=user)
+            if reg_headquarter:
                 return True
-        return False
+        except RegionalHeadquarter.DoesNotExist:
+            try:
+                reg_headquarter = (
+                    UserRegionalHeadquarterPosition.
+                    objects.get(user=user_to_change)
+                ).headquarter
+            except (UserRegionalHeadquarterPosition.DoesNotExist, AttributeError):
+                return False
+
+            if reg_headquarter.commander == user:
+                return True
+
+            try:
+                reg_headquarter_member = (
+                    UserRegionalHeadquarterPosition.
+                    objects.get(user=user, headquarter=reg_headquarter)
+                )
+            except (UserRegionalHeadquarterPosition.DoesNotExist, AttributeError):
+                return False
+            if reg_headquarter_member:
+                if reg_headquarter_member.is_trusted:
+                    return True
+            return False
 
 
 class IsRegionalCommanderForCert(BasePermission):
