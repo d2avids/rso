@@ -429,13 +429,13 @@ class UserRegion(models.Model):
         verbose_name='Регион прописки'
     )
     reg_town = models.CharField(
-        max_length=40,
+        max_length=80,
         blank=True,
         null=True,
         verbose_name='Населенный пункт прописки'
     )
     reg_house = models.CharField(
-        max_length=180,
+        max_length=250,
         blank=True,
         null=True,
         verbose_name='Улица, дом, кв. прописки'
@@ -453,13 +453,13 @@ class UserRegion(models.Model):
         verbose_name='Регион проживания'
     )
     fact_town = models.CharField(
-        max_length=40,
+        max_length=80,
         blank=True,
         null=True,
         verbose_name='Населенный пункт проживания'
     )
     fact_house = models.CharField(
-        max_length=40,
+        max_length=250,
         blank=True,
         null=True,
         verbose_name='Улица, дом, кв. проживания'
