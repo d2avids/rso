@@ -1036,12 +1036,14 @@ class TestCompetitionParticipantsViewSet:
             'name': junior_detachment_3.name,
             'banner': f'http://testserver{settings.MEDIA_URL}{junior_detachment_3.banner}',
             'area': str(junior_detachment_3.area),
+            'regional_headquarter_name': junior_detachment_3.regional_headquarter.name
         }
         assert tandem['junior_detachment'] == {
             'id': junior_detachment.id,
             'name': junior_detachment.name,
             'banner': f'http://testserver{settings.MEDIA_URL}{junior_detachment.banner}',
             'area': str(junior_detachment.area),
+            'regional_headquarter_name': junior_detachment.regional_headquarter.name
         }
         assert start['detachment'] is None, (
             'Поле "detachment" участника конкурса не пустое - старт'
@@ -1051,6 +1053,7 @@ class TestCompetitionParticipantsViewSet:
             'name': detachment_competition.name,
             'banner': f'http://testserver{settings.MEDIA_URL}{detachment_competition.banner}',
             'area': str(detachment_competition.area),
+            'regional_headquarter_name': detachment_competition.regional_headquarter.name
         }
 
     def test_list_participants_auth(
@@ -1110,12 +1113,14 @@ class TestCompetitionParticipantsViewSet:
             'name': junior_detachment_3.name,
             'banner': f'http://testserver{settings.MEDIA_URL}{junior_detachment_3.banner}',
             'area': str(junior_detachment_3.area),
+            'regional_headquarter_name': junior_detachment_3.regional_headquarter.name
         }
         assert tandem['junior_detachment'] == {
             'id': junior_detachment.id,
             'name': junior_detachment.name,
             'banner': f'http://testserver{settings.MEDIA_URL}{junior_detachment.banner}',
             'area': str(junior_detachment.area),
+            'regional_headquarter_name': junior_detachment.regional_headquarter.name
         }
         assert start['detachment'] is None, (
             'Поле "detachment" участника конкурса не пустое - старт'
@@ -1125,6 +1130,7 @@ class TestCompetitionParticipantsViewSet:
             'name': detachment_competition.name,
             'banner': f'http://testserver{settings.MEDIA_URL}{detachment_competition.banner}',
             'area': str(detachment_competition.area),
+            'regional_headquarter_name': detachment_competition.regional_headquarter.name
         }
 
     def test_participants_me_commander(
@@ -1161,12 +1167,14 @@ class TestCompetitionParticipantsViewSet:
             'name': junior_detachment.name,
             'banner': f'{settings.MEDIA_URL}{junior_detachment.banner}',
             'area': str(junior_detachment.area),
+            'regional_headquarter_name': junior_detachment.regional_headquarter.name
         }
         assert data['detachment'] == {
             'id': detachment_competition.id,
             'name': detachment_competition.name,
             'banner': f'{settings.MEDIA_URL}{detachment_competition.banner}',
             'area': str(detachment_competition.area),
+            'regional_headquarter_name': detachment_competition.regional_headquarter.name
         }
 
     def test_participants_me_junior_commander(
@@ -1203,12 +1211,14 @@ class TestCompetitionParticipantsViewSet:
             'name': junior_detachment.name,
             'banner': f'{settings.MEDIA_URL}{junior_detachment.banner}',
             'area': str(junior_detachment.area),
+            'regional_headquarter_name': junior_detachment.regional_headquarter.name
         }
         assert data['detachment'] == {
             'id': detachment_competition.id,
             'name': detachment_competition.name,
             'banner': f'{settings.MEDIA_URL}{detachment_competition.banner}',
             'area': str(detachment_competition.area),
+            'regional_headquarter_name': detachment_competition.regional_headquarter.name
         }
 
     def test_participants_me_auth(
@@ -1275,12 +1285,14 @@ class TestCompetitionParticipantsViewSet:
             'name': junior_detachment.name,
             'banner': f'http://testserver{settings.MEDIA_URL}{junior_detachment.banner}',
             'area': str(junior_detachment.area),
+            'regional_headquarter_name': junior_detachment.regional_headquarter.name
         }
         assert tandem['detachment'] == {
             'id': detachment_competition.id,
             'name': detachment_competition.name,
             'banner': f'http://testserver{settings.MEDIA_URL}{detachment_competition.banner}',
             'area': str(detachment_competition.area),
+            'regional_headquarter_name': detachment_competition.regional_headquarter.name
         }
 
     def test_retrieve_participants_auth(
@@ -1319,6 +1331,7 @@ class TestCompetitionParticipantsViewSet:
             'name': junior_detachment_3.name,
             'banner': f'http://testserver{settings.MEDIA_URL}{junior_detachment_3.banner}',
             'area': str(junior_detachment_3.area),
+            'regional_headquarter_name': junior_detachment_3.regional_headquarter.name
         }
         assert start['detachment'] is None, (
             'Поле "detachment" участника конкурса не пустое - старт'

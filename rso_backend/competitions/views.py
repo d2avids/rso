@@ -80,8 +80,8 @@ class CompetitionViewSet(viewsets.ModelViewSet):
             )
         )
         return list(Detachment.objects.exclude(
-            id__in=in_applications_junior_detachment_ids
-                + participants_junior_detachment_ids
+            id__in=in_applications_junior_detachment_ids +
+            participants_junior_detachment_ids
         ).values_list('id', flat=True)
                     )
 
