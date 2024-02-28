@@ -109,6 +109,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         'is_verified',
         'membership_fee',
         'is_staff',
+        'region',
     )
 
     filter_horizontal = ()
