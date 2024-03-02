@@ -43,6 +43,16 @@ class EventApplicationForm(forms.ModelForm):
         }
 
 
+class GroupEventApplicationForm(forms.ModelForm):
+    class Meta:
+        model = EventApplications
+        fields = '__all__'
+        widgets = {
+            'event': autocomplete.ModelSelect2(url='event-autocomplete'),
+            'author': autocomplete.ModelSelect2(url='user-autocomplete'),
+        }
+
+
 class MultiEventApplicationForm(forms.ModelForm):
     class Meta:
         model = MultiEventApplication
