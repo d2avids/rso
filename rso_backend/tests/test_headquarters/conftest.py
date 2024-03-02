@@ -14,8 +14,8 @@ from headquarters.models import (CentralHeadquarter, Detachment, Position,
                                  UserCentralHeadquarterPosition,
                                  UserDistrictHeadquarterPosition,)
 from tests.conftest import (client, educational_institution, area, area_2,
-                            educational_institution_2, region)
-from users.models import RSOUser
+                            educational_institution_2, region, region_2)
+from users.models import RSOUser, UserVerificationRequest
 
 
 """
@@ -771,14 +771,14 @@ def regional_hq_1a(district_hq_1a, regional_commander_1a, region):
 
 
 @pytest.fixture
-def regional_hq_1b(district_hq_1a, regional_commander_1b, region):
+def regional_hq_1b(district_hq_1a, regional_commander_1b, region_2):
     """Региональный штаб. Привязка к окружному штабу 1а."""
 
     regional_hq = RegionalHeadquarter.objects.create(
         name='Региональный штаб 1b',
         commander=regional_commander_1b,
         district_headquarter=district_hq_1a,
-        region=region,
+        region=region_2,
         conference_date=datetime.date.fromisoformat('2022-09-30'),
         founding_date='2022',
     )

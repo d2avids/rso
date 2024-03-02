@@ -11,13 +11,14 @@ from rest_framework import serializers, status
 from rest_framework.permissions import SAFE_METHODS
 from rest_framework.response import Response
 
-from headquarters.models import (CentralHeadquarter, RegionalHeadquarter,
+from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserCentralHeadquarterPosition,
                                  UserDetachmentPosition,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition)
+                                 UserRegionalHeadquarterPosition,
+                                 RegionalHeadquarter,)
 from users.models import RSOUser
 
 
@@ -598,3 +599,33 @@ def is_regional_commander(user):
     return (user.is_authenticated and
             (check_regional_commander or
              user.is_staff))
+
+
+def get_detachment_commander_num(user):
+    """Получение id отряда, в котором юзер командир."""
+
+    try:
+        detachment_commander_num = Detachment.objects.get(
+            commander=user
+        ).id
+    except (
+        Detachment.DoesNotExist, AttributeError, ValueError,
+        Detachment.MultipleObjectsReturned
+    ):
+        return False
+    return detachment_commander_num
+
+
+def get_reghq_commander_num(user):
+    """Получение id регионального штаба, в котором юзер командир."""
+
+    try:
+        reghq_commander_num = RegionalHeadquarter.objects.get(
+            commander=user
+        ).id
+    except (
+        RegionalHeadquarter.DoesNotExist, AttributeError, ValueError,
+        RegionalHeadquarter.MultipleObjectsReturned
+    ):
+        return False
+    return reghq_commander_num

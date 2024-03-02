@@ -11,6 +11,7 @@ from api.utils import (check_commander_or_not, check_roles_for_edit,
                        check_trusted_for_eduhead, check_trusted_for_localhead,
                        check_trusted_for_regionalhead,
                        check_trusted_in_headquarters, check_trusted_user,
+                       get_detachment_commander_num, get_reghq_commander_num,
                        is_regional_commander, is_safe_method,
                        is_stuff_or_central_commander)
 from events.models import Event, EventOrganizationData
@@ -23,7 +24,7 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
-from users.models import RSOUser
+from users.models import RSOUser, UserVerificationRequest
 from users.serializers import UserCommanderSerializer, UserTrustedSerializer
 
 
@@ -799,7 +800,7 @@ class IsRegionalCommanderOrAdminOrAuthor(BasePermission):
         return is_regional_commander(request.user)
 
 
-class IsDetComOrRegComAndRegionMatches(IsUserModelPositionCommander):
+class IsDetComOrRegComAndRegionMatches(permissions.BasePermission):
     """
     Проверяет, является ли пользователь командиром
     отряда или регионального штаба и совпадает ли регион
@@ -811,36 +812,38 @@ class IsDetComOrRegComAndRegionMatches(IsUserModelPositionCommander):
 
     def has_object_permission(self, request, view, obj):
         request_user = request.user
+        request_user_reghq = get_reghq_commander_num(request_user)
+        request_user_detcom = get_detachment_commander_num(request_user)
         obj_user_id = obj.id
+        obj_region_code = obj.region.code
         if request_user.id == obj_user_id:
             return True
-        prepared_data = (
-            self.prepare_data_commander(request)
-            # | self.prepare_data_trusted(request)
-        )
+        try:
+            UserVerificationRequest.objects.get(
+                user=obj_user_id
+            )
+        except (
+            UserVerificationRequest.DoesNotExist, AttributeError, ValueError
+        ):
+            return False
         try:
             obj_detachment = UserDetachmentPosition.objects.filter(
                 user=obj_user_id
             ).first().headquarter.id
-
-            if (
-                prepared_data.get(
-                    'detachment_commander', None
-                ) == obj_detachment
-            ):
-                return True
-            request_user_reghq = prepared_data.get(
-                'regionalheadquarter_commander', None
-            )
-            if request_user_reghq:
-                request_user_region_code = RegionalHeadquarter.objects.get(
-                    id=request_user_reghq
-                ).region.code
-                if request_user_region_code == obj.region.code:
-                    return True
-            return False
         except (
             UserDetachmentPosition.DoesNotExist, AttributeError, ValueError,
-            UserDetachmentPosition.MultipleObjectsReturned
         ):
             return False
+        if request_user_detcom == obj_detachment:
+            return True
+        if request_user_reghq:
+            request_user_region_code = RegionalHeadquarter.objects.get(
+                id=request_user_reghq
+            ).region.code
+            if (
+                (request_user_region_code is not None)
+                and (obj_region_code is not None)
+                and (request_user_region_code == obj_region_code)
+            ):
+                return True
+        return False

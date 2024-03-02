@@ -87,11 +87,41 @@ def test_rsouser_filters(
 @pytest.mark.django_db
 class TestRSOUsers:
 
+    rsousers_url = '/api/v1/rsousers/'
+
+
     @pytest.mark.parametrize(
         'client_name, expected_status',
         [
             ('authenticated_regional_commander_1a', HTTPStatus.OK),
             ('authenticated_det_com_1a', HTTPStatus.OK),
+        ]
+    )
+    def test_retrieve_user_object_for_allowed_roles(
+            self, client, regional_hq_1a, detachment_1a, detachment_positions,
+            user_with_position_in_detachment, detachment_commander_1a, 
+            regional_commander_1a, regional_commander_1b,
+            verification_request_user_with_position_in_detachment,
+            expected_status, client_name, request
+    ):
+        """Получение пользователя  по id юзерами с разрешенными ролями."""
+
+        test_client = request.getfixturevalue(client_name)
+        response = test_client.get(
+            f'{self.rsousers_url}{user_with_position_in_detachment.pk}/'
+        )
+        assert response.status_code == expected_status, (
+            'Response code is not ' + str(expected_status)
+        )
+        data = response.data
+        assert data['username'] == user_with_position_in_detachment.username
+        assert data['is_verified'] is False
+
+
+    @pytest.mark.parametrize(
+        'client_name, expected_status',
+        [
+            ('authenticated_regional_commander_1b', HTTPStatus.FORBIDDEN),
             ('anonymous_client', HTTPStatus.UNAUTHORIZED),
             ('authenticated_unverified', HTTPStatus.FORBIDDEN),
             ('authenticated_user_with_position_in_detachment', HTTPStatus.FORBIDDEN),
@@ -109,7 +139,6 @@ class TestRSOUsers:
             ('authenticated_centr_commander', HTTPStatus.FORBIDDEN),
             ('authenticated_distr_commander_1a', HTTPStatus.FORBIDDEN),
             ('authenticated_distr_commander_1b', HTTPStatus.FORBIDDEN),
-            ('authenticated_regional_commander_1b', HTTPStatus.FORBIDDEN),
             ('authenticated_local_commander_1a', HTTPStatus.FORBIDDEN),
             ('authenticated_local_commander_1b', HTTPStatus.FORBIDDEN),
             ('authenticated_edu_commander_1a', HTTPStatus.FORBIDDEN),
@@ -118,7 +147,7 @@ class TestRSOUsers:
             ('admin_client', HTTPStatus.FORBIDDEN),
         ]
     )
-    def test_retrieve_user_object(
+    def test_retrieve_user_object_for_forbidden_users(
             self, client, central_hq, district_hq_1a, district_hq_1b,
             regional_hq_1a, regional_hq_1b, local_hq_1a, local_hq_1b,
             edu_hq_1a, edu_hq_1b, detachment_1a, detachment_1b,
@@ -133,13 +162,14 @@ class TestRSOUsers:
             edu_commander_1a, edu_commander_1b, local_commander_1a,
             local_commander_1b, regional_commander_1a, regional_commander_1b,
             distr_commander_1a, distr_commander_1b, centr_commander,
+            verification_request_user_with_position_in_detachment,
             expected_status, client_name, request
     ):
-        """Получение пользователя  по id юзерами с разными ролями."""
+        """Получение пользователя  по id юзерами с запрещенными ролями."""
 
         test_client = request.getfixturevalue(client_name)
         response = test_client.get(
-            f'/api/v1/rsousers/{user_with_position_in_detachment.pk}/'
+            f'{self.rsousers_url}{user_with_position_in_detachment.pk}/'
         )
         assert response.status_code == expected_status, (
             'Response code is not ' + str(expected_status)

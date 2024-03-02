@@ -15,7 +15,7 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserCentralHeadquarterPosition,
                                  UserDistrictHeadquarterPosition,
                                  )
-from users.models import RSOUser
+from users.models import RSOUser, UserVerificationRequest
 
 
 USER_FIRST_NAME = 'Дмитрий'
@@ -363,13 +363,13 @@ def educational_institutions(regions):
 
 @pytest.fixture
 def region():
-    region = Region.objects.create(name='Регион 1')
+    region = Region.objects.create(name='Регион 1', code=1)
     return region
 
 
 @pytest.fixture
 def region_2():
-    region = Region.objects.create(name='Регион 2')
+    region = Region.objects.create(name='Регион 2', code=2)
     return region
 
 
@@ -632,6 +632,18 @@ def user_with_position_in_detachment(region):
         region=region
     )
     return user_with_position_in_detachment
+
+
+@pytest.fixture
+def verification_request_user_with_position_in_detachment(
+    user_with_position_in_detachment
+):
+    """Запись о запросе верификации юзером, принятым в отряд."""
+
+    try_verification = UserVerificationRequest.objects.create(
+        user=user_with_position_in_detachment,
+    )
+    return try_verification
 
 
 @pytest.fixture
