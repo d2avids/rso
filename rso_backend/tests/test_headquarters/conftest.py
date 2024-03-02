@@ -41,11 +41,13 @@ from users.models import RSOUser
 
 PASSWORD = 'p@ssWord!123'
 
+
 @pytest.fixture
 def anonymous_client():
     """Неаутентифицированный клиент, аноним."""
 
     return APIClient()
+
 
 @pytest.fixture
 def user_unverified():
@@ -229,6 +231,7 @@ def centr_commander():
     )
     return centr_commander
 
+
 @pytest.fixture
 def distr_commander_1a():
     distr_commander_1a = RSOUser.objects.create_user(
@@ -304,6 +307,7 @@ def edu_commander_1a():
         password=PASSWORD
     )
     return edu_commander_1a
+
 
 @pytest.fixture
 def edu_commander_1b():
@@ -437,6 +441,7 @@ def authenticated_user_with_position_in_distr_hq(
     client.credentials(HTTP_AUTHORIZATION='Token ' + token)
     return client
 
+
 @pytest.fixture
 def authenticated_user_with_position_in_centr_hq(
     user_with_position_in_centr_hq, client
@@ -513,6 +518,7 @@ def authenticated_trusted_in_regional_hq(user_trusted_in_regional_hq, client):
     client.credentials(HTTP_AUTHORIZATION='Token ' + token)
     return client
 
+
 @pytest.fixture
 def authenticated_trusted_in_district_hq(user_trusted_in_district_hq, client):
     """Аутентифицированный доверенный юзер дист. штаба."""
@@ -527,6 +533,7 @@ def authenticated_trusted_in_district_hq(user_trusted_in_district_hq, client):
     client.credentials(HTTP_AUTHORIZATION='Token ' + token)
     return client
 
+
 @pytest.fixture
 def authenticated_trusted_in_centr_hq(user_trusted_in_centr_hq, client):
     """Аутентифицированный доверенный юзер центр. штаба."""
@@ -540,6 +547,7 @@ def authenticated_trusted_in_centr_hq(user_trusted_in_centr_hq, client):
     token = response.data['auth_token']
     client.credentials(HTTP_AUTHORIZATION='Token ' + token)
     return client
+
 
 @pytest.fixture
 def authenticated_centr_commander(centr_commander, client):
@@ -920,6 +928,7 @@ def detachment_positions(
     )
     return det_position_regular, det_position_trusted
 
+
 @pytest.fixture
 def edu_hq_positions(
     edu_hq_1a, user_with_position_in_edu_hq, position_jedi,
@@ -933,18 +942,21 @@ def edu_hq_positions(
     с должностью джедай.
     """
 
-    edu_hq_position_regular = UserEducationalHeadquarterPosition.objects.create(
-        headquarter=edu_hq_1a,
-        user=user_with_position_in_edu_hq,
-        position=position_jedi,
-        is_trusted=False
-    )
-    edu_hq_position_trusted = UserEducationalHeadquarterPosition.objects.create(
-        headquarter=edu_hq_1a,
-        user=user_trusted_in_edu_hq,
-        position=position_jedi,
-        is_trusted=True
-    )
+    edu_hq_position_regular = (
+        UserEducationalHeadquarterPosition.objects.create(
+            headquarter=edu_hq_1a,
+            user=user_with_position_in_edu_hq,
+            position=position_jedi,
+            is_trusted=False
+        ))
+
+    edu_hq_position_trusted = (
+        UserEducationalHeadquarterPosition.objects.create(
+            headquarter=edu_hq_1a,
+            user=user_trusted_in_edu_hq,
+            position=position_jedi,
+            is_trusted=True
+        ))
     return edu_hq_position_regular, edu_hq_position_trusted
 
 
@@ -1045,17 +1057,19 @@ def central_hq_positions(
     джедай.
     """
     #TODO: запись не создается. Нужно разобраться как создать для тестов.
-    central_hq_position_regular = UserCentralHeadquarterPosition.objects.create(
-        headquarter=central_hq,
-        user=user_with_position_in_centr_hq,
-        position=position_jedi,
-        is_trusted=False
-    )
-    central_hq_position_trusted = UserCentralHeadquarterPosition.objects.create(
-        headquarter=central_hq,
-        user=user_trusted_in_centr_hq,
-        position=position_jedi,
-        is_trusted=True
-    )
+    central_hq_position_regular = (
+        UserCentralHeadquarterPosition.objects.create(
+            headquarter=central_hq,
+            user=user_with_position_in_centr_hq,
+            position=position_jedi,
+            is_trusted=False
+        ))
+    central_hq_position_trusted = (
+        UserCentralHeadquarterPosition.objects.create(
+            headquarter=central_hq,
+            user=user_trusted_in_centr_hq,
+            position=position_jedi,
+            is_trusted=True
+        ))
 
     return central_hq_position_regular, central_hq_position_trusted

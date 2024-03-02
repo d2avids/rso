@@ -7,10 +7,16 @@ from rest_framework.test import APIClient
 
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
-                                 EducationalInstitution, LocalHeadquarter,
-                                 Position, Region, RegionalHeadquarter,
-                                 UserDetachmentPosition)
+                                 LocalHeadquarter, UserDetachmentPosition,
+                                 UserEducationalHeadquarterPosition,
+                                 RegionalHeadquarter, EducationalInstitution,
+                                 UserLocalHeadquarterPosition, Region,
+                                 UserRegionalHeadquarterPosition, Position,
+                                 UserCentralHeadquarterPosition,
+                                 UserDistrictHeadquarterPosition,
+                                 )
 from users.models import RSOUser
+
 
 USER_FIRST_NAME = 'Дмитрий'
 USER_LAST_NAME = 'Воронежский'
@@ -38,7 +44,7 @@ EDUCATIONAL_INSTITUTION_NAME = 'Образовательная организа�
 EDUCATIONAL_INSTITUTION_SHORT_NAME = 'Образов. организация'
 SECOND_EDUCATIONAL_INSTITUTION_NAME = 'Другая образовательная организация'
 SECOND_EDUCATIONAL_INSTITUTION_SHORT_NAME = 'Др'
-
+PASSWORD = 'p@ssWord!123'
 
 pytest_plugins = [
     'tests.fixtures.fixture_competition',
@@ -591,54 +597,15 @@ def detachment_3(
     return detachment
 
 
-import datetime
+"""Ниже скопированные фикстуры из test_headquarters"""
 
-import pytest
-from django.conf import settings
-from rest_framework.test import APIClient
-
-from headquarters.models import (CentralHeadquarter, Detachment, Position,
-                                 DistrictHeadquarter, EducationalHeadquarter,
-                                 LocalHeadquarter, UserDetachmentPosition,
-                                 UserEducationalHeadquarterPosition,
-                                 RegionalHeadquarter,
-                                 UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition,
-                                 UserCentralHeadquarterPosition,
-                                 UserDistrictHeadquarterPosition,)
-from tests.conftest import (client, educational_institution, area, area_2,
-                            educational_institution_2, region)
-from users.models import RSOUser
-
-
-"""
-Тестовые данные представляют собой древовидную структуру.
-Отряды/штабы одного уровня испульзуются в тестах с проверкой
-одноуровнего доступа к эндпоинтам.
-Тестовая структура РСО:
-Один центральный штаб. Один командир центрального штаба.
-Далее идет разветвление.
-- Окружной Штаб №1 делится на два Региональных штаба(РШ_1а и РШ_1б);
-- Региональный штаб №1a делится на два Местных штаба(МШ_1а и МШ_1б);
-- Местный штаб №1a делится на два Образовательных штаба(ОШ_1а и ОШ_1б);
-- Образовательный штаб №1a делится на два Отряда(Отряд_1а и Отряд_1б).
-
-В каждом штабе/отряде уникальный командир.
-Кроме того созданы сущности:
-- Анонимный пользователь;
-- Простой неверифицированный пользователь;
-- Пользователь принятый в отдряд и назначенный на должность;
-- Доверенный пользователь в отряде;
-- Админ.
-"""
-
-PASSWORD = 'p@ssWord!123'
 
 @pytest.fixture
 def anonymous_client():
     """Неаутентифицированный клиент, аноним."""
 
     return APIClient()
+
 
 @pytest.fixture
 def user_unverified():
@@ -654,14 +621,15 @@ def user_unverified():
 
 
 @pytest.fixture
-def user_with_position_in_detachment():
+def user_with_position_in_detachment(region):
     """Пользователь принятый в отряд и назначенный на должность."""
 
     user_with_position_in_detachment = RSOUser.objects.create_user(
         first_name='HavePosition',
         last_name='InDetachment',
         username='positionedDETACHMENT',
-        password=PASSWORD
+        password=PASSWORD,
+        region=region
     )
     return user_with_position_in_detachment
 
@@ -822,6 +790,7 @@ def centr_commander():
     )
     return centr_commander
 
+
 @pytest.fixture
 def distr_commander_1a():
     distr_commander_1a = RSOUser.objects.create_user(
@@ -897,6 +866,7 @@ def edu_commander_1a():
         password=PASSWORD
     )
     return edu_commander_1a
+
 
 @pytest.fixture
 def edu_commander_1b():
@@ -1030,6 +1000,7 @@ def authenticated_user_with_position_in_distr_hq(
     client.credentials(HTTP_AUTHORIZATION='Token ' + token)
     return client
 
+
 @pytest.fixture
 def authenticated_user_with_position_in_centr_hq(
     user_with_position_in_centr_hq, client
@@ -1106,6 +1077,7 @@ def authenticated_trusted_in_regional_hq(user_trusted_in_regional_hq, client):
     client.credentials(HTTP_AUTHORIZATION='Token ' + token)
     return client
 
+
 @pytest.fixture
 def authenticated_trusted_in_district_hq(user_trusted_in_district_hq, client):
     """Аутентифицированный доверенный юзер дист. штаба."""
@@ -1120,6 +1092,7 @@ def authenticated_trusted_in_district_hq(user_trusted_in_district_hq, client):
     client.credentials(HTTP_AUTHORIZATION='Token ' + token)
     return client
 
+
 @pytest.fixture
 def authenticated_trusted_in_centr_hq(user_trusted_in_centr_hq, client):
     """Аутентифицированный доверенный юзер центр. штаба."""
@@ -1133,6 +1106,7 @@ def authenticated_trusted_in_centr_hq(user_trusted_in_centr_hq, client):
     token = response.data['auth_token']
     client.credentials(HTTP_AUTHORIZATION='Token ' + token)
     return client
+
 
 @pytest.fixture
 def authenticated_centr_commander(centr_commander, client):
@@ -1369,6 +1343,7 @@ def regional_hq_1b(district_hq_1a, regional_commander_1b, region):
     )
     return regional_hq
 
+
 @pytest.fixture
 def local_hq_1a(regional_hq_1a, local_commander_1a):
     """Местный штаб. Привязка к региональному штабу 1а."""
@@ -1396,7 +1371,9 @@ def local_hq_1b(regional_hq_1a, local_commander_1b):
 
 
 @pytest.fixture
-def edu_hq_1a(local_hq_1a, edu_commander_1a, regional_hq_1a, educational_institution):
+def edu_hq_1a(
+    local_hq_1a, edu_commander_1a, regional_hq_1a, educational_institution
+):
     """Образовательный штаб. Привязка к местному штабу 1а."""
 
     edu_hq = EducationalHeadquarter.objects.create(
@@ -1409,8 +1386,11 @@ def edu_hq_1a(local_hq_1a, edu_commander_1a, regional_hq_1a, educational_institu
     )
     return edu_hq
 
+
 @pytest.fixture
-def edu_hq_1b(local_hq_1a, edu_commander_1b, regional_hq_1a, educational_institution_2):
+def edu_hq_1b(
+    local_hq_1a, edu_commander_1b, regional_hq_1a, educational_institution_2
+):
     """Образовательный штаб. Привязка к местному штабу 1а."""
 
     edu_hq = EducationalHeadquarter.objects.create(
@@ -1442,6 +1422,7 @@ def detachment_1a(
         founding_date=datetime.date.fromisoformat('2022-06-30'),
     )
     return detachment_1a
+
 
 @pytest.fixture
 def detachment_1b(
@@ -1513,6 +1494,7 @@ def detachment_positions(
     )
     return det_position_regular, det_position_trusted
 
+
 @pytest.fixture
 def edu_hq_positions(
     edu_hq_1a, user_with_position_in_edu_hq, position_jedi,
@@ -1526,18 +1508,20 @@ def edu_hq_positions(
     с должностью джедай.
     """
 
-    edu_hq_position_regular = UserEducationalHeadquarterPosition.objects.create(
-        headquarter=edu_hq_1a,
-        user=user_with_position_in_edu_hq,
-        position=position_jedi,
-        is_trusted=False
-    )
-    edu_hq_position_trusted = UserEducationalHeadquarterPosition.objects.create(
-        headquarter=edu_hq_1a,
-        user=user_trusted_in_edu_hq,
-        position=position_jedi,
-        is_trusted=True
-    )
+    edu_hq_position_regular = (
+        UserEducationalHeadquarterPosition.objects.create(
+            headquarter=edu_hq_1a,
+            user=user_with_position_in_edu_hq,
+            position=position_jedi,
+            is_trusted=False
+        ))
+    edu_hq_position_trusted = (
+        UserEducationalHeadquarterPosition.objects.create(
+            headquarter=edu_hq_1a,
+            user=user_trusted_in_edu_hq,
+            position=position_jedi,
+            is_trusted=True
+        ))
     return edu_hq_position_regular, edu_hq_position_trusted
 
 
@@ -1638,17 +1622,19 @@ def central_hq_positions(
     джедай.
     """
     #TODO: запись не создается. Нужно разобраться как создать для тестов.
-    central_hq_position_regular = UserCentralHeadquarterPosition.objects.create(
-        headquarter=central_hq,
-        user=user_with_position_in_centr_hq,
-        position=position_jedi,
-        is_trusted=False
-    )
-    central_hq_position_trusted = UserCentralHeadquarterPosition.objects.create(
-        headquarter=central_hq,
-        user=user_trusted_in_centr_hq,
-        position=position_jedi,
-        is_trusted=True
-    )
+    central_hq_position_regular = (
+        UserCentralHeadquarterPosition.objects.create(
+            headquarter=central_hq,
+            user=user_with_position_in_centr_hq,
+            position=position_jedi,
+            is_trusted=False
+        ))
+    central_hq_position_trusted = (
+        UserCentralHeadquarterPosition.objects.create(
+            headquarter=central_hq,
+            user=user_trusted_in_centr_hq,
+            position=position_jedi,
+            is_trusted=True
+        ))
 
     return central_hq_position_regular, central_hq_position_trusted
