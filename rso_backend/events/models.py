@@ -1,7 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from events.constants import MODELS_MAPPING
+from events.constants import HEADQUARTERS_MODELS_MAPPING
 from events.utils import document_path, image_path
 
 
@@ -168,6 +168,7 @@ class Event(models.Model):
     )
 
     class Meta:
+        ordering = ['-id']
         verbose_name_plural = 'Мероприятия'
         verbose_name = 'Мероприятие'
 
@@ -436,6 +437,7 @@ class EventAdditionalIssue(models.Model):
     )
 
     class Meta:
+        ordering = ['-id']
         verbose_name_plural = 'Дополнительные вопросы мероприятий'
         verbose_name = 'Дополнительные вопросы мероприятия'
 
@@ -596,54 +598,6 @@ class GroupEventApplication(models.Model):
         related_name='group_event_applications',
         verbose_name='Автор заявки'
     )
-    central_headquarter = models.ForeignKey(
-        to='headquarters.CentralHeadquarter',
-        on_delete=models.CASCADE,
-        related_name='group_event_applications',
-        null=True,
-        blank=True,
-        verbose_name='Центральный штаб заявки',
-    )
-    district_headquarter = models.ForeignKey(
-        to='headquarters.DistrictHeadquarter',
-        on_delete=models.CASCADE,
-        related_name='group_event_applications',
-        null=True,
-        blank=True,
-        verbose_name='Окружной штаб заявки',
-    )
-    regional_headquarter = models.ForeignKey(
-        to='headquarters.RegionalHeadquarter',
-        on_delete=models.CASCADE,
-        related_name='group_event_applications',
-        null=True,
-        blank=True,
-        verbose_name='Региональный штаб',
-    )
-    local_headquarter = models.ForeignKey(
-        to='headquarters.LocalHeadquarter',
-        on_delete=models.CASCADE,
-        related_name='group_event_applications',
-        null=True,
-        blank=True,
-        verbose_name='Местный штаб',
-    )
-    educational_headquarter = models.ForeignKey(
-        to='headquarters.EducationalHeadquarter',
-        on_delete=models.CASCADE,
-        related_name='group_event_applications',
-        null=True,
-        blank=True,
-        verbose_name='Образовательный штаб',
-    )
-    detachment = models.ForeignKey(
-        to='headquarters.Detachment',
-        on_delete=models.CASCADE,
-        related_name='group_event_applications',
-        null=True,
-        blank=True,
-        verbose_name='Отряд',
-    )
     is_approved = models.BooleanField(
         verbose_name='Одобрено',
         default=False
@@ -663,56 +617,9 @@ class GroupEventApplication(models.Model):
         ordering = ['-id']
         verbose_name_plural = 'Заявки на участие в групповых мероприятиях'
         verbose_name = 'Заявка на участие в групповом мероприятии'
-        constraints = [
-            models.UniqueConstraint(
-                fields=('event', 'central_headquarter'),
-                name='group_unique_central_headquarter_application'
-            ),
-            models.UniqueConstraint(
-                fields=('event', 'district_headquarter'),
-                name='group_unique_district_headquarter_application'
-            ),
-            models.UniqueConstraint(
-                fields=('event', 'regional_headquarter'),
-                name='group_unique_regional_headquarter_application'
-            ),
-            models.UniqueConstraint(
-                fields=('event', 'local_headquarter'),
-                name='group_unique_local_headquarter_application'
-            ),
-            models.UniqueConstraint(
-                fields=('event', 'educational_headquarter'),
-                name='group_unique_educational_headquarter_application'
-            ),
-            models.UniqueConstraint(
-                fields=('event', 'detachment'),
-                name='group_unique_detachment_application'
-            ),
-        ]
 
     def __str__(self):
         return f'Заявка {self.event.name} id {self.id}'
-
-    def save(self, *args, **kwargs):
-        """
-        Устанавливает стр.ед.-организатор в
-        зависимости от автора и мероприятия.
-        """
-        structures_attribute_mapping = {
-            'Центральные штабы': 'central_headquarter',
-            'Окружные штабы': 'district_headquarter',
-            'Региональные штабы': 'regional_headquarter',
-            'Местные штабы': 'local_headquarter',
-            'Образовательные штабы': 'educational_headquarter',
-            'Отряды': 'detachment'
-        }
-        headquarters_level = self.event.available_structural_units
-        model = MODELS_MAPPING[headquarters_level]
-        headquarter = model.objects.get(commander=self.author)
-        attribute_name = structures_attribute_mapping.get(
-            headquarters_level)
-        setattr(self, attribute_name, headquarter)
-        super().save(*args, **kwargs)
 
 
 class GroupEventApplicant(models.Model):
@@ -731,6 +638,7 @@ class GroupEventApplicant(models.Model):
     )
 
     class Meta:
+        ordering = ['-id']
         verbose_name = 'Участник группового мероприятия'
         verbose_name_plural = 'Участники групповых мероприятий'
         constraints = [

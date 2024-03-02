@@ -1,6 +1,7 @@
 import itertools
 from datetime import datetime, timedelta
 
+from django.db import IntegrityError
 from dal import autocomplete
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -23,7 +24,7 @@ from api.permissions import (IsApplicantOrOrganizer,
                              IsEventOrganizerOrAuthor, IsLocalCommander,
                              IsRegionalCommander, IsStuffOrCentralCommander,
                              IsVerifiedPermission)
-from events.constants import MODELS_MAPPING
+from events.constants import HEADQUARTERS_MODELS_MAPPING
 from events.filters import EventFilter
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocumentData, EventIssueAnswer,
@@ -1059,6 +1060,8 @@ def group_applications(request, event_pk):
           разрешенного при создании мероприятия. В противном случае выдается
           ошибка 403 с оповещением о том, на каком уровне необходимо быть
           командиром.
+        - Производится проверка на соответствии типа получаемых заявок,
+          указанном в мероприятии.
 
     Параметры:
         - event_pk (в URL): Идентификатор мероприятия, для которого была создана
@@ -1084,7 +1087,9 @@ def group_applications(request, event_pk):
         использовании эндпоинта с передачей pk мероприятия не
         принимающего групповые заявки бэкенд возвращает ошибку 400 Bad
         Request с уточнением типа принимающих заявок у соответствующего
-        мероприятия
+        мероприятия. Попытки добавить пользователя уже находящегося в групповой
+        заявке на это мероприятие или уже участвующего в мероприятии также
+        вернут 400 Bad Request.
 
     Примечания:
         - При подаче заявки через метод `POST` производится проверка на
@@ -1095,10 +1100,15 @@ def group_applications(request, event_pk):
           корректность айдишников пользователей, поданных к участию
           в мероприятии. В случае обнаружения такой заявки бэкенд возвращает
           ошибку 400 Bad Request с сообщением о дублировании заявки.
+        - При подаче заявки с айди пользователей, которые уже есть в этой (
+          указаны дважды или более) или в любой другой заявке, бэкенд
+          возвращает ошибку 400 Bad Request).
+        - При подаче заявки с айди пользователей, которые уже участвуют в
+          этом мероприятии, возвращается ошибка 400 Bad Request.
         - При использовании эндпоинта с передачей pk мероприятия не
           принимающего групповые заявки бэкенд возвращает ошибку 400 Bad
           Request с уточнением типа принимающих заявок у соответствующего
-          мероприятия
+          мероприятия.
         - Фильтрация в запросе `GET` позволяет более точно подобрать кандидатов
           для участия в мероприятии, учитывая членский взнос, возраст и пол
           участников.
@@ -1111,7 +1121,7 @@ def group_applications(request, event_pk):
                       f'"{event_application_type}"'
         }, status=status.HTTP_400_BAD_REQUEST)
     headquarters_level = event.available_structural_units
-    model = MODELS_MAPPING[headquarters_level]
+    model = HEADQUARTERS_MODELS_MAPPING[headquarters_level]
     try:
         headquarter = model.objects.get(commander=request.user)
     except model.DoesNotExist:
@@ -1132,7 +1142,7 @@ def group_applications(request, event_pk):
 
         # Фильтрация по взносу
         if membership_fee is not None:
-            membership_fee_bool = membership_fee.lower() in ['true', '1']
+            membership_fee_bool = membership_fee.lower() in ('true', '1')
             users_query = users_query.filter(
                 user__membership_fee=membership_fee_bool
             )
@@ -1185,18 +1195,31 @@ def group_applications(request, event_pk):
                 'detail': 'Один или несколько предоставленных ID '
                           'пользователей не найдены в списке членов штаба.'
             }, status=status.HTTP_400_BAD_REQUEST)
+        event_participants = EventParticipants.objects.filter(
+            event_id=event_pk
+        ).values_list('user_id', flat=True)
+        if not all(user_id not in event_participants for user_id in user_ids):
+            return Response({
+                'detail': 'Один или несколько предоставленных ID '
+                          'пользователей уже участвуют в мероприятии.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
             application = GroupEventApplication.objects.create(
                 event=event,
                 author=request.user,
             )
-
-            for user_id in user_ids:
-                GroupEventApplicant.objects.create(
-                    application=application,
-                    user_id=user_id
-                )
+            try:
+                for user_id in user_ids:
+                    GroupEventApplicant.objects.create(
+                        application=application,
+                        user_id=user_id
+                    )
+            except IntegrityError:
+                return Response({
+                    'detail': 'Нельзя подать одного и того же пользователя '
+                              'на участие дважды.'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({'detail': 'Заявка успешно создана.'},
                         status=status.HTTP_201_CREATED)

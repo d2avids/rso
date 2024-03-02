@@ -3,7 +3,9 @@ from rest_framework import serializers
 
 from api.utils import create_first_or_exception
 from events.constants import (EVENT_DOCUMENT_DATA_RAW_EXISTS,
-                              EVENT_TIME_DATA_RAW_EXISTS)
+                              EVENT_TIME_DATA_RAW_EXISTS,
+                              HEADQUARTERS_MODELS_MAPPING,
+                              SHORT_HEADQUARTERS_SERIALIZERS_MAPPING)
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocument, EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
@@ -761,13 +763,7 @@ class GroupEventApplicationSerializer(serializers.ModelSerializer):
         source='group_applicants', many=True
     )
     author = ShortUserSerializer(read_only=True)
-    district_headquarter = ShortDistrictHeadquarterSerializer(read_only=True)
-    regional_headquarter = ShortRegionalHeadquarterSerializer(read_only=True)
-    local_headquarter = ShortLocalHeadquarterSerializer(read_only=True)
-    educational_headquarter = ShortEducationalHeadquarterSerializer(
-        read_only=True
-    )
-    detachment = ShortDetachmentSerializer(read_only=True)
+    headquarter_author = serializers.SerializerMethodField()
     documents = serializers.SerializerMethodField(label='Документы')
 
     class Meta:
@@ -776,14 +772,9 @@ class GroupEventApplicationSerializer(serializers.ModelSerializer):
             'id',
             'event',
             'author',
+            'headquarter_author',
             'is_approved',
             'applicants',
-            'central_headquarter',
-            'district_headquarter',
-            'regional_headquarter',
-            'local_headquarter',
-            'educational_headquarter',
-            'detachment',
             'documents'
         )
 
@@ -795,3 +786,12 @@ class GroupEventApplicationSerializer(serializers.ModelSerializer):
                 event__id=instance.event.id
             ), many=True
         ).data
+
+    @staticmethod
+    def get_headquarter_author(instance):
+        author = instance.author
+        headquarters_level = instance.event.available_structural_units
+        model = HEADQUARTERS_MODELS_MAPPING[headquarters_level]
+        headquarter = model.objects.get(commander=author)
+        serializer = SHORT_HEADQUARTERS_SERIALIZERS_MAPPING[headquarters_level]
+        return serializer(headquarter).data
