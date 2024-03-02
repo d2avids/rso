@@ -114,7 +114,7 @@ class EventViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(request_body=EventTimeDataSerializer)
-    @action(detail=True, methods=['put',], url_path='time_data')
+    @action(detail=True, methods=['put', ], url_path='time_data')
     def update_time_data(self, request, pk=None):
         """Заполнить информацию о времени проведения мероприятия."""
         event = self.get_object()
@@ -129,7 +129,7 @@ class EventViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(request_body=EventDocumentDataSerializer)
-    @action(detail=True, methods=['put',], url_path='document_data')
+    @action(detail=True, methods=['put', ], url_path='document_data')
     def update_document_data(self, request, pk=None):
         """
         Указать необходимые к заполнению документы
@@ -474,8 +474,8 @@ class AnswerDetailViewSet(RetrieveUpdateDestroyViewSet):
         if (self.action in ['update', 'partial_update'] and
                 self.request.user.is_authenticated):
             if not EventApplications.objects.filter(
-                event_id=self.kwargs.get('event_pk'),
-                user=self.request.user
+                    event_id=self.kwargs.get('event_pk'),
+                    user=self.request.user
             ).exists():
                 return [permissions.IsAuthenticated(), IsEventOrganizer()]
         return super().get_permissions()
@@ -534,8 +534,8 @@ class EventUserDocumentViewSet(viewsets.ModelViewSet):
         if (self.action in ['update', 'partial_update'] and
                 self.request.user.is_authenticated):
             if EventApplications.objects.filter(
-                event_id=self.kwargs.get('event_pk'),
-                user=self.request.user
+                    event_id=self.kwargs.get('event_pk'),
+                    user=self.request.user
             ).exists():
                 return [permissions.IsAuthenticated(),
                         IsApplicantOrOrganizer()]
@@ -643,7 +643,7 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
         return Response(serializer.data)
 
     @swagger_auto_schema(
-            request_body=CreateMultiEventApplicationSerializer(many=True)
+        request_body=CreateMultiEventApplicationSerializer(many=True)
     )
     def create(self, request, event_pk, *args, **kwargs):
         """Создание многоэтапной заявки на мероприятие.
@@ -667,7 +667,7 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
         """
         event = get_object_or_404(Event, id=event_pk)
         if MultiEventApplication.objects.filter(
-            event=event, organizer_id=request.user.id
+                event=event, organizer_id=request.user.id
         ).exists():
             raise serializers.ValidationError(
                 'Вы уже подали заявку на участие в этом мероприятии.'
@@ -682,7 +682,7 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
             data_set.append(item)
 
         total_participants = sum(
-           int(item.get('participants_count', 0)) for item in data_set
+            int(item.get('participants_count', 0)) for item in data_set
         )
 
         if (event.participants_number and
@@ -858,33 +858,33 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
 
         central_headquarter_members = (
             queryset.filter(central_headquarter__isnull=False)
-                    .values_list('central_headquarter__members__user__id',
-                                 flat=True)
+            .values_list('central_headquarter__members__user__id',
+                         flat=True)
         )
         district_headquarter_members = (
             queryset.filter(district_headquarter__isnull=False)
-                    .values_list('district_headquarter__members__user__id',
-                                 flat=True)
+            .values_list('district_headquarter__members__user__id',
+                         flat=True)
         )
         regional_headquarter_members = (
             queryset.filter(regional_headquarter__isnull=False)
-                    .values_list('regional_headquarter__members__user__id',
-                                 flat=True)
+            .values_list('regional_headquarter__members__user__id',
+                         flat=True)
         )
         local_headquarter_members = (
             queryset.filter(local_headquarter__isnull=False)
-                    .values_list('local_headquarter__members__user__id',
-                                 flat=True)
+            .values_list('local_headquarter__members__user__id',
+                         flat=True)
         )
         educational_headquarter_members = (
             queryset.filter(educational_headquarter__isnull=False)
-                    .values_list('educational_headquarter__members__user__id',
-                                 flat=True)
+            .values_list('educational_headquarter__members__user__id',
+                         flat=True)
         )
         detachment_members = (
             queryset.filter(detachment__isnull=False)
-                    .values_list('detachment__members__user__id',
-                                 flat=True)
+            .values_list('detachment__members__user__id',
+                         flat=True)
         )
         all_members_ids = set(itertools.chain(
             central_headquarter_members,
@@ -907,8 +907,8 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
         if not len(all_members) or all_members is None:
             return Response(
                 {"error":
-                    "В поданых структурных единицах нет доступных бойцов. "
-                    "Возможно они уже участники этого мероприятия"},
+                     "В поданых структурных единицах нет доступных бойцов. "
+                     "Возможно они уже участники этого мероприятия"},
                 status=status.HTTP_404_NOT_FOUND
             )
         serializer = ShortUserSerializer(all_members, many=True)
@@ -955,8 +955,8 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
         ).all()
         event = get_object_or_404(Event, pk=event_pk)
         headquarter_model = self._STRUCTURAL_MAPPING.get(
-                event.available_structural_units
-            ).Meta.model
+            event.available_structural_units
+        ).Meta.model
         serializer = self.get_serializer(
             users,
             context={'headquarter_model': headquarter_model},
@@ -966,6 +966,7 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
 
 
 class GroupEventApplicationViewSet(viewsets.ReadOnlyModelViewSet):
+    """Представляет групповые заявки, поданные на мероприятие."""
     queryset = GroupEventApplication.objects.all()
     serializer_class = GroupEventApplicationSerializer
 
@@ -974,15 +975,16 @@ class GroupEventApplicationViewSet(viewsets.ReadOnlyModelViewSet):
         которые еще не были одобрены.
         """
         event_pk = self.kwargs.get('event_pk')
-        return self.queryset.filter(event_id=event_pk, is_approved=False)
+        return self.queryset.filter(event_id=event_pk)
 
     @swagger_auto_schema(
         method='post',
-        responses={status.HTTP_200_OK: 'Заявка успешно принята'},
-        operation_description='Принимает заявку на участие в мероприятии, '
-                              'устанавливая is_approved в True и добавляя '
-                              'участников в мероприятие '
-                              'с помощью bulk_create.',
+        responses={status.HTTP_200_OK: 'Заявка принята'},
+        operation_description='Принимает заявку на участие в мероприятии. '
+                              'Доступно автору или организатору '
+                              'соответствующего мероприятия. '
+                              'В случае успешного принятия возвращает '
+                              '200 с сообщением об успешном принятии.',
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={}
@@ -1004,22 +1006,22 @@ class GroupEventApplicationViewSet(viewsets.ReadOnlyModelViewSet):
         """
         application = self.get_object()
         with transaction.atomic():
-            application.is_approved = True
-            application.save()
             event_participants = [
                 EventParticipants(event=application.event, user=applicant)
                 for applicant in application.applicants.all()
             ]
             EventParticipants.objects.bulk_create(event_participants)
+            application.delete()
         return Response(
             {'status': 'Заявка принята'}, status=status.HTTP_200_OK
         )
 
     @swagger_auto_schema(
         method='delete',
-        responses={status.HTTP_204_NO_CONTENT: 'Заявка успешно отклонена'},
+        responses={status.HTTP_204_NO_CONTENT: 'Заявка отклонена'},
         operation_description="Отклоняет заявку на участие в мероприятии, "
-                              "удаляя её из базы данных.",
+                              "удаляя её из базы данных. В случае успешного "
+                              "удаления возвращает 204.",
     )
     @action(
         detail=True,
@@ -1038,7 +1040,7 @@ class GroupEventApplicationViewSet(viewsets.ReadOnlyModelViewSet):
         application = self.get_object()
         application.delete()
         return Response(
-            {'status': 'Заявка отклонена'},
+            {'detail': 'Заявка отклонена'},
             status=status.HTTP_204_NO_CONTENT
         )
 

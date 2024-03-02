@@ -773,7 +773,6 @@ class GroupEventApplicationSerializer(serializers.ModelSerializer):
             'event',
             'author',
             'headquarter_author',
-            'is_approved',
             'applicants',
             'documents'
         )

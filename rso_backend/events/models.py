@@ -598,10 +598,6 @@ class GroupEventApplication(models.Model):
         related_name='group_event_applications',
         verbose_name='Автор заявки'
     )
-    is_approved = models.BooleanField(
-        verbose_name='Одобрено',
-        default=False
-    )
     created_at = models.DateTimeField(
         verbose_name='Дата и время создания заявки',
         auto_now_add=True
