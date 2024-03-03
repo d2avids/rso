@@ -32,6 +32,21 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterField(
             model_name='userregion',
+            name='fact_house',
+            field=models.CharField(blank=True, max_length=250, null=True, verbose_name='Улица, дом, кв. проживания'),
+        ),
+        migrations.AlterField(
+            model_name='userregion',
+            name='fact_town',
+            field=models.CharField(blank=True, max_length=80, null=True, verbose_name='Населенный пункт проживания'),
+        ),
+        migrations.AlterField(
+            model_name='userregion',
+            name='reg_house',
+            field=models.CharField(blank=True, max_length=250, null=True, verbose_name='Улица, дом, кв. прописки'),
+        ),
+        migrations.AlterField(
+            model_name='userregion',
             name='reg_house',
             field=models.CharField(blank=True, max_length=180, null=True, verbose_name='Улица, дом, кв. прописки'),
         ),
