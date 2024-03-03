@@ -154,6 +154,10 @@ class RSOUserViewSet(RetrieveUpdateViewSet):
         serializer_class=RSOUserSerializer,
     )
     def me_notifications_count(self, request, pk=None):
+        """
+        Возвращает количество активных заявок для текущего пользователя в
+        формате {"count": <integer>}.
+        """
         return Response(UserNotificationsCountSerializer(request.user).data)
 
     @action(
