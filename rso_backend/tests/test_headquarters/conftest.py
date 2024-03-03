@@ -920,6 +920,7 @@ def detachment_positions(
     )
     return det_position_regular, det_position_trusted
 
+
 @pytest.fixture
 def edu_hq_positions(
     edu_hq_1a, user_with_position_in_edu_hq, position_jedi,
