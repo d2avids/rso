@@ -11,7 +11,7 @@ from api.utils import (check_commander_or_not, check_roles_for_edit,
                        check_trusted_for_eduhead, check_trusted_for_localhead,
                        check_trusted_for_regionalhead,
                        check_trusted_in_headquarters, check_trusted_user,
-                       get_detachment_commander_num, get_reghq_commander_num,
+                       get_detachment_commander_num, get_regional_hq_commander_num,
                        is_regional_commander, is_safe_method,
                        is_stuff_or_central_commander)
 from events.models import Event, EventOrganizationData
@@ -812,7 +812,7 @@ class IsDetComOrRegComAndRegionMatches(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         request_user = request.user
-        request_user_reghq = get_reghq_commander_num(request_user)
+        request_user_reghq = get_regional_hq_commander_num(request_user)
         request_user_detcom = get_detachment_commander_num(request_user)
         obj_user_id = obj.id
         obj_region_code = obj.region.code

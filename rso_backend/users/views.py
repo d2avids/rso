@@ -35,7 +35,8 @@ from users.serializers import (EmailSerializer, ForeignUserDocumentsSerializer,
                                UserProfessionalEducationSerializer,
                                UserRegionSerializer, UsersParentSerializer,
                                UserStatementDocumentsSerializer,
-                               UserTrustedSerializer)
+                               UserTrustedSerializer,
+                               UserNotificationsCountSerializer)
 
 
 class CustomUserViewSet(UserViewSet):
@@ -145,6 +146,15 @@ class RSOUserViewSet(RetrieveUpdateViewSet):
             serializer.save()
 
         return Response(self.get_serializer(request.user).data)
+
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=(permissions.IsAuthenticated,),
+        serializer_class=RSOUserSerializer,
+    )
+    def me_notifications_count(self, request, pk=None):
+        return Response(UserNotificationsCountSerializer(request.user).data)
 
     @action(
         detail=False,

@@ -5,7 +5,8 @@ from djoser.serializers import UserCreatePasswordRetypeSerializer
 from rest_framework import serializers
 
 from api.serializers import EducationalInstitutionSerializer, RegionSerializer
-from api.utils import create_first_or_exception, get_is_trusted
+from api.utils import create_first_or_exception, get_is_trusted, \
+    get_regional_hq_commander_num, get_detachment_commander_num
 from headquarters.models import (CentralHeadquarter, EducationalInstitution,
                                  Position, Region,
                                  UserCentralHeadquarterPosition,
@@ -13,12 +14,16 @@ from headquarters.models import (CentralHeadquarter, EducationalInstitution,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition)
+                                 UserRegionalHeadquarterPosition, Detachment,
+                                 RegionalHeadquarter,
+                                 UserDetachmentApplication)
 from headquarters.serializers import (ShortDetachmentSerializer,
                                       ShortDistrictHeadquarterSerializer,
                                       ShortEducationalHeadquarterSerializer,
                                       ShortLocalHeadquarterSerializer,
                                       ShortRegionalHeadquarterSerializer)
+from headquarters.utils import get_detachment_members_to_verify, \
+    get_regional_hq_members_to_verify
 from users.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                              MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
                              REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS,
@@ -38,7 +43,6 @@ class EmailSerializer(serializers.ModelSerializer):
 
 
 class UserEducationSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = UserEducation
         fields = (
@@ -447,9 +451,9 @@ class RSOUserSerializer(serializers.ModelSerializer):
             today = date.today()
             age = (today.year - obj.date_of_birth.year
                    - (
-                       (today.month, today.day) < (
-                           obj.date_of_birth.month, obj.date_of_birth.day
-                       )
+                           (today.month, today.day) < (
+                       obj.date_of_birth.month, obj.date_of_birth.day
+                   )
                    ))
             return age >= 18
 
@@ -752,7 +756,7 @@ class UserCreateSerializer(UserCreatePasswordRetypeSerializer):
     def validate(self, attrs):
         if self.context.get('request').method == 'POST':
             if RSOUser.objects.filter(
-                email=attrs.get('email'),
+                    email=attrs.get('email'),
             ).exists():
                 raise serializers.ValidationError({
                     'email': 'Пользователь с таким email уже существует.'
@@ -816,4 +820,53 @@ class SafeUserSerializer(RSOUserSerializer):
             'local_headquarter_id',
             'educational_headquarter_id',
             'detachment_id',
+        )
+
+
+class UserNotificationsCountSerializer(serializers.Serializer):
+    """Считает количество активных заявок,
+    доступных для рассмотрения пользователю.
+    """
+
+    count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RSOUser
+        fields = ('count',)
+
+    @staticmethod
+    def get_count(instance):
+        regional_hq_members_to_verify_count = 0
+        detachment_members_to_verify_count = 0
+        detachment_applications_count = 0
+
+        detachment_id = get_detachment_commander_num(user=instance)
+        if detachment_id:
+            detachment = Detachment.objects.get(pk=detachment_id)
+            user_ids_in_verification_request = (
+                UserVerificationRequest.objects.values_list(
+                    'user_id', flat=True
+                )
+            )
+            detachment_members_to_verify_count = detachment.members.filter(
+                user__id__in=user_ids_in_verification_request
+            ).count()
+            detachment_applications_count = (
+                UserDetachmentApplication.objects.filter(
+                    detachment=detachment
+                ).count()
+            )
+
+        regional_hq_id = get_regional_hq_commander_num(user=instance)
+        if regional_hq_id:
+            regional_hq = RegionalHeadquarter.objects.get(pk=regional_hq_id)
+            regional_hq_members_to_verify_count = (
+                UserVerificationRequest.objects.filter(
+                    user__region=regional_hq.region,
+                ).count()
+            )
+        return (
+                detachment_members_to_verify_count +
+                regional_hq_members_to_verify_count +
+                detachment_applications_count
         )

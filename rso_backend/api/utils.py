@@ -616,7 +616,7 @@ def get_detachment_commander_num(user):
     return detachment_commander_num
 
 
-def get_reghq_commander_num(user):
+def get_regional_hq_commander_num(user):
     """Получение id регионального штаба, в котором юзер командир."""
 
     try:
