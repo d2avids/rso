@@ -15,11 +15,6 @@ from events.models import (Event, EventAdditionalIssue, EventApplications,
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, RegionalHeadquarter)
-from headquarters.serializers import (ShortDetachmentSerializer,
-                                      ShortDistrictHeadquarterSerializer,
-                                      ShortEducationalHeadquarterSerializer,
-                                      ShortLocalHeadquarterSerializer,
-                                      ShortRegionalHeadquarterSerializer)
 from users.models import RSOUser
 from users.serializers import ShortUserSerializer
 
