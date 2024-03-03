@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from django.db import IntegrityError
 from dal import autocomplete
 from django.db import transaction
+from django.core.cache import cache
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg import openapi
@@ -13,11 +14,10 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
 from api.mixins import (CreateListRetrieveDestroyViewSet,
-                        CreateRetrieveUpdateViewSet,
                         ListRetrieveDestroyViewSet,
-                        RetrieveUpdateDestroyViewSet, RetrieveUpdateViewSet)
+                        RetrieveUpdateDestroyViewSet,)
 from api.permissions import (IsApplicantOrOrganizer,
-                             IsAuthorMultiEventApplication, IsAuthorPermission,
+                             IsAuthorMultiEventApplication,
                              IsCommander, IsDetachmentCommander,
                              IsDistrictCommander, IsEducationalCommander,
                              IsEventAuthor, IsEventOrganizer,
@@ -57,6 +57,7 @@ from events.swagger_schemas import (EventSwaggerSerializer, answer_response,
                                     participant_me_response,
                                     GroupApplicantIdSerializer, MEMBERSHIP_FEE,
                                     BIRTH_DATE_FROM, BIRTH_DATE_TO, GENDER)
+from rso_backend.settings import EVENTS_CACHE_TTL
 from users.models import RSOUser
 from users.serializers import ShortUserSerializer
 
@@ -64,7 +65,6 @@ from users.serializers import ShortUserSerializer
 class EventViewSet(viewsets.ModelViewSet):
     """Представляет мероприятия."""
 
-    queryset = Event.objects.all()
     serializer_class = EventSerializer
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     filterset_class = EventFilter
@@ -100,9 +100,14 @@ class EventViewSet(viewsets.ModelViewSet):
                 'update', 'update_time_data', 'update_document_data'
         ):
             permission_classes = [IsEventOrganizerOrAuthor]
-        print(permission_classes)
-        print('ПЕРМИШЕНЫ ВЫШЕ ------')
         return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        if self.action == 'list':
+            return cache.get_or_set(
+                'events', Event.objects.all(), timeout=EVENTS_CACHE_TTL
+            )
+        return Event.objects.all()
 
     @swagger_auto_schema(request_body=EventSwaggerSerializer)
     def create(self, request, *args, **kwargs):
@@ -907,8 +912,8 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
         if not len(all_members) or all_members is None:
             return Response(
                 {"error":
-                     "В поданых структурных единицах нет доступных бойцов. "
-                     "Возможно они уже участники этого мероприятия"},
+                    "В поданых структурных единицах нет доступных бойцов. "
+                    "Возможно они уже участники этого мероприятия"},
                 status=status.HTTP_404_NOT_FOUND
             )
         serializer = ShortUserSerializer(all_members, many=True)
@@ -1066,8 +1071,9 @@ def group_applications(request, event_pk):
           указанном в мероприятии.
 
     Параметры:
-        - event_pk (в URL): Идентификатор мероприятия, для которого была создана
-          заявка. Используется для поиска конкретной заявки в базе данных.
+        - event_pk (в URL): Идентификатор мероприятия, для которого была
+          создана заявка. Используется для поиска конкретной заявки
+          в базе данных.
 
 
     Метод `GET`:
