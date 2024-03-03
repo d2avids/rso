@@ -1,9 +1,10 @@
 import logging
 
-from api.email import CustomPasswordResetEmail
 from celery import shared_task
 from rest_framework import status
 from rest_framework.response import Response
+
+from api.email import CustomPasswordResetEmail
 from users.models import RSOUser
 
 logger = logging.getLogger('tasks')

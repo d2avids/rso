@@ -1,7 +1,8 @@
-from competitions.models import (CompetitionApplications,
-                                 CompetitionParticipants)
 from dal import autocomplete
 from django import forms
+
+from competitions.models import (CompetitionApplications,
+                                 CompetitionParticipants)
 
 
 class CompetitionApplicationsForm(forms.ModelForm):

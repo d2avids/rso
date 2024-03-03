@@ -1,5 +1,6 @@
-from headquarters.models import Area, EducationalInstitution, Region
 from rest_framework import serializers
+
+from headquarters.models import Area, EducationalInstitution, Region
 from users.models import MemberCert
 from users.short_serializers import ShortUserSerializer
 

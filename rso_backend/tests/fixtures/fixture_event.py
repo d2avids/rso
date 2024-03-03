@@ -1,9 +1,10 @@
 import pytest
+from rest_framework.authtoken.models import Token
+from rest_framework.test import APIClient
+
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventIssueAnswer, EventOrganizationData,
                            EventParticipants)
-from rest_framework.authtoken.models import Token
-from rest_framework.test import APIClient
 from users.models import RSOUser
 
 

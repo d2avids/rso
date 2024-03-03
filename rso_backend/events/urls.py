@@ -1,4 +1,5 @@
 from django.urls import path
+
 from events.views import EventAutoComplete
 
 urlpatterns = [

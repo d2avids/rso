@@ -1,6 +1,17 @@
 import itertools
 from datetime import datetime, timedelta
 
+from dal import autocomplete
+from django.db import IntegrityError, transaction
+from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import filters, permissions, serializers, status, viewsets
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.response import Response
+
+from api.constants import HEADQUARTERS_MODELS_MAPPING
 from api.mixins import (CreateListRetrieveDestroyViewSet,
                         CreateRetrieveUpdateViewSet,
                         ListRetrieveDestroyViewSet,
@@ -13,13 +24,6 @@ from api.permissions import (IsApplicantOrOrganizer,
                              IsEventOrganizerOrAuthor, IsLocalCommander,
                              IsRegionalCommander, IsStuffOrCentralCommander,
                              IsVerifiedPermission)
-from dal import autocomplete
-from django.db import IntegrityError, transaction
-from django.shortcuts import get_object_or_404
-from django_filters.rest_framework import DjangoFilterBackend
-from drf_yasg import openapi
-from drf_yasg.utils import swagger_auto_schema
-from events.constants import HEADQUARTERS_MODELS_MAPPING
 from events.filters import EventFilter
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocumentData, EventIssueAnswer,
@@ -52,9 +56,6 @@ from events.swagger_schemas import (BIRTH_DATE_FROM, BIRTH_DATE_TO, GENDER,
                                     GroupApplicantIdSerializer,
                                     answer_response, application_me_response,
                                     participant_me_response)
-from rest_framework import filters, permissions, serializers, status, viewsets
-from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.response import Response
 from users.models import RSOUser
 from users.serializers import ShortUserSerializer
 

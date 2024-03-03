@@ -2,6 +2,9 @@ import datetime
 
 import pytest
 from django.conf import settings
+from rest_framework.authtoken.models import Token
+from rest_framework.test import APIClient
+
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  EducationalInstitution, LocalHeadquarter,
@@ -12,8 +15,6 @@ from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
-from rest_framework.authtoken.models import Token
-from rest_framework.test import APIClient
 from users.models import RSOUser, UserVerificationRequest
 
 USER_FIRST_NAME = 'Дмитрий'

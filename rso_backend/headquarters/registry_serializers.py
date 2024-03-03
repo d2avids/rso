@@ -1,8 +1,9 @@
+from rest_framework import serializers
+
 from headquarters.models import (Detachment, DistrictHeadquarter,
                                  EducationalHeadquarter, LocalHeadquarter,
                                  RegionalHeadquarter)
 from headquarters.serializers import BaseShortUnitListSerializer
-from rest_framework import serializers
 
 
 class BaseRegistrySerializer(BaseShortUnitListSerializer):

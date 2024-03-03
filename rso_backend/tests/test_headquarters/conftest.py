@@ -2,6 +2,8 @@ import datetime
 
 import pytest
 from django.conf import settings
+from rest_framework.test import APIClient
+
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, Position,
@@ -12,7 +14,6 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
-from rest_framework.test import APIClient
 from tests.conftest import (area, area_2, client, educational_institution,
                             educational_institution_2, region, region_2)
 from users.models import RSOUser, UserVerificationRequest

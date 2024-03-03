@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 import pytest
+
 from tests.conftest import USER_FIRST_NAME, USER_LAST_NAME, USERNAME
 
 

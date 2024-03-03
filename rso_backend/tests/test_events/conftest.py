@@ -2,6 +2,7 @@ import datetime
 
 import pytest
 from django.conf import settings
+
 from events.models import Event
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,

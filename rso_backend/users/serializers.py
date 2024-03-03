@@ -1,10 +1,12 @@
 from datetime import date
 
+from django.http import Http404
+from djoser.serializers import UserCreatePasswordRetypeSerializer
+from rest_framework import serializers
+
 from api.serializers import EducationalInstitutionSerializer, RegionSerializer
 from api.utils import (create_first_or_exception, get_detachment_commander_num,
                        get_is_trusted, get_regional_hq_commander_num)
-from django.http import Http404
-from djoser.serializers import UserCreatePasswordRetypeSerializer
 from events.constants import EVENT_APPLICATIONS_MODEL
 from events.models import Event
 from headquarters.models import (CentralHeadquarter, Detachment,
@@ -24,7 +26,6 @@ from headquarters.serializers import (ShortDetachmentSerializer,
                                       ShortRegionalHeadquarterSerializer)
 from headquarters.utils import (get_detachment_members_to_verify,
                                 get_regional_hq_members_to_verify)
-from rest_framework import serializers
 from users.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                              MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
                              REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS,

@@ -1,6 +1,8 @@
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 from django.http import HttpResponseRedirect
+from import_export.admin import ImportExportModelAdmin
+
 from headquarters.forms import (CentralForm, CentralPositionForm,
                                 DetachmentForm, DetachmentPositionAddForm,
                                 DetachmentPositionForm, DistrictForm,
@@ -22,7 +24,6 @@ from headquarters.resources import (DistrictHeadquarterResource,
                                     EducationalInstitutionResource,
                                     RegionalHeadquarterResource,
                                     RegionResource)
-from import_export.admin import ImportExportModelAdmin
 
 
 class BaseUnitAdmin(admin.ModelAdmin):
