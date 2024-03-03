@@ -8,7 +8,7 @@ from api.serializers import EducationalInstitutionSerializer, RegionSerializer
 from api.utils import (create_first_or_exception, get_detachment_commander_num,
                        get_is_trusted, get_regional_hq_commander_num)
 from events.constants import EVENT_APPLICATIONS_MODEL
-from events.models import Event
+from events.models import EventOrganizationData
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  EducationalInstitution, Position, Region,
                                  RegionalHeadquarter,
@@ -869,7 +869,7 @@ class UserNotificationsCountSerializer(serializers.Serializer):
                 ).count()
             )
 
-        events = Event.objects.filter(author=instance)
+        events = EventOrganizationData.objects.filter(organizer=instance)
         for event in events:
             event_application_type = event.application_type
             event_applications_count += (
