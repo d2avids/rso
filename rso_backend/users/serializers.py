@@ -24,8 +24,6 @@ from headquarters.serializers import (ShortDetachmentSerializer,
                                       ShortEducationalHeadquarterSerializer,
                                       ShortLocalHeadquarterSerializer,
                                       ShortRegionalHeadquarterSerializer)
-from headquarters.utils import (get_detachment_members_to_verify,
-                                get_regional_hq_members_to_verify)
 from users.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                              MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
                              REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS,
@@ -869,7 +867,7 @@ class UserNotificationsCountSerializer(serializers.Serializer):
                 ).count()
             )
 
-        events = EventOrganizationData.objects.filter(organizer=instance)
+        events = instance.events.all()
         for event in events:
             event_application_type = event.application_type
             event_applications_count += (
