@@ -2,21 +2,20 @@ import datetime
 
 import pytest
 from django.conf import settings
-from rest_framework.test import APIClient
-
-from headquarters.models import (CentralHeadquarter, Detachment, Position,
+from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
-                                 LocalHeadquarter, UserDetachmentPosition,
-                                 UserEducationalHeadquarterPosition,
+                                 LocalHeadquarter, Position,
                                  RegionalHeadquarter,
-                                 UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition,
                                  UserCentralHeadquarterPosition,
-                                 UserDistrictHeadquarterPosition,)
-from tests.conftest import (client, educational_institution, area, area_2,
+                                 UserDetachmentPosition,
+                                 UserDistrictHeadquarterPosition,
+                                 UserEducationalHeadquarterPosition,
+                                 UserLocalHeadquarterPosition,
+                                 UserRegionalHeadquarterPosition)
+from rest_framework.test import APIClient
+from tests.conftest import (area, area_2, client, educational_institution,
                             educational_institution_2, region, region_2)
 from users.models import RSOUser, UserVerificationRequest
-
 
 """
 Тестовые данные представляют собой древовидную структуру.

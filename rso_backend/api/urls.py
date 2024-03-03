@@ -1,7 +1,3 @@
-from django.urls import include, path
-from djoser.views import UserViewSet
-from rest_framework.routers import DefaultRouter
-
 from api.constants import (CREATE_DELETE, CREATE_METHOD, DELETE,
                            DOWNLOAD_ALL_FORMS, DOWNLOAD_CONSENT_PD,
                            DOWNLOAD_MEMBERSHIP_FILE,
@@ -14,12 +10,15 @@ from api.views import (AreaViewSet, EducationalInstitutionViewSet,
 from competitions.views import (CompetitionApplicationsViewSet,
                                 CompetitionParticipantsViewSet,
                                 CompetitionViewSet)
+from django.urls import include, path
+from djoser.views import UserViewSet
 from events.views import (AnswerDetailViewSet, EventAdditionalIssueViewSet,
                           EventApplicationsViewSet,
                           EventOrganizationDataViewSet,
                           EventParticipantsViewSet, EventUserDocumentViewSet,
-                          EventViewSet, MultiEventViewSet, GroupEventApplicationViewSet,
-                          create_answers, group_applications, group_applications_me)
+                          EventViewSet, GroupEventApplicationViewSet,
+                          MultiEventViewSet, create_answers,
+                          group_applications, group_applications_me)
 from headquarters.views import (CentralPositionViewSet, CentralViewSet,
                                 DetachmentAcceptViewSet,
                                 DetachmentApplicationViewSet,
@@ -29,6 +28,7 @@ from headquarters.views import (CentralPositionViewSet, CentralViewSet,
                                 LocalPositionViewSet, LocalViewSet,
                                 PositionViewSet, RegionalPositionViewSet,
                                 RegionalViewSet, get_structural_units)
+from rest_framework.routers import DefaultRouter
 from users.views import (CustomUserViewSet, ForeignUserDocumentsViewSet,
                          RSOUserViewSet, SafeUserViewSet, UserDocumentsViewSet,
                          UserEducationViewSet, UserMediaViewSet,

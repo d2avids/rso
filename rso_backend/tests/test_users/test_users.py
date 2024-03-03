@@ -1,7 +1,6 @@
 from http import HTTPStatus
 
 import pytest
-
 from tests.test_headquarters import conftest
 
 

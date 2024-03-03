@@ -1,9 +1,7 @@
 from django.urls import path
 
-from .views import (
-    CompetitionDetachmentAutoComplete,
-    CompetitionJuniorDetachmentAutoComplete,
-)
+from .views import (CompetitionDetachmentAutoComplete,
+                    CompetitionJuniorDetachmentAutoComplete)
 
 urlpatterns = [
     path(

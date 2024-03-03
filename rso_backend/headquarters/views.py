@@ -1,14 +1,3 @@
-from dal import autocomplete
-from django.core.exceptions import ValidationError
-from django.db.models import Q
-from django.http import Http404
-from django.shortcuts import get_object_or_404
-from django_filters.rest_framework import DjangoFilterBackend
-from drf_yasg.utils import swagger_auto_schema
-from rest_framework import filters, permissions, status, viewsets
-from rest_framework.decorators import action, api_view
-from rest_framework.response import Response
-
 from api.mixins import (CreateDeleteViewSet, ListRetrieveUpdateViewSet,
                         ListRetrieveViewSet)
 from api.permissions import (IsDetachmentCommander, IsDistrictCommander,
@@ -17,6 +6,13 @@ from api.permissions import (IsDetachmentCommander, IsDistrictCommander,
                              IsStuffOrCentralCommanderOrTrusted,
                              IsUserModelPositionCommander)
 from api.utils import get_headquarter_users_positions_queryset
+from dal import autocomplete
+from django.core.exceptions import ValidationError
+from django.db.models import Q
+from django.http import Http404
+from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from drf_yasg.utils import swagger_auto_schema
 from headquarters.filters import (DetachmentFilter,
                                   EducationalHeadquarterFilter,
                                   LocalHeadquarterFilter,
@@ -32,6 +28,10 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
+from headquarters.registry_serializers import (
+    DetachmentRegistrySerializer, DistrictHeadquarterRegistrySerializer,
+    EducationalHeadquarterRegistrySerializer,
+    LocalHeadquarterRegistrySerializer, RegionalHeadquarterRegistrySerializer)
 from headquarters.serializers import (
     CentralHeadquarterSerializer, CentralPositionSerializer,
     DetachmentPositionSerializer, DetachmentSerializer,
@@ -47,13 +47,12 @@ from headquarters.serializers import (
     ShortRegionalHeadquarterSerializer,
     UserDetachmentApplicationReadSerializer,
     UserDetachmentApplicationSerializer)
-from headquarters.registry_serializers import (
-    DistrictHeadquarterRegistrySerializer,
-    RegionalHeadquarterRegistrySerializer, LocalHeadquarterRegistrySerializer,
-    EducationalHeadquarterRegistrySerializer, DetachmentRegistrySerializer)
 from headquarters.swagger_schemas import applications_response
-from headquarters.utils import get_detachment_members_to_verify, \
-    get_regional_hq_members_to_verify
+from headquarters.utils import (get_detachment_members_to_verify,
+                                get_regional_hq_members_to_verify)
+from rest_framework import filters, permissions, status, viewsets
+from rest_framework.decorators import action, api_view
+from rest_framework.response import Response
 from users.models import UserVerificationRequest
 from users.serializers import UserVerificationReadSerializer
 

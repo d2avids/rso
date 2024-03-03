@@ -1,29 +1,30 @@
 from datetime import date
 
+from api.serializers import EducationalInstitutionSerializer, RegionSerializer
+from api.utils import (create_first_or_exception, get_detachment_commander_num,
+                       get_is_trusted, get_regional_hq_commander_num)
 from django.http import Http404
 from djoser.serializers import UserCreatePasswordRetypeSerializer
-from rest_framework import serializers
-
-from api.serializers import EducationalInstitutionSerializer, RegionSerializer
-from api.utils import create_first_or_exception, get_is_trusted, \
-    get_regional_hq_commander_num, get_detachment_commander_num
-from headquarters.models import (CentralHeadquarter, EducationalInstitution,
-                                 Position, Region,
+from events.constants import EVENT_APPLICATIONS_MODEL
+from events.models import Event
+from headquarters.models import (CentralHeadquarter, Detachment,
+                                 EducationalInstitution, Position, Region,
+                                 RegionalHeadquarter,
                                  UserCentralHeadquarterPosition,
+                                 UserDetachmentApplication,
                                  UserDetachmentPosition,
                                  UserDistrictHeadquarterPosition,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition, Detachment,
-                                 RegionalHeadquarter,
-                                 UserDetachmentApplication)
+                                 UserRegionalHeadquarterPosition)
 from headquarters.serializers import (ShortDetachmentSerializer,
                                       ShortDistrictHeadquarterSerializer,
                                       ShortEducationalHeadquarterSerializer,
                                       ShortLocalHeadquarterSerializer,
                                       ShortRegionalHeadquarterSerializer)
-from headquarters.utils import get_detachment_members_to_verify, \
-    get_regional_hq_members_to_verify
+from headquarters.utils import (get_detachment_members_to_verify,
+                                get_regional_hq_members_to_verify)
+from rest_framework import serializers
 from users.constants import (DOCUMENTS_RAW_EXISTS, EDUCATION_RAW_EXISTS,
                              MEDIA_RAW_EXISTS, PRIVACY_RAW_EXISTS,
                              REGION_RAW_EXISTS, STATEMENT_RAW_EXISTS,
@@ -839,6 +840,7 @@ class UserNotificationsCountSerializer(serializers.Serializer):
         regional_hq_members_to_verify_count = 0
         detachment_members_to_verify_count = 0
         detachment_applications_count = 0
+        event_applications_count = 0
 
         detachment_id = get_detachment_commander_num(user=instance)
         if detachment_id:
@@ -848,10 +850,10 @@ class UserNotificationsCountSerializer(serializers.Serializer):
                     'user_id', flat=True
                 )
             )
-            detachment_members_to_verify_count = detachment.members.filter(
+            detachment_members_to_verify_count += detachment.members.filter(
                 user__id__in=user_ids_in_verification_request
             ).count()
-            detachment_applications_count = (
+            detachment_applications_count += (
                 UserDetachmentApplication.objects.filter(
                     detachment=detachment
                 ).count()
@@ -860,13 +862,24 @@ class UserNotificationsCountSerializer(serializers.Serializer):
         regional_hq_id = get_regional_hq_commander_num(user=instance)
         if regional_hq_id:
             regional_hq = RegionalHeadquarter.objects.get(pk=regional_hq_id)
-            regional_hq_members_to_verify_count = (
+            regional_hq_members_to_verify_count += (
                 UserVerificationRequest.objects.filter(
                     user__region=regional_hq.region,
                 ).count()
             )
+
+        events = Event.objects.filter(author=instance)
+        for event in events:
+            event_application_type = event.application_type
+            event_applications_count += (
+                EVENT_APPLICATIONS_MODEL[
+                    event_application_type
+                ].objects.filter(event=event).count()
+            )
+
         return (
                 detachment_members_to_verify_count +
                 regional_hq_members_to_verify_count +
-                detachment_applications_count
+                detachment_applications_count +
+                event_applications_count
         )

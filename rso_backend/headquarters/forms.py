@@ -1,6 +1,5 @@
 from dal import autocomplete
 from django import forms
-
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, RegionalHeadquarter,

@@ -7,7 +7,6 @@ from django_celery_beat.models import (ClockedSchedule, CrontabSchedule,
                                        SolarSchedule)
 from import_export.admin import ImportExportModelAdmin
 from rest_framework.authtoken.models import TokenProxy
-
 from users.forms import RSOUserForm
 from users.models import (RSOUser, UserDocuments, UserEducation, UserMedia,
                           UserMemberCertLogs, UserMembershipLogs, UserParent,

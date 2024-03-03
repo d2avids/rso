@@ -1,11 +1,10 @@
 import datetime
 
 import pytest
-from rest_framework.authtoken.models import Token
-
 from competitions.models import (CompetitionApplications,
                                  CompetitionParticipants, Competitions)
 from headquarters.models import Detachment, RegionalHeadquarter
+from rest_framework.authtoken.models import Token
 from users.models import RSOUser
 
 

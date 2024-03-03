@@ -1,13 +1,12 @@
 from django.contrib import admin
-
 from events.forms import (EventApplicationForm, EventForm,
                           EventOrganizationDataForm, EventParticipantDataForm,
-                          MultiEventApplicationForm, GroupEventApplicationForm)
+                          GroupEventApplicationForm, MultiEventApplicationForm)
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocument, EventDocumentData,
                            EventOrganizationData, EventParticipants,
-                           EventTimeData,
-                           MultiEventApplication, GroupEventApplication)
+                           EventTimeData, GroupEventApplication,
+                           MultiEventApplication)
 
 
 class EventTimeDataInline(admin.TabularInline):

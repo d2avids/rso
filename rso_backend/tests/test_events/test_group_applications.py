@@ -1,7 +1,7 @@
 import http
-import pytest
 import json
 
+import pytest
 
 # TODO approve/reject different roles
 # TODO GET and DELETE group_applications/me/
