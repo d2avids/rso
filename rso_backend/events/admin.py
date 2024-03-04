@@ -2,11 +2,11 @@ from django.contrib import admin
 
 from events.forms import (EventApplicationForm, EventForm,
                           EventOrganizationDataForm, EventParticipantDataForm,
-                          MultiEventApplicationForm)
+                          GroupEventApplicationForm, MultiEventApplicationForm)
 from events.models import (Event, EventAdditionalIssue, EventApplications,
-                           EventDocument, EventDocumentData, EventIssueAnswer,
+                           EventDocument, EventDocumentData,
                            EventOrganizationData, EventParticipants,
-                           EventTimeData, EventUserDocument,
+                           EventTimeData, GroupEventApplication,
                            MultiEventApplication)
 
 
@@ -69,13 +69,93 @@ class EventAdmin(admin.ModelAdmin):
 @admin.register(EventParticipants)
 class EventParticipantsAdmin(admin.ModelAdmin):
     form = EventParticipantDataForm
+    list_display = ('id', 'event', 'user',)
+    search_fields = ('event__name', 'user__username')
+    list_filter = ('event',)
+    ordering = ('-id',)
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        queryset = queryset.select_related('event', 'user')
+        return queryset
 
 
 @admin.register(EventApplications)
 class EventApplicationAdmin(admin.ModelAdmin):
     form = EventApplicationForm
+    list_display = ('id', 'event', 'user',)
+    search_fields = ('event__name', 'user__username')
+    list_filter = ('event',)
+    ordering = ('-id',)
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        queryset = queryset.select_related('event', 'user')
+        return queryset
+
+
+@admin.register(GroupEventApplication)
+class GroupEventApplicationAdmin(admin.ModelAdmin):
+    form = GroupEventApplicationForm
+    list_display = ('id', 'event', 'author', 'created_at')
+    search_fields = ('event__name', 'author__username', 'id')
+    list_filter = ('created_at', 'event',)
+    ordering = ('-created_at',)
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        queryset = queryset.select_related(
+            'event', 'author'
+        ).prefetch_related('applicants')
+        return queryset
 
 
 @admin.register(MultiEventApplication)
 class MultiEventApplicationAdmin(admin.ModelAdmin):
     form = MultiEventApplicationForm
+    list_display = (
+        'id',
+        'event',
+        'organizer_id',
+        'is_approved',
+        'participants_count',
+        'created_at'
+    )
+    search_fields = ('event__name', 'organizer_id')
+    list_filter = ('is_approved', 'created_at', 'event')
+    ordering = ('-created_at',)
+
+    fieldsets = (
+        (None, {
+            'fields': (
+                'event',
+                'organizer_id',
+                'is_approved',
+                'participants_count',
+                'emblem',
+            ),
+        }),
+        ('Штаб-организатор:', {
+            'fields': (
+                'central_headquarter',
+                'district_headquarter',
+                'regional_headquarter',
+                'local_headquarter',
+                'educational_headquarter',
+                'detachment'
+            ),
+        }),
+    )
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        queryset = queryset.select_related(
+            'event',
+            'central_headquarter',
+            'district_headquarter',
+            'regional_headquarter',
+            'local_headquarter',
+            'educational_headquarter',
+            'detachment'
+        )
+        return queryset

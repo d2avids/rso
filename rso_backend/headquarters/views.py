@@ -32,6 +32,10 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
+from headquarters.registry_serializers import (
+    DetachmentRegistrySerializer, DistrictHeadquarterRegistrySerializer,
+    EducationalHeadquarterRegistrySerializer,
+    LocalHeadquarterRegistrySerializer, RegionalHeadquarterRegistrySerializer)
 from headquarters.serializers import (
     CentralHeadquarterSerializer, CentralPositionSerializer,
     DetachmentPositionSerializer, DetachmentSerializer,
@@ -47,11 +51,9 @@ from headquarters.serializers import (
     ShortRegionalHeadquarterSerializer,
     UserDetachmentApplicationReadSerializer,
     UserDetachmentApplicationSerializer)
-from headquarters.registry_serializers import (
-    DistrictHeadquarterRegistrySerializer,
-    RegionalHeadquarterRegistrySerializer, LocalHeadquarterRegistrySerializer,
-    EducationalHeadquarterRegistrySerializer, DetachmentRegistrySerializer)
 from headquarters.swagger_schemas import applications_response
+from headquarters.utils import (get_detachment_members_to_verify,
+                                get_regional_hq_members_to_verify)
 from users.models import UserVerificationRequest
 from users.serializers import UserVerificationReadSerializer
 
@@ -178,11 +180,9 @@ class RegionalViewSet(viewsets.ModelViewSet):
         у которых совпадает регион с регионом текущего РШ.
         """
         headquarter = self.get_object()
-        verifications = UserVerificationRequest.objects.filter(
-            user__region=headquarter.region,
-        ).select_related('user')
+        members_to_verify = get_regional_hq_members_to_verify(headquarter)
         serializer = UserVerificationReadSerializer(
-            instance=verifications, many=True
+            instance=members_to_verify, many=True
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -337,14 +337,7 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     def get_verifications(self, request, pk=None):
         """Получить список членов отряда, подавших заявку на верификацию."""
         detachment = self.get_object()
-        user_ids_in_verification_request = (
-            UserVerificationRequest.objects.values_list(
-                'user_id', flat=True
-            )
-        )
-        members_to_verify = detachment.members.filter(
-            user__id__in=user_ids_in_verification_request
-        ).select_related('user')
+        members_to_verify = get_detachment_members_to_verify(detachment)
         serializer = UserVerificationReadSerializer(
             instance=members_to_verify, many=True
         )

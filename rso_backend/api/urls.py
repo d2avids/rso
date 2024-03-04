@@ -18,7 +18,9 @@ from events.views import (AnswerDetailViewSet, EventAdditionalIssueViewSet,
                           EventApplicationsViewSet,
                           EventOrganizationDataViewSet,
                           EventParticipantsViewSet, EventUserDocumentViewSet,
-                          EventViewSet, MultiEventViewSet, create_answers)
+                          EventViewSet, GroupEventApplicationViewSet,
+                          MultiEventViewSet, create_answers,
+                          group_applications, group_applications_me)
 from headquarters.views import (CentralPositionViewSet, CentralViewSet,
                                 DetachmentAcceptViewSet,
                                 DetachmentApplicationViewSet,
@@ -54,6 +56,11 @@ router.register(r'positions', PositionViewSet)
 router.register('eduicational_institutions', EducationalInstitutionViewSet)
 router.register('membership_certificates', MemberCertViewSet)
 router.register('events', EventViewSet)
+router.register(
+    r'events/(?P<event_pk>\d+)/group_applications/all',
+    GroupEventApplicationViewSet,
+    basename='group-applications'
+)
 router.register(
     r'events/(?P<event_pk>\d+)/applications',
     EventApplicationsViewSet,
@@ -313,6 +320,16 @@ user_nested_urls = [
         'events/<int:event_pk>/answers/',
         create_answers,
         name='create-answers'
+    ),
+    path(
+        'events/<int:event_pk>/group_applications/',
+        group_applications,
+        name='get-group-applications'
+    ),
+    path(
+        'events/<int:event_pk>/group_applications/me/',
+        group_applications_me,
+        name='get-group-applications-me'
     ),
     path('', include('djoser.urls')),
 ]

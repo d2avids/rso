@@ -104,6 +104,10 @@ class RSOUser(AbstractUser):
         verbose_name='Статус верификации',
         default=False,
     )
+    is_rso_member = models.BooleanField(
+        verbose_name='Статус членства в РСО',
+        default=False
+    )
     membership_fee = models.BooleanField(
         default=False,
         verbose_name='Членский взнос оплачен'

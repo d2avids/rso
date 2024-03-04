@@ -1,4 +1,4 @@
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status
 from rest_framework.permissions import BasePermission
@@ -11,8 +11,9 @@ from api.utils import (check_commander_or_not, check_roles_for_edit,
                        check_trusted_for_eduhead, check_trusted_for_localhead,
                        check_trusted_for_regionalhead,
                        check_trusted_in_headquarters, check_trusted_user,
-                       is_regional_commander, is_safe_method,
-                       is_stuff_or_central_commander)
+                       get_detachment_commander_num,
+                       get_regional_hq_commander_num, is_regional_commander,
+                       is_safe_method, is_stuff_or_central_commander)
 from events.models import Event, EventOrganizationData
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
@@ -23,7 +24,7 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
-from users.models import RSOUser
+from users.models import RSOUser, UserVerificationRequest
 from users.serializers import UserCommanderSerializer, UserTrustedSerializer
 
 
@@ -456,7 +457,9 @@ class MembershipFeePermission(BasePermission):
                     UserRegionalHeadquarterPosition.
                     objects.get(user=user_to_change)
                 ).headquarter
-            except (UserRegionalHeadquarterPosition.DoesNotExist, AttributeError):
+            except (
+                UserRegionalHeadquarterPosition.DoesNotExist, AttributeError
+            ):
                 return False
 
             if reg_headquarter.commander == user:
@@ -467,7 +470,9 @@ class MembershipFeePermission(BasePermission):
                     UserRegionalHeadquarterPosition.
                     objects.get(user=user, headquarter=reg_headquarter)
                 )
-            except (UserRegionalHeadquarterPosition.DoesNotExist, AttributeError):
+            except (
+                UserRegionalHeadquarterPosition.DoesNotExist, AttributeError
+            ):
                 return False
             if reg_headquarter_member:
                 if reg_headquarter_member.is_trusted:
@@ -566,7 +571,7 @@ class IsEventOrganizer(BasePermission):
             organizer=request.user
         ).exists():
             return True
-        event = Event.objects.filter(  # Удалить, конда уйдет в продакшен
+        event = Event.objects.filter(  # TODO: Удалить, когда уйдет в продакшен
             id=view.kwargs.get('event_pk')
         ).first()
         if event is not None:
@@ -793,3 +798,52 @@ class IsRegionalCommanderOrAdminOrAuthor(BasePermission):
                     application.detachment == current_detachment or
                     is_regional_commander(request.user))
         return is_regional_commander(request.user)
+
+
+class IsDetComOrRegComAndRegionMatches(permissions.BasePermission):
+    """
+    Проверяет, является ли пользователь командиром
+    отряда или регионального штаба и совпадает ли регион
+    с регионом юзера, к записи о котором он обращается.
+    """
+
+    def has_permission(self, request, view):
+        return True
+
+    def has_object_permission(self, request, view, obj):
+        request_user = request.user
+        request_user_reghq = get_regional_hq_commander_num(request_user)
+        request_user_detcom = get_detachment_commander_num(request_user)
+        obj_user_id = obj.id
+        obj_region_code = obj.region.code
+        if request_user.id == obj_user_id:
+            return True
+        try:
+            UserVerificationRequest.objects.get(
+                user=obj_user_id
+            )
+        except (
+            UserVerificationRequest.DoesNotExist, AttributeError, ValueError
+        ):
+            return False
+        try:
+            obj_detachment = UserDetachmentPosition.objects.filter(
+                user=obj_user_id
+            ).first().headquarter.id
+        except (
+            UserDetachmentPosition.DoesNotExist, AttributeError, ValueError,
+        ):
+            return False
+        if request_user_detcom == obj_detachment:
+            return True
+        if request_user_reghq:
+            request_user_region_code = RegionalHeadquarter.objects.get(
+                id=request_user_reghq
+            ).region.code
+            if (
+                (request_user_region_code is not None)
+                and (obj_region_code is not None)
+                and (request_user_region_code == obj_region_code)
+            ):
+                return True
+        return False

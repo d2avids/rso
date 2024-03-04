@@ -1,7 +1,7 @@
-from dal import autocomplete
 import os
 from datetime import date
 
+from dal import autocomplete
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
