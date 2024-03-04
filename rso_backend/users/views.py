@@ -4,6 +4,7 @@ import zipfile
 
 from dal import autocomplete
 from django.db.models import Q
+from django.core.cache import cache
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -17,7 +18,7 @@ from api.permissions import (IsCommanderOrTrustedAnywhere,
                              IsDetComOrRegComAndRegionMatches, IsStuffOrAuthor)
 from api.tasks import send_reset_password_email_without_user
 from api.utils import download_file, get_user
-from rso_backend.settings import BASE_DIR
+from rso_backend.settings import BASE_DIR, RSOUSERS_CACHE_TTL
 from users.filters import RSOUserFilter
 from users.models import (RSOUser, UserDocuments, UserEducation,
                           UserForeignDocuments, UserMedia, UserParent,
@@ -114,7 +115,6 @@ class RSOUserViewSet(RetrieveUpdateViewSet):
     по id или по эндпоинту /users/me.
     """
 
-    queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
 
     def get_permissions(self):
@@ -128,6 +128,11 @@ class RSOUserViewSet(RetrieveUpdateViewSet):
                 permissions.IsAuthenticated, IsCommanderOrTrustedAnywhere,
             )
         return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        return cache.get_or_set(
+            'rsousers', RSOUser.objects.all(), timeout=RSOUSERS_CACHE_TTL
+        )
 
     @action(
         detail=False,

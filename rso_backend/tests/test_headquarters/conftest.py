@@ -4,23 +4,24 @@ import pytest
 from django.conf import settings
 from rest_framework.test import APIClient
 
-from headquarters.models import (CentralHeadquarter, Detachment,
+from headquarters.models import (CentralHeadquarter, Detachment, Position,
                                  DistrictHeadquarter, EducationalHeadquarter,
-                                 LocalHeadquarter, Position,
-                                 RegionalHeadquarter,
-                                 UserCentralHeadquarterPosition,
-                                 UserDetachmentPosition,
-                                 UserDistrictHeadquarterPosition,
+                                 LocalHeadquarter, UserDetachmentPosition,
                                  UserEducationalHeadquarterPosition,
+                                 RegionalHeadquarter,
                                  UserLocalHeadquarterPosition,
-                                 UserRegionalHeadquarterPosition)
-from tests.conftest import (area, area_2, client, educational_institution,
-                            educational_institution_2, region, region_2)
+                                 UserRegionalHeadquarterPosition,
+                                 UserCentralHeadquarterPosition,
+                                 UserDistrictHeadquarterPosition,)
+from tests.conftest import (client, educational_institution, area, area_2,
+                            educational_institution_2, region, region_2,
+                            regions)
 from users.models import RSOUser, UserVerificationRequest
+
 
 """
 Тестовые данные представляют собой древовидную структуру.
-Отряды/штабы одного уровня испульзуются в тестах с проверкой
+Отряды/штабы одного уровня используются в тестах с проверкой
 одноуровнего доступа к эндпоинтам.
 Тестовая структура РСО:
 Один центральный штаб. Один командир центрального штаба.
@@ -34,7 +35,7 @@ from users.models import RSOUser, UserVerificationRequest
 Кроме того созданы сущности:
 - Анонимный пользователь;
 - Простой неверифицированный пользователь;
-- Пользователь принятый в отдряд и назначенный на должность;
+- Пользователь принятый в отряд и назначенный на должность;
 - Доверенный пользователь в отряде;
 - Админ.
 """

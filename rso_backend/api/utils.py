@@ -601,7 +601,7 @@ def is_regional_commander(user):
              user.is_staff))
 
 
-def get_detachment_commander_num(user):
+def get_detachment_commander_num(user) -> int | None:
     """Получение id отряда, в котором юзер командир."""
 
     try:
@@ -612,11 +612,11 @@ def get_detachment_commander_num(user):
         Detachment.DoesNotExist, AttributeError, ValueError,
         Detachment.MultipleObjectsReturned
     ):
-        return False
+        return None
     return detachment_commander_num
 
 
-def get_regional_hq_commander_num(user):
+def get_regional_hq_commander_num(user) -> int | None:
     """Получение id регионального штаба, в котором юзер командир."""
 
     try:
@@ -627,5 +627,5 @@ def get_regional_hq_commander_num(user):
         RegionalHeadquarter.DoesNotExist, AttributeError, ValueError,
         RegionalHeadquarter.MultipleObjectsReturned
     ):
-        return False
+        return None
     return reghq_commander_num

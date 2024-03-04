@@ -11,9 +11,9 @@ from api.utils import (check_commander_or_not, check_roles_for_edit,
                        check_trusted_for_eduhead, check_trusted_for_localhead,
                        check_trusted_for_regionalhead,
                        check_trusted_in_headquarters, check_trusted_user,
-                       get_detachment_commander_num,
-                       get_regional_hq_commander_num, is_regional_commander,
-                       is_safe_method, is_stuff_or_central_commander)
+                       get_detachment_commander_num, is_regional_commander,
+                       get_regional_hq_commander_num, is_safe_method,
+                       is_stuff_or_central_commander)
 from events.models import Event, EventOrganizationData
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
@@ -833,8 +833,12 @@ class IsDetComOrRegComAndRegionMatches(permissions.BasePermission):
         except (
             UserDetachmentPosition.DoesNotExist, AttributeError, ValueError,
         ):
-            return False
-        if request_user_detcom == obj_detachment:
+            obj_detachment = None
+        if (
+            (request_user_detcom is not None)
+            and (obj_detachment is not None)
+            and (request_user_detcom == obj_detachment)
+        ):
             return True
         if request_user_reghq:
             request_user_region_code = RegionalHeadquarter.objects.get(

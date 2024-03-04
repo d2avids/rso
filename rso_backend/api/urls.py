@@ -18,9 +18,10 @@ from events.views import (AnswerDetailViewSet, EventAdditionalIssueViewSet,
                           EventApplicationsViewSet,
                           EventOrganizationDataViewSet,
                           EventParticipantsViewSet, EventUserDocumentViewSet,
-                          EventViewSet, GroupEventApplicationViewSet,
-                          MultiEventViewSet, create_answers,
-                          group_applications, group_applications_me)
+                          EventViewSet, MultiEventViewSet,
+                          GroupEventApplicationViewSet,
+                          create_answers, group_applications,
+                          group_applications_me)
 from headquarters.views import (CentralPositionViewSet, CentralViewSet,
                                 DetachmentAcceptViewSet,
                                 DetachmentApplicationViewSet,
@@ -43,19 +44,23 @@ app_name = 'api'
 router = DefaultRouter()
 
 router.register(r'save_users', SafeUserViewSet, basename='save_users')
-router.register(r'rsousers', RSOUserViewSet)
+router.register(r'rsousers', RSOUserViewSet, basename='rsousers')
 router.register(r'regions', RegionViewSet)
 router.register(r'areas', AreaViewSet)
-router.register(r'districts', DistrictViewSet)
-router.register(r'regionals', RegionalViewSet)
+router.register(r'districts', DistrictViewSet, basename='districts')
+router.register(r'regionals', RegionalViewSet, basename='regionals')
 router.register(r'educationals', EducationalViewSet)
 router.register(r'locals', LocalViewSet)
 router.register(r'detachments', DetachmentViewSet)
-router.register(r'centrals', CentralViewSet)
+router.register(r'centrals', CentralViewSet, basename='centrals')
 router.register(r'positions', PositionViewSet)
-router.register('eduicational_institutions', EducationalInstitutionViewSet)
+router.register(
+    'eduicational_institutions',
+    EducationalInstitutionViewSet,
+    basename='educational-institution'
+)
 router.register('membership_certificates', MemberCertViewSet)
-router.register('events', EventViewSet)
+router.register('events', EventViewSet, basename='events')
 router.register(
     r'events/(?P<event_pk>\d+)/group_applications/all',
     GroupEventApplicationViewSet,

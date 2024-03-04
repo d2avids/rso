@@ -1,5 +1,7 @@
 from dal import autocomplete
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.cache import cache
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -54,7 +56,6 @@ from headquarters.serializers import (
 from headquarters.swagger_schemas import applications_response
 from headquarters.utils import (get_detachment_members_to_verify,
                                 get_regional_hq_members_to_verify)
-from users.models import UserVerificationRequest
 from users.serializers import UserVerificationReadSerializer
 
 
@@ -92,6 +93,17 @@ class CentralViewSet(ListRetrieveUpdateViewSet):
             permission_classes = (IsStuffOrCentralCommanderOrTrusted,)
         return [permission() for permission in permission_classes]
 
+    def get_object(self):
+        obj_id = self.kwargs['pk']
+        obj_cache_key = f'central-headquarter-{obj_id}'
+        return cache.get_or_set(
+            obj_cache_key,
+            lambda: get_object_or_404(
+                CentralHeadquarter, pk=obj_id
+            ),
+            timeout=settings.CENTRAL_OBJECT_CACHE_TTL
+        )
+
 
 class DistrictViewSet(viewsets.ModelViewSet):
     """Представляет окружные штабы.
@@ -128,6 +140,18 @@ class DistrictViewSet(viewsets.ModelViewSet):
         else:
             permission_classes = (IsDistrictCommander,)
         return [permission() for permission in permission_classes]
+
+    def get_object(self):
+        obj_id = self.kwargs['pk']
+        obj_cache_key = f'district-headquarter-{obj_id}'
+
+        return cache.get_or_set(
+            obj_cache_key,
+            lambda: get_object_or_404(
+                DistrictHeadquarter, pk=obj_id
+            ),
+            timeout=settings.DISTR_OBJECT_CACHE_TTL
+        )
 
 
 class RegionalViewSet(viewsets.ModelViewSet):
@@ -172,6 +196,18 @@ class RegionalViewSet(viewsets.ModelViewSet):
         else:
             permission_classes = (IsRegionalCommander,)
         return [permission() for permission in permission_classes]
+
+    def get_object(self):
+        obj_id = self.kwargs['pk']
+        obj_cache_key = f'regional-headquarter-{obj_id}'
+
+        return cache.get_or_set(
+            obj_cache_key,
+            lambda: get_object_or_404(
+                RegionalHeadquarter, pk=obj_id
+            ),
+            timeout=settings.REG_OBJECT_CACHE_TTL
+        )
 
     @action(detail=True, methods=['get', ], url_path='verifications')
     def get_verifications(self, request, pk=None):
@@ -397,10 +433,15 @@ class CentralPositionViewSet(BasePositionViewSet):
     serializer_class = CentralPositionSerializer
 
     def get_queryset(self):
-        return get_headquarter_users_positions_queryset(
+        queryset = get_headquarter_users_positions_queryset(
             self,
             CentralHeadquarter,
             UserCentralHeadquarterPosition
+        )
+        return cache.get_or_set(
+            'central-members-list',
+            queryset,
+            timeout=settings.CENTRALHQ_MEMBERS_CACHE_TTL
         )
 
 
@@ -423,10 +464,15 @@ class DistrictPositionViewSet(BasePositionViewSet):
     serializer_class = DistrictPositionSerializer
 
     def get_queryset(self):
-        return get_headquarter_users_positions_queryset(
+        queryset = get_headquarter_users_positions_queryset(
             self,
             DistrictHeadquarter,
             UserDistrictHeadquarterPosition
+        )
+        return cache.get_or_set(
+            'district-members-list',
+            queryset,
+            timeout=settings.DISTRCICTHQ_MEMBERS_CACHE_TTL
         )
 
 
@@ -449,10 +495,15 @@ class RegionalPositionViewSet(BasePositionViewSet):
     serializer_class = RegionalPositionSerializer
 
     def get_queryset(self):
-        return get_headquarter_users_positions_queryset(
+        queryset = get_headquarter_users_positions_queryset(
             self,
             RegionalHeadquarter,
             UserRegionalHeadquarterPosition
+        )
+        return cache.get_or_set(
+            'regional-members-list',
+            queryset,
+            timeout=settings.REGIONALHQ_MEMBERS_CACHE_TTL
         )
 
 
@@ -475,10 +526,15 @@ class LocalPositionViewSet(BasePositionViewSet):
     serializer_class = LocalPositionSerializer
 
     def get_queryset(self):
-        return get_headquarter_users_positions_queryset(
+        queryset = get_headquarter_users_positions_queryset(
             self,
             LocalHeadquarter,
             UserLocalHeadquarterPosition
+        )
+        return cache.get_or_set(
+            'local-members-list',
+            queryset,
+            timeout=settings.LOCALHQ_MEMBERS_CACHE_TTL
         )
 
 
@@ -501,10 +557,15 @@ class EducationalPositionViewSet(BasePositionViewSet):
     serializer_class = EducationalPositionSerializer
 
     def get_queryset(self):
-        return get_headquarter_users_positions_queryset(
+        queryset = get_headquarter_users_positions_queryset(
             self,
             EducationalHeadquarter,
             UserEducationalHeadquarterPosition
+        )
+        return cache.get_or_set(
+            'edu-members-list',
+            queryset,
+            timeout=settings.EDUHQ_MEMBERS_CACHE_TTL
         )
 
 
@@ -528,10 +589,15 @@ class DetachmentPositionViewSet(BasePositionViewSet):
     serializer_class = DetachmentPositionSerializer
 
     def get_queryset(self):
-        return get_headquarter_users_positions_queryset(
+        queryset = get_headquarter_users_positions_queryset(
             self,
             Detachment,
             UserDetachmentPosition
+        )
+        return cache.get_or_set(
+            'detachment-members-list',
+            queryset,
+            timeout=settings.DETACHMENT_MEMBERS_CACHE_TTL
         )
 
 

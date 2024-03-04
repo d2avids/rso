@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 
 from dal import autocomplete
 from django.db import IntegrityError, transaction
+from django.conf import settings
+from django.core.cache import cache
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg import openapi
@@ -13,11 +15,10 @@ from rest_framework.response import Response
 
 from api.constants import HEADQUARTERS_MODELS_MAPPING
 from api.mixins import (CreateListRetrieveDestroyViewSet,
-                        CreateRetrieveUpdateViewSet,
                         ListRetrieveDestroyViewSet,
-                        RetrieveUpdateDestroyViewSet, RetrieveUpdateViewSet)
+                        RetrieveUpdateDestroyViewSet,)
 from api.permissions import (IsApplicantOrOrganizer,
-                             IsAuthorMultiEventApplication, IsAuthorPermission,
+                             IsAuthorMultiEventApplication,
                              IsCommander, IsDetachmentCommander,
                              IsDistrictCommander, IsEducationalCommander,
                              IsEventAuthor, IsEventOrganizer,
@@ -63,7 +64,6 @@ from users.serializers import ShortUserSerializer
 class EventViewSet(viewsets.ModelViewSet):
     """Представляет мероприятия."""
 
-    queryset = Event.objects.all()
     serializer_class = EventSerializer
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     filterset_class = EventFilter
@@ -99,9 +99,14 @@ class EventViewSet(viewsets.ModelViewSet):
                 'update', 'update_time_data', 'update_document_data'
         ):
             permission_classes = [IsEventOrganizerOrAuthor]
-        print(permission_classes)
-        print('ПЕРМИШЕНЫ ВЫШЕ ------')
         return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        return cache.get_or_set(
+            'events',
+            Event.objects.all(),
+            timeout=settings.EVENTS_CACHE_TTL
+        )
 
     @swagger_auto_schema(request_body=EventSwaggerSerializer)
     def create(self, request, *args, **kwargs):
@@ -1065,8 +1070,9 @@ def group_applications(request, event_pk):
           указанном в мероприятии.
 
     Параметры:
-        - event_pk (в URL): Идентификатор мероприятия, для которого была создана
-          заявка. Используется для поиска конкретной заявки в базе данных.
+        - event_pk (в URL): Идентификатор мероприятия, для которого была
+          создана заявка. Используется для поиска конкретной заявки
+          в базе данных.
 
 
     Метод `GET`:

@@ -89,7 +89,6 @@ class TestRSOUsers:
 
     rsousers_url = '/api/v1/rsousers/'
 
-
     @pytest.mark.parametrize(
         'client_name, expected_status',
         [
@@ -99,7 +98,7 @@ class TestRSOUsers:
     )
     def test_retrieve_user_object_for_allowed_roles(
             self, client, regional_hq_1a, detachment_1a, detachment_positions,
-            user_with_position_in_detachment, detachment_commander_1a, 
+            user_with_position_in_detachment, detachment_commander_1a,
             regional_commander_1a, regional_commander_1b,
             verification_request_user_with_position_in_detachment,
             expected_status, client_name, request
@@ -149,19 +148,18 @@ class TestRSOUsers:
     )
     def test_retrieve_user_object_for_forbidden_users(
             self, client, central_hq, district_hq_1a, district_hq_1b,
-            regional_hq_1a, regional_hq_1b, local_hq_1a, local_hq_1b,
+            regional_hq_1b, local_hq_1a, local_hq_1b,
             edu_hq_1a, edu_hq_1b, detachment_1a, detachment_1b,
-            detachment_positions,
+            detachment_positions, centr_commander, distr_commander_1b,
             user_with_position_in_detachment, user_with_position_in_edu_hq,
             user_with_position_in_local_hq, user_with_position_in_regional_hq,
             user_with_position_in_district_hq, user_with_position_in_centr_hq,
             user_trusted_in_detachment, user_trusted_in_edu_hq,
             user_trusted_in_local_hq, user_trusted_in_regional_hq,
             user_trusted_in_district_hq, user_trusted_in_centr_hq,
-            detachment_commander_1a, detachment_commander_1b,
+            detachment_commander_1b, distr_commander_1a,
             edu_commander_1a, edu_commander_1b, local_commander_1a,
-            local_commander_1b, regional_commander_1a, regional_commander_1b,
-            distr_commander_1a, distr_commander_1b, centr_commander,
+            local_commander_1b, regional_commander_1b,
             verification_request_user_with_position_in_detachment,
             expected_status, client_name, request
     ):
