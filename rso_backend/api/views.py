@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 
 import pdfrw
+from django.conf import settings
 from django.core.cache import cache
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -32,7 +33,6 @@ from api.utils import (create_and_return_archive, get_user, get_user_by_id,
 from headquarters.models import (Area, EducationalInstitution, Region,
                                  RegionalHeadquarter,
                                  UserRegionalHeadquarterPosition)
-from rso_backend.settings import BASE_DIR, EDU_INST_CACHE_TTL
 from users.models import (MemberCert, RSOUser, UserDocuments,
                           UserMemberCertLogs, UserMembershipLogs,
                           UserVerificationLogs, UserVerificationRequest)
@@ -51,13 +51,11 @@ class EducationalInstitutionViewSet(ListRetrieveViewSet):
     ordering = ('name',)
 
     def get_queryset(self):
-        if self.action == 'list':
-            return cache.get_or_set(
-                'educational_institutions',
-                EducationalInstitution.objects.all(),
-                timeout=EDU_INST_CACHE_TTL
-            )
-        return EducationalInstitution.objects.all()
+        return cache.get_or_set(
+            'educational_institutions',
+            EducationalInstitution.objects.all(),
+            timeout=settings.EDU_INST_CACHE_TTL
+        )
 
 
 class RegionViewSet(ListRetrieveViewSet):
@@ -292,7 +290,7 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
 
         """Подготовка шаблона и шрифтов к выводу информации на лист."""
         template_path = os.path.join(
-            str(BASE_DIR),
+            str(settings.BASE_DIR),
             'templates',
             'samples',
             cert_template
@@ -307,7 +305,7 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
             TTFont(
                 'Times_New_Roman',
                 os.path.join(
-                    str(BASE_DIR),
+                    str(settings.BASE_DIR),
                     'templates',
                     'samples',
                     'fonts',
@@ -319,7 +317,7 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
             TTFont(
                 'Arial_Narrow',
                 os.path.join(
-                    str(BASE_DIR),
+                    str(settings.BASE_DIR),
                     'templates',
                     'samples',
                     'fonts',

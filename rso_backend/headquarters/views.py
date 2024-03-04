@@ -1,4 +1,5 @@
 from dal import autocomplete
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.cache import cache
 from django.db.models import Q
@@ -53,17 +54,8 @@ from headquarters.registry_serializers import (
     RegionalHeadquarterRegistrySerializer, LocalHeadquarterRegistrySerializer,
     EducationalHeadquarterRegistrySerializer, DetachmentRegistrySerializer)
 from headquarters.swagger_schemas import applications_response
-from headquarters.utils import get_detachment_members_to_verify, \
-    get_regional_hq_members_to_verify
-from rso_backend.settings import (CENTRAL_OBJECT_CACHE_TTL,
-                                  CENTRALHQ_MEMBERS_CACHE_TTL,
-                                  DETACHMENT_MEMBERS_CACHE_TTL,
-                                  DISTR_OBJECT_CACHE_TTL,
-                                  DISTRCICTHQ_MEMBERS_CACHE_TTL,
-                                  EDUHQ_MEMBERS_CACHE_TTL,
-                                  LOCALHQ_MEMBERS_CACHE_TTL,
-                                  REG_OBJECT_CACHE_TTL,
-                                  REGIONALHQ_MEMBERS_CACHE_TTL)
+from headquarters.utils import (get_detachment_members_to_verify,
+                                get_regional_hq_members_to_verify)
 from users.serializers import UserVerificationReadSerializer
 
 
@@ -89,6 +81,7 @@ class CentralViewSet(ListRetrieveUpdateViewSet):
     Доступен поиск по name при передаче ?search=<value> query-параметра.
     """
 
+    queryset = CentralHeadquarter.objects.all()
     serializer_class = CentralHeadquarterSerializer
     permission_classes = (IsStuffOrCentralCommander,)
     ordering = ('name',)
@@ -100,15 +93,17 @@ class CentralViewSet(ListRetrieveUpdateViewSet):
             permission_classes = (IsStuffOrCentralCommanderOrTrusted,)
         return [permission() for permission in permission_classes]
 
-    def get_queryset(self):
-        if self.action == 'retrieve':
-            return cache.get_or_set(
-                'central-obj',
-                CentralHeadquarter.objects.all(),
-                timeout=CENTRAL_OBJECT_CACHE_TTL
-            )
-        else:
-            return CentralHeadquarter.objects.all()
+    def get_object(self):
+        obj_id = self.kwargs['pk']
+        obj_cache_key = f'central-headquarter-{obj_id}'
+
+        return cache.get_or_set(
+            obj_cache_key,
+            lambda: get_object_or_404(
+                CentralHeadquarter, pk=obj_id
+            ),
+            timeout=settings.CENTRAL_OBJECT_CACHE_TTL
+        )
 
 
 class DistrictViewSet(viewsets.ModelViewSet):
@@ -124,6 +119,7 @@ class DistrictViewSet(viewsets.ModelViewSet):
     адаптированный под блок "Реестр участников".
     """
 
+    queryset = DistrictHeadquarter.objects.all()
     serializer_class = DistrictHeadquarterSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
@@ -146,15 +142,17 @@ class DistrictViewSet(viewsets.ModelViewSet):
             permission_classes = (IsDistrictCommander,)
         return [permission() for permission in permission_classes]
 
-    def get_queryset(self):
-        if self.action == 'retrieve':
-            return cache.get_or_set(
-                'district-obj',
-                DistrictHeadquarter.objects.all(),
-                timeout=DISTR_OBJECT_CACHE_TTL
-            )
-        else:
-            return DistrictHeadquarter.objects.all()
+    def get_object(self):
+        obj_id = self.kwargs['pk']
+        obj_cache_key = f'district-headquarter-{obj_id}'
+
+        return cache.get_or_set(
+            obj_cache_key,
+            lambda: get_object_or_404(
+                DistrictHeadquarter, pk=obj_id
+            ),
+            timeout=settings.DISTR_OBJECT_CACHE_TTL
+        )
 
 
 class RegionalViewSet(viewsets.ModelViewSet):
@@ -177,6 +175,7 @@ class RegionalViewSet(viewsets.ModelViewSet):
     адаптированный под блок "Реестр участников".
     """
 
+    queryset = RegionalHeadquarter.objects.all()
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name', 'region__name',)
     ordering_fields = ('name', 'founding_date',)
@@ -199,15 +198,17 @@ class RegionalViewSet(viewsets.ModelViewSet):
             permission_classes = (IsRegionalCommander,)
         return [permission() for permission in permission_classes]
 
-    def get_queryset(self):
-        if self.action == 'retrieve':
-            return cache.get_or_set(
-                'regional-obj',
-                RegionalHeadquarter.objects.all(),
-                timeout=REG_OBJECT_CACHE_TTL
-            )
-        else:
-            return RegionalHeadquarter.objects.all()
+    def get_object(self):
+        obj_id = self.kwargs['pk']
+        obj_cache_key = f'regional-headquarter-{obj_id}'
+
+        return cache.get_or_set(
+            obj_cache_key,
+            lambda: get_object_or_404(
+                RegionalHeadquarter, pk=obj_id
+            ),
+            timeout=settings.REG_OBJECT_CACHE_TTL
+        )
 
     @action(detail=True, methods=['get', ], url_path='verifications')
     def get_verifications(self, request, pk=None):
@@ -442,7 +443,7 @@ class CentralPositionViewSet(BasePositionViewSet):
         return cache.get_or_set(
             'central-members-list',
             queryset,
-            timeout=CENTRALHQ_MEMBERS_CACHE_TTL
+            timeout=settings.CENTRALHQ_MEMBERS_CACHE_TTL
         )
 
 
@@ -473,7 +474,7 @@ class DistrictPositionViewSet(BasePositionViewSet):
         return cache.get_or_set(
             'district-members-list',
             queryset,
-            timeout=DISTRCICTHQ_MEMBERS_CACHE_TTL
+            timeout=settings.DISTRCICTHQ_MEMBERS_CACHE_TTL
         )
 
 
@@ -504,7 +505,7 @@ class RegionalPositionViewSet(BasePositionViewSet):
         return cache.get_or_set(
             'regional-members-list',
             queryset,
-            timeout=REGIONALHQ_MEMBERS_CACHE_TTL
+            timeout=settings.REGIONALHQ_MEMBERS_CACHE_TTL
         )
 
 
@@ -535,7 +536,7 @@ class LocalPositionViewSet(BasePositionViewSet):
         return cache.get_or_set(
             'local-members-list',
             queryset,
-            timeout=LOCALHQ_MEMBERS_CACHE_TTL
+            timeout=settings.LOCALHQ_MEMBERS_CACHE_TTL
         )
 
 
@@ -564,7 +565,9 @@ class EducationalPositionViewSet(BasePositionViewSet):
             UserEducationalHeadquarterPosition
         )
         return cache.get_or_set(
-            'edu-members-list', queryset, timeout=EDUHQ_MEMBERS_CACHE_TTL
+            'edu-members-list',
+            queryset,
+            timeout=settings.EDUHQ_MEMBERS_CACHE_TTL
         )
 
 
@@ -596,7 +599,7 @@ class DetachmentPositionViewSet(BasePositionViewSet):
         return cache.get_or_set(
             'detachment-members-list',
             queryset,
-            timeout=DETACHMENT_MEMBERS_CACHE_TTL
+            timeout=settings.DETACHMENT_MEMBERS_CACHE_TTL
         )
 
 

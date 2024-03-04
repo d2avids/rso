@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from django.db import IntegrityError
 from dal import autocomplete
 from django.db import transaction
+from django.conf import settings
 from django.core.cache import cache
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -57,7 +58,6 @@ from events.swagger_schemas import (EventSwaggerSerializer, answer_response,
                                     participant_me_response,
                                     GroupApplicantIdSerializer, MEMBERSHIP_FEE,
                                     BIRTH_DATE_FROM, BIRTH_DATE_TO, GENDER)
-from rso_backend.settings import EVENTS_CACHE_TTL
 from users.models import RSOUser
 from users.serializers import ShortUserSerializer
 
@@ -103,11 +103,11 @@ class EventViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
-        if self.action == 'list':
-            return cache.get_or_set(
-                'events', Event.objects.all(), timeout=EVENTS_CACHE_TTL
-            )
-        return Event.objects.all()
+        return cache.get_or_set(
+            'events',
+            Event.objects.all(),
+            timeout=settings.EVENTS_CACHE_TTL
+        )
 
     @swagger_auto_schema(request_body=EventSwaggerSerializer)
     def create(self, request, *args, **kwargs):
