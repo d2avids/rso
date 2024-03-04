@@ -7,16 +7,15 @@ from rest_framework.test import APIClient
 
 from headquarters.models import (Area, CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
-                                 LocalHeadquarter, UserDetachmentPosition,
-                                 UserEducationalHeadquarterPosition,
-                                 RegionalHeadquarter, EducationalInstitution,
-                                 UserLocalHeadquarterPosition, Region,
-                                 UserRegionalHeadquarterPosition, Position,
+                                 EducationalInstitution, LocalHeadquarter,
+                                 Position, Region, RegionalHeadquarter,
                                  UserCentralHeadquarterPosition,
+                                 UserDetachmentPosition,
                                  UserDistrictHeadquarterPosition,
-                                 )
+                                 UserEducationalHeadquarterPosition,
+                                 UserLocalHeadquarterPosition,
+                                 UserRegionalHeadquarterPosition)
 from users.models import RSOUser, UserVerificationRequest
-
 
 USER_FIRST_NAME = 'Дмитрий'
 USER_LAST_NAME = 'Воронежский'

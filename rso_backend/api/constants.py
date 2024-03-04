@@ -1,3 +1,13 @@
+from headquarters.models import (CentralHeadquarter, Detachment,
+                                 DistrictHeadquarter, EducationalHeadquarter,
+                                 LocalHeadquarter, RegionalHeadquarter)
+from headquarters.serializers import (CentralHeadquarterSerializer,
+                                      ShortDetachmentSerializer,
+                                      ShortDistrictHeadquarterSerializer,
+                                      ShortEducationalHeadquarterSerializer,
+                                      ShortLocalHeadquarterSerializer,
+                                      ShortRegionalHeadquarterSerializer)
+
 CREATE_DELETE = {
         'post': 'create',
         'delete': 'destroy'
@@ -42,3 +52,21 @@ DOWNLOAD_MEMBERSHIP_FILE = {'get': 'download_membership_file'}
 DOWNLOAD_CONSENT_PD = {'get': 'download_consent_personal_data'}
 DOWNLOAD_PARENT_CONSENT_PD = {'get': 'download_parent_consent_personal_data'}
 DOWNLOAD_ALL_FORMS = {'get': 'download_all_forms'}
+
+HEADQUARTERS_MODELS_MAPPING = {
+        'Центральные штабы': CentralHeadquarter,
+        'Окружные штабы': DistrictHeadquarter,
+        'Региональные штабы': RegionalHeadquarter,
+        'Местные штабы': LocalHeadquarter,
+        'Образовательные штабы': EducationalHeadquarter,
+        'Отряды': Detachment
+}
+
+SHORT_HEADQUARTERS_SERIALIZERS_MAPPING = {
+        'Центральные штабы': CentralHeadquarterSerializer,
+        'Окружные штабы': ShortDistrictHeadquarterSerializer,
+        'Региональные штабы': ShortRegionalHeadquarterSerializer,
+        'Местные штабы': ShortLocalHeadquarterSerializer,
+        'Образовательные штабы': ShortEducationalHeadquarterSerializer,
+        'Отряды': ShortDetachmentSerializer
+}

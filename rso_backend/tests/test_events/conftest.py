@@ -1,12 +1,14 @@
-import pytest
 import datetime
 
-from events.models import Event
-from headquarters.models import Detachment, UserDetachmentPosition, Position, \
-    EducationalHeadquarter, LocalHeadquarter, RegionalHeadquarter, \
-    DistrictHeadquarter, CentralHeadquarter
-from users.models import RSOUser
+import pytest
 from django.conf import settings
+
+from events.models import Event
+from headquarters.models import (CentralHeadquarter, Detachment,
+                                 DistrictHeadquarter, EducationalHeadquarter,
+                                 LocalHeadquarter, Position,
+                                 RegionalHeadquarter, UserDetachmentPosition)
+from users.models import RSOUser
 
 PASSWORD = 'p@ssWord!123'
 

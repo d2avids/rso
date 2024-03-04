@@ -1,8 +1,7 @@
 from django.contrib import admin
 
-from competitions.forms import (
-    CompetitionApplicationsForm, CompetitionParticipantsForm
-)
+from competitions.forms import (CompetitionApplicationsForm,
+                                CompetitionParticipantsForm)
 from competitions.models import (CompetitionApplications,
                                  CompetitionParticipants, Competitions)
 

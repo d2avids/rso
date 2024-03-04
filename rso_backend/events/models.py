@@ -1,7 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from events.constants import HEADQUARTERS_MODELS_MAPPING
 from events.utils import document_path, image_path
 
 

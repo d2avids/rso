@@ -60,7 +60,7 @@ router.register(
     basename='educational-institution'
 )
 router.register('membership_certificates', MemberCertViewSet)
-router.register('events', EventViewSet, basename='event')
+router.register('events', EventViewSet, basename='events')
 router.register(
     r'events/(?P<event_pk>\d+)/group_applications/all',
     GroupEventApplicationViewSet,

@@ -1,21 +1,20 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
+from api.constants import (HEADQUARTERS_MODELS_MAPPING,
+                           SHORT_HEADQUARTERS_SERIALIZERS_MAPPING)
 from api.utils import create_first_or_exception
 from events.constants import (EVENT_DOCUMENT_DATA_RAW_EXISTS,
-                              EVENT_TIME_DATA_RAW_EXISTS,
-                              HEADQUARTERS_MODELS_MAPPING,
-                              SHORT_HEADQUARTERS_SERIALIZERS_MAPPING)
+                              EVENT_TIME_DATA_RAW_EXISTS)
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocument, EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
                            EventTimeData, EventUserDocument,
-                           MultiEventApplication, GroupEventApplicant,
-                           GroupEventApplication)
+                           GroupEventApplicant, GroupEventApplication,
+                           MultiEventApplication)
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
                                  LocalHeadquarter, RegionalHeadquarter)
-from headquarters.serializers import ShortDistrictHeadquarterSerializer, ShortRegionalHeadquarterSerializer, ShortLocalHeadquarterSerializer, ShortEducationalHeadquarterSerializer, ShortDetachmentSerializer
 from users.models import RSOUser
 from users.serializers import ShortUserSerializer
 

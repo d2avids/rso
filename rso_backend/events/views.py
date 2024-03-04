@@ -1,9 +1,8 @@
 import itertools
 from datetime import datetime, timedelta
 
-from django.db import IntegrityError
 from dal import autocomplete
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.conf import settings
 from django.core.cache import cache
 from django.shortcuts import get_object_or_404
@@ -14,6 +13,7 @@ from rest_framework import filters, permissions, serializers, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
+from api.constants import HEADQUARTERS_MODELS_MAPPING
 from api.mixins import (CreateListRetrieveDestroyViewSet,
                         ListRetrieveDestroyViewSet,
                         RetrieveUpdateDestroyViewSet,)
@@ -25,13 +25,12 @@ from api.permissions import (IsApplicantOrOrganizer,
                              IsEventOrganizerOrAuthor, IsLocalCommander,
                              IsRegionalCommander, IsStuffOrCentralCommander,
                              IsVerifiedPermission)
-from events.constants import HEADQUARTERS_MODELS_MAPPING
 from events.filters import EventFilter
 from events.models import (Event, EventAdditionalIssue, EventApplications,
                            EventDocumentData, EventIssueAnswer,
                            EventOrganizationData, EventParticipants,
                            EventTimeData, EventUserDocument,
-                           GroupEventApplication, GroupEventApplicant)
+                           GroupEventApplicant, GroupEventApplication)
 from events.serializers import (AnswerSerializer,
                                 CreateMultiEventApplicationSerializer,
                                 EventAdditionalIssueSerializer,
@@ -42,6 +41,7 @@ from events.serializers import (AnswerSerializer,
                                 EventParticipantsSerializer, EventSerializer,
                                 EventTimeDataSerializer,
                                 EventUserDocumentSerializer,
+                                GroupEventApplicationSerializer,
                                 MultiEventApplication,
                                 MultiEventApplicationSerializer,
                                 MultiEventParticipantsSerializer,
@@ -51,13 +51,12 @@ from events.serializers import (AnswerSerializer,
                                 ShortEducationalHeadquarterSerializerME,
                                 ShortLocalHeadquarterSerializerME,
                                 ShortMultiEventApplicationSerializer,
-                                ShortRegionalHeadquarterSerializerME,
-                                GroupEventApplicationSerializer)
-from events.swagger_schemas import (EventSwaggerSerializer, answer_response,
-                                    application_me_response,
-                                    participant_me_response,
-                                    GroupApplicantIdSerializer, MEMBERSHIP_FEE,
-                                    BIRTH_DATE_FROM, BIRTH_DATE_TO, GENDER)
+                                ShortRegionalHeadquarterSerializerME)
+from events.swagger_schemas import (BIRTH_DATE_FROM, BIRTH_DATE_TO, GENDER,
+                                    MEMBERSHIP_FEE, EventSwaggerSerializer,
+                                    GroupApplicantIdSerializer,
+                                    answer_response, application_me_response,
+                                    participant_me_response)
 from users.models import RSOUser
 from users.serializers import ShortUserSerializer
 
@@ -912,8 +911,8 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
         if not len(all_members) or all_members is None:
             return Response(
                 {"error":
-                    "В поданых структурных единицах нет доступных бойцов. "
-                    "Возможно они уже участники этого мероприятия"},
+                     "В поданых структурных единицах нет доступных бойцов. "
+                     "Возможно они уже участники этого мероприятия"},
                 status=status.HTTP_404_NOT_FOUND
             )
         serializer = ShortUserSerializer(all_members, many=True)

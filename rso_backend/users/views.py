@@ -14,7 +14,8 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
 from api.mixins import RetrieveUpdateViewSet, RetrieveViewSet
-from api.permissions import IsCommanderOrTrustedAnywhere, IsDetComOrRegComAndRegionMatches, IsStuffOrAuthor
+from api.permissions import (IsCommanderOrTrustedAnywhere,
+                             IsDetComOrRegComAndRegionMatches, IsStuffOrAuthor)
 from api.tasks import send_reset_password_email_without_user
 from api.utils import download_file, get_user
 from rso_backend.settings import BASE_DIR, RSOUSERS_CACHE_TTL
@@ -32,12 +33,12 @@ from users.serializers import (EmailSerializer, ForeignUserDocumentsSerializer,
                                UserEducationSerializer,
                                UserHeadquarterPositionSerializer,
                                UserMediaSerializer,
+                               UserNotificationsCountSerializer,
                                UserPrivacySettingsSerializer,
                                UserProfessionalEducationSerializer,
                                UserRegionSerializer, UsersParentSerializer,
                                UserStatementDocumentsSerializer,
-                               UserTrustedSerializer,
-                               UserNotificationsCountSerializer)
+                               UserTrustedSerializer)
 
 
 class CustomUserViewSet(UserViewSet):
