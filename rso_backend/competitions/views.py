@@ -226,7 +226,8 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
             if regional_headquarter:
                 user_region = regional_headquarter.first().region
                 return CompetitionApplications.objects.filter(
-                    junior_detachment__region=user_region
+                    Q(junior_detachment__region=user_region) &
+                    Q(competition_id=self.kwargs.get('competition_pk'))
                 )
             return CompetitionApplications.objects.filter(
                 competition_id=self.kwargs.get('competition_pk')
