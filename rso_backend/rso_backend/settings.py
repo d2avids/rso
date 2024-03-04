@@ -275,11 +275,13 @@ LOGGING = {
 }
 
 
+REDIS_HOST = '127.0.0.1' if RUN_TYPE != 'DOCKER' else 'redis'
+
 # REDIS CACHE
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379',
+        'LOCATION': f'redis://{REDIS_HOST}:6379',
         'OPTIONS': {
             'db': '1',
             'parser_class': 'redis.connection.PythonParser',
@@ -289,7 +291,6 @@ CACHES = {
 }
 
 # CELERY-REDIS CONFIG
-REDIS_HOST = '127.0.0.1' if RUN_TYPE != 'DOCKER' else 'redis'
 REDIS_PORT = '6379'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'
