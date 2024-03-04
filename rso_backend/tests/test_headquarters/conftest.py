@@ -14,7 +14,8 @@ from headquarters.models import (CentralHeadquarter, Detachment, Position,
                                  UserCentralHeadquarterPosition,
                                  UserDistrictHeadquarterPosition,)
 from tests.conftest import (client, educational_institution, area, area_2,
-                            educational_institution_2, region, region_2)
+                            educational_institution_2, region, region_2,
+                            regions)
 from users.models import RSOUser, UserVerificationRequest
 
 

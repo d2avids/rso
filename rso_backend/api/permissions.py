@@ -834,7 +834,11 @@ class IsDetComOrRegComAndRegionMatches(permissions.BasePermission):
             UserDetachmentPosition.DoesNotExist, AttributeError, ValueError,
         ):
             obj_detachment = None
-        if request_user_detcom == obj_detachment:
+        if (
+            (request_user_detcom is not None)
+            and (obj_detachment is not None)
+            and (request_user_detcom == obj_detachment)
+        ):
             return True
         if request_user_reghq:
             request_user_region_code = RegionalHeadquarter.objects.get(

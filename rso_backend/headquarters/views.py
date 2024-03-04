@@ -96,7 +96,6 @@ class CentralViewSet(ListRetrieveUpdateViewSet):
     def get_object(self):
         obj_id = self.kwargs['pk']
         obj_cache_key = f'central-headquarter-{obj_id}'
-
         return cache.get_or_set(
             obj_cache_key,
             lambda: get_object_or_404(
@@ -434,7 +433,6 @@ class CentralPositionViewSet(BasePositionViewSet):
     serializer_class = CentralPositionSerializer
 
     def get_queryset(self):
-
         queryset = get_headquarter_users_positions_queryset(
             self,
             CentralHeadquarter,
