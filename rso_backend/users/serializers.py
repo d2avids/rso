@@ -867,7 +867,7 @@ class UserNotificationsCountSerializer(serializers.Serializer):
                 ).count()
             )
 
-        events = instance.events.all()
+        events = instance.events_set.all()
         for event in events:
             event_application_type = event.application_type
             event_applications_count += (
