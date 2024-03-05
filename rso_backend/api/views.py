@@ -43,19 +43,30 @@ class EducationalInstitutionViewSet(ListRetrieveViewSet):
 
     Доступен фильтр по названию региона. Ключ region__name.
     """
-
+    queryset = EducationalInstitution.objects.all()
     serializer_class = EducationalInstitutionSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
     filterset_class = EducationalInstitutionFilter
     ordering = ('name',)
 
-    def get_queryset(self):
-        return cache.get_or_set(
-            'educational_institutions',
-            EducationalInstitution.objects.all(),
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            return cache.get_or_set(
+                f'educational_institutions_page_{request.GET.get("page", "1")}',
+                lambda: self.get_paginated_response(self.get_serializer(page, many=True).data),
+                timeout=settings.EDU_INST_CACHE_TTL
+            )
+
+        data = cache.get_or_set(
+            'educational_institutions_all',
+            lambda: self.get_serializer(queryset, many=True).data,
             timeout=settings.EDU_INST_CACHE_TTL
         )
+        return Response(data)
 
 
 class RegionViewSet(ListRetrieveViewSet):
