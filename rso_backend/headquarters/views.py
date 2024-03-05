@@ -5,6 +5,8 @@ from django.core.cache import cache
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import filters, permissions, status, viewsets
@@ -413,6 +415,9 @@ class BasePositionViewSet(viewsets.ModelViewSet):
             raise Http404('Не найден участник по заданному id членства.')
         return obj
 
+    @method_decorator(cache_page(settings.HEADQUARTERS_MEMBERS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 class CentralPositionViewSet(BasePositionViewSet):
     """Просмотреть участников и изменить уровень доверенности/позиции.
@@ -433,16 +438,15 @@ class CentralPositionViewSet(BasePositionViewSet):
     serializer_class = CentralPositionSerializer
 
     def get_queryset(self):
-        queryset = get_headquarter_users_positions_queryset(
+        return get_headquarter_users_positions_queryset(
             self,
             CentralHeadquarter,
             UserCentralHeadquarterPosition
         )
-        return cache.get_or_set(
-            'central-members-list',
-            queryset,
-            timeout=settings.CENTRALHQ_MEMBERS_CACHE_TTL
-        )
+
+    @method_decorator(cache_page(settings.CENTRALHQ_MEMBERS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 class DistrictPositionViewSet(BasePositionViewSet):
@@ -464,16 +468,15 @@ class DistrictPositionViewSet(BasePositionViewSet):
     serializer_class = DistrictPositionSerializer
 
     def get_queryset(self):
-        queryset = get_headquarter_users_positions_queryset(
+        return get_headquarter_users_positions_queryset(
             self,
             DistrictHeadquarter,
             UserDistrictHeadquarterPosition
         )
-        return cache.get_or_set(
-            'district-members-list',
-            queryset,
-            timeout=settings.DISTRCICTHQ_MEMBERS_CACHE_TTL
-        )
+
+    @method_decorator(cache_page(settings.DISTRCICTHQ_MEMBERS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 class RegionalPositionViewSet(BasePositionViewSet):
@@ -495,15 +498,10 @@ class RegionalPositionViewSet(BasePositionViewSet):
     serializer_class = RegionalPositionSerializer
 
     def get_queryset(self):
-        queryset = get_headquarter_users_positions_queryset(
+        return get_headquarter_users_positions_queryset(
             self,
             RegionalHeadquarter,
             UserRegionalHeadquarterPosition
-        )
-        return cache.get_or_set(
-            'regional-members-list',
-            queryset,
-            timeout=settings.REGIONALHQ_MEMBERS_CACHE_TTL
         )
 
 
@@ -526,15 +524,10 @@ class LocalPositionViewSet(BasePositionViewSet):
     serializer_class = LocalPositionSerializer
 
     def get_queryset(self):
-        queryset = get_headquarter_users_positions_queryset(
+        return get_headquarter_users_positions_queryset(
             self,
             LocalHeadquarter,
             UserLocalHeadquarterPosition
-        )
-        return cache.get_or_set(
-            'local-members-list',
-            queryset,
-            timeout=settings.LOCALHQ_MEMBERS_CACHE_TTL
         )
 
 
@@ -557,15 +550,10 @@ class EducationalPositionViewSet(BasePositionViewSet):
     serializer_class = EducationalPositionSerializer
 
     def get_queryset(self):
-        queryset = get_headquarter_users_positions_queryset(
+        return get_headquarter_users_positions_queryset(
             self,
             EducationalHeadquarter,
             UserEducationalHeadquarterPosition
-        )
-        return cache.get_or_set(
-            'edu-members-list',
-            queryset,
-            timeout=settings.EDUHQ_MEMBERS_CACHE_TTL
         )
 
 
@@ -589,15 +577,10 @@ class DetachmentPositionViewSet(BasePositionViewSet):
     serializer_class = DetachmentPositionSerializer
 
     def get_queryset(self):
-        queryset = get_headquarter_users_positions_queryset(
+        return get_headquarter_users_positions_queryset(
             self,
             Detachment,
             UserDetachmentPosition
-        )
-        return cache.get_or_set(
-            'detachment-members-list',
-            queryset,
-            timeout=settings.DETACHMENT_MEMBERS_CACHE_TTL
         )
 
 
