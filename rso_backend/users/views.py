@@ -4,7 +4,9 @@ import zipfile
 
 from dal import autocomplete
 from django.db.models import Q
-from django.core.cache import cache
+from django.conf import settings
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -70,6 +72,10 @@ class CustomUserViewSet(UserViewSet):
     ordering_fields = ('last_name',)
     pagination_class = None
 
+    @method_decorator(cache_page(settings.RSOUSERS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     @action(
             methods=['post'],
             detail=False,
@@ -128,11 +134,6 @@ class RSOUserViewSet(RetrieveUpdateViewSet):
                 permissions.IsAuthenticated, IsCommanderOrTrustedAnywhere,
             )
         return [permission() for permission in permission_classes]
-
-    def get_queryset(self):
-        return cache.get_or_set(
-            'rsousers', RSOUser.objects.all(), timeout=RSOUSERS_CACHE_TTL
-        )
 
     @action(
         detail=False,

@@ -92,23 +92,16 @@ class CentralViewSet(ListRetrieveUpdateViewSet):
     permission_classes = (IsStuffOrCentralCommander,)
     ordering = ('name',)
 
+    @method_decorator(cache_page(settings.CENTRAL_OBJECT_CACHE_TTL))
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
     def get_permissions(self):
         if self.action == 'create':
             permission_classes = (permissions.IsAdminUser,)
         else:
             permission_classes = (IsStuffOrCentralCommanderOrTrusted,)
         return [permission() for permission in permission_classes]
-
-    def get_object(self):
-        obj_id = self.kwargs['pk']
-        obj_cache_key = f'central-headquarter-{obj_id}'
-        return cache.get_or_set(
-            obj_cache_key,
-            lambda: get_object_or_404(
-                CentralHeadquarter, pk=obj_id
-            ),
-            timeout=settings.CENTRAL_OBJECT_CACHE_TTL
-        )
 
 
 class DistrictViewSet(viewsets.ModelViewSet):
@@ -147,17 +140,9 @@ class DistrictViewSet(viewsets.ModelViewSet):
             permission_classes = (IsDistrictCommander,)
         return [permission() for permission in permission_classes]
 
-    def get_object(self):
-        obj_id = self.kwargs['pk']
-        obj_cache_key = f'district-headquarter-{obj_id}'
-
-        return cache.get_or_set(
-            obj_cache_key,
-            lambda: get_object_or_404(
-                DistrictHeadquarter, pk=obj_id
-            ),
-            timeout=settings.DISTR_OBJECT_CACHE_TTL
-        )
+    @method_decorator(cache_page(settings.DISTR_OBJECT_CACHE_TTL))
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
 
 class RegionalViewSet(viewsets.ModelViewSet):
@@ -207,17 +192,9 @@ class RegionalViewSet(viewsets.ModelViewSet):
             permission_classes = (IsRegionalCommander,)
         return [permission() for permission in permission_classes]
 
-    def get_object(self):
-        obj_id = self.kwargs['pk']
-        obj_cache_key = f'regional-headquarter-{obj_id}'
-
-        return cache.get_or_set(
-            obj_cache_key,
-            lambda: get_object_or_404(
-                RegionalHeadquarter, pk=obj_id
-            ),
-            timeout=settings.REG_OBJECT_CACHE_TTL
-        )
+    @method_decorator(cache_page(settings.REG_OBJECT_CACHE_TTL))
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
     @action(detail=True, methods=['get', ], url_path='verifications')
     def get_verifications(self, request, pk=None):
@@ -519,6 +496,10 @@ class RegionalPositionViewSet(BasePositionViewSet):
     permission_classes = (IsUserModelPositionCommander,)
     serializer_class = RegionalPositionSerializer
 
+    @method_decorator(cache_page(settings.HEADQUARTERS_MEMBERS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
             self,
@@ -544,6 +525,10 @@ class LocalPositionViewSet(BasePositionViewSet):
     )
     permission_classes = (IsUserModelPositionCommander,)
     serializer_class = LocalPositionSerializer
+
+    @method_decorator(cache_page(settings.HEADQUARTERS_MEMBERS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -571,6 +556,10 @@ class EducationalPositionViewSet(BasePositionViewSet):
     permission_classes = (IsUserModelPositionCommander,)
     serializer_class = EducationalPositionSerializer
 
+    @method_decorator(cache_page(settings.HEADQUARTERS_MEMBERS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
             self,
@@ -594,9 +583,13 @@ class DetachmentPositionViewSet(BasePositionViewSet):
         'user__last_name',
         'user__patronymic_name'
     )
-    ordering_fields = ('last_name')
+    ordering_fields = ('last_name',)
     permission_classes = (IsUserModelPositionCommander,)
     serializer_class = DetachmentPositionSerializer
+
+    @method_decorator(cache_page(settings.HEADQUARTERS_MEMBERS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(

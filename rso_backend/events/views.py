@@ -5,6 +5,8 @@ from dal import autocomplete
 from django.db import IntegrityError, transaction
 from django.conf import settings
 from django.core.cache import cache
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg import openapi
@@ -77,6 +79,10 @@ class EventViewSet(viewsets.ModelViewSet):
         'Образовательное': IsEducationalCommander,
         'Отрядное': IsDetachmentCommander,
     }
+
+    @method_decorator(cache_page(settings.EVENTS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def get_permissions(self):
         """
@@ -243,7 +249,7 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
     permission_classes = (permissions.IsAuthenticated, IsEventOrganizer)
 
     def get_queryset(self):
-        """ Получение заявок конкретного мероприятия. """
+        """Получение заявок конкретного мероприятия."""
         queryset = super().get_queryset()
         event_pk = self.kwargs.get('event_pk')
         if event_pk is not None:
