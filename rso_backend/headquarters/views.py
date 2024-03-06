@@ -73,6 +73,10 @@ class PositionViewSet(ListRetrieveViewSet):
     search_fields = ('name',)
     ordering = ('name',)
 
+    @method_decorator(cache_page(settings.POSITIONS_LIST_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
 
 class CentralViewSet(ListRetrieveUpdateViewSet):
     """Представляет центральные штабы.
@@ -182,6 +186,10 @@ class RegionalViewSet(viewsets.ModelViewSet):
     ordering_fields = ('name', 'founding_date',)
     filterset_class = RegionalHeadquarterFilter
 
+    @method_decorator(cache_page(settings.REGIONALS_LIST_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def get_serializer_class(self):
         if (
                 self.request.query_params.get('registry') == 'true' and
@@ -246,6 +254,10 @@ class LocalViewSet(viewsets.ModelViewSet):
     ordering_fields = ('name', 'founding_date',)
     filterset_class = LocalHeadquarterFilter
 
+    @method_decorator(cache_page(settings.LOCALS_LIST_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def get_serializer_class(self):
         if (
                 self.request.query_params.get('registry') == 'true' and
@@ -289,6 +301,10 @@ class EducationalViewSet(viewsets.ModelViewSet):
     search_fields = ('name',)
     filterset_class = EducationalHeadquarterFilter
     ordering_fields = ('name', 'founding_date',)
+
+    @method_decorator(cache_page(settings.EDUCATIONALS_LIST_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def get_serializer_class(self):
         if (
@@ -338,6 +354,10 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     search_fields = ('name',)
     filterset_class = DetachmentFilter
     ordering_fields = ('name', 'founding_date',)
+
+    @method_decorator(cache_page(settings.DETACHMENT_LIST_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def get_serializer_class(self):
         if (
@@ -390,6 +410,10 @@ class BasePositionViewSet(viewsets.ModelViewSet):
 
     serializer_class = None
 
+    @method_decorator(cache_page(settings.HEADQUARTERS_MEMBERS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def filter_by_name(self, queryset):
         """Фильтрация участников структурной единицы по имени (first_name)."""
         search_by_name = self.request.query_params.get('search', None)
@@ -399,9 +423,6 @@ class BasePositionViewSet(viewsets.ModelViewSet):
                 Q(user__last_name__icontains=search_by_name)
             )
         return queryset
-
-    def get_queryset(self):
-        pass
 
     def get_object(self):
         queryset = self.get_queryset()
@@ -415,9 +436,10 @@ class BasePositionViewSet(viewsets.ModelViewSet):
             raise Http404('Не найден участник по заданному id членства.')
         return obj
 
-    @method_decorator(cache_page(settings.HEADQUARTERS_MEMBERS_CACHE_TTL))
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+    def get_queryset(self):
+        """К переопределению."""
+        pass
+
 
 class CentralPositionViewSet(BasePositionViewSet):
     """Просмотреть участников и изменить уровень доверенности/позиции.

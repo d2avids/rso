@@ -4,9 +4,11 @@ from datetime import datetime
 
 import pdfrw
 from django.conf import settings
+from django.utils.decorators import method_decorator
 from django.core.cache import cache
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from django.views.decorators.cache import cache_page
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from pdfrw.buildxobj import pagexobj
@@ -50,23 +52,9 @@ class EducationalInstitutionViewSet(ListRetrieveViewSet):
     filterset_class = EducationalInstitutionFilter
     ordering = ('name',)
 
+    @method_decorator(cache_page(settings.EDUCATIONALS_LIST_TTL))
     def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            return cache.get_or_set(
-                f'educational_institutions_page_{request.GET.get("page", "1")}',
-                lambda: self.get_paginated_response(self.get_serializer(page, many=True).data),
-                timeout=settings.EDU_INST_CACHE_TTL
-            )
-
-        data = cache.get_or_set(
-            'educational_institutions_all',
-            lambda: self.get_serializer(queryset, many=True).data,
-            timeout=settings.EDU_INST_CACHE_TTL
-        )
-        return Response(data)
+        return super().list(request, *args, **kwargs)
 
 
 class RegionViewSet(ListRetrieveViewSet):
@@ -78,6 +66,10 @@ class RegionViewSet(ListRetrieveViewSet):
     search_fields = ('name', 'code')
     permission_classes = [IsStuffOrCentralCommander,]
     ordering = ('name',)
+
+    @method_decorator(cache_page(settings.REGIONS_LIST_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 class AreaViewSet(ListRetrieveViewSet):
@@ -92,6 +84,10 @@ class AreaViewSet(ListRetrieveViewSet):
     search_fields = ('name',)
     permission_classes = [IsStuffOrCentralCommander,]
     ordering_fields = ('name',)
+
+    @method_decorator(cache_page(settings.AREAS_LIST_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 @api_view(['POST', 'DELETE'])
