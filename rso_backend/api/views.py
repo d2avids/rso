@@ -3,8 +3,12 @@ import os
 from datetime import datetime
 
 import pdfrw
+from django.conf import settings
+from django.utils.decorators import method_decorator
+from django.core.cache import cache
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from django.views.decorators.cache import cache_page
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from pdfrw.buildxobj import pagexobj
@@ -31,7 +35,6 @@ from api.utils import (create_and_return_archive, get_user, get_user_by_id,
 from headquarters.models import (Area, EducationalInstitution, Region,
                                  RegionalHeadquarter,
                                  UserRegionalHeadquarterPosition)
-from rso_backend.settings import BASE_DIR
 from users.models import (MemberCert, RSOUser, UserDocuments,
                           UserMemberCertLogs, UserMembershipLogs,
                           UserVerificationLogs, UserVerificationRequest)
@@ -42,13 +45,16 @@ class EducationalInstitutionViewSet(ListRetrieveViewSet):
 
     Доступен фильтр по названию региона. Ключ region__name.
     """
-
     queryset = EducationalInstitution.objects.all()
     serializer_class = EducationalInstitutionSerializer
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     search_fields = ('name',)
     filterset_class = EducationalInstitutionFilter
     ordering = ('name',)
+
+    @method_decorator(cache_page(settings.EDUCATIONALS_LIST_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 class RegionViewSet(ListRetrieveViewSet):
@@ -60,6 +66,10 @@ class RegionViewSet(ListRetrieveViewSet):
     search_fields = ('name', 'code')
     permission_classes = [IsStuffOrCentralCommander,]
     ordering = ('name',)
+
+    @method_decorator(cache_page(settings.REGIONS_LIST_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 class AreaViewSet(ListRetrieveViewSet):
@@ -74,6 +84,10 @@ class AreaViewSet(ListRetrieveViewSet):
     search_fields = ('name',)
     permission_classes = [IsStuffOrCentralCommander,]
     ordering_fields = ('name',)
+
+    @method_decorator(cache_page(settings.AREAS_LIST_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 @api_view(['POST', 'DELETE'])
@@ -283,7 +297,7 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
 
         """Подготовка шаблона и шрифтов к выводу информации на лист."""
         template_path = os.path.join(
-            str(BASE_DIR),
+            str(settings.BASE_DIR),
             'templates',
             'samples',
             cert_template
@@ -298,7 +312,7 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
             TTFont(
                 'Times_New_Roman',
                 os.path.join(
-                    str(BASE_DIR),
+                    str(settings.BASE_DIR),
                     'templates',
                     'samples',
                     'fonts',
@@ -310,7 +324,7 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
             TTFont(
                 'Arial_Narrow',
                 os.path.join(
-                    str(BASE_DIR),
+                    str(settings.BASE_DIR),
                     'templates',
                     'samples',
                     'fonts',
@@ -581,7 +595,7 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                 if user_id == 0:
                     return Response(
                         {'detail': 'Поле ids не может содержать 0.'},
-                    status=status.HTTP_400_BAD_REQUEST
+                        status=status.HTTP_400_BAD_REQUEST
                     )
                 user = get_user_by_id(user_id)
                 pdf_cert_or_response = self.get_certificate(
@@ -637,7 +651,7 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
                 if user_id == 0:
                     return Response(
                         {'detail': 'Поле ids не может содержать 0.'},
-                    status=status.HTTP_400_BAD_REQUEST
+                        status=status.HTTP_400_BAD_REQUEST
                     )
                 user = get_user_by_id(user_id)
                 pdf_cert_or_response = self.get_certificate(

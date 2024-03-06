@@ -4,6 +4,10 @@ from rest_framework import serializers, status
 from events.models import Event
 
 
+class GroupApplicantIdSerializer(serializers.Serializer):
+    user_ids = serializers.ListField(child=serializers.IntegerField())
+
+
 class EventSwaggerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
@@ -28,6 +32,31 @@ class EventSwaggerSerializer(serializers.ModelSerializer):
             'org_detachment',
         )
 
+
+MEMBERSHIP_FEE = openapi.Parameter(
+    'membership_fee',
+    openapi.IN_QUERY,
+    description="Членский взнос",
+    type=openapi.TYPE_BOOLEAN
+)
+BIRTH_DATE_FROM = openapi.Parameter(
+    'birth_date_from',
+    openapi.IN_QUERY,
+    description="Возраст от",
+    type=openapi.TYPE_INTEGER
+)
+BIRTH_DATE_TO = openapi.Parameter(
+    'birth_date_to',
+    openapi.IN_QUERY,
+    description="Возраст до",
+    type=openapi.TYPE_INTEGER
+)
+GENDER = openapi.Parameter(
+    'gender',
+    openapi.IN_QUERY,
+    description="male/female",
+    type=openapi.TYPE_STRING
+)
 
 answer = {
             'id': openapi.Schema(

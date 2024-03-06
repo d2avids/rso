@@ -1,8 +1,12 @@
 from dal import autocomplete
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.cache import cache
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import filters, permissions, status, viewsets
@@ -32,6 +36,10 @@ from headquarters.models import (CentralHeadquarter, Detachment,
                                  UserEducationalHeadquarterPosition,
                                  UserLocalHeadquarterPosition,
                                  UserRegionalHeadquarterPosition)
+from headquarters.registry_serializers import (
+    DetachmentRegistrySerializer, DistrictHeadquarterRegistrySerializer,
+    EducationalHeadquarterRegistrySerializer,
+    LocalHeadquarterRegistrySerializer, RegionalHeadquarterRegistrySerializer)
 from headquarters.serializers import (
     CentralHeadquarterSerializer, CentralPositionSerializer,
     DetachmentPositionSerializer, DetachmentSerializer,
@@ -47,12 +55,9 @@ from headquarters.serializers import (
     ShortRegionalHeadquarterSerializer,
     UserDetachmentApplicationReadSerializer,
     UserDetachmentApplicationSerializer)
-from headquarters.registry_serializers import (
-    DistrictHeadquarterRegistrySerializer,
-    RegionalHeadquarterRegistrySerializer, LocalHeadquarterRegistrySerializer,
-    EducationalHeadquarterRegistrySerializer, DetachmentRegistrySerializer)
 from headquarters.swagger_schemas import applications_response
-from users.models import UserVerificationRequest
+from headquarters.utils import (get_detachment_members_to_verify,
+                                get_regional_hq_members_to_verify)
 from users.serializers import UserVerificationReadSerializer
 
 
@@ -68,6 +73,10 @@ class PositionViewSet(ListRetrieveViewSet):
     search_fields = ('name',)
     ordering = ('name',)
 
+    @method_decorator(cache_page(settings.POSITIONS_LIST_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
 
 class CentralViewSet(ListRetrieveUpdateViewSet):
     """Представляет центральные штабы.
@@ -82,6 +91,10 @@ class CentralViewSet(ListRetrieveUpdateViewSet):
     serializer_class = CentralHeadquarterSerializer
     permission_classes = (IsStuffOrCentralCommander,)
     ordering = ('name',)
+
+    @method_decorator(cache_page(settings.CENTRAL_OBJECT_CACHE_TTL))
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
     def get_permissions(self):
         if self.action == 'create':
@@ -127,6 +140,10 @@ class DistrictViewSet(viewsets.ModelViewSet):
             permission_classes = (IsDistrictCommander,)
         return [permission() for permission in permission_classes]
 
+    @method_decorator(cache_page(settings.DISTR_OBJECT_CACHE_TTL))
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
 
 class RegionalViewSet(viewsets.ModelViewSet):
     """Представляет региональные штабы.
@@ -154,6 +171,10 @@ class RegionalViewSet(viewsets.ModelViewSet):
     ordering_fields = ('name', 'founding_date',)
     filterset_class = RegionalHeadquarterFilter
 
+    @method_decorator(cache_page(settings.REGIONALS_LIST_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def get_serializer_class(self):
         if (
                 self.request.query_params.get('registry') == 'true' and
@@ -171,6 +192,10 @@ class RegionalViewSet(viewsets.ModelViewSet):
             permission_classes = (IsRegionalCommander,)
         return [permission() for permission in permission_classes]
 
+    @method_decorator(cache_page(settings.REG_OBJECT_CACHE_TTL))
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
     @action(detail=True, methods=['get', ], url_path='verifications')
     def get_verifications(self, request, pk=None):
         """
@@ -178,11 +203,9 @@ class RegionalViewSet(viewsets.ModelViewSet):
         у которых совпадает регион с регионом текущего РШ.
         """
         headquarter = self.get_object()
-        verifications = UserVerificationRequest.objects.filter(
-            user__region=headquarter.region,
-        ).select_related('user')
+        members_to_verify = get_regional_hq_members_to_verify(headquarter)
         serializer = UserVerificationReadSerializer(
-            instance=verifications, many=True
+            instance=members_to_verify, many=True
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -207,6 +230,10 @@ class LocalViewSet(viewsets.ModelViewSet):
     search_fields = ('name',)
     ordering_fields = ('name', 'founding_date',)
     filterset_class = LocalHeadquarterFilter
+
+    @method_decorator(cache_page(settings.LOCALS_LIST_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def get_serializer_class(self):
         if (
@@ -251,6 +278,10 @@ class EducationalViewSet(viewsets.ModelViewSet):
     search_fields = ('name',)
     filterset_class = EducationalHeadquarterFilter
     ordering_fields = ('name', 'founding_date',)
+
+    @method_decorator(cache_page(settings.EDUCATIONALS_LIST_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def get_serializer_class(self):
         if (
@@ -301,6 +332,10 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     filterset_class = DetachmentFilter
     ordering_fields = ('name', 'founding_date',)
 
+    @method_decorator(cache_page(settings.DETACHMENT_LIST_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def get_serializer_class(self):
         if (
                 self.request.query_params.get('registry') == 'true' and
@@ -337,14 +372,7 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     def get_verifications(self, request, pk=None):
         """Получить список членов отряда, подавших заявку на верификацию."""
         detachment = self.get_object()
-        user_ids_in_verification_request = (
-            UserVerificationRequest.objects.values_list(
-                'user_id', flat=True
-            )
-        )
-        members_to_verify = detachment.members.filter(
-            user__id__in=user_ids_in_verification_request
-        ).select_related('user')
+        members_to_verify = get_detachment_members_to_verify(detachment)
         serializer = UserVerificationReadSerializer(
             instance=members_to_verify, many=True
         )
@@ -359,6 +387,10 @@ class BasePositionViewSet(viewsets.ModelViewSet):
 
     serializer_class = None
 
+    @method_decorator(cache_page(settings.HEADQUARTERS_MEMBERS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def filter_by_name(self, queryset):
         """Фильтрация участников структурной единицы по имени (first_name)."""
         search_by_name = self.request.query_params.get('search', None)
@@ -368,9 +400,6 @@ class BasePositionViewSet(viewsets.ModelViewSet):
                 Q(user__last_name__icontains=search_by_name)
             )
         return queryset
-
-    def get_queryset(self):
-        pass
 
     def get_object(self):
         queryset = self.get_queryset()
@@ -383,6 +412,10 @@ class BasePositionViewSet(viewsets.ModelViewSet):
         except Exception:
             raise Http404('Не найден участник по заданному id членства.')
         return obj
+
+    def get_queryset(self):
+        """К переопределению."""
+        pass
 
 
 class CentralPositionViewSet(BasePositionViewSet):
@@ -410,6 +443,10 @@ class CentralPositionViewSet(BasePositionViewSet):
             UserCentralHeadquarterPosition
         )
 
+    @method_decorator(cache_page(settings.CENTRALHQ_MEMBERS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
 
 class DistrictPositionViewSet(BasePositionViewSet):
     """Просмотреть участников и изменить уровень доверенности/позиции.
@@ -436,6 +473,10 @@ class DistrictPositionViewSet(BasePositionViewSet):
             UserDistrictHeadquarterPosition
         )
 
+    @method_decorator(cache_page(settings.DISTRCICTHQ_MEMBERS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
 
 class RegionalPositionViewSet(BasePositionViewSet):
     """Просмотреть участников и изменить уровень доверенности/позиции.
@@ -454,6 +495,10 @@ class RegionalPositionViewSet(BasePositionViewSet):
     )
     permission_classes = (IsUserModelPositionCommander,)
     serializer_class = RegionalPositionSerializer
+
+    @method_decorator(cache_page(settings.HEADQUARTERS_MEMBERS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -481,6 +526,10 @@ class LocalPositionViewSet(BasePositionViewSet):
     permission_classes = (IsUserModelPositionCommander,)
     serializer_class = LocalPositionSerializer
 
+    @method_decorator(cache_page(settings.HEADQUARTERS_MEMBERS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
             self,
@@ -507,6 +556,10 @@ class EducationalPositionViewSet(BasePositionViewSet):
     permission_classes = (IsUserModelPositionCommander,)
     serializer_class = EducationalPositionSerializer
 
+    @method_decorator(cache_page(settings.HEADQUARTERS_MEMBERS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
             self,
@@ -530,9 +583,13 @@ class DetachmentPositionViewSet(BasePositionViewSet):
         'user__last_name',
         'user__patronymic_name'
     )
-    ordering_fields = ('last_name')
+    ordering_fields = ('last_name',)
     permission_classes = (IsUserModelPositionCommander,)
     serializer_class = DetachmentPositionSerializer
+
+    @method_decorator(cache_page(settings.HEADQUARTERS_MEMBERS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(

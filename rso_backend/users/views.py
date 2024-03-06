@@ -4,6 +4,9 @@ import zipfile
 
 from dal import autocomplete
 from django.db.models import Q
+from django.conf import settings
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -13,10 +16,11 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
 from api.mixins import RetrieveUpdateViewSet, RetrieveViewSet
-from api.permissions import IsCommanderOrTrustedAnywhere, IsStuffOrAuthor
+from api.permissions import (IsCommanderOrTrustedAnywhere,
+                             IsDetComOrRegComAndRegionMatches, IsStuffOrAuthor)
 from api.tasks import send_reset_password_email_without_user
 from api.utils import download_file, get_user
-from rso_backend.settings import BASE_DIR
+from rso_backend.settings import BASE_DIR, RSOUSERS_CACHE_TTL
 from users.filters import RSOUserFilter
 from users.models import (RSOUser, UserDocuments, UserEducation,
                           UserForeignDocuments, UserMedia, UserParent,
@@ -31,6 +35,7 @@ from users.serializers import (EmailSerializer, ForeignUserDocumentsSerializer,
                                UserEducationSerializer,
                                UserHeadquarterPositionSerializer,
                                UserMediaSerializer,
+                               UserNotificationsCountSerializer,
                                UserPrivacySettingsSerializer,
                                UserProfessionalEducationSerializer,
                                UserRegionSerializer, UsersParentSerializer,
@@ -65,6 +70,11 @@ class CustomUserViewSet(UserViewSet):
     search_fields = ('username', 'first_name', 'last_name', 'patronymic_name')
     filterset_class = RSOUserFilter
     ordering_fields = ('last_name',)
+    pagination_class = None
+
+    @method_decorator(cache_page(settings.RSOUSERS_CACHE_TTL))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @action(
             methods=['post'],
@@ -111,14 +121,19 @@ class RSOUserViewSet(RetrieveUpdateViewSet):
     по id или по эндпоинту /users/me.
     """
 
-    queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
-    # TODO: переписать пермишены, чтобы получить данные можно было
-    # TODO: только тех пользователей, что состоят в той же стр. ед., где
-    # TODO: запрашивающий пользователь и является командиром/доверенным
-    permission_classes = (
-        permissions.IsAuthenticated, IsCommanderOrTrustedAnywhere,
-    )
+
+    def get_permissions(self):
+        if self.action == 'retrieve':
+            permission_classes = (
+                permissions.IsAuthenticated, IsCommanderOrTrustedAnywhere,
+                IsDetComOrRegComAndRegionMatches,
+            )
+        else:
+            permission_classes = (
+                permissions.IsAuthenticated, IsCommanderOrTrustedAnywhere,
+            )
+        return [permission() for permission in permission_classes]
 
     @action(
         detail=False,
@@ -138,6 +153,19 @@ class RSOUserViewSet(RetrieveUpdateViewSet):
             serializer.save()
 
         return Response(self.get_serializer(request.user).data)
+
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=(permissions.IsAuthenticated,),
+        serializer_class=RSOUserSerializer,
+    )
+    def me_notifications_count(self, request, pk=None):
+        """
+        Возвращает количество активных заявок для текущего пользователя в
+        формате {"count": <integer>}.
+        """
+        return Response(UserNotificationsCountSerializer(request.user).data)
 
     @action(
         detail=False,

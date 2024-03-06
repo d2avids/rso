@@ -1,14 +1,13 @@
 import datetime
-
 from http import HTTPStatus
 
 import pytest
 from django.conf import settings
 
-from tests.test_headquarters.conftest import user_with_position_in_centr_hq
 from tests.conftest import (CENTRAL_HEADQUARTER_NAME,
                             DETACHMENTS_APPEARANCE_YEAR,
                             RSO_FOUNDING_CONGRESS_DATE)
+from tests.test_headquarters.conftest import user_with_position_in_centr_hq
 
 
 @pytest.mark.django_db

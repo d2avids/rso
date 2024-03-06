@@ -1,7 +1,7 @@
-from dal import autocomplete
 import os
 from datetime import date
 
+from dal import autocomplete
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
@@ -226,7 +226,8 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
             if regional_headquarter:
                 user_region = regional_headquarter.first().region
                 return CompetitionApplications.objects.filter(
-                    junior_detachment__region=user_region
+                    Q(junior_detachment__region=user_region) &
+                    Q(competition_id=self.kwargs.get('competition_pk'))
                 )
             return CompetitionApplications.objects.filter(
                 competition_id=self.kwargs.get('competition_pk')
