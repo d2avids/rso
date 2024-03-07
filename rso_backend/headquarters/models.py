@@ -128,7 +128,7 @@ class Unit(models.Model):
         verbose_name='Баннер'
     )
     slogan = models.CharField(
-        max_length=100,
+        max_length=250,
         verbose_name='Девиз',
         null=True,
         blank=True,
