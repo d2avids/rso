@@ -32,6 +32,7 @@ from competitions.swagger_schemas import (request_update_application,
 from headquarters.models import (
     Detachment, RegionalHeadquarter, UserDetachmentPosition
 )
+from headquarters.serializers import ShortDetachmentSerializer
 from headquarters.models import Detachment, RegionalHeadquarter, UserDetachmentPosition
 from headquarters.serializers import ShortDetachmentSerializer
 from headquarters.models import (
