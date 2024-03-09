@@ -120,7 +120,7 @@ class RSOUserViewSet(RetrieveUpdateViewSet):
     Пользователь имеет возможность изменять собственные данные
     по id или по эндпоинту /users/me.
     """
-
+    queryset = RSOUser.objects.all()
     serializer_class = RSOUserSerializer
 
     def get_permissions(self):
