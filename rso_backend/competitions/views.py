@@ -29,8 +29,9 @@ from competitions.swagger_schemas import (request_update_application,
                                           response_competitions_participants,
                                           response_create_application,
                                           response_junior_detachments)
-from headquarters.models import Detachment, RegionalHeadquarter
-from headquarters.serializers import ShortDetachmentSerializer
+from headquarters.models import (
+    Detachment, RegionalHeadquarter, UserDetachmentPosition
+)
 from rso_backend.settings import BASE_DIR
 
 
@@ -512,6 +513,57 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = CompetitionParticipantsObjectSerializer(participant_unit)
         return Response(serializer.data)
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='status',
+            permission_classes=(permissions.IsAuthenticated,))
+    @swagger_auto_schema(responses={
+        status.HTTP_200_OK: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'is_commander_detachment': openapi.Schema(
+                    type=openapi.TYPE_BOOLEAN,
+                    title='Является ли командиром отряда-участника конкурса',
+                    read_only=True
+                ),
+                'is_commissar_detachment': openapi.Schema(
+                    type=openapi.TYPE_BOOLEAN,
+                    title='Является ли комиссаром отряда-участника конкурса',
+                    read_only=True
+                )
+            }
+            )
+        })
+    def status(self, request, competition_pk, *args, **kwargs):
+        """Action для получения статуса пользователя в конкурсе.
+
+        Доступ: все пользователи.
+        """
+        if self.get_queryset().filter(
+            Q(detachment__commander=request.user) |
+            Q(junior_detachment__commander=request.user)
+        ).exists():
+            return Response({
+                'is_commander_detachment': True,
+                'is_commissar_detachment': False
+            })
+        try:
+            position = request.user.userdetachmentposition.position
+        except UserDetachmentPosition.DoesNotExist:
+            return Response({
+                'is_commander_detachment': False,
+                'is_commissar_detachment': False
+            })
+        if position.name == 'Комиссар':
+            return Response({
+                'is_commander_detachment': False,
+                'is_commissar_detachment': True
+            })
+        return Response({
+            'is_commander_detachment': False,
+            'is_commissar_detachment': False
+        })
 
 
 class CompetitionDetachmentAutoComplete(
