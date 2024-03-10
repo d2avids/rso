@@ -35,6 +35,9 @@ from headquarters.models import (
 from headquarters.serializers import ShortDetachmentSerializer
 from headquarters.models import Detachment, RegionalHeadquarter, UserDetachmentPosition
 from headquarters.serializers import ShortDetachmentSerializer
+from headquarters.models import (
+    Detachment, RegionalHeadquarter, UserDetachmentPosition
+)
 from rso_backend.settings import BASE_DIR
 
 
