@@ -29,6 +29,9 @@ from competitions.swagger_schemas import (request_update_application,
                                           response_competitions_participants,
                                           response_create_application,
                                           response_junior_detachments)
+from headquarters.models import (
+    Detachment, RegionalHeadquarter, UserDetachmentPosition
+)
 from headquarters.models import Detachment, RegionalHeadquarter, UserDetachmentPosition
 from headquarters.serializers import ShortDetachmentSerializer
 from rso_backend.settings import BASE_DIR
@@ -535,7 +538,10 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
             )
         })
     def status(self, request, competition_pk, *args, **kwargs):
-        """Action для получения статуса пользователя в конкурсе."""
+        """Action для получения статуса пользователя в конкурсе.
+
+        Доступ: все пользователи.
+        """
         if self.get_queryset().filter(
             Q(detachment__commander=request.user) |
             Q(junior_detachment__commander=request.user)
