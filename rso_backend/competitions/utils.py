@@ -1,4 +1,5 @@
 import os
+from datetime import datetime as dt
 from django.utils import timezone
 
 
@@ -30,7 +31,22 @@ def get_certificate_scans_path(instance, filename):
     return os.path.join(filepath, filename)
 
 
+def document_path(instance, filename):
+    """Функция для формирования пути сохранения сканов документов юзера.
+
+    :param instance: Экземпляр модели.
+    :param filename: Имя файла. Добавляем к имени текущую дату и время.
+    :return: Путь к скану документа.
+    Сохраняем в filepath/{instance.name}/filename
+    """
+
+    filename = dt.today().strftime('%Y%m%d%H%M%S') + '_' + filename[:15]
+    filepath = 'documents/users'
+    return os.path.join(filepath, instance.user.username, filename)
+
+
 def is_competition_participant(detachment, competition):
     """Проверяет, является ли отряд участником конкурса."""
     return detachment in (competition.junior_detachment.all() +
                           competition.detachment.all())
+

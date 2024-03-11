@@ -26,8 +26,10 @@ from competitions.models import (
     ParticipationInDistrAndInterregEvents, PrizePlacesInAllRussianEvents,
     PrizePlacesInAllRussianLaborProjects,
     PrizePlacesInDistrAndInterregEvents,
-    PrizePlacesInDistrAndInterregLaborProjects,
+    PrizePlacesInDistrAndInterregLaborProjects, Q13EventOrganization,
+    Q13DetachmentReport, Q13Record,
 )
+from competitions.q_calculations import calculate_q13_place
 from competitions.serializers import (
     CompetitionApplicationsObjectSerializer, CompetitionApplicationsSerializer,
     CompetitionParticipantsObjectSerializer, CompetitionParticipantsSerializer,
@@ -49,7 +51,8 @@ from competitions.serializers import (
     PrizePlacesInAllRussianLaborProjectsSerializer,
     PrizePlacesInDistrAndInterregEventsSerializer,
     PrizePlacesInDistrAndInterregLaborProjectsSerializer,
-    ShortDetachmentCompetitionSerializer
+    ShortDetachmentCompetitionSerializer, Q13EventOrganizationSerializer,
+    Q13DetachmentReportSerializer, Q18DetachmentReportSerializer
 )
 # сигналы ниже не удалять, иначе сломается
 from competitions.signal_handlers import create_score_q7, create_score_q8
@@ -1104,3 +1107,157 @@ class PrizePlacesInAllRussianLaborProjectsViewSet(
         except Exception as error:
             return Response({'error': str(error)},
                             status=status.HTTP_400_BAD_REQUEST)
+
+
+class Q13DetachmentReportViewSet(viewsets.ModelViewSet):
+    """Пример POST-запроса:
+
+    {
+      "organization_data": [
+        {
+          "event_type": "Спортивное",
+          "event_link": "https://some-link.com"
+        },
+        {
+          "event_type": "Волонтерское",
+          "event_link": "https://some-link.com"
+        }
+      ]
+    }
+
+    В случае, если отчет по данному показателю уже существует, возвращается
+    400 Bad Request:
+    {
+      "non_field_errors": [
+        "Отчет по данному показателю уже существует"
+      ]
+    }
+    """
+
+    serializer_class = Q13DetachmentReportSerializer
+
+    def get_serializer_context(self):
+        """
+        Переопределение стандартного контекста,
+        добавление competition и detachment.
+        """
+        context = super().get_serializer_context()
+        competition_id = self.kwargs.get('competition_pk')
+        detachment_id = self.request.user.detachment_commander.id
+        context['competition'] = get_object_or_404(
+            Competitions, id=competition_id
+        )
+        context['detachment'] = get_object_or_404(Detachment, id=detachment_id)
+        return context
+
+    def get_queryset(self):
+        detachment_id = self.kwargs.get('detachment_pk')
+        competition_id = self.kwargs.get('competition_pk')
+        return Q13DetachmentReport.objects.filter(
+            detachment_id=detachment_id,
+            competition_id=competition_id
+        )
+
+    def perform_create(self, serializer):
+        competition = get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+        detachment = get_object_or_404(
+            Detachment, id=self.kwargs.get('detachment_pk')
+        )
+        serializer.save(competition=competition, detachment=detachment)
+
+    @action(
+        detail=True,
+        url_path='verify',
+        methods=(['POST', 'DELETE']),
+        permission_classes=[permissions.IsAuthenticated]
+    )
+    def verify(self, *args, **kwargs):
+        """Верификация отчета по показателю.
+
+        Доступно только командиру РШ связанного с отрядом.
+        Если отчет уже верифицирован, возвращается 400 Bad Request с описанием
+        ошибки {"detail": "Данный отчет уже верифицирован"}.
+        """
+        detachment_report = self.get_object()
+        if detachment_report.is_verified:
+            return Response({
+                'detail': 'Данный отчет уже верифицирован'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        if self.request.method == 'POST':
+            q13_event_organizations = Q13EventOrganization.objects.filter(
+                q13detachmentreport=detachment_report
+            )
+            calculated_place = calculate_q13_place(q13_event_organizations)
+            detachment_report.is_verified = True
+            detachment_report.save()
+            record, _ = Q13Record.objects.update_or_create(
+                detachment=detachment_report.detachment,
+                place=calculated_place
+            )
+            return Response(status=status.HTTP_201_CREATED)
+        if self.request.method == 'DELETE':
+            detachment_report.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class Q18DetachmentReportViewSet(viewsets.ModelViewSet):
+    serializer_class = Q18DetachmentReportSerializer
+
+    def get_serializer_context(self):
+        """
+        Переопределение стандартного контекста,
+        добавление competition и detachment.
+        """
+        context = super().get_serializer_context()
+        competition_id = self.kwargs.get('competition_pk')
+        detachment_id = self.request.user.detachment_commander.id
+        context['competition'] = get_object_or_404(
+            Competitions, id=competition_id
+        )
+        context['detachment'] = get_object_or_404(Detachment, id=detachment_id)
+        return context
+
+    def get_queryset(self):
+        detachment_id = self.kwargs.get('detachment_pk')
+        competition_id = self.kwargs.get('competition_pk')
+        return Q13DetachmentReport.objects.filter(
+            detachment_id=detachment_id,
+            competition_id=competition_id
+        )
+
+    def perform_create(self, serializer):
+        competition = get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+        detachment = get_object_or_404(
+            Detachment, id=self.kwargs.get('detachment_pk')
+        )
+        serializer.save(competition=competition, detachment=detachment)
+
+    @action(
+        detail=True,
+        url_path='verify',
+        methods=(['POST', 'DELETE']),
+        permission_classes=[permissions.IsAuthenticated]
+    )
+    def verify(self, *args, **kwargs):
+        """Верификация отчета по показателю.
+
+        Доступно только командиру РШ связанного с отрядом.
+        Если отчет уже верифицирован, возвращается 400 Bad Request с описанием
+        ошибки {"detail": "Данный отчет уже верифицирован"}.
+        """
+        detachment_report = self.get_object()
+        if detachment_report.is_verified:
+            return Response({
+                'detail': 'Данный отчет уже верифицирован'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        if self.request.method == 'POST':
+            detachment_report.is_verified = True
+            detachment_report.save()
+            return Response(status=status.HTTP_201_CREATED)
+        if self.request.method == 'DELETE':
+            detachment_report.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)

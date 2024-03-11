@@ -2,7 +2,7 @@ import re
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
-from competitions.utils import get_certificate_scans_path
+from competitions.utils import get_certificate_scans_path, document_path
 
 
 class Competitions(models.Model):
@@ -528,3 +528,140 @@ class PrizePlacesInAllRussianLaborProjects(Report):
                 name='unique_prize_places_in_all_russian_labor_projects'
             )
         ]
+
+
+class Q13TandemRecord(models.Model):
+    detachment = models.OneToOneField(
+        'headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='q13_tandem_record',
+        verbose_name='Отряд'
+    )
+    junior_detachment = models.OneToOneField(
+        'headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='junior_q13_tandem_record',
+        verbose_name='Отряд'
+    )
+    place = models.PositiveSmallIntegerField(
+        verbose_name='Итоговое место по показателю'
+    )
+
+
+class Q13Record(models.Model):
+    detachment = models.OneToOneField(
+        'headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='q13_score',
+        verbose_name='Отряд'
+    )
+    place = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(6)],
+        default=6,
+        verbose_name='Итоговое место по показателю'
+    )
+
+
+class Q13DetachmentReport(models.Model):
+    competition = models.ForeignKey(
+        'Competitions',
+        on_delete=models.CASCADE,
+        related_name='q13_report',
+        verbose_name='Конкурс'
+    )
+    detachment = models.ForeignKey(
+        'headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='q13_report',
+        verbose_name='Отряд'
+    )
+    organization_data = models.ManyToManyField(
+        'Q13EventOrganization',
+        through='Q13ReportData',
+        verbose_name='Проведенные мероприятия',
+        blank=True
+    )
+    is_verified = models.BooleanField(default=False)
+
+
+class Q13ReportData(models.Model):
+    q13_report = models.ForeignKey(
+        'Q13DetachmentReport',
+        on_delete=models.CASCADE,
+        related_name='report_data'
+    )
+    q13_data = models.ForeignKey(
+        'Q13EventOrganization',
+        on_delete=models.CASCADE,
+        related_name='event_data'
+    )
+
+
+class Q13EventOrganization(models.Model):
+
+    class EventType(models.TextChoices):
+        SPORT = 'Спортивное', 'Спортивное'
+        INTELLECTUAL = 'Интеллектуальное', 'Интеллектуальное'
+        CREATIVE = 'Творческое', 'Творческое'
+        VOLUNTARY = 'Волонтерское', 'Волонтерское'
+        INTERNAL = 'Внутреннее', 'Внутреннее'
+
+    event_type = models.CharField(
+        max_length=16,
+        choices=EventType.choices,
+        default=EventType.INTERNAL,
+        verbose_name='Тип мероприятия'
+    )
+    event_link = models.URLField(verbose_name='Ссылка на пуб.', max_length=500)
+
+
+class Q18TandemRecord(models.Model):
+    detachment = models.OneToOneField(
+        'headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='q18_tandem_record',
+        verbose_name='Отряд'
+    )
+    junior_detachment = models.OneToOneField(
+        'headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='junior_q18_tandem_record',
+        verbose_name='Отряд'
+    )
+    place = models.PositiveSmallIntegerField(
+        verbose_name='Итоговое место по показателю'
+    )
+
+
+class Q18Record(models.Model):
+    detachment = models.OneToOneField(
+        'headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='q18_score',
+        verbose_name='Отряд'
+    )
+    place = models.PositiveSmallIntegerField(
+        verbose_name='Итоговое место по показателю'
+    )
+    is_tandem = models.BooleanField(default=False)
+
+
+class Q18DetachmentReport(models.Model):
+    competition = models.ForeignKey(
+        'Competitions',
+        on_delete=models.CASCADE,
+        related_name='q18_reportf',
+    )
+    detachment = models.ForeignKey(
+        'Competitions',
+        on_delete=models.CASCADE,
+        related_name='q18_reportf'
+    )
+    participants_number = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(0), MaxValueValidator(1000)],
+        verbose_name='Количество бойцов, принявших участие во '
+                     'Всероссийском дне ударного труда'
+    )
+    june_15_detachment_members = models.PositiveSmallIntegerField()
+    # TODO: SCORE
+    is_verified = models.BooleanField(default=False)

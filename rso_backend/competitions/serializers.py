@@ -12,7 +12,9 @@ from competitions.models import (
     ParticipationInDistrAndInterregEvents, PrizePlacesInAllRussianEvents,
     PrizePlacesInAllRussianLaborProjects,
     PrizePlacesInDistrAndInterregEvents,
-    PrizePlacesInDistrAndInterregLaborProjects)
+    PrizePlacesInDistrAndInterregLaborProjects,
+    Q13EventOrganization, Q13DetachmentReport, Q13ReportData,
+    Q18DetachmentReport)
 from headquarters.models import Detachment
 from headquarters.serializers import BaseShortUnitSerializer
 
@@ -882,5 +884,85 @@ class CreatePrizePlacesInAllRussianLaborProjectsSerializer(
             raise serializers.ValidationError(
                 {'event_name':
                  'Отчетность по этому трудовому проекту уже подана.'}
+            )
+        return attrs
+
+
+class Q13EventOrganizationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Q13EventOrganization
+        fields = ('event_type', 'event_link')
+
+
+class Q13DetachmentReportSerializer(serializers.ModelSerializer):
+    organization_data = serializers.ListField(
+        child=Q13EventOrganizationSerializer(),
+        write_only=True
+    )
+    organized_events = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Q13DetachmentReport
+        fields = (
+            'id',
+            'competition',
+            'detachment',
+            'is_verified',
+            'organization_data',
+            'organized_events',
+        )
+        read_only_fields = ('competition', 'detachment', 'is_verified')
+
+    def validate(self, attrs):
+        competition = self.context.get('competition')
+        detachment = self.context.get('detachment')
+        if Q13DetachmentReport.objects.filter(
+                competition=competition, detachment=detachment
+        ).exists():
+            raise serializers.ValidationError(
+                'Отчет по данному показателю уже существует'
+            )
+        return attrs
+
+    def create(self, validated_data):
+        with transaction.atomic():
+            q13_report = Q13DetachmentReport.objects.create(
+                competition=validated_data.get('competition'),
+                detachment=validated_data.get('detachment'),
+            )
+            events_organization_data = validated_data.get('organization_data')
+            for event_org_data in events_organization_data:
+                obj = Q13EventOrganization.objects.create(**event_org_data)
+                Q13ReportData.objects.create(
+                    q13_report=q13_report,
+                    q13_data=obj
+                )
+            return q13_report
+
+    @staticmethod
+    def get_organized_events(instance):
+        raws_ids = Q13ReportData.objects.filter(
+            q13_report=instance
+        ).values_list('q13_data_id', flat=True)
+        organized_event = Q13EventOrganization.objects.filter(
+            id__in=raws_ids
+        )
+        return Q13EventOrganizationSerializer(organized_event, many=True).data
+
+
+class Q18DetachmentReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Q18DetachmentReport
+        fields = ('participants_number', 'is_verified')
+        read_only_fields = ('is_verified',)
+
+    def validate(self, attrs):
+        competition = self.context.get('competition')
+        detachment = self.context.get('detachment')
+        if Q18DetachmentReport.objects.filter(
+                competition=competition, detachment=detachment
+        ).exists():
+            raise serializers.ValidationError(
+                'Отчет по данному показателю уже существует'
             )
         return attrs
