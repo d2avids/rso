@@ -575,7 +575,7 @@ class Q13DetachmentReport(models.Model):
         related_name='q13_report',
         verbose_name='Отряд'
     )
-    organization_data = models.ManyToManyField(
+    organization_data = models.ManyToManyField(  # ВОТ ТАК ОПРЕДЕЛЕНА MANY TO MANY СВЯЗЬ ТАМ, ГДЕ МОЖНО ДОБАВЛЯТЬ ОБЪЕКТЫ
         'Q13EventOrganization',
         through='Q13ReportData',
         verbose_name='Проведенные мероприятия',
@@ -585,6 +585,7 @@ class Q13DetachmentReport(models.Model):
 
 
 class Q13ReportData(models.Model):
+    """Промежуточная таблица."""
     q13_report = models.ForeignKey(
         'Q13DetachmentReport',
         on_delete=models.CASCADE,
@@ -598,6 +599,7 @@ class Q13ReportData(models.Model):
 
 
 class Q13EventOrganization(models.Model):
+    """Пример модели с данными для заполнения (которые по кнопке "добавить...") """
 
     class EventType(models.TextChoices):
         SPORT = 'Спортивное', 'Спортивное'
@@ -616,6 +618,12 @@ class Q13EventOrganization(models.Model):
 
 
 class Q18TandemRecord(models.Model):
+    """
+    Модель с местами для участников "тандем" номинации.
+
+    Привязан отряд.
+    Сюда калькулируется место из таски, выызывающей функцию из q_calculations.
+    """
     detachment = models.OneToOneField(
         'headquarters.Detachment',
         on_delete=models.CASCADE,
@@ -634,6 +642,12 @@ class Q18TandemRecord(models.Model):
 
 
 class Q18Record(models.Model):
+    """
+    Модель с местами для участников "соло" номинации.
+
+    Привязан отряд.
+    Сюда калькулируется место из таски, выызывающей функцию из q_calculations.
+    """
     detachment = models.OneToOneField(
         'headquarters.Detachment',
         on_delete=models.CASCADE,
@@ -643,19 +657,24 @@ class Q18Record(models.Model):
     place = models.PositiveSmallIntegerField(
         verbose_name='Итоговое место по показателю'
     )
-    is_tandem = models.BooleanField(default=False)
 
 
 class Q18DetachmentReport(models.Model):
+    """Модель с полями для заполнениями.
+
+    Можем хранить SCORE
+    competition, detachment и is_verified вынести в абстрактную модель, от
+    нее наследоваться. Related_names унифицировать
+    """
     competition = models.ForeignKey(
         'Competitions',
         on_delete=models.CASCADE,
-        related_name='q18_reportf',
+        related_name='q18_report',
     )
     detachment = models.ForeignKey(
         'Competitions',
         on_delete=models.CASCADE,
-        related_name='q18_reportf'
+        related_name='q18_report'
     )
     participants_number = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(0), MaxValueValidator(1000)],
