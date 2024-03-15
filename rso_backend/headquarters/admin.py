@@ -172,7 +172,7 @@ class DetachmentAdmin(BaseUnitAdmin):
 class BaseCentralPositionAdmin(admin.ModelAdmin):
     list_display = ('user', 'position', 'headquarter',)
     list_filter = ('headquarter',)
-    search_fields = ('user__username', 'name')
+    search_fields = ('user__username', 'headquarter__name')
 
     def delete_queryset(self, request, queryset):
         """
