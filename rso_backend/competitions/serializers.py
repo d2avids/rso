@@ -898,7 +898,7 @@ class Q13EventOrganizationSerializer(serializers.ModelSerializer):
             'detachment_report',
             'is_verified'
         )
-        read_only_fields = ('is_verified',)
+        read_only_fields = ('is_verified', 'detachment_report')
 
 
 class Q13DetachmentReportSerializer(serializers.ModelSerializer):
@@ -918,21 +918,6 @@ class Q13DetachmentReportSerializer(serializers.ModelSerializer):
             'organized_events',
         )
         read_only_fields = ('competition', 'detachment')
-
-    def create(self, validated_data):
-        with transaction.atomic():
-            q13_report = Q13DetachmentReport.objects.get_or_create(
-                competition=validated_data.get('competition'),
-                detachment=validated_data.get('detachment'),
-            )
-            events_organization_data = validated_data.get('organization_data')
-            for event_org_data in events_organization_data:
-                Q13EventOrganization.objects.create(
-                    event_type=event_org_data['event_type'],
-                    event_link=event_org_data['event_link'],
-                    detachment_report=q13_report
-                )
-            return q13_report
 
     @staticmethod
     def get_organized_events(instance):

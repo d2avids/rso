@@ -536,7 +536,7 @@ class QBaseReport(models.Model):
         related_name='%(class)s_competition_reports',
     )
     detachment = models.ForeignKey(
-        'Competitions',
+        'headquarters.Detachment',
         on_delete=models.CASCADE,
         related_name='%(class)s_detachment_reports',
     )

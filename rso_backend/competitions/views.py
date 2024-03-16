@@ -27,7 +27,7 @@ from competitions.models import (
     PrizePlacesInAllRussianLaborProjects,
     PrizePlacesInDistrAndInterregEvents,
     PrizePlacesInDistrAndInterregLaborProjects, Q13EventOrganization,
-    Q13DetachmentReport
+    Q13DetachmentReport, Q13Ranking, Q13TandemRanking
 )
 from competitions.q_calculations import calculate_q13_place
 from competitions.serializers import (
@@ -1111,7 +1111,7 @@ class PrizePlacesInAllRussianLaborProjectsViewSet(
 
 class Q13DetachmentReportViewSet(viewsets.ModelViewSet):
     """Пример POST-запроса:
-
+    ```
     {
       "organization_data": [
         {
@@ -1124,23 +1124,70 @@ class Q13DetachmentReportViewSet(viewsets.ModelViewSet):
         }
       ]
     }
+    ```
     """
 
     serializer_class = Q13DetachmentReportSerializer
 
-    def get_serializer_context(self):
-        """
-        Переопределение стандартного контекста,
-        добавление competition и detachment.
-        """
-        context = super().get_serializer_context()
-        competition_id = self.kwargs.get('competition_pk')
-        detachment_id = self.request.user.detachment_commander.id
-        context['competition'] = get_object_or_404(
-            Competitions, id=competition_id
-        )
-        context['detachment'] = get_object_or_404(Detachment, id=detachment_id)
-        return context
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['organization_data'],
+            properties={
+                'organization_data': openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    description="Список организованных мероприятий",
+                    items=openapi.Items(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'event_type': openapi.Schema(
+                                type=openapi.TYPE_STRING,
+                                description="Тип мероприятия",
+                                enum=[
+                                    "Спортивное",
+                                    "Волонтерское",
+                                    "Интеллектуальное",
+                                    "Творческое",
+                                    "Внутреннее"
+                                ]
+                            ),
+                            'event_link': openapi.Schema(
+                                type=openapi.TYPE_STRING,
+                                description="Ссылка на публикацию "
+                                            "о мероприятии",
+                                format='url'
+                            )
+                        }
+                    )
+                )
+            }
+        ),
+    )
+    def create(self, request, *args, **kwargs):
+        with transaction.atomic():
+            organization_data = request.data.get('organization_data', [])
+            competition = get_object_or_404(
+                Competitions, id=self.kwargs.get('competition_pk')
+            )
+            detachment = get_object_or_404(
+                Detachment, id=self.request.user.detachment_commander.id
+            )
+            report, created = Q13DetachmentReport.objects.get_or_create(
+                competition_id=competition.id,
+                detachment_id=detachment.id
+            )
+
+            for event_data in organization_data:
+                event_serializer = Q13EventOrganizationSerializer(data=event_data)
+                if event_serializer.is_valid(raise_exception=True):
+                    Q13EventOrganization.objects.create(
+                        **event_serializer.validated_data,
+                        detachment_report=report
+                    )
+                else:
+                    return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            return Response(self.get_serializer(report).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
     def get_queryset(self):
         competition = get_object_or_404(
@@ -1177,7 +1224,49 @@ class Q13DetachmentReportViewSet(viewsets.ModelViewSet):
         if request.method == 'POST':
             event.is_verified = True
             event.save()
+            participants_entry = CompetitionParticipants.objects.filter(
+                junior_detachment=report.detachment
+            ).first()
 
+            # Подсчет места для индивидуальных и тандем участников:
+            if participants_entry and not participants_entry.detachment:
+                Q13Ranking.objects.get_or_create(
+                    detachment=report.detachment,
+                    place=calculate_q13_place(
+                        Q13EventOrganization.objects.filter(
+                            detachment_report=report
+                        )
+                    )
+                )
+            else:
+                if participants_entry:
+                    tandem_ranking = Q13TandemRanking.objects.get_or_create(
+                        detachment=report.detachment,
+                    )
+                    tandem_ranking.place = calculate_q13_place(
+                        Q13EventOrganization.objects.filter(
+                            detachment_report=report
+                        )
+                    )
+                    tandem_ranking.place += calculate_q13_place(
+                        Q13EventOrganization.objects.filter(
+                            tandem_ranking.junior_detachment.q13detachmentreport_detachment_reports
+                        )
+                    )
+                else:
+                    tandem_ranking = CompetitionParticipants.objects.filter(
+                        junior_detachment=report.detachment
+                    ).first()
+                    tandem_ranking.place = calculate_q13_place(
+                        Q13EventOrganization.objects.filter(
+                            detachment_report=report
+                        )
+                    )
+                    tandem_ranking.place = calculate_q13_place(
+                        Q13EventOrganization.objects.filter(
+                            detachment_report=tandem_ranking.detachment.q13detachmentreport_detachment_reports
+                        )
+                    )
             return Response(
                 {"status": "Данные по организации "
                            "мероприятия верифицированы"},
