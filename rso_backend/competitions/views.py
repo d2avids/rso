@@ -1256,7 +1256,7 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
         methods=['post', 'delete'],
         url_path='verify-event/(?P<event_id>\d+)'
     )
-    def verify_event(self, request, pk=None, event_id=None):
+    def verify_event(self, request, competition_pk=None, pk=None, event_id=None):
         """
         Верифицирует конкретное мероприятие по его ID.
         """
@@ -1279,7 +1279,8 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
                     detachment=report.detachment,
                     place=calculate_q13_place(
                         Q13EventOrganization.objects.filter(
-                            detachment_report=report
+                            detachment_report=report,
+                            is_verified=True
                         )
                     )
                 )
@@ -1290,7 +1291,8 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
                     )
                     tandem_ranking.place = calculate_q13_place(
                         Q13EventOrganization.objects.filter(
-                            detachment_report=report
+                            detachment_report=report,
+                            is_verified=True
                         )
                     )
                     tandem_ranking.place += calculate_q13_place(
@@ -1304,14 +1306,17 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
                     ).first()
                     tandem_ranking.place = calculate_q13_place(
                         Q13EventOrganization.objects.filter(
-                            detachment_report=report
+                            detachment_report=report,
+                            is_verified=True
                         )
                     )
                     tandem_ranking.place = calculate_q13_place(
                         Q13EventOrganization.objects.filter(
-                            detachment_report=tandem_ranking.detachment.q13detachmentreport_detachment_reports
+                            detachment_report=tandem_ranking.detachment.q13detachmentreport_detachment_reports,
+                            is_verified=True
                         )
                     )
+                tandem_ranking.save()
             return Response(
                 {"status": "Данные по организации "
                            "мероприятия верифицированы"},

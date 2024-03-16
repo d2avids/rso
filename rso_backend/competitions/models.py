@@ -557,13 +557,17 @@ class QBaseTandemRanking(models.Model):
         'headquarters.Detachment',
         on_delete=models.CASCADE,
         related_name='%(class)s_main_detachment',
-        verbose_name='Отряд-наставник'
+        verbose_name='Отряд-наставник',
+        blank=True,
+        null=True,
     )
     junior_detachment = models.OneToOneField(
         'headquarters.Detachment',
         on_delete=models.CASCADE,
         related_name='%(class)s_junior_detachment',
-        verbose_name='Младший отряд'
+        verbose_name='Младший отряд',
+        blank=True,
+        null=True,
     )
 
     class Meta:
@@ -584,7 +588,8 @@ class QBaseRanking(models.Model):
 
 class Q13TandemRanking(QBaseTandemRanking):
     place = models.PositiveSmallIntegerField(
-        verbose_name='Итоговое место по показателю'
+        verbose_name='Итоговое место по показателю',
+        default=12
     )
 
 
