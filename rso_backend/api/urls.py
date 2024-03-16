@@ -20,6 +20,7 @@ from competitions.views import (
     PrizePlacesInDistrAndInterregEventsViewSet,
     PrizePlacesInDistrAndInterregLaborProjectsViewSet,
     Q13DetachmentReportViewSet, Q13EventOrganizationViewSet,
+    Q18DetachmentReportViewSet,
 )
 from events.views import (AnswerDetailViewSet, EventAdditionalIssueViewSet,
                           EventApplicationsViewSet,
@@ -62,9 +63,14 @@ router.register('eduicational_institutions', EducationalInstitutionViewSet)
 router.register('membership_certificates', MemberCertViewSet)
 router.register('events', EventViewSet)
 router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q18',
+    Q18DetachmentReportViewSet,
+    basename='q18_report'
+)
+router.register(
     r'competitions/(?P<competition_pk>\d+)/reports/q13',
     Q13DetachmentReportViewSet,
-    basename='q13_event_organization'
+    basename='q13_report'
 )
 router.register(
     r'competitions/(?P<competition_pk>\d+)/reports/q13/(?P<report_pk>\d+)/events',

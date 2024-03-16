@@ -295,6 +295,10 @@ CELERY_BEAT_SCHEDULE = {
             month_of_year=10,
         )
     },
+    'calculate_q18': {
+        'task': 'competitions.tasks.calculate_q18_places_task',
+        'schedule': timedelta(seconds=30)
+    },
 }
 
 if DEBUG:

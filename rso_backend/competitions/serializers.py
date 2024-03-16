@@ -930,8 +930,14 @@ class Q13DetachmentReportSerializer(serializers.ModelSerializer):
 class Q18DetachmentReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = Q18DetachmentReport
-        fields = ('participants_number', 'is_verified')
-        read_only_fields = ('is_verified',)
+        fields = (
+            'id',
+            'detachment',
+            'competition',
+            'participants_number',
+            'is_verified'
+        )
+        read_only_fields = ('is_verified', 'detachment', 'competition',)
 
     def validate(self, attrs):
         competition = self.context.get('competition')
@@ -940,6 +946,19 @@ class Q18DetachmentReportSerializer(serializers.ModelSerializer):
                 competition=competition, detachment=detachment
         ).exists():
             raise serializers.ValidationError(
-                'Отчет по данному показателю уже существует'
+                {'error': 'Отчет по данному показателю уже существует'}
+            )
+        if not CompetitionParticipants.objects.filter(
+                competition=competition,
+                junior_detachment=detachment
+        ).exists() and not CompetitionParticipants.objects.filter(
+            competition=competition,
+            detachment=detachment
+        ).exists():
+            raise serializers.ValidationError(
+                {
+                    'error': 'Отряд подающего пользователя не '
+                             'участвует в конкурсе.'
+                },
             )
         return attrs
