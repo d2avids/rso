@@ -15,7 +15,7 @@ from api.utils import (check_commander_or_not, check_roles_for_edit,
                        is_regional_commander, is_regional_commissioner,
                        is_safe_method,
                        is_stuff_or_central_commander)
-from competitions.models import CompetitionParticipants
+from competitions.models import CompetitionParticipants, Q13DetachmentReport
 from competitions.utils import is_competition_participant
 from events.models import Event, EventOrganizationData
 from headquarters.models import (CentralHeadquarter, Detachment,
@@ -874,3 +874,16 @@ class IsRegionalCommissionerOrCommanderDetachmentWithVerif(
             is_regional_commissioner(request.user) or
             is_commander_this_detachment(request.user, obj.detachment)
         )
+
+
+class IsDetachmentReportAuthor(permissions.BasePermission):
+    """
+    Позволяет доступ к операциям только если подразделение пользователя
+    соответствует подразделению в отчете.
+    """
+
+    def has_permission(self, request, view):
+        detachment_id = request.user.detachment_commander.id
+        report_pk = view.kwargs.get('report_pk')
+        report = get_object_or_404(Q13DetachmentReport, pk=report_pk)
+        return report.detachment_id == detachment_id

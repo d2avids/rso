@@ -2,6 +2,7 @@ import os
 from datetime import date
 
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Q
 from django.http.response import HttpResponse
@@ -12,13 +13,15 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from api.mixins import ListRetrieveDestroyViewSet
+from api.mixins import ListRetrieveDestroyViewSet, RetrieveCreateViewSet, \
+    UpdateDestroyViewSet
 from api.permissions import (
     IsCommanderAndCompetitionParticipant,
     IsCommanderDetachmentInParameterOrRegionalCommissioner,
     IsRegionalCommanderOrAdmin, IsRegionalCommanderOrAdminOrAuthor,
     IsRegionalCommissioner,
-    IsRegionalCommissionerOrCommanderDetachmentWithVerif
+    IsRegionalCommissionerOrCommanderDetachmentWithVerif,
+    IsDetachmentReportAuthor
 )
 from competitions.models import (
     CompetitionApplications, CompetitionParticipants, Competitions,
@@ -112,7 +115,7 @@ class CompetitionViewSet(viewsets.ModelViewSet):
         )
         return list(Detachment.objects.exclude(
             id__in=in_applications_junior_detachment_ids
-            + participants_junior_detachment_ids
+                   + participants_junior_detachment_ids
         ).values_list('id', flat=True))
 
     def get_junior_detachments(self):
@@ -480,7 +483,7 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
     queryset = CompetitionParticipants.objects.all()
     serializer_class = CompetitionParticipantsSerializer
     permission_classes = (permissions.AllowAny,)
-    filter_backends = (filters.SearchFilter, )
+    filter_backends = (filters.SearchFilter,)
     search_fields = (
         'detachment__name',
         'junior_detachment__name'
@@ -514,7 +517,7 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
             return None
         except Detachment.MultipleObjectsReturned:
             return Response({'error':
-                            'Пользователь командир нескольких отрядов'},
+                                 'Пользователь командир нескольких отрядов'},
                             status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False,
@@ -572,7 +575,7 @@ class ParticipationInDistrictAndInterregionalEventsViewSet(
         permissions.IsAuthenticated,
         IsCommanderDetachmentInParameterOrRegionalCommissioner
     )
-    filter_backends = (filters.SearchFilter, )
+    filter_backends = (filters.SearchFilter,)
     search_fields = ('detachment__name', 'competition__name')
 
     def get_queryset(self):
@@ -1109,8 +1112,10 @@ class PrizePlacesInAllRussianLaborProjectsViewSet(
                             status=status.HTTP_400_BAD_REQUEST)
 
 
-class Q13DetachmentReportViewSet(viewsets.ModelViewSet):
-    """Пример POST-запроса:
+class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
+    """Показатель "Организация собственных мероприятий отряда".
+
+    Пример POST-запроса:
     ```
     {
       "organization_data": [
@@ -1124,6 +1129,15 @@ class Q13DetachmentReportViewSet(viewsets.ModelViewSet):
         }
       ]
     }
+
+    Доступ:
+        - GET: Всем пользователям;
+        - POST: Командирам отрядов, принимающих участие в конкурсе;
+        - VERIFY-EVENT (POST/DELETE): Комиссарам РШ подвластных отрядов;
+
+    Note:
+        - 404 возвращается в случае, если не найден объект конкурса или отряд,
+          в котором юзер является командиром
     ```
     """
 
@@ -1164,30 +1178,61 @@ class Q13DetachmentReportViewSet(viewsets.ModelViewSet):
         ),
     )
     def create(self, request, *args, **kwargs):
+        competition = get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+        detachment = get_object_or_404(
+            Detachment, id=self.request.user.detachment_commander.id
+        )
+        organization_data = request.data.get('organization_data', [])
+
+        if not CompetitionParticipants.objects.filter(
+                competition=competition,
+                junior_detachment=detachment
+        ).exists() and not CompetitionParticipants.objects.filter(
+            competition=competition,
+            detachment=detachment
+        ).exists():
+            return Response(
+                {
+                    'non_field_errors': 'Отряд подающего пользователя не '
+                                        'участвует в конкурсе.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not organization_data:
+            return Response(
+                {
+                    'non_field_errors': 'organization_data '
+                                        'должно быть заполнено'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
         with transaction.atomic():
-            organization_data = request.data.get('organization_data', [])
-            competition = get_object_or_404(
-                Competitions, id=self.kwargs.get('competition_pk')
-            )
-            detachment = get_object_or_404(
-                Detachment, id=self.request.user.detachment_commander.id
-            )
             report, created = Q13DetachmentReport.objects.get_or_create(
                 competition_id=competition.id,
                 detachment_id=detachment.id
             )
 
             for event_data in organization_data:
-                event_serializer = Q13EventOrganizationSerializer(data=event_data)
+                event_serializer = Q13EventOrganizationSerializer(
+                    data=event_data)
                 if event_serializer.is_valid(raise_exception=True):
                     Q13EventOrganization.objects.create(
                         **event_serializer.validated_data,
                         detachment_report=report
                     )
                 else:
-                    return Response(event_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(event_serializer.errors,
+                                    status=status.HTTP_400_BAD_REQUEST)
 
-            return Response(self.get_serializer(report).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+            return Response(
+                self.get_serializer(report).data,
+                status=(
+                    status.HTTP_201_CREATED if created else status.HTTP_200_OK
+                )
+            )
 
     def get_queryset(self):
         competition = get_object_or_404(
@@ -1274,6 +1319,62 @@ class Q13DetachmentReportViewSet(viewsets.ModelViewSet):
             )
         event.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class Q13EventOrganizationViewSet(UpdateDestroyViewSet):
+    """
+    Обеспечивает возможность редактирования и
+    удаления объектов Q13EventOrganization.
+
+    - `PUT/PATCH`: Обновляет объект Q13EventOrganization, если
+                   он не был верифицирован.
+                   Ограничено для объектов, принадлежащих отчету подразделения
+                   пользователя (где является командиром).
+
+    - `DELETE`: Удаляет объект Q13EventOrganization,
+                если он не был верифицирован.
+                Ограничено для объектов, принадлежащих отчету
+                подразделения пользователя (где является командиром).
+
+    Примечание: Операции обновления и удаления доступны только
+                если `is_verified` объекта равно `False`
+                и если подразделение пользователя  (где является командиром)
+                соответствует подразделению в отчете.
+    """
+
+    serializer_class = Q13EventOrganizationSerializer
+    permission_classes = (IsDetachmentReportAuthor,)
+
+    def get_queryset(self):
+        report_pk = self.kwargs.get('report_pk')
+        return Q13EventOrganization.objects.filter(
+            detachment_report_id=report_pk
+        )
+
+    def update(self, request, *args, **kwargs):
+        event_org = self.get_object()
+        if event_org.is_verified:
+            return Response(
+                {
+                    'detail': 'Нельзя редактировать/удалять верифицированные '
+                              'записи.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        event_org = self.get_object()
+        if event_org.is_verified:
+            return Response(
+                {
+                    'detail': 'Нельзя редактировать/удалять верифицированные '
+                              'записи.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return super().destroy(request, *args, **kwargs)
 
 
 class Q18DetachmentReportViewSet(viewsets.ModelViewSet):

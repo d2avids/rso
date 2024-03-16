@@ -86,3 +86,18 @@ class CreateRetrieveUpdateViewSet(mixins.CreateModelMixin,
     разрешающий только все методы, кроме чтения (list) и удаления.
     """
     pass
+
+
+class RetrieveCreateViewSet(mixins.RetrieveModelMixin,
+                            mixins.ListModelMixin,
+                            mixins.CreateModelMixin,
+                            GenericViewSet):
+    """Миксин для 13 конкурсного показателя."""
+    pass
+
+
+class UpdateDestroyViewSet(mixins.UpdateModelMixin,
+                           mixins.DestroyModelMixin,
+                           GenericViewSet):
+    """Миксин для вложенных объектов 13 конкурсного показателя."""
+    pass
