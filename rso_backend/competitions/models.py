@@ -388,7 +388,6 @@ class ParticipationInAllRussianEvents(Report):
                 f'мероприятиях, id {self.id}')
 
     class Meta:
-        verbose_name = 'Участие во всероссийских мероприятиях'
         ordering = ['-competition__id']
         verbose_name = 'Участие во всероссийских мероприятиях'
         verbose_name_plural = 'Участия во всероссийских мероприятиях'
@@ -530,31 +529,66 @@ class PrizePlacesInAllRussianLaborProjects(Report):
         ]
 
 
-class Q13TandemRecord(models.Model):
+class QBaseReport(models.Model):
+    competition = models.ForeignKey(
+        'Competitions',
+        on_delete=models.CASCADE,
+        related_name='%(class)s_competition_reports',
+    )
+    detachment = models.ForeignKey(
+        'Competitions',
+        on_delete=models.CASCADE,
+        related_name='%(class)s_detachment_reports',
+    )
+
+    class Meta:
+        abstract = True
+
+
+class QBaseReportIsVerified(models.Model):
+    is_verified = models.BooleanField(default=False)
+
+    class Meta:
+        abstract = True
+
+
+class QBaseTandemRanking(models.Model):
     detachment = models.OneToOneField(
         'headquarters.Detachment',
         on_delete=models.CASCADE,
-        related_name='q13_tandem_record',
-        verbose_name='Отряд'
+        related_name='%(class)s_main_detachment',
+        verbose_name='Отряд-наставник'
     )
     junior_detachment = models.OneToOneField(
         'headquarters.Detachment',
         on_delete=models.CASCADE,
-        related_name='junior_q13_tandem_record',
+        related_name='%(class)s_junior_detachment',
+        verbose_name='Младший отряд'
+    )
+
+    class Meta:
+        abstract = True
+
+
+class QBaseRanking(models.Model):
+    detachment = models.OneToOneField(
+        'headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='%(class)s',
         verbose_name='Отряд'
     )
+
+    class Meta:
+        abstract = True
+
+
+class Q13TandemRanking(QBaseTandemRanking):
     place = models.PositiveSmallIntegerField(
         verbose_name='Итоговое место по показателю'
     )
 
 
-class Q13Record(models.Model):
-    detachment = models.OneToOneField(
-        'headquarters.Detachment',
-        on_delete=models.CASCADE,
-        related_name='q13_score',
-        verbose_name='Отряд'
-    )
+class Q13Ranking(QBaseRanking):
     place = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(6)],
         default=6,
@@ -562,40 +596,8 @@ class Q13Record(models.Model):
     )
 
 
-class Q13DetachmentReport(models.Model):
-    competition = models.ForeignKey(
-        'Competitions',
-        on_delete=models.CASCADE,
-        related_name='q13_report',
-        verbose_name='Конкурс'
-    )
-    detachment = models.ForeignKey(
-        'headquarters.Detachment',
-        on_delete=models.CASCADE,
-        related_name='q13_report',
-        verbose_name='Отряд'
-    )
-    organization_data = models.ManyToManyField(  # ВОТ ТАК ОПРЕДЕЛЕНА MANY TO MANY СВЯЗЬ ТАМ, ГДЕ МОЖНО ДОБАВЛЯТЬ ОБЪЕКТЫ
-        'Q13EventOrganization',
-        through='Q13ReportData',
-        verbose_name='Проведенные мероприятия',
-        blank=True
-    )
-    is_verified = models.BooleanField(default=False)
-
-
-class Q13ReportData(models.Model):
-    """Промежуточная таблица."""
-    q13_report = models.ForeignKey(
-        'Q13DetachmentReport',
-        on_delete=models.CASCADE,
-        related_name='report_data'
-    )
-    q13_data = models.ForeignKey(
-        'Q13EventOrganization',
-        on_delete=models.CASCADE,
-        related_name='event_data'
-    )
+class Q13DetachmentReport(QBaseReport):
+    pass
 
 
 class Q13EventOrganization(models.Model):
@@ -615,72 +617,33 @@ class Q13EventOrganization(models.Model):
         verbose_name='Тип мероприятия'
     )
     event_link = models.URLField(verbose_name='Ссылка на пуб.', max_length=500)
-
-
-class Q18TandemRecord(models.Model):
-    """
-    Модель с местами для участников "тандем" номинации.
-
-    Привязан отряд.
-    Сюда калькулируется место из таски, выызывающей функцию из q_calculations.
-    """
-    detachment = models.OneToOneField(
-        'headquarters.Detachment',
+    detachment_report = models.ForeignKey(
+        'Q13DetachmentReport',
         on_delete=models.CASCADE,
-        related_name='q18_tandem_record',
-        verbose_name='Отряд'
+        related_name='organization_data',
+        verbose_name='Отчет отряда',
     )
-    junior_detachment = models.OneToOneField(
-        'headquarters.Detachment',
-        on_delete=models.CASCADE,
-        related_name='junior_q18_tandem_record',
-        verbose_name='Отряд'
-    )
+    is_verified = models.BooleanField(default=False)
+
+
+class Q18TandemRanking(QBaseTandemRanking):
     place = models.PositiveSmallIntegerField(
         verbose_name='Итоговое место по показателю'
     )
 
 
-class Q18Record(models.Model):
-    """
-    Модель с местами для участников "соло" номинации.
-
-    Привязан отряд.
-    Сюда калькулируется место из таски, выызывающей функцию из q_calculations.
-    """
-    detachment = models.OneToOneField(
-        'headquarters.Detachment',
-        on_delete=models.CASCADE,
-        related_name='q18_score',
-        verbose_name='Отряд'
-    )
+class Q18Ranking(QBaseRanking):
     place = models.PositiveSmallIntegerField(
         verbose_name='Итоговое место по показателю'
     )
 
 
-class Q18DetachmentReport(models.Model):
-    """Модель с полями для заполнениями.
-
-    Можем хранить SCORE
-    competition, detachment и is_verified вынести в абстрактную модель, от
-    нее наследоваться. Related_names унифицировать
-    """
-    competition = models.ForeignKey(
-        'Competitions',
-        on_delete=models.CASCADE,
-        related_name='q18_report',
-    )
-    detachment = models.ForeignKey(
-        'Competitions',
-        on_delete=models.CASCADE,
-        related_name='q18_report'
-    )
+class Q18DetachmentReport(QBaseReport, QBaseReportIsVerified):
+    """Модель с полями для заполнениями."""
     participants_number = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(0), MaxValueValidator(1000)],
         verbose_name='Количество бойцов, принявших участие во '
                      'Всероссийском дне ударного труда'
     )
     june_15_detachment_members = models.PositiveSmallIntegerField()
-    # TODO: SCORE
-    is_verified = models.BooleanField(default=False)
+    score = models.FloatField(verbose_name='Очки')

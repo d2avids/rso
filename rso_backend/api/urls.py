@@ -62,11 +62,9 @@ router.register('eduicational_institutions', EducationalInstitutionViewSet)
 router.register('membership_certificates', MemberCertViewSet)
 router.register('events', EventViewSet)
 router.register(
-    r'detachments/(?P<detachment_pk>\d+)/'
-    r'competitions/(?P<competition_pk>\d+)/q13',
+    r'competitions/(?P<competition_pk>\d+)/reports/q13/',
     Q13DetachmentReportViewSet,
     basename='q13_event_organization'
-
 )
 router.register(
     r'events/(?P<event_pk>\d+)/applications',

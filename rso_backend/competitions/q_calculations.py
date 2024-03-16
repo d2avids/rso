@@ -1,6 +1,6 @@
 from datetime import date
-from competitions.models import Q13EventOrganization, Q18Record, \
-    Q18DetachmentReport, CompetitionParticipants, Q18TandemRecord
+from competitions.models import Q13EventOrganization, Q18Ranking, \
+    Q18DetachmentReport, CompetitionParticipants, Q18TandemRanking
 
 
 def calculate_q13_place(objects: list[Q13EventOrganization]) -> int:
@@ -92,9 +92,9 @@ def process_and_save_entries(entries_with_ratio, is_tandem):
     sorted_entries_with_ratio = sorted(entries_with_ratio, key=lambda x: x[1], reverse=True)
 
     if is_tandem:
-        Q18TandemRecord.objects.all().delete()
+        Q18TandemRanking.objects.all().delete()
     else:
-        Q18Record.objects.all().delete()
+        Q18Ranking.objects.all().delete()
 
     current_place = 1
     last_ratio = None
@@ -114,13 +114,13 @@ def process_and_save_entries(entries_with_ratio, is_tandem):
                 junior_detachment=entry.detachment
             ).first()
             if participants_entry:
-                Q18TandemRecord.objects.create(
+                Q18TandemRanking.objects.create(
                     detachment=participants_entry.detachment,
                     junior_detachment=entry.detachment,
                     place=current_place
                 )
         else:
-            Q18Record.objects.create(
+            Q18Ranking.objects.create(
                 place=current_place,
                 detachment=entry.detachment
             )

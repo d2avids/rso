@@ -13,7 +13,7 @@ from competitions.models import (
     PrizePlacesInAllRussianLaborProjects,
     PrizePlacesInDistrAndInterregEvents,
     PrizePlacesInDistrAndInterregLaborProjects,
-    Q13EventOrganization, Q13DetachmentReport, Q13ReportData,
+    Q13EventOrganization, Q13DetachmentReport,
     Q18DetachmentReport)
 from headquarters.models import Detachment
 from headquarters.serializers import BaseShortUnitSerializer
@@ -891,7 +891,14 @@ class CreatePrizePlacesInAllRussianLaborProjectsSerializer(
 class Q13EventOrganizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Q13EventOrganization
-        fields = ('event_type', 'event_link')
+        fields = (
+            'id',
+            'event_type',
+            'event_link',
+            'detachment_report',
+            'is_verified'
+        )
+        read_only_fields = ('is_verified',)
 
 
 class Q13DetachmentReportSerializer(serializers.ModelSerializer):
@@ -907,47 +914,32 @@ class Q13DetachmentReportSerializer(serializers.ModelSerializer):
             'id',
             'competition',
             'detachment',
-            'is_verified',
             'organization_data',
             'organized_events',
         )
-        read_only_fields = ('competition', 'detachment', 'is_verified')
-
-    def validate(self, attrs):
-        competition = self.context.get('competition')
-        detachment = self.context.get('detachment')
-        if Q13DetachmentReport.objects.filter(
-                competition=competition, detachment=detachment
-        ).exists():
-            raise serializers.ValidationError(
-                'Отчет по данному показателю уже существует'
-            )
-        return attrs
+        read_only_fields = ('competition', 'detachment')
 
     def create(self, validated_data):
         with transaction.atomic():
-            q13_report = Q13DetachmentReport.objects.create(
+            q13_report = Q13DetachmentReport.objects.get_or_create(
                 competition=validated_data.get('competition'),
                 detachment=validated_data.get('detachment'),
             )
             events_organization_data = validated_data.get('organization_data')
             for event_org_data in events_organization_data:
-                obj = Q13EventOrganization.objects.create(**event_org_data)
-                Q13ReportData.objects.create(
-                    q13_report=q13_report,
-                    q13_data=obj
+                Q13EventOrganization.objects.create(
+                    event_type=event_org_data['event_type'],
+                    event_link=event_org_data['event_link'],
+                    detachment_report=q13_report
                 )
             return q13_report
 
     @staticmethod
     def get_organized_events(instance):
-        raws_ids = Q13ReportData.objects.filter(
-            q13_report=instance
-        ).values_list('q13_data_id', flat=True)
-        organized_event = Q13EventOrganization.objects.filter(
-            id__in=raws_ids
+        organized_events = Q13EventOrganization.objects.filter(
+            detachment_report=instance
         )
-        return Q13EventOrganizationSerializer(organized_event, many=True).data
+        return Q13EventOrganizationSerializer(organized_events, many=True).data
 
 
 class Q18DetachmentReportSerializer(serializers.ModelSerializer):

@@ -1,6 +1,7 @@
 import os
 from datetime import datetime as dt
 from django.utils import timezone
+from django.utils.text import camel_case_to_spaces
 
 
 def format_filename(filename):
@@ -49,4 +50,3 @@ def is_competition_participant(detachment, competition):
     """Проверяет, является ли отряд участником конкурса."""
     return detachment in (competition.junior_detachment.all() +
                           competition.detachment.all())
-
