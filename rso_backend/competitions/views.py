@@ -1134,6 +1134,7 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
         - GET: Всем пользователям;
         - POST: Командирам отрядов, принимающих участие в конкурсе;
         - VERIFY-EVENT (POST/DELETE): Комиссарам РШ подвластных отрядов;
+        - GET-PLACE (GET): Всем пользователям
 
     Note:
         - 404 возвращается в случае, если не найден объект конкурса или отряд,
@@ -1251,12 +1252,46 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
         )
         serializer.save(competition=competition, detachment=detachment)
 
+    @action(detail=True, methods=['get'], url_path='get-place')
+    def get_place(self, request, **kwargs):
+        report = self.get_object()
+        tandem_ranking = Q13TandemRanking.objects.filter(
+            detachment=report.detachment
+        ).first()
+        if not tandem_ranking:
+            tandem_ranking = Q13TandemRanking.objects.filter(
+                junior_detachment=report.detachment
+            ).first()
+
+        # Пытаемся найти place в Q13TandemRanking
+        if tandem_ranking and tandem_ranking.place is not None:
+            return Response(
+                {"place": tandem_ranking.place},
+                status=status.HTTP_200_OK
+            )
+
+        # Если не найдено в Q13TandemRanking, ищем в Q13Ranking
+        ranking = Q13Ranking.objects.filter(
+            detachment=report.detachment
+        ).first()
+        if ranking and ranking.place is not None:
+            return Response(
+                {"place": ranking.place}, status=status.HTTP_200_OK
+            )
+
+        # Если не найдено ни в одной из моделей
+        return Response(
+            {"place": "Показатель в обработке"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
     @action(
         detail=True,
         methods=['post', 'delete'],
         url_path='verify-event/(?P<event_id>\d+)'
     )
-    def verify_event(self, request, competition_pk=None, pk=None, event_id=None):
+    def verify_event(self, request, competition_pk=None, pk=None,
+                     event_id=None):
         """
         Верифицирует конкретное мероприятие по его ID.
         """
@@ -1286,8 +1321,9 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
                 )
             else:
                 if participants_entry:
-                    tandem_ranking = Q13TandemRanking.objects.get_or_create(
-                        detachment=report.detachment,
+                    tandem_ranking, _ = Q13TandemRanking.objects.get_or_create(
+                        junior_detachment=report.detachment,
+                        detachment=participants_entry.detachment
                     )
                     tandem_ranking.place = calculate_q13_place(
                         Q13EventOrganization.objects.filter(
@@ -1295,27 +1331,54 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
                             is_verified=True
                         )
                     )
-                    tandem_ranking.place += calculate_q13_place(
-                        Q13EventOrganization.objects.filter(
-                            tandem_ranking.junior_detachment.q13detachmentreport_detachment_reports
+                    elder_detachment_report = None
+                    try:
+                        elder_detachment_report = Q13DetachmentReport.objects.get(
+                            detachment=tandem_ranking.detachment
                         )
-                    )
+                    except Q13DetachmentReport.DoesNotExist:
+                        tandem_ranking.place += 6
+                    if elder_detachment_report:
+                        tandem_ranking.place += calculate_q13_place(
+                            Q13EventOrganization.objects.filter(
+                                detachment_report=elder_detachment_report,
+                                is_verified=True
+                            )
+                        )
                 else:
-                    tandem_ranking = CompetitionParticipants.objects.filter(
-                        junior_detachment=report.detachment
+                    participants_entry = CompetitionParticipants.objects.filter(
+                        detachment=report.detachment
                     ).first()
+                    if not participants_entry:
+                        return Response(
+                            {'error': 'отряд не найден в участниках'},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    tandem_ranking, _ = Q13TandemRanking.objects.get_or_create(
+                        junior_detachment=participants_entry.junior_detachment,
+                        detachment=report.detachment
+                    )
                     tandem_ranking.place = calculate_q13_place(
                         Q13EventOrganization.objects.filter(
                             detachment_report=report,
                             is_verified=True
                         )
                     )
-                    tandem_ranking.place = calculate_q13_place(
-                        Q13EventOrganization.objects.filter(
-                            detachment_report=tandem_ranking.detachment.q13detachmentreport_detachment_reports,
-                            is_verified=True
+                    junior_detachment_report = None
+                    try:
+                        junior_detachment_report = Q13DetachmentReport.objects.get(
+                            detachment=tandem_ranking.junior_detachment
                         )
-                    )
+                    except Q13DetachmentReport.DoesNotExist:
+                        tandem_ranking.place += 6
+                    if junior_detachment_report:
+                        tandem_ranking.place += calculate_q13_place(
+                            Q13EventOrganization.objects.filter(
+                                detachment_report=junior_detachment_report,
+                                is_verified=True
+                            )
+                        )
+
                 tandem_ranking.save()
             return Response(
                 {"status": "Данные по организации "
