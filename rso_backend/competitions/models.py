@@ -582,6 +582,61 @@ class QBaseRanking(models.Model):
         abstract = True
 
 
+class Q2Ranking(QBaseRanking):
+    place = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(3)],
+        default=3,
+        verbose_name='Итоговое место по показателю'
+    )
+
+
+class Q2TandemRanking(QBaseTandemRanking):
+    place = models.PositiveSmallIntegerField(
+        verbose_name='Итоговое место по показателю'
+    )
+
+
+class Q2DetachmentReport(QBaseReport):
+    pass
+
+
+class Q2Links(models.Model):
+    """Таблица ссылок на публикации о прохождении школы командного состава."""
+
+    commander_achievment = models.BooleanField(
+        verbose_name=('Региональная школа командного состава'
+                      ' пройдена командиром отряда'),
+        default=False,
+        null=False,
+        blank=False
+    )
+    commissioner_achievment = models.BooleanField(
+        verbose_name=('Региональная школа командного состава'
+                      ' пройдена комиссаром отряда'),
+        default=False,
+        null=False,
+        blank=False
+    ) 
+    commander_link = models.URLField(
+        verbose_name=('Ссылка на публикацию о прохождении'
+                      ' школы командного состава командиром отряда'),
+    )
+    commissioner_link = models.URLField(
+        verbose_name=('Ссылка на публикацию о прохождении'
+                      ' школы командного состава комиссаром отряда'),
+    )
+    detachment_report = models.ForeignKey(
+        'Q2DetachmentReport',
+        on_delete=models.CASCADE,
+        related_name='links',
+        verbose_name='Отчет-2 отряда',
+    )
+
+
+class Q2DetachmentReport(QBaseReport):
+    pass
+
+
 class Q13TandemRanking(QBaseTandemRanking):
     place = models.PositiveSmallIntegerField(
         verbose_name='Итоговое место по показателю'

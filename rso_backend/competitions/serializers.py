@@ -14,7 +14,7 @@ from competitions.models import (
     PrizePlacesInDistrAndInterregEvents,
     PrizePlacesInDistrAndInterregLaborProjects,
     Q13EventOrganization, Q13DetachmentReport,
-    Q18DetachmentReport)
+    Q18DetachmentReport, Q2DetachmentReport, Q2Links)
 from headquarters.models import Detachment
 from headquarters.serializers import BaseShortUnitSerializer
 
@@ -886,6 +886,54 @@ class CreatePrizePlacesInAllRussianLaborProjectsSerializer(
                  'Отчетность по этому трудовому проекту уже подана.'}
             )
         return attrs
+
+
+class Q2LinksSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Q2Links
+        fields = (
+            'commander_achievement',
+            'commander_link',
+            'commissioner_achievement',
+            'commissioner_link'
+        )
+
+
+class Q2DetachmentReportSerializer(serializers.ModelSerializer):
+    q2_links = Q2LinksSerializer()
+
+    class Meta:
+        model = Q2DetachmentReport
+        fields = (
+            'id',
+            'competition',
+            'detachment',
+            'links',
+        )
+
+    def create(self, validated_data):
+        with transaction.atomic():
+            q2_report = Q2DetachmentReport.objects.get_or_create(
+                competition=validated_data.get('competition'),
+                detachment=validated_data.get('detachment'),
+            )
+            data = validated_data.get('q2_links')
+            commander_link = data.get(
+                'commander_link', None
+            )
+            commissioner_link = data.get(
+                'commissioner_link', None
+            )
+            commander_achievement = data.get('commander_achievement', False)
+            commissioner_achievement = data.get('commissioner_achievement', False)
+            Q2Links.objects.create(
+                commander_achievement=commander_achievement,
+                commissioner_achievement=commissioner_achievement,
+                commander_link=commander_link,
+                commissioner_link=commissioner_link,
+                detachment_report=q2_report
+            )
+            return q2_report
 
 
 class Q13EventOrganizationSerializer(serializers.ModelSerializer):

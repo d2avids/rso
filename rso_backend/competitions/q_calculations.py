@@ -3,6 +3,39 @@ from competitions.models import Q13EventOrganization, Q18Ranking, \
     Q18DetachmentReport, CompetitionParticipants, Q18TandemRanking
 
 
+def calculate_q2_place(
+        commander_achievment: bool, commissioner_achievment: bool
+) -> int:
+    """
+
+    Поля “Региональная школа командного состава пройдена командиром отряда”
+    и “Региональная школа командного состава пройдена комиссаром отряда”
+    обязательные.
+    При выборе “Да” обязательным также становится поле
+    “Ссылка на публикацию о прохождении школы командного состава”,
+    так как прохождение обучения засчитывается только
+    при предоставлении ссылки на документ.
+
+    Командир выбрал “Да” + Комиссар выбрал “Да” - 1 место
+    Командир выбрал “Да” + Комиссар выбрал “Нет” - 2 место
+    Командир выбрал “Нет” + Комиссар выбрал “Да” - 2 место
+    Командир выбрал “Нет” + Комиссар выбрал “Нет” - 3 место
+
+    """
+
+    if commander_achievment and commissioner_achievment:
+        place = 1
+    if (
+        commander_achievment and not commissioner_achievment
+    ) or (
+        not commander_achievment and commissioner_achievment
+    ):
+        place = 2
+    if not commander_achievment and not commissioner_achievment:
+        place = 3
+    return place
+
+
 def calculate_q13_place(objects: list[Q13EventOrganization]) -> int:
     """
     Спортивных мероприятий указано 1 и более - 1 балл, если не указано ни
