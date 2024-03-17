@@ -3,7 +3,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 from competitions.utils import get_certificate_scans_path, document_path
-
+from headquarters.models import Detachment
 
 class Competitions(models.Model):
     name = models.CharField(
@@ -536,7 +536,7 @@ class QBaseReport(models.Model):
         related_name='%(class)s_competition_reports',
     )
     detachment = models.ForeignKey(
-        'Competitions',
+        'headquarters.Detachment',
         on_delete=models.CASCADE,
         related_name='%(class)s_detachment_reports',
     )
@@ -596,29 +596,23 @@ class Q2TandemRanking(QBaseTandemRanking):
     )
 
 
-class Q2DetachmentReport(QBaseReport):
-
-    class Meta:
-        abstract = False
-
-
 class Q2Links(models.Model):
     """Таблица ссылок на публикации о прохождении школы командного состава."""
 
-    commander_achievment = models.BooleanField(
+    commander_achievement = models.BooleanField(
         verbose_name=('Региональная школа командного состава'
                       ' пройдена командиром отряда'),
         default=False,
         null=False,
         blank=False
     )
-    commissioner_achievment = models.BooleanField(
+    commissioner_achievement = models.BooleanField(
         verbose_name=('Региональная школа командного состава'
                       ' пройдена комиссаром отряда'),
         default=False,
         null=False,
         blank=False
-    ) 
+    )
     commander_link = models.URLField(
         verbose_name=('Ссылка на публикацию о прохождении'
                       ' школы командного состава командиром отряда'),
@@ -632,6 +626,31 @@ class Q2Links(models.Model):
         on_delete=models.CASCADE,
         related_name='links',
         verbose_name='Отчет-2 отряда',
+    )
+
+
+class Q2DetachmentReport(QBaseReport):
+    commander_achievement = models.BooleanField(
+        verbose_name=('Региональная школа командного состава'
+                      ' пройдена командиром отряда'),
+        default=False,
+        null=False,
+        blank=False
+    )
+    commissioner_achievement = models.BooleanField(
+        verbose_name=('Региональная школа командного состава'
+                      ' пройдена комиссаром отряда'),
+        default=False,
+        null=False,
+        blank=False
+    )
+    commander_link = models.URLField(
+        verbose_name=('Ссылка на публикацию о прохождении'
+                      ' школы командного состава командиром отряда'),
+    )
+    commissioner_link = models.URLField(
+        verbose_name=('Ссылка на публикацию о прохождении'
+                      ' школы командного состава комиссаром отряда'),
     )
 
 

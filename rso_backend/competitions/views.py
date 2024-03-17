@@ -2,6 +2,7 @@ import os
 from datetime import date
 
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import Q
 from django.http.response import HttpResponse
@@ -50,7 +51,7 @@ from competitions.serializers import (
     PrizePlacesInAllRussianEventsSerializer,
     PrizePlacesInAllRussianLaborProjectsSerializer,
     PrizePlacesInDistrAndInterregEventsSerializer,
-    PrizePlacesInDistrAndInterregLaborProjectsSerializer, Q2DetachmentReportSerializer,
+    PrizePlacesInDistrAndInterregLaborProjectsSerializer, Q2DetachmentReportSerializer, Q2LinksSerializer,
     ShortDetachmentCompetitionSerializer, Q13EventOrganizationSerializer,
     Q13DetachmentReportSerializer, Q18DetachmentReportSerializer
 )
@@ -1118,8 +1119,53 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
             Competitions, id=self.kwargs.get('competition_pk')
         )
         return Q2DetachmentReport.objects.filter(
-            competition_id=competition.id
+            competition=competition
         )
+
+    def create(self, request, *args, **kwargs):
+        competition = get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+        try:
+            detachment = get_object_or_404(
+                Detachment, id=request.user.detachment_commander.id
+            )
+        except ObjectDoesNotExist:
+            return Response(
+                {'error': 'Заполнять данные может только командир отряда.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        commander_achievement = request.data.get('q2_data').get(
+            'commander_achievement'
+        )
+        commissioner_achievement = request.data.get('q2_data').get(
+            'commissioner_achievement'
+        )
+        commander_link = request.data.get('q2_data').get('commander_link')
+        commissioner_link = request.data.get('q2_data').get('commissioner_link')
+        q2_data = {
+                'commander_achievement': commander_achievement,
+                'commissioner_achievement': commissioner_achievement,
+                'commander_link': commander_link,
+                'commissioner_link': commissioner_link
+        }
+        serializer = Q2DetachmentReportSerializer(
+            data={'q2_data': q2_data},
+            context={
+                'request': request,
+                'competition': competition,
+                'detachment': detachment,
+
+            }
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save(
+            competition=competition,
+            detachment=detachment,
+            # is_verified=False
+        )
+        return Response(serializer.data,
+                        status=status.HTTP_201_CREATED)
 
 
 class Q13DetachmentReportViewSet(viewsets.ModelViewSet):

@@ -892,48 +892,58 @@ class Q2LinksSerializer(serializers.ModelSerializer):
     class Meta:
         model = Q2Links
         fields = (
-            'commander_achievment',
+            'commander_achievement',
             'commander_link',
-            'commissioner_achievment',
+            'commissioner_achievement',
             'commissioner_link'
         )
 
 
 class Q2DetachmentReportSerializer(serializers.ModelSerializer):
-    q2_links = Q2LinksSerializer()
+    # q2_data = Q2LinksSerializer()
 
     class Meta:
         model = Q2DetachmentReport
         fields = (
-            'id',
             'competition',
             'detachment',
-            'q2_links',
+            'commander_achievement',
+            'commissioner_achievement',
+            'commander_link',
+            'commissioner_link'
+
         )
+        read_only_fields = ('competition', 'detachment')
+
 
     def create(self, validated_data):
+        print(self.context)
         with transaction.atomic():
-            q2_report = Q2DetachmentReport.objects.get_or_create(
-                competition=validated_data.get('competition'),
-                detachment=validated_data.get('detachment'),
-            )
-            data = validated_data.get('q2_links')
-            commander_link = data.get(
-                'commander_link', None
-            )
-            commissioner_link = data.get(
-                'commissioner_link', None
-            )
-            commander_achievment = data.get('commander_achievment', False)
-            commissioner_achievment = data.get('commissioner_achievment', False)
-            Q2Links.objects.create(
-                commander_achievment=commander_achievment,
-                commissioner_achievment=commissioner_achievment,
+            competition = self.context.get('competition')
+            detachment = self.context.get('detachment')
+            #что-то здесь не так
+
+            commander_achievement = validated_data.get('commander_achievement')
+            commissioner_achievement = validated_data.get('commissioner_achievement')
+            commander_link = validated_data.get('commander_link')
+            commissioner_link = validated_data.get('commissioner_link')
+
+            q2_report = Q2DetachmentReport.objects.create(
+                competition=competition,
+                detachment=detachment,
+                commander_achievement=commander_achievement,
+                commissioner_achievement=commissioner_achievement,
                 commander_link=commander_link,
                 commissioner_link=commissioner_link,
-                detachment_report=q2_report
             )
-            return q2_report
+            # Q2Links.objects.create(
+            #     commander_achievement=commander_achievement,
+            #     commissioner_achievement=commissioner_achievement,
+            #     commander_link=commander_link,
+            #     commissioner_link=commissioner_link,
+            #     detachment_report_id=q2_report.id
+            # )
+        return q2_report
 
 
 class Q13EventOrganizationSerializer(serializers.ModelSerializer):
