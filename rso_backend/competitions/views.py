@@ -661,18 +661,11 @@ class Q7ViewSet(
         Принимает пустой POST запрос.
         """
         event = self.get_object()
-        report = event.detachment_report
         if event.is_verified:
             return Response({'error': 'Отчет уже подтвержден.'},
                             status=status.HTTP_400_BAD_REQUEST)
-        # with transaction.atomic():
         event.is_verified = True
         event.save()
-            # events = report.participation_data.filter(is_verified=True)
-            # report.score = report.score_calculation_sum(
-            #         events, 'number_of_participants'
-            # )
-            # report.save()
         return Response(Q7Serializer(event).data,
                         status=status.HTTP_200_OK)
 
