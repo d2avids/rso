@@ -59,3 +59,16 @@ services:
       - celery_worker
     networks:
       - internal
+  nginx:
+    image: nginx:alpine
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "9000:80"
+    volumes:
+      - static:/static/
+      - media:/media/
+      - ./nginx_dev.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - internal
