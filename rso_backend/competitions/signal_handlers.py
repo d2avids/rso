@@ -3,7 +3,8 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
 from competitions.models import (
-    Q7
+    Q7,
+    Q8
 )
 
 
@@ -28,36 +29,25 @@ def create_score_q7(sender, instance, created=False, **kwargs):
             return report
 
 
-# @receiver(post_save, sender=ParticipationInAllRussianEvents)
-# def create_score_q8(sender, instance, created, **kwargs):
-#     """
-#     Сигнал для подсчета баллов при верификации отчета и
-#     пересчета при изменении рег командиром.
-#     Добавлено в виде сигналов, так как при изменении верифицированного отчета
-#     рег.командиром, если он менял поле количества участников,
-#     то баллы не пересчитывались.
-#     """
-#     if created:
-#         pass
-#     else:
-#         if instance.is_verified:
-#             events = ParticipationInAllRussianEvents.objects.filter(
-#                         competition=instance.competition,
-#                         detachment=instance.detachment,
-#                         is_verified=True
-#             )
-#             score_table_instance, created = Score.objects.get_or_create(
-#                 detachment=instance.detachment,
-#                 competition=instance.competition
-#             )
-#             score_table_instance.participation_in_all_russian_events = (
-#                 instance.score_calculation_sum(
-#                     events, 'number_of_participants'
-#                 )
-#             )
-#             score_table_instance.save()
+@receiver([post_save, post_delete], sender=Q8)
+def create_score_q8(sender, instance, created=False, **kwargs):
+    if created:
+        pass
+    else:
+        if instance.is_verified:
+            report = instance.detachment_report
+            events = Q8.objects.filter(
+                        detachment_report=report,
+                        is_verified=True
+            ).all()
+            report.score = (
+                report.score_calculation_sum(
+                    events, 'number_of_participants'
+                )
+            )
+            report.save()
 
-#             return score_table_instance
+            return report
 
 
 # @receiver(post_save, sender=PrizePlacesInDistrAndInterregEvents)
@@ -181,10 +171,10 @@ signals.post_save.connect(
     create_score_q7,
     sender=Q7
 )
-# signals.post_save.connect(
-#     create_score_q8,
-#     sender=ParticipationInAllRussianEvents
-# )
+signals.post_save.connect(
+    create_score_q8,
+    sender=Q8
+)
 # signals.post_save.connect(
 #     create_score_q9,
 #     sender=PrizePlacesInDistrAndInterregEvents

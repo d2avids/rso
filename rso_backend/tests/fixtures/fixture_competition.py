@@ -2,8 +2,8 @@ import datetime
 
 import pytest
 from competitions.models import (
-    Q7, CompetitionApplications, CompetitionParticipants,
-    Competitions, LinksQ7, Q7Report
+    Q7, Q8, CompetitionApplications, CompetitionParticipants,
+    Competitions, LinksQ7, LinksQ8, Q7Report, Q8Report
 )
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
@@ -476,176 +476,201 @@ def report_question7_verif3(
     return event
 
 
-# @pytest.fixture  # замени на восьмой, протупила
-# def report_question8_not_verif(
-#     competition, participants_competition_tandem,
-#     junior_detachment
-# ):
-#     """
-#     Не верифицированный отчет отряда по участию во всероссийских
-#     мероприятиях. Подал отчет участник отряда
-#     тандем-младший отряд - участник конкурса. Регион 1.
-#     """
-#     report, _ = Q7Report.objects.get_or_create(
-#         competition=competition,
-#         detachment=junior_detachment
-#     )
-#     event = Q7.objects.create(
-#         event_name='Мероприятие 1',
-#         number_of_participants=10,
-#         detachment_report=report,
-#     )
-#     LinksQ7.objects.create(
-#         link='https://example.com/q7_1',
-#         event=event
-#     )
-#     return event
 
 
-# @pytest.fixture
-# def report_question8_verif(
-#     competition, participants_competition_tandem,
-#     junior_detachment
-# ):
-#     """
-#     Верифицированный отчет отряда по участию во всероссийских
-#     мероприятиях. Подал отчет участник отряда
-#     тандем-младший отряд - участник конкурса. Регион 1.
-#     """
-#     report = ParticipationInAllRussianEvents.objects.create(
-#         event_name='Мероприятие 1',
-#         number_of_participants=10,
-#         competition=competition,
-#         detachment=junior_detachment,
-#     )
-#     LinksOfParticipationInAllRussianEvents.objects.create(
-#         link='https://example.com/q7_1',
-#         event=report
-#     )
-#     report.is_verified = True
-#     report.save()
-#     return report
 
 
-# @pytest.fixture
-# def report_question8_verif_second(
-#     competition, participants_competition_tandem,
-#     junior_detachment
-# ):
-#     """
-#     Второй верифицированный отчет отряда по участию во
-#     всероссийских мероприятиях. Подал отчет участник отряда
-#     тандем-младший отряд - участник конкурса. Регион 1.
-#     """
-#     report = ParticipationInAllRussianEvents.objects.create(
-#         event_name='Мероприятие 2',
-#         number_of_participants=100,
-#         competition=competition,
-#         detachment=junior_detachment,
-#     )
-#     LinksOfParticipationInAllRussianEvents.objects.create(
-#         link='https://example.com/q7_12',
-#         event=report
-#     )
-#     report.is_verified = True
-#     report.save()
-#     return report
 
 
-# @pytest.fixture
-# def report_question8_not_verif2(
-#     competition, participants_competition_start,
-#     junior_detachment_3
-# ):
-#     """
-#     Не верифицированный отчет отряда по участию во всероссийских
-#     мероприятиях. Подал отчет участник отряда
-#     старт- участник конкурса. Регион 1.
-#     """
-#     report = ParticipationInAllRussianEvents.objects.create(
-#         event_name='Мероприятие 1',
-#         number_of_participants=100,
-#         competition=competition,
-#         detachment=junior_detachment_3,
-#     )
-#     LinksOfParticipationInAllRussianEvents.objects.create(
-#         link='https://example.com/q7_2',
-#         event=report
-#     )
-#     return report
+
+@pytest.fixture
+def report_question8_not_verif(
+    competition, participants_competition_tandem,
+    junior_detachment
+):
+    """
+    Не верифицированный отчет отряда по участию во всероссийских
+    мероприятиях. Подал отчет участник отряда
+    тандем-младший отряд - участник конкурса. Регион 1.
+    """
+    report, _ = Q8Report.objects.get_or_create(
+        competition=competition,
+        detachment=junior_detachment
+    )
+    event = Q8.objects.create(
+        event_name='Мероприятие 1',
+        number_of_participants=10,
+        detachment_report=report,
+    )
+    LinksQ8.objects.create(
+        link='https://example.com/q7_1',
+        event=event
+    )
+    return event
 
 
-# @pytest.fixture
-# def report_question8_verif2(
-#     competition, participants_competition_start,
-#     junior_detachment_3
-# ):
-#     """
-#     Верифицированный отчет отряда по участию во всероссийских
-#     мероприятиях. Подал отчет участник отряда
-#     старт- участник конкурса. Регион 1
-#     """
-#     report = ParticipationInAllRussianEvents.objects.create(
-#         event_name='Мероприятие 1',
-#         number_of_participants=100,
-#         competition=competition,
-#         detachment=junior_detachment_3,
-#     )
-#     LinksOfParticipationInAllRussianEvents.objects.create(
-#         link='https://example.com/q7_2',
-#         event=report
-#     )
-#     report.is_verified = True
-#     report.save()
-#     return report
+@pytest.fixture
+def report_question8_verif(
+    competition, participants_competition_tandem,
+    junior_detachment
+):
+    """
+    Верифицированный отчет отряда по участию во всероссийских
+    мероприятиях. Подал отчет участник отряда
+    тандем-младший отряд - участник конкурса. Регион 1.
+    """
+    report, _ = Q8Report.objects.get_or_create(
+        competition=competition,
+        detachment=junior_detachment
+    )
+    event = Q8.objects.create(
+        event_name='Мероприятие 1',
+        number_of_participants=10,
+        detachment_report=report,
+    )
+    LinksQ8.objects.create(
+        link='https://example.com/q7_1',
+        event=event
+    )
+    event.is_verified = True
+    event.save()
+    return event
 
 
-# @pytest.fixture
-# def report_question8_not_verif3(
-#     competition, participants_competition_start_2,
-#     junior_detachment_2
-# ):
-#     """
-#     Не верифицированный отчет отряда по участию во всероссийских
-#     мероприятиях. Подал отчет участник отряда
-#     старт- участник конкурса. Регион 2.
-#     """
-#     report = ParticipationInAllRussianEvents.objects.create(
-#         event_name='Мероприятие 1',
-#         number_of_participants=20,
-#         competition=competition,
-#         detachment=junior_detachment_2,
-#     )
-#     LinksOfParticipationInAllRussianEvents.objects.create(
-#         link='https://example.com/q7_3',
-#         event=report
-#     )
-#     return report
+@pytest.fixture
+def report_question8_verif_second(
+    competition, participants_competition_tandem,
+    junior_detachment
+):
+    """
+    Второй верифицированный отчет отряда по участию во
+    всероссийских мероприятиях. Подал отчет участник отряда
+    тандем-младший отряд - участник конкурса. Регион 1.
+    """
+    report, _ = Q8Report.objects.get_or_create(
+        competition=competition,
+        detachment=junior_detachment
+    )
+    event = Q8.objects.create(
+        event_name='Мероприятие 2',
+        number_of_participants=100,
+        detachment_report=report,
+    )
+    LinksQ8.objects.create(
+        link='https://example.com/q7_12',
+        event=event
+    )
+    event.is_verified = True
+    event.save()
+    return event
 
 
-# @pytest.fixture
-# def report_question8_verif3(
-#     competition, participants_competition_start_2,
-#     junior_detachment_2
-# ):
-#     """
-#     Верифицированный отчет отряда по участию во всероссийских
-#     мероприятиях. Подал отчет участник отряда
-#     старт- участник конкурса. Регион 2.
-#     """
-#     report = ParticipationInAllRussianEvents.objects.create(
-#         event_name='Мероприятие 1',
-#         number_of_participants=20,
-#         competition=competition,
-#         detachment=junior_detachment_2,
-#     )
-#     LinksOfParticipationInAllRussianEvents.objects.create(
-#         link='https://example.com/q7_3',
-#         event=report
-#     )
-#     report.is_verified = True
-#     report.save()
-#     return report
+@pytest.fixture
+def report_question8_not_verif2(
+    competition, participants_competition_start,
+    junior_detachment_3
+):
+    """
+    Не верифицированный отчет отряда по участию во всероссийских
+    мероприятиях. Подал отчет участник отряда
+    старт- участник конкурса. Регион 1.
+    """
+    report, _ = Q8Report.objects.get_or_create(
+        competition=competition,
+        detachment=junior_detachment_3
+    )
+    event = Q8.objects.create(
+        event_name='Мероприятие 1',
+        number_of_participants=100,
+        detachment_report=report,
+    )
+    LinksQ8.objects.create(
+        link='https://example.com/q7_2',
+        event=event
+    )
+    return report
+
+
+@pytest.fixture
+def report_question8_verif2(
+    competition, participants_competition_start,
+    junior_detachment_3
+):
+    """
+    Верифицированный отчет отряда по участию вво всероссийских
+    мероприятиях. Подал отчет участник отряда
+    старт- участник конкурса. Регион 1
+    """
+    report, _ = Q8Report.objects.get_or_create(
+        competition=competition,
+        detachment=junior_detachment_3
+    )
+    event = Q8.objects.create(
+        event_name='Мероприятие 1',
+        number_of_participants=100,
+        detachment_report=report,
+    )
+    LinksQ8.objects.create(
+        link='https://example.com/q7_2',
+        event=event
+    )
+    event.is_verified = True
+    event.save()
+    return event
+
+
+@pytest.fixture
+def report_question8_not_verif3(
+    competition, participants_competition_start_2,
+    junior_detachment_2
+):
+    """
+    Не верифицированный отчет отряда по участию во всероссийских
+    мероприятиях. Подал отчет участник отряда
+    старт- участник конкурса. Регион 2.
+    """
+    report, _ = Q8Report.objects.get_or_create(
+        competition=competition,
+        detachment=junior_detachment_2
+    )
+    event = Q8.objects.create(
+        event_name='Мероприятие 1',
+        number_of_participants=20,
+        detachment_report=report,
+    )
+    LinksQ8.objects.create(
+        link='https://example.com/q7_3',
+        event=event
+    )
+    return report
+
+
+@pytest.fixture
+def report_question8_verif3(
+    competition, participants_competition_start_2,
+    junior_detachment_2
+):
+    """
+    Верифицированный отчет отряда по участию во всероссийских
+    мероприятиях. Подал отчет участник отряда
+    старт- участник конкурса. Регион 2.
+    """
+    report, _ = Q8Report.objects.get_or_create(
+        competition=competition,
+        detachment=junior_detachment_2
+    )
+    event = Q8.objects.create(
+        event_name='Мероприятие 1',
+        number_of_participants=20,
+        detachment_report=report,
+    )
+    LinksQ8.objects.create(
+        link='https://example.com/q7_3',
+        event=event
+    )
+    event.is_verified = True
+    event.save()
+    return event
 
 
 # @pytest.fixture

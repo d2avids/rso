@@ -276,14 +276,10 @@ class Links(models.Model):
         abstract = True
 
 
-class ReportCalcBase(QBaseReport):
+class CalcBase:
     """
-    Абстрактная модель для отчетов.
-    Добавлены методы калькуляции очков для экземпляра.
+    Добавляет методы калькуляции очков для экземпляра.
     """
-
-    class Meta:
-        abstract = True
 
     def score_calculation_sum(self, events, field_name: str):
         """
@@ -356,7 +352,7 @@ class Q7Ranking(QBaseRanking):
     )
 
 
-class Q7Report(ReportCalcBase):
+class Q7Report(CalcBase, QBaseReport):
     """
     Отчет о участии в мероприятиях.
     Поля: отряд, конкурс, очки + FK поле на мероприятия в которых участвовали.
@@ -369,7 +365,6 @@ class Q7Report(ReportCalcBase):
             default=0  # чем больше, тем выше итоговое место в рейтинге
         )
     )
-    pass
 
 
 class LinksQ7(Links):
@@ -438,61 +433,101 @@ class Q7(ParticipationBase):
         ]
 
 
-# class LinksOfParticipationInAllRussianEvents(Links):
-#     """
-#     Ссылки на участие во всероссийских мероприятиях.
-
-#     Хранит пользовательские ссылки на социальные сети с фотоотчетом
-#     с наименованием мероприятия и наименованием ЛСО,
-#     принявшем в нем участие.
-#     """
-#     event = models.ForeignKey(
-#         to='ParticipationInAllRussianEvents',
-#         on_delete=models.CASCADE,
-#         related_name='links',
-#         verbose_name='Участие во всероссийских мероприятиях'
-#     )
-
-#     class Meta:
-#         verbose_name_plural = (
-#             'Ссылки на фотоотчет участия СО во всероссийских мероприятиях'
-#         )
-#         verbose_name = (
-#             'Ссылка на фотоотчет участия СО во всероссийском мероприятии'
-#         )
-#         constraints = [
-#             models.UniqueConstraint(
-#                 fields=('event', 'link'),
-#                 name='unique_event_link_all_russian_events'
-#             )
-#         ]
+class Q8TandemRanking(QBaseTandemRanking):
+    """
+    Рейтинг для тандема-участников.
+    Создается и заполняется переодической таской.
+    """
+    place = models.PositiveSmallIntegerField(
+        verbose_name='Итоговое место по показателю 8'
+    )
 
 
-# class ParticipationInAllRussianEvents(Report):
-#     """
-#     Участие членов студенческого отряда во всероссийских
-#     мероприятиях. Модель для хранения каждого участия.
-#     """
-#     number_of_participants = models.PositiveIntegerField(
-#         verbose_name='Количество участников',
-#         default=0,
-#         validators=[MinValueValidator(0), MaxValueValidator(100)]
-#     )
+class Q8Ranking(QBaseRanking):
+    """
+    Рейтинг для старт-участников.
+    Создается и заполняется переодической таской.
+    """
+    place = models.PositiveSmallIntegerField(
+        verbose_name='Итоговое место по показателю 8'
+    )
 
-#     def __str__(self):
-#         return (f'Участие СО {self.detachment.name} во всероссийских '
-#                 f'мероприятиях, id {self.id}')
 
-#     class Meta:
-#         ordering = ['-competition__id']
-#         verbose_name = 'Участие во всероссийских мероприятиях'
-#         verbose_name_plural = 'Участия во всероссийских мероприятиях'
-#         constraints = [
-#             models.UniqueConstraint(
-#                 fields=('competition', 'detachment', 'event_name'),
-#                 name='unique_participation_in_all_russian_events'
-#             )
-#         ]
+class Q8Report(CalcBase, QBaseReport):
+    """
+    Отчет о участии в мероприятиях.
+    Поля: отряд, конкурс, очки + FK поле на мероприятия в которых участвовали.
+    Очки - сумма участий sum(number_of_participants).
+    Отчет имеет методы для подсчета очков (из абстрактной модели).
+    """
+    score = (
+        models.PositiveSmallIntegerField(
+            verbose_name='Общее количество участий',
+            default=0  # чем больше, тем выше итоговое место в рейтинге
+        )
+    )
+
+
+class LinksQ8(Links):
+    """
+    Ссылки на участие во всероссийских мероприятиях.
+
+    Хранит пользовательские ссылки на социальные сети с фотоотчетом
+    с наименованием мероприятия и наименованием ЛСО,
+    принявшем в нем участие.
+    """
+    event = models.ForeignKey(
+        to='Q8',
+        on_delete=models.CASCADE,
+        related_name='links',
+        verbose_name='Участие во всероссийских мероприятиях'
+    )
+
+    class Meta:
+        verbose_name_plural = (
+            'Ссылки на фотоотчет участия СО во всероссийских мероприятиях'
+        )
+        verbose_name = (
+            'Ссылка на фотоотчет участия СО во всероссийском мероприятии'
+        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=('event', 'link'),
+                name='unique_event_link_all_russian_events'
+            )
+        ]
+
+
+class Q8(ParticipationBase):
+    """
+    Участие членов студенческого отряда во всероссийских
+    мероприятиях. Модель для хранения каждого участия.
+    """
+    number_of_participants = models.PositiveIntegerField(
+        verbose_name='Количество участников',
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    detachment_report = models.ForeignKey(
+        'Q8Report',
+        on_delete=models.CASCADE,
+        related_name='participation_data',
+        verbose_name='Отчет отряда',
+    )
+
+    def __str__(self):
+        return (f'Участие СО во всероссийских '
+                f'мероприятиях, id {self.id}')
+
+    class Meta:
+        verbose_name = 'Участие во всероссийских мероприятиях'
+        verbose_name_plural = 'Участия во всероссийских мероприятиях'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('detachment_report', 'event_name'),
+                name='unique_participation_in_all_russian_events'
+            )
+        ]
 
 
 # class PrizePlacesInDistrAndInterregEvents(Report):

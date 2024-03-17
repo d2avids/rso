@@ -15,7 +15,7 @@ from competitions.views import (
     CompetitionApplicationsViewSet, CompetitionParticipantsViewSet,
     CompetitionViewSet, Q7ViewSet,
     Q13DetachmentReportViewSet, Q13EventOrganizationViewSet,
-    Q18DetachmentReportViewSet,
+    Q18DetachmentReportViewSet, Q8ViewSet,
 )
 from events.views import (AnswerDetailViewSet, EventAdditionalIssueViewSet,
                           EventApplicationsViewSet,
@@ -115,6 +115,11 @@ router.register(
 router.register(
     r'competitions/(?P<competition_pk>\d+)/reports/q7',
     Q7ViewSet,
+    basename='q7'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q8',
+    Q8ViewSet,
     basename='q7'
 )
 # router.register(

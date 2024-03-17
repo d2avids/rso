@@ -5,10 +5,10 @@ from django.conf import settings
 from rest_framework import serializers
 
 from competitions.models import (
-    Q7, CompetitionApplications, CompetitionParticipants, Competitions,
-    LinksQ7,
+    Q7, Q8, CompetitionApplications, CompetitionParticipants, Competitions,
+    LinksQ7, LinksQ8,
     Q13EventOrganization, Q13DetachmentReport,
-    Q18DetachmentReport, Q7Report)
+    Q18DetachmentReport, Q7Report, Q8Report)
 from headquarters.models import Detachment
 from headquarters.serializers import BaseShortUnitSerializer
 
@@ -163,22 +163,6 @@ class CompetitionParticipantsSerializer(serializers.ModelSerializer):
         return attrs
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class LinksQ7Serializer(
         serializers.ModelSerializer
 ):
@@ -201,8 +185,6 @@ class Q7Serializer(
         model = Q7
         fields = (
             'id',
-            # 'competition',
-            # 'detachment',
             'certificate_scans',
             'event_name',
             'number_of_participants',
@@ -212,7 +194,6 @@ class Q7Serializer(
         )
         read_only_fields = (
             'id',
-            # 'competition',
             'event_name',
             'detachment',
             'is_verified',
@@ -258,28 +239,6 @@ class Q7Serializer(
         return event
 
 
-# class ConfirmQ7Serializer(
-#         serializers.ModelSerializer
-# ):
-#     links = LinksQ7Serializer(
-#         many=True
-#     )
-
-#     class Meta:
-#         model = Q7
-#         fields = '__all__'
-#         read_only_fields = (
-#             'id',
-#             # 'competition',
-#             # 'detachment',
-#             'event_name',
-#             'certificate_scans',
-#             'number_of_participants',
-#             'links',
-#             'detachment_report'
-#         )
-
-
 class CreateQ7Serializer(
         serializers.ModelSerializer
 ):
@@ -300,7 +259,6 @@ class CreateQ7Serializer(
         )
         read_only_fields = (
             'id',
-            # 'competition',
             'detachment',
             'is_verified',
             'detachment_report'
@@ -372,194 +330,171 @@ class Q7ReportSerializer(
         fields = '__all__'
 
 
+class LinksQ8Serializer(
+        serializers.ModelSerializer
+):
+    class Meta:
+        model = LinksQ8
+        fields = (
+            'id',
+            'link'
+        )
 
 
+class Q8Serializer(
+        serializers.ModelSerializer
+):
+    links = LinksQ8Serializer(
+        many=True
+    )
+
+    class Meta:
+        model = Q8
+        fields = (
+            'id',
+            'certificate_scans',
+            'event_name',
+            'number_of_participants',
+            'links',
+            'is_verified',
+            'detachment_report'
+        )
+        read_only_fields = (
+            'id',
+            'event_name',
+            'detachment',
+            'is_verified',
+            'detachment_report'
+        )
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        links = request.data.get('links')
+        if not links or len(links) == 0:
+            raise serializers.ValidationError(
+                {'links': 'Добавьте хотя бы одну ссылку на фотоотчет.'}
+            )
+        link_values = [link['link'] for link in links]
+        if len(link_values) != len(set(link_values)):
+            raise serializers.ValidationError(
+                {'links': 'Указаны одинаковые ссылки на фотоотчет.'}
+            )
+        return attrs
+
+    def update(self, instance, validated_data):
+        links = validated_data.pop('links')
+        if links:
+            try:
+                with transaction.atomic():
+                    event = super().update(instance, validated_data)
+                    event.links.all().delete()
+                    serializer = (
+                        LinksQ8Serializer(
+                            many=True,
+                            data=links,
+                            context={'request': self.context.get('request'),
+                                     'detachment_report': event.detachment_report,
+                                     'event': event}
+                        )
+                    )
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save(event=event)
+            except Exception as e:
+                raise serializers.ValidationError(e)
+        else:
+            event = super().update(instance, validated_data)
+        return event
 
 
+class CreateQ8Serializer(
+        serializers.ModelSerializer
+):
+    links = LinksQ8Serializer(
+        many=True
+    )
+
+    class Meta:
+        model = Q8
+        fields = (
+            'id',
+            'event_name',
+            'certificate_scans',
+            'number_of_participants',
+            'links',
+            'is_verified',
+            'detachment_report'
+        )
+        read_only_fields = (
+            'id',
+            'detachment',
+            'is_verified',
+            'detachment_report'
+        )
+
+    def validate(self, attrs):
+        event = self.context.get('event')
+        links = event.get('links')
+        if not links:
+            raise serializers.ValidationError(
+                {"links": "Добавьте хотя бы одну ссылку на фотоотчет"}
+            )
+        if not event.get('event_name'):
+            raise serializers.ValidationError(
+                {'event_name': 'Укажите название мероприятия.'}
+            )
+        if not event.get('number_of_participants'):
+            raise serializers.ValidationError(
+                {'number_of_participants': 'Укажите количество участников.'}
+            )
+        if not links or len(links) == 0:
+            raise serializers.ValidationError(
+                {'links': 'Добавьте хотя бы одну ссылку на фотоотчет.'}
+            )
+        if self.Meta.model.objects.filter(
+            detachment_report=self.context.get('detachment_report'),
+            event_name=attrs.get('event_name')
+        ).exists():
+            raise serializers.ValidationError(
+                {'event_name': 'Отчетность по этому мероприятию уже подана.'}
+            )
+        link_values = [link['link'] for link in links]
+        if len(link_values) != len(set(link_values)):
+            raise serializers.ValidationError(
+                {'links': 'Указаны одинаковые ссылки.'}
+            )
+        return attrs
+
+    def create(self, validated_data):
+        links = validated_data.pop('links')
+        try:
+            with transaction.atomic():
+                event = super().create(validated_data)
+                serializer = (
+                    LinksQ8Serializer(
+                        many=True,
+                        data=links,
+                        context={'request': self.context.get('request'),
+                                 'detachment_report': event.detachment_report,
+                                 'event': event}
+                    )
+                )
+                serializer.is_valid(raise_exception=True)
+                serializer.save(event=event)
+        except Exception as e:
+            raise serializers.ValidationError(e)
+        return event
 
 
+class Q8ReportSerializer(
+    serializers.ModelSerializer
+):
+    participation_data = Q8Serializer(many=True)
+    detachment = ShortDetachmentCompetitionSerializer()
+    competition = CompetitionSerializer()
 
-
-
-
-# class LinksOfParticipationInAllRussianEventsSerializer(
-#     serializers.ModelSerializer
-# ):
-#     class Meta:
-#         model = LinksOfParticipationInAllRussianEvents
-#         fields = (
-#             'id',
-#             'link'
-#         )
-
-
-# class ParticipationInAllRussianEventsSerializer(
-#     serializers.ModelSerializer
-# ):
-#     links = LinksOfParticipationInAllRussianEventsSerializer(
-#         many=True
-#     )
-
-#     class Meta:
-#         model = ParticipationInAllRussianEvents
-#         fields = (
-#             'id',
-#             'competition',
-#             'detachment',
-#             'certificate_scans',
-#             'event_name',
-#             'number_of_participants',
-#             'links',
-#             'is_verified'
-#         )
-#         read_only_fields = (
-#             'id',
-#             'competition',
-#             'event_name',
-#             'detachment',
-#             'is_verified'
-#         )
-
-#     def validate(self, attrs):
-#         links = attrs.get('links')
-#         if not links or len(links) == 0:
-#             raise serializers.ValidationError(
-#                     'Добавьте хотя бы одну ссылку на фотоотчет.'
-#                 )
-#         link_values = [link['link'] for link in links]
-#         if len(link_values) != len(set(link_values)):
-#             raise serializers.ValidationError(
-#                 'Ссылки должны быть уникальными.'
-#             )
-#         return attrs
-
-#     def update(self, instance, validated_data):
-#         links = validated_data.pop('links')
-#         if links:
-#             try:
-#                 with transaction.atomic():
-#                     event = super().update(instance, validated_data)
-#                     event.links.all().delete()
-#                     serializer = (
-#                         LinksOfParticipationInAllRussianEventsSerializer(
-#                             many=True,
-#                             data=links,
-#                             context={
-#                                 'request': self.context.get('request'),
-#                                 'detachment': self.context.get('detachment'),
-#                                 'event': event
-#                             }
-#                         )
-#                     )
-#                     serializer.is_valid(raise_exception=True)
-#                     serializer.save(event=event)
-#             except Exception as e:
-#                 raise serializers.ValidationError(e)
-#         else:
-#             event = super().update(instance, validated_data)
-#         return event
-
-
-# class ConfirmParticipationInAllRussianEventsSerializer(
-#     serializers.ModelSerializer
-# ):
-#     links = LinksOfParticipationInAllRussianEventsSerializer(
-#         many=True
-#     )
-
-#     class Meta:
-#         model = ParticipationInAllRussianEvents
-#         fields = '__all__'
-#         read_only_fields = (
-#             'id',
-#             'competition',
-#             'detachment',
-#             'event_name',
-#             'certificate_scans',
-#             'number_of_participants',
-#             'links'
-#         )
-
-
-# class CreateParticipationInAllRussianEventsSerializer(
-#     serializers.ModelSerializer
-# ):
-#     links = LinksOfParticipationInAllRussianEventsSerializer(
-#         many=True
-#     )
-
-#     class Meta:
-#         model = ParticipationInAllRussianEvents
-#         fields = (
-#             'id',
-#             'competition',
-#             'detachment',
-#             'event_name',
-#             'certificate_scans',
-#             'number_of_participants',
-#             'links',
-#             'is_verified',
-#         )
-#         read_only_fields = (
-#             'id',
-#             'competition',
-#             'detachment',
-#             'is_verified'
-#         )
-
-#     def validate(self, attrs):
-#         request = self.context.get('request')
-#         links = attrs.get('links')
-#         if not links:
-#             raise serializers.ValidationError(
-#                 {'links': 'Добавьте хотя бы одну ссылку на фотоотчет.'}
-#             )
-#         if not request.data.get('event_name'):
-#             raise serializers.ValidationError(
-#                 {'event_name': 'Укажите название мероприятия.'}
-#             )
-#         if not request.data.get('number_of_participants'):
-#             raise serializers.ValidationError(
-#                 {'number_of_participants': 'Укажите количество участников.'}
-#             )
-#         if len(links) == 0:
-#             raise serializers.ValidationError(
-#                 {'links': 'Добавьте хотя бы одну ссылку на фотоотчет.'}
-#             )
-#         if self.Meta.model.objects.filter(
-#             competition=self.context.get('competition'),
-#             detachment=self.context.get('detachment'),
-#             event_name=attrs.get('event_name')
-#         ).exists():
-#             raise serializers.ValidationError(
-#                 {'event_name': 'Отчетность по этому мероприятию уже подана.'}
-#             )
-#         link_values = [link['link'] for link in links]
-#         if len(link_values) != len(set(link_values)):
-#             raise serializers.ValidationError(
-#                 {'links': 'Ссылки должны быть уникальными.'}
-#             )
-#         return attrs
-
-#     def create(self, validated_data):
-#         try:
-#             links = validated_data.pop('links')
-#             with transaction.atomic():
-#                 event = super().create(validated_data)
-#                 serializer = (
-#                     LinksOfParticipationInAllRussianEventsSerializer(
-#                         many=True,
-#                         data=links,
-#                         context={'request': self.context.get('request'),
-#                                  'detachment': self.context.get('detachment'),
-#                                  'event': event}
-#                     )
-#                 )
-#                 serializer.is_valid(raise_exception=True)
-#                 serializer.save(event=event)
-#         except Exception as e:
-#             raise serializers.ValidationError(e)
-#         return event
+    class Meta:
+        model = Q8Report
+        fields = '__all__'
 
 
 # class PrizePlacesInDistrAndInterregEventsSerializer(
