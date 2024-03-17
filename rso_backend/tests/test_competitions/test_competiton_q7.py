@@ -1,13 +1,13 @@
 from http import HTTPStatus
 import pytest
 
-from competitions.models import ParticipationInDistrAndInterregEvents, Score
+from competitions.models import Q7, Q7Report
 
 
 @pytest.mark.django_db(transaction=True, reset_sequences=True)
 class TestParticipationInDistrictAndInterregionalEventsViewSet:
     competition_url = '/api/v1/competitions/'
-    question_url = '/reports/participation_in_distr_and_interreg_events/'
+    question_url = '/reports/q7/'
 
     report = {
         "event_name": "Мероприятие New",
@@ -21,41 +21,65 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
             }
         ]
     }
-    report_with_verif = {
-        "event_name": "Мероприятие New",
-        "number_of_participants": 10,
-        "links": [
-            {
-                "link": "http://127.0.0.1:8000/swagger/"
-            }
-        ],
-        "is_verified": True
-    }
-    report_without_link = {
-        "event_name": "Мероприятие 1",
-        "number_of_participants": 10,
-    }
-    report_with_link_0 = {
-        "event_name": "Мероприятие 1",
-        "number_of_participants": 10,
-        "links": []
-    }
-    report_without_event_name = {
-        "number_of_participants": 10,
-        "links": [
-            {
-                "link": "http://127.0.0.1:8000/swagger/"
-            }
-        ]
-    }
-    report_without_number_of_participants = {
-        "event_name": "Мероприятие 1",
-        "links": [
-            {
-                "link": "http://127.0.0.1:8000/swagger/"
-            }
-        ]
-    }
+    report_list = [
+        {
+            "event_name": "Мероприятие New",
+            "number_of_participants": 10,
+            "links": [
+                {
+                    "link": "http://127.0.0.1:8000/swagger/"
+                },
+                {
+                    "link": "http://127.0.0.1:8000/api/v1/competitions/"
+                }
+            ]
+        }
+    ]
+    report_with_verif = [
+        {
+            "event_name": "Мероприятие New",
+            "number_of_participants": 10,
+            "links": [
+                {
+                    "link": "http://127.0.0.1:8000/swagger/"
+                }
+            ],
+            "is_verified": True
+        }
+    ]
+    report_without_link = [
+        {
+            "event_name": "Мероприятие 1",
+            "number_of_participants": 10,
+        }
+    ]
+    report_with_link_0 = [
+        {
+            "event_name": "Мероприятие 1",
+            "number_of_participants": 10,
+            "links": []
+        }
+    ]
+    report_without_event_name = [
+        {
+            "number_of_participants": 10,
+            "links": [
+                {
+                    "link": "http://127.0.0.1:8000/swagger/"
+                }
+            ]
+        }
+    ]
+    report_without_number_of_participants = [
+        {
+            "event_name": "Мероприятие 1",
+            "links": [
+                {
+                    "link": "http://127.0.0.1:8000/swagger/"
+                }
+            ]
+        }
+    ]
 
     def test_get_list_reg_commissar(
             self, authenticated_client_commissar_regional_headquarter,
@@ -130,14 +154,20 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
         """
         response = authenticated_client.post(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}', data=self.report, format='json'
+            f'{self.question_url}', data=self.report_list, format='json'
         )
         assert response.status_code == HTTPStatus.CREATED, (
             'Response code is not 201'
         )
-        new_report = ParticipationInDistrAndInterregEvents.objects.filter(
+        global_report = Q7Report.objects.filter(
             competition=competition,
             detachment=detachment_competition
+        ).all()
+        assert len(global_report) == 1, (
+            'Количество отчетов не соответствует ожидаемому'
+        )
+        new_report = Q7.objects.filter(
+            detachment_report=global_report[0]
         ).all()
         assert len(new_report) == 1, (
             'Количество отчетов не соответствует ожидаемому'
@@ -254,7 +284,7 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
         """
         response = client.post(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}', data=self.report, format='json'
+            f'{self.question_url}', data=list(self.report), format='json'
         )
         assert response.status_code == HTTPStatus.UNAUTHORIZED, (
             'Response code is not 401'
@@ -269,7 +299,7 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
         """
         response = authenticated_client.post(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}', data=self.report, format='json'
+            f'{self.question_url}', data=list(self.report), format='json'
         )
         assert response.status_code == HTTPStatus.FORBIDDEN, (
             'Response code is not 403'
@@ -391,7 +421,7 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
         response = authenticated_client_3.put(
             f'{self.competition_url}{competition.id}'
             f'{self.question_url}{report_question7_not_verif.id}/',
-            data=self.report_with_verif, format='json'
+            data=self.report_with_verif[0], format='json'
         )
         assert response.status_code == HTTPStatus.OK, (
             'Response code is not 200'
@@ -534,7 +564,7 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
         response = authenticated_client_3.patch(
             f'{self.competition_url}{competition.id}'
             f'{self.question_url}{report_question7_not_verif.id}/',
-            data=self.report_with_verif, format='json'
+            data=self.report_with_verif[0], format='json'
         )
         assert response.status_code == HTTPStatus.OK, (
             'Response code is not 200'
@@ -689,17 +719,13 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
             'Response code is not ' + str(expected_status)
         )
         if response.status_code == HTTPStatus.OK:
-            verif_report = ParticipationInDistrAndInterregEvents.objects.get(
+            verif_report = Q7.objects.get(
                 id=report_question7_not_verif.id
             )
             assert verif_report.is_verified is True, 'Отчет не подтвержден'
-            scores = Score.objects.filter(
-                competition=competition,
-                detachment=verif_report.detachment
-            ).all()
-            assert scores.count() == 1, 'Оценка не создана'
+            scores = Q7Report.objects.all()
             assert (
-                scores[0].participation_in_distr_and_interreg_events ==
+                scores[0].score ==
                 verif_report.number_of_participants
             ), 'Оценка не соответствует ожидаемому'
 
@@ -722,15 +748,15 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
         assert response.status_code == HTTPStatus.OK, (
             'Response code is not 200'
         )
-        scores = Score.objects.filter(
+        scores = Q7Report.objects.filter(
             competition=competition,
-            detachment=report_question7_verif.detachment
+            detachment=report_question7_verif_second.detachment_report.detachment
         ).all()
         assert scores.count() == 1, (
             "Количество записей не соответствует ожидаемому"
         )
         assert (
-            scores[0].participation_in_distr_and_interreg_events ==
+            scores[0].score ==
             self.report['number_of_participants'] +
             report_question7_verif.number_of_participants
         ), (
@@ -815,12 +841,11 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
         """
         response = authenticated_client_3.post(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}', data={
+            f'{self.question_url}', data=[{
                 "event_name": report_question7_verif.event_name,
                 "number_of_participants": report_question7_verif.number_of_participants,
-                "competition": report_question7_verif.competition.id,
                 "links": [{"link": report_question7_verif.links.all()[0].link}]
-            },
+            }],
             format='json'
         )
         assert response.status_code == HTTPStatus.BAD_REQUEST, (
@@ -842,15 +867,14 @@ class TestParticipationInDistrictAndInterregionalEventsViewSet:
         """
         response = authenticated_client_3.post(
             f'{self.competition_url}{competition.id}'
-            f'{self.question_url}', data={
+            f'{self.question_url}', data=[{
                 "event_name": self.report['event_name'],
                 "number_of_participants": self.report['number_of_participants'],
-                "competition": competition.id,
                 "links": [
                     {"link": report_question7_verif.links.all()[0].link},
                     {"link": report_question7_verif.links.all()[0].link}
                 ]
-            },
+            }],
             format='json'
         )
         assert response.status_code == HTTPStatus.BAD_REQUEST, (

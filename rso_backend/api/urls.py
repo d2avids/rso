@@ -13,12 +13,7 @@ from api.views import (AreaViewSet, EducationalInstitutionViewSet,
                        change_membership_fee_status, verify_user)
 from competitions.views import (
     CompetitionApplicationsViewSet, CompetitionParticipantsViewSet,
-    CompetitionViewSet, ParticipationInAllRussianEventsViewSet,
-    ParticipationInDistrictAndInterregionalEventsViewSet,
-    PrizePlacesInAllRussianEventsViewSet,
-    PrizePlacesInAllRussianLaborProjectsViewSet,
-    PrizePlacesInDistrAndInterregEventsViewSet,
-    PrizePlacesInDistrAndInterregLaborProjectsViewSet,
+    CompetitionViewSet, Q7ViewSet,
     Q13DetachmentReportViewSet, Q13EventOrganizationViewSet,
 )
 from events.views import (AnswerDetailViewSet, EventAdditionalIssueViewSet,
@@ -111,41 +106,36 @@ router.register(
     CompetitionParticipantsViewSet,
     basename='competition-participants'
 )
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q7',
+    Q7ViewSet,
+    basename='q7'
+)
 # router.register(
-#     r'regionals/(?P<region_pk>\d+)/comp_applications/participation_in_district_and_interregional_events',
-#     ParticipationInDistrictAndInterregionalEventsReportViewSet,
-#     basename='participation_in_district_and_interregional_events'
+#     r'competitions/(?P<competition_pk>\d+)/reports/participation_in_all_russian_events',
+#     ParticipationInAllRussianEventsViewSet,
+#     basename='participation_in_all_russian_events'
 # )
-router.register(
-    r'competitions/(?P<competition_pk>\d+)/reports/participation_in_distr_and_interreg_events',
-    ParticipationInDistrictAndInterregionalEventsViewSet,
-    basename='participation_in_district_and_interregional_events'
-)
-router.register(
-    r'competitions/(?P<competition_pk>\d+)/reports/participation_in_all_russian_events',
-    ParticipationInAllRussianEventsViewSet,
-    basename='participation_in_all_russian_events'
-)
-router.register(
-    r'competitions/(?P<competition_pk>\d+)/reports/prize_places_in_distr_and_interreg_events',
-    PrizePlacesInDistrAndInterregEventsViewSet,
-    basename='prize_places_in_distr_and_interreg_events'
-)
-router.register(
-    r'competitions/(?P<competition_pk>\d+)/reports/prize_places_in_all_russian_events',
-    PrizePlacesInAllRussianEventsViewSet,
-    basename='prize_places_in_all_russian_events'
-)
-router.register(
-    r'competitions/(?P<competition_pk>\d+)/reports/prize_places_in_distr_and_interreg_labor_projects',
-    PrizePlacesInDistrAndInterregLaborProjectsViewSet,
-    basename='prize_places_in_distr_and_interreg_labor_projects'
-)
-router.register(
-    r'competitions/(?P<competition_pk>\d+)/reports/prize_places_in_all_russian_labor_projects',
-    PrizePlacesInAllRussianLaborProjectsViewSet,
-    basename='prize_places_in_all_russian_labor_projects'
-)
+# router.register(
+#     r'competitions/(?P<competition_pk>\d+)/reports/prize_places_in_distr_and_interreg_events',
+#     PrizePlacesInDistrAndInterregEventsViewSet,
+#     basename='prize_places_in_distr_and_interreg_events'
+# )
+# router.register(
+#     r'competitions/(?P<competition_pk>\d+)/reports/prize_places_in_all_russian_events',
+#     PrizePlacesInAllRussianEventsViewSet,
+#     basename='prize_places_in_all_russian_events'
+# )
+# router.register(
+#     r'competitions/(?P<competition_pk>\d+)/reports/prize_places_in_distr_and_interreg_labor_projects',
+#     PrizePlacesInDistrAndInterregLaborProjectsViewSet,
+#     basename='prize_places_in_distr_and_interreg_labor_projects'
+# )
+# router.register(
+#     r'competitions/(?P<competition_pk>\d+)/reports/prize_places_in_all_russian_labor_projects',
+#     PrizePlacesInAllRussianLaborProjectsViewSet,
+#     basename='prize_places_in_all_russian_labor_projects'
+# )
 
 
 UserEduVS = UserEducationViewSet.as_view(UPDATE_RETRIEVE)

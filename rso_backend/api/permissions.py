@@ -816,8 +816,8 @@ class IsCommanderAndCompetitionParticipant(BasePermission):
         )
 
     def has_object_permission(self, request, view, obj):
-        detachment = obj.detachment
-        competition = obj.competition
+        detachment = obj.detachment_report.detachment
+        competition = obj.detachment_report.competition
         if detachment:
             return (
                 is_commander_this_detachment(request.user, detachment) and
@@ -836,7 +836,7 @@ class IsCommanderDetachmentInParameterOrRegionalCommissioner(
     """
 
     def has_object_permission(self, request, view, obj):
-        detachment = obj.detachment
+        detachment = obj.detachment_report.detachment
         if detachment:
             return (
                 is_commander_this_detachment(request.user, detachment) or
@@ -872,7 +872,8 @@ class IsRegionalCommissionerOrCommanderDetachmentWithVerif(
             return is_regional_commissioner(request.user)
         return (
             is_regional_commissioner(request.user) or
-            is_commander_this_detachment(request.user, obj.detachment)
+            is_commander_this_detachment(request.user,
+                                         obj.detachment_report.detachment)
         )
 
 
