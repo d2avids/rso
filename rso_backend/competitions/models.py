@@ -205,6 +205,63 @@ class CompetitionParticipants(models.Model):
 #         ]
 
 
+class QBaseReport(models.Model):
+    competition = models.ForeignKey(
+        'Competitions',
+        on_delete=models.CASCADE,
+        related_name='%(class)s_competition_reports',
+    )
+    detachment = models.ForeignKey(
+        'headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='%(class)s_detachment_reports',
+    )
+
+    class Meta:
+        abstract = True
+
+
+class QBaseReportIsVerified(models.Model):
+    is_verified = models.BooleanField(default=False)
+
+    class Meta:
+        abstract = True
+
+
+class QBaseTandemRanking(models.Model):
+    detachment = models.OneToOneField(
+        'headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='%(class)s_main_detachment',
+        verbose_name='Отряд-наставник',
+        blank=True,
+        null=True,
+    )
+    junior_detachment = models.OneToOneField(
+        'headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='%(class)s_junior_detachment',
+        verbose_name='Младший отряд',
+        blank=True,
+        null=True,
+    )
+
+    class Meta:
+        abstract = True
+
+
+class QBaseRanking(models.Model):
+    detachment = models.OneToOneField(
+        'headquarters.Detachment',
+        on_delete=models.CASCADE,
+        related_name='%(class)s',
+        verbose_name='Отряд'
+    )
+
+    class Meta:
+        abstract = True
+
+
 class Links(models.Model):
     """Абстрактная модель для ссылок."""
     link = models.URLField(
@@ -219,18 +276,11 @@ class Links(models.Model):
         abstract = True
 
 
-class Report(models.Model):
-    """Абстрактная модель для отчетов."""
-    competition = models.ForeignKey(
-        'Competitions',
-        on_delete=models.CASCADE,
-        related_name='%(class)s_competition_reports',
-    )
-    detachment = models.ForeignKey(
-        'headquarters.Detachment',
-        on_delete=models.CASCADE,
-        related_name='%(class)s_detachment_reports',
-    )
+class ReportCalcBase(QBaseReport):
+    """
+    Абстрактная модель для отчетов.
+    Добавлены методы калькуляции очков для экземпляра.
+    """
 
     class Meta:
         abstract = True
@@ -286,61 +336,37 @@ class ParticipationBase(models.Model):
         abstract = True
 
 
-class QTandemRanking(models.Model):
-    detachment = models.OneToOneField(
-        'headquarters.Detachment',
-        on_delete=models.CASCADE,
-        related_name='%(class)s_main_detachment',
-        verbose_name='Отряд-наставник',
-        blank=True,
-        null=True,
-    )
-    junior_detachment = models.OneToOneField(
-        'headquarters.Detachment',
-        on_delete=models.CASCADE,
-        related_name='%(class)s_junior_detachment',
-        verbose_name='Младший отряд',
-        # Не может быть пустым
-        # blank=True,
-        # null=True,
-    )
-
-    class Meta:
-        abstract = True
-
-
-class QRanking(models.Model):
-    detachment = models.OneToOneField(
-        'headquarters.Detachment',
-        on_delete=models.CASCADE,
-        related_name='%(class)s',
-        verbose_name='Отряд'
-    )
-
-    class Meta:
-        abstract = True
-
-
-class Q7TandemRanking(QTandemRanking):
+class Q7TandemRanking(QBaseTandemRanking):
+    """
+    Рейтинг для тандема-участников.
+    Создается и заполняется переодической таской.
+    """
     place = models.PositiveSmallIntegerField(
-        verbose_name='Итоговое место по показателю',
-        default=12  # TODO: Убрать, т.к. пустым быть не может, создается при подсчете селери таской
+        verbose_name='Итоговое место по показателю 7'
     )
 
 
-class Q7Ranking(QRanking):
+class Q7Ranking(QBaseRanking):
+    """
+    Рейтинг для старт-участников.
+    Создается и заполняется переодической таской.
+    """
     place = models.PositiveSmallIntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(6)],
-        default=6, # TODO: Убрать, т.к. пустым быть не может, создается при подсчете селери таской
-        verbose_name='Итоговое место по показателю'
+        verbose_name='Итоговое место по показателю 7'
     )
 
 
-class Q7Report(Report):
-    score = (  # чем больше, тем выше место
+class Q7Report(ReportCalcBase):
+    """
+    Отчет о участии в мероприятиях.
+    Поля: отряд, конкурс, очки + FK поле на мероприятия в которых участвовали.
+    Очки - сумма участий sum(number_of_participants).
+    Отчет имеет методы для подсчета очков (из абстрактной модели).
+    """
+    score = (
         models.PositiveSmallIntegerField(
             verbose_name='Общее количество участий',
-            default=0
+            default=0  # чем больше, тем выше итоговое место в рейтинге
         )
     )
     pass
@@ -597,63 +623,6 @@ class Q7(ParticipationBase):
 #                 name='unique_prize_places_in_all_russian_labor_projects'
 #             )
 #         ]
-
-
-class QBaseReport(models.Model):
-    competition = models.ForeignKey(
-        'Competitions',
-        on_delete=models.CASCADE,
-        related_name='%(class)s_competition_reports',
-    )
-    detachment = models.ForeignKey(
-        'headquarters.Detachment',
-        on_delete=models.CASCADE,
-        related_name='%(class)s_detachment_reports',
-    )
-
-    class Meta:
-        abstract = True
-
-
-class QBaseReportIsVerified(models.Model):
-    is_verified = models.BooleanField(default=False)
-
-    class Meta:
-        abstract = True
-
-
-class QBaseTandemRanking(models.Model):
-    detachment = models.OneToOneField(
-        'headquarters.Detachment',
-        on_delete=models.CASCADE,
-        related_name='%(class)s_main_detachment',
-        verbose_name='Отряд-наставник',
-        blank=True,
-        null=True,
-    )
-    junior_detachment = models.OneToOneField(
-        'headquarters.Detachment',
-        on_delete=models.CASCADE,
-        related_name='%(class)s_junior_detachment',
-        verbose_name='Младший отряд',
-        blank=True,
-        null=True,
-    )
-
-    class Meta:
-        abstract = True
-
-
-class QBaseRanking(models.Model):
-    detachment = models.OneToOneField(
-        'headquarters.Detachment',
-        on_delete=models.CASCADE,
-        related_name='%(class)s',
-        verbose_name='Отряд'
-    )
-
-    class Meta:
-        abstract = True
 
 
 class Q13TandemRanking(QBaseTandemRanking):

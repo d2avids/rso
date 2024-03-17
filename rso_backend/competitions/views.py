@@ -594,9 +594,9 @@ class Q7ViewSet(
         )
 
     def get_permissions(self):
-        if self.action == 'retrieve':
-            return [permissions.IsAuthenticated(),
-                    IsCommanderDetachmentInParameterOrRegionalCommissioner()]
+        # if self.action == 'retrieve':
+        #     return [permissions.IsAuthenticated(),
+        #             IsCommanderDetachmentInParameterOrRegionalCommissioner()]
         if self.action == 'create':
             return [permissions.IsAuthenticated(),
                     IsCommanderAndCompetitionParticipant()]
