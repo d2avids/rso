@@ -124,3 +124,9 @@ def process_and_save_entries(entries_with_ratio, is_tandem):
                 place=current_place,
                 detachment=entry.detachment
             )
+
+
+if __name__ == "__main__":
+    print("Starting Q calculations...")
+    calculate_q18_place()
+    print("Finished Q calculations.")

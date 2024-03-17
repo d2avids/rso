@@ -92,7 +92,7 @@ class RetrieveCreateViewSet(mixins.RetrieveModelMixin,
                             mixins.ListModelMixin,
                             mixins.CreateModelMixin,
                             GenericViewSet):
-    """Миксин для 13 конкурсного показателя."""
+    """Миксин для конкурсных показателей (отчеты)."""
     pass
 
 

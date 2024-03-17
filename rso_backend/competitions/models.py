@@ -662,6 +662,10 @@ class Q13TandemRanking(QBaseTandemRanking):
         default=12
     )
 
+    class Meta:
+        verbose_name = 'Тандем-места по 13 показателю'
+        verbose_name_plural = 'Тандем-места по 13 показателю'
+
 
 class Q13Ranking(QBaseRanking):
     place = models.PositiveSmallIntegerField(
@@ -669,6 +673,11 @@ class Q13Ranking(QBaseRanking):
         default=6,
         verbose_name='Итоговое место по показателю'
     )
+
+    class Meta:
+        verbose_name = 'Места по 13 показателю'
+        verbose_name_plural = 'Места по 13 показателю'
+
 
 
 class Q13DetachmentReport(QBaseReport):
@@ -706,19 +715,27 @@ class Q18TandemRanking(QBaseTandemRanking):
         verbose_name='Итоговое место по показателю'
     )
 
+    class Meta:
+        verbose_name = 'Тандем-места по 18 показателю'
+        verbose_name_plural = 'Тандем-места по 18 показателю'
+
 
 class Q18Ranking(QBaseRanking):
     place = models.PositiveSmallIntegerField(
         verbose_name='Итоговое место по показателю'
     )
 
+    class Meta:
+        verbose_name = 'Места по 18 показателю'
+        verbose_name_plural = 'Места по 18 показателю'
+
 
 class Q18DetachmentReport(QBaseReport, QBaseReportIsVerified):
-    """Модель с полями для заполнениями."""
+    """Модель с полями для заполнения."""
     participants_number = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(0), MaxValueValidator(1000)],
         verbose_name='Количество бойцов, принявших участие во '
                      'Всероссийском дне ударного труда'
     )
-    june_15_detachment_members = models.PositiveSmallIntegerField()
-    score = models.FloatField(verbose_name='Очки')
+    june_15_detachment_members = models.PositiveSmallIntegerField(default=1)
+    score = models.FloatField(verbose_name='Очки', default=0)

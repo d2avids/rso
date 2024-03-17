@@ -27,7 +27,8 @@ from api.permissions import (
 from competitions.models import (
     Q7, CompetitionApplications, CompetitionParticipants, Competitions,
     Q13EventOrganization,
-    Q13DetachmentReport, Q13Ranking, Q13TandemRanking, Q7Report
+    Q13DetachmentReport, Q13Ranking, Q13TandemRanking, Q7Report, Q18DetachmentReport,
+    Q18TandemRanking, Q18Ranking
 )
 from competitions.q_calculations import calculate_q13_place
 from competitions.serializers import (
@@ -1215,8 +1216,8 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
         ).exists():
             return Response(
                 {
-                    'non_field_errors': 'Отряд подающего пользователя не '
-                                        'участвует в конкурсе.'
+                    'error': 'Отряд подающего пользователя не '
+                             'участвует в конкурсе.'
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
@@ -1464,28 +1465,52 @@ class Q13EventOrganizationViewSet(UpdateDestroyViewSet):
         return super().destroy(request, *args, **kwargs)
 
 
-class Q18DetachmentReportViewSet(viewsets.ModelViewSet):
+class Q18DetachmentReportViewSet(RetrieveCreateViewSet):
+    """
+    Показатель "Охват бойцов, принявших участие во Всероссийском
+    дне Ударного труда."
+
+    Доступ:
+        - GET: Всем пользователям;
+        - POST: Командирам отрядов, принимающих участие в конкурсе;
+        - VERIFY (POST/DELETE): Комиссарам РШ подвластных отрядов;
+        - GET-PLACE (GET): Всем пользователям
+    """
     serializer_class = Q18DetachmentReportSerializer
+
+    @swagger_auto_schema(request_body=Q18DetachmentReportSerializer)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
 
     def get_serializer_context(self):
         """
         Переопределение стандартного контекста,
         добавление competition и detachment.
         """
-        context = super().get_serializer_context()
-        competition_id = self.kwargs.get('competition_pk')
-        detachment_id = self.request.user.detachment_commander.id
-        context['competition'] = get_object_or_404(
-            Competitions, id=competition_id
-        )
-        context['detachment'] = get_object_or_404(Detachment, id=detachment_id)
-        return context
+        if self.action == 'post':
+            context = super().get_serializer_context()
+            competition_id = self.kwargs.get('competition_pk')
+            try:
+                detachment_id = self.request.user.detachment_commander.id
+            except Detachment.DoesNotExist:
+                detachment_id = None
+            context['competition'] = get_object_or_404(
+                Competitions, id=competition_id
+            )
+            context['detachment'] = get_object_or_404(
+                Detachment, id=detachment_id
+            )
+            return context
 
     def get_queryset(self):
-        detachment_id = self.kwargs.get('detachment_pk')
         competition_id = self.kwargs.get('competition_pk')
-        return Q13DetachmentReport.objects.filter(
-            detachment_id=detachment_id,
+        return Q18DetachmentReport.objects.filter(
             competition_id=competition_id
         )
 
@@ -1494,7 +1519,7 @@ class Q18DetachmentReportViewSet(viewsets.ModelViewSet):
             Competitions, id=self.kwargs.get('competition_pk')
         )
         detachment = get_object_or_404(
-            Detachment, id=self.kwargs.get('detachment_pk')
+            Detachment, id=self.request.user.detachment_commander.id
         )
         serializer.save(competition=competition, detachment=detachment)
 
@@ -1509,7 +1534,7 @@ class Q18DetachmentReportViewSet(viewsets.ModelViewSet):
 
         Доступно только командиру РШ связанного с отрядом.
         Если отчет уже верифицирован, возвращается 400 Bad Request с описанием
-        ошибки {"detail": "Данный отчет уже верифицирован"}.
+        ошибки `{"detail": "Данный отчет уже верифицирован"}`.
         """
         detachment_report = self.get_object()
         if detachment_report.is_verified:
@@ -1523,3 +1548,36 @@ class Q18DetachmentReportViewSet(viewsets.ModelViewSet):
         if self.request.method == 'DELETE':
             detachment_report.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['get'], url_path='get-place')
+    def get_place(self, request, **kwargs):
+        report = self.get_object()
+        tandem_ranking = Q18TandemRanking.objects.filter(
+            detachment=report.detachment
+        ).first()
+        if not tandem_ranking:
+            tandem_ranking = Q18TandemRanking.objects.filter(
+                junior_detachment=report.detachment
+            ).first()
+
+        # Пытаемся найти place в Q18TandemRanking
+        if tandem_ranking and tandem_ranking.place is not None:
+            return Response(
+                {"place": tandem_ranking.place},
+                status=status.HTTP_200_OK
+            )
+
+        # Если не найдено в Q18TandemRanking, ищем в Q18Ranking
+        ranking = Q18Ranking.objects.filter(
+            detachment=report.detachment
+        ).first()
+        if ranking and ranking.place is not None:
+            return Response(
+                {"place": ranking.place}, status=status.HTTP_200_OK
+            )
+
+        # Если не найдено ни в одной из моделей
+        return Response(
+            {"place": "Показатель в обработке"},
+            status=status.HTTP_404_NOT_FOUND
+        )
