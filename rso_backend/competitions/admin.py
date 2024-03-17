@@ -35,6 +35,35 @@ class Q18TandemRankingAdmin(admin.ModelAdmin):
     search_fields = ('detachment__name', 'junior_detachment__name', 'place')
 
 
+
+@admin.register(Q13Ranking)
+class Q13RankingAdmin(admin.ModelAdmin):
+    list_display = ('id', 'detachment', 'place')
+    search_fields = ('detachment__name', 'place')
+
+
+@admin.register(Q13TandemRanking)
+class Q13TandemRankingAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'detachment', 'junior_detachment', 'place'
+    )
+    search_fields = ('detachment__name', 'junior_detachment__name', 'place')
+
+
+@admin.register(Q18Ranking)
+class Q18RankingAdmin(admin.ModelAdmin):
+    list_display = ('id', 'detachment', 'place')
+    search_fields = ('detachment__name', 'place')
+
+
+@admin.register(Q18TandemRanking)
+class Q18TandemRankingAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'detachment', 'junior_detachment', 'place'
+    )
+    search_fields = ('detachment__name', 'junior_detachment__name', 'place')
+
+
 admin.site.register(CompetitionParticipants)
 admin.site.register(CompetitionApplications)
 admin.site.register(Competitions)
