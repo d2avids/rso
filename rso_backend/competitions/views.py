@@ -27,7 +27,7 @@ from competitions.models import (
     PrizePlacesInAllRussianLaborProjects,
     PrizePlacesInDistrAndInterregEvents,
     PrizePlacesInDistrAndInterregLaborProjects, Q13EventOrganization,
-    Q13DetachmentReport
+    Q13DetachmentReport, Q2DetachmentReport
 )
 from competitions.q_calculations import calculate_q13_place
 from competitions.serializers import (
@@ -50,7 +50,7 @@ from competitions.serializers import (
     PrizePlacesInAllRussianEventsSerializer,
     PrizePlacesInAllRussianLaborProjectsSerializer,
     PrizePlacesInDistrAndInterregEventsSerializer,
-    PrizePlacesInDistrAndInterregLaborProjectsSerializer,
+    PrizePlacesInDistrAndInterregLaborProjectsSerializer, Q2DetachmentReportSerializer,
     ShortDetachmentCompetitionSerializer, Q13EventOrganizationSerializer,
     Q13DetachmentReportSerializer, Q18DetachmentReportSerializer
 )
@@ -1107,6 +1107,19 @@ class PrizePlacesInAllRussianLaborProjectsViewSet(
         except Exception as error:
             return Response({'error': str(error)},
                             status=status.HTTP_400_BAD_REQUEST)
+
+
+class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
+
+    serializer_class = Q2DetachmentReportSerializer
+
+    def get_queryset(self):
+        competition = get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+        return Q2DetachmentReport.objects.filter(
+            competition_id=competition.id
+        )
 
 
 class Q13DetachmentReportViewSet(viewsets.ModelViewSet):

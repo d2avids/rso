@@ -892,9 +892,9 @@ class Q2LinksSerializer(serializers.ModelSerializer):
     class Meta:
         model = Q2Links
         fields = (
-            'commander_achievement',
+            'commander_achievment',
             'commander_link',
-            'commissioner_achievement',
+            'commissioner_achievment',
             'commissioner_link'
         )
 
@@ -908,7 +908,7 @@ class Q2DetachmentReportSerializer(serializers.ModelSerializer):
             'id',
             'competition',
             'detachment',
-            'links',
+            'q2_links',
         )
 
     def create(self, validated_data):
@@ -924,11 +924,11 @@ class Q2DetachmentReportSerializer(serializers.ModelSerializer):
             commissioner_link = data.get(
                 'commissioner_link', None
             )
-            commander_achievement = data.get('commander_achievement', False)
-            commissioner_achievement = data.get('commissioner_achievement', False)
+            commander_achievment = data.get('commander_achievment', False)
+            commissioner_achievment = data.get('commissioner_achievment', False)
             Q2Links.objects.create(
-                commander_achievement=commander_achievement,
-                commissioner_achievement=commissioner_achievement,
+                commander_achievment=commander_achievment,
+                commissioner_achievment=commissioner_achievment,
                 commander_link=commander_link,
                 commissioner_link=commissioner_link,
                 detachment_report=q2_report

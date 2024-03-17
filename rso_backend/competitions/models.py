@@ -597,7 +597,9 @@ class Q2TandemRanking(QBaseTandemRanking):
 
 
 class Q2DetachmentReport(QBaseReport):
-    pass
+
+    class Meta:
+        abstract = False
 
 
 class Q2Links(models.Model):
@@ -631,10 +633,6 @@ class Q2Links(models.Model):
         related_name='links',
         verbose_name='Отчет-2 отряда',
     )
-
-
-class Q2DetachmentReport(QBaseReport):
-    pass
 
 
 class Q13TandemRanking(QBaseTandemRanking):
