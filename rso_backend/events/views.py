@@ -66,6 +66,7 @@ from users.serializers import ShortUserSerializer
 class EventViewSet(viewsets.ModelViewSet):
     """Представляет мероприятия."""
 
+    queryset = Event.objects.all()
     serializer_class = EventSerializer
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     filterset_class = EventFilter
