@@ -119,8 +119,8 @@ class DistrictViewSet(viewsets.ModelViewSet):
 
     queryset = DistrictHeadquarter.objects.all()
     serializer_class = DistrictHeadquarterSerializer
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    search_fields = ('name', 'founding_date')
     ordering = ('name',)
 
     def get_serializer_class(self):
@@ -166,7 +166,7 @@ class RegionalViewSet(viewsets.ModelViewSet):
     """
 
     queryset = RegionalHeadquarter.objects.all()
-    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter)
     search_fields = ('name', 'region__name',)
     ordering_fields = ('name', 'founding_date',)
     filterset_class = RegionalHeadquarterFilter
@@ -226,7 +226,7 @@ class LocalViewSet(viewsets.ModelViewSet):
     """
 
     queryset = LocalHeadquarter.objects.all()
-    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter)
     search_fields = ('name',)
     ordering_fields = ('name', 'founding_date',)
     filterset_class = LocalHeadquarterFilter
@@ -274,7 +274,7 @@ class EducationalViewSet(viewsets.ModelViewSet):
     """
 
     queryset = EducationalHeadquarter.objects.all()
-    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter)
     search_fields = ('name',)
     filterset_class = EducationalHeadquarterFilter
     ordering_fields = ('name', 'founding_date',)
