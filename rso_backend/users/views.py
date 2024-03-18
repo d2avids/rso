@@ -70,7 +70,6 @@ class CustomUserViewSet(UserViewSet):
     search_fields = ('username', 'first_name', 'last_name', 'patronymic_name')
     filterset_class = RSOUserFilter
     ordering_fields = ('last_name',)
-    pagination_class = None
 
     @method_decorator(cache_page(settings.RSOUSERS_CACHE_TTL))
     def list(self, request, *args, **kwargs):

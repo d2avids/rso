@@ -66,6 +66,7 @@ from users.serializers import ShortUserSerializer
 class EventViewSet(viewsets.ModelViewSet):
     """Представляет мероприятия."""
 
+    queryset = Event.objects.all()
     serializer_class = EventSerializer
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     filterset_class = EventFilter
@@ -106,13 +107,6 @@ class EventViewSet(viewsets.ModelViewSet):
         ):
             permission_classes = [IsEventOrganizerOrAuthor]
         return [permission() for permission in permission_classes]
-
-    def get_queryset(self):
-        return cache.get_or_set(
-            'events',
-            Event.objects.all(),
-            timeout=settings.EVENTS_CACHE_TTL
-        )
 
     @swagger_auto_schema(request_body=EventSwaggerSerializer)
     def create(self, request, *args, **kwargs):
