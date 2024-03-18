@@ -1,6 +1,6 @@
 from datetime import date
 from competitions.models import Q13EventOrganization, Q18Ranking, \
-    Q18DetachmentReport, CompetitionParticipants, Q18TandemRanking
+    Q18DetachmentReport, CompetitionParticipants, Q18TandemRanking, Q2DetachmentReport
 
 
 def calculate_q2_place(
@@ -22,6 +22,27 @@ def calculate_q2_place(
     Командир выбрал “Нет” + Комиссар выбрал “Нет” - 3 место
 
     """
+
+    verified_entries = Q2DetachmentReport.objects.filter(is_verified=True)
+    solo_entries = []
+    tandem_entries = []
+
+    for entry in verified_entries:
+        participants_entry = CompetitionParticipants.objects.filter(
+            junior_detachment=entry.detachment
+        ).first()
+
+        if participants_entry and not participants_entry.detachment:
+            category = solo_entries
+        else:
+            category = tandem_entries
+            if participants_entry:
+                partner_entry = Q2DetachmentReport.objects.filter(
+                    detachment=participants_entry.detachment,
+                    is_verified=True
+                ).first()
+                if partner_entry:
+                    pass
 
     if commander_achievment and commissioner_achievment:
         place = 1

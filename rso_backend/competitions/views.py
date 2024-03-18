@@ -51,7 +51,7 @@ from competitions.serializers import (
     PrizePlacesInAllRussianEventsSerializer,
     PrizePlacesInAllRussianLaborProjectsSerializer,
     PrizePlacesInDistrAndInterregEventsSerializer,
-    PrizePlacesInDistrAndInterregLaborProjectsSerializer, Q2DetachmentReportSerializer, Q2LinksSerializer,
+    PrizePlacesInDistrAndInterregLaborProjectsSerializer, Q2DetachmentReportSerializer,
     ShortDetachmentCompetitionSerializer, Q13EventOrganizationSerializer,
     Q13DetachmentReportSerializer, Q18DetachmentReportSerializer
 )
@@ -1198,10 +1198,14 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
         serializer.save(
             competition=competition,
             detachment=detachment,
-            # is_verified=False
+            is_verified=False
         )
         return Response(serializer.data,
                         status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='get-place')
+    def get_place():
+        pass
 
 
 class Q13DetachmentReportViewSet(viewsets.ModelViewSet):

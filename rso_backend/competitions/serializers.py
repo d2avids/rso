@@ -14,7 +14,7 @@ from competitions.models import (
     PrizePlacesInDistrAndInterregEvents,
     PrizePlacesInDistrAndInterregLaborProjects,
     Q13EventOrganization, Q13DetachmentReport,
-    Q18DetachmentReport, Q2DetachmentReport, Q2Links)
+    Q18DetachmentReport, Q2DetachmentReport)
 from headquarters.models import Detachment
 from headquarters.serializers import BaseShortUnitSerializer
 
@@ -888,23 +888,13 @@ class CreatePrizePlacesInAllRussianLaborProjectsSerializer(
         return attrs
 
 
-class Q2LinksSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Q2Links
-        fields = (
-            'commander_achievement',
-            'commander_link',
-            'commissioner_achievement',
-            'commissioner_link'
-        )
-
-
 class Q2DetachmentReportSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Q2DetachmentReport
         fields = (
             'id',
+            'is_verified',
             'competition',
             'detachment',
             'commander_achievement',
