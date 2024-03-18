@@ -1151,7 +1151,7 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
         }
         print('q2_data view',q2_data)
         serializer = Q2DetachmentReportSerializer(
-            data={'q2_data': q2_data},
+            data=q2_data,
             context={
                 'request': request,
                 'competition': competition,
@@ -1165,6 +1165,7 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
             detachment=detachment,
             # is_verified=False
         )
+        print('сер дата', serializer.data)
         return Response(serializer.data,
                         status=status.HTTP_201_CREATED)
 

@@ -900,7 +900,6 @@ class Q2LinksSerializer(serializers.ModelSerializer):
 
 
 class Q2DetachmentReportSerializer(serializers.ModelSerializer):
-    # q2_data = Q2LinksSerializer()
 
     class Meta:
         model = Q2DetachmentReport
@@ -915,22 +914,20 @@ class Q2DetachmentReportSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('competition', 'detachment')
 
-
     def create(self, validated_data):
         print('метод create сериализатора')
         print(validated_data)
-        print(self)
-        print(self.context)
+        # print(self)
+        # print(self.context)
         with transaction.atomic():
             competition = self.context.get('competition')
             detachment = self.context.get('detachment')
-            #что-то здесь не так
 
             commander_achievement = validated_data.get('commander_achievement')
             commissioner_achievement = validated_data.get('commissioner_achievement')
             commander_link = validated_data.get('commander_link')
             commissioner_link = validated_data.get('commissioner_link')
-
+            print('проверка', commander_achievement)
             q2_report = Q2DetachmentReport.objects.create(
                 competition=competition,
                 detachment=detachment,
