@@ -25,29 +25,31 @@ from api.permissions import (
     IsDetachmentReportAuthor
 )
 from competitions.models import (
-    Q7, Q8, CompetitionApplications, CompetitionParticipants, Competitions,
+    Q7, Q8, Q9, CompetitionApplications, CompetitionParticipants, Competitions,
     Q13EventOrganization,
     Q13DetachmentReport, Q13Ranking, Q13TandemRanking, Q7Report, Q18DetachmentReport,
-    Q18TandemRanking, Q18Ranking, Q8Report
+    Q18TandemRanking, Q18Ranking, Q8Report, Q9Report
 )
 from competitions.q_calculations import calculate_q13_place
 from competitions.serializers import (
     CompetitionApplicationsObjectSerializer, CompetitionApplicationsSerializer,
     CompetitionParticipantsObjectSerializer, CompetitionParticipantsSerializer,
     CompetitionSerializer,
-    CreateQ7Serializer, CreateQ8Serializer, Q7ReportSerializer, Q7Serializer,
-    Q8ReportSerializer, Q8Serializer,
+    CreateQ7Serializer, CreateQ8Serializer, CreateQ9Serializer, Q7ReportSerializer, Q7Serializer,
+    Q8ReportSerializer, Q8Serializer, Q9ReportSerializer, Q9Serializer,
     ShortDetachmentCompetitionSerializer, Q13EventOrganizationSerializer,
     Q13DetachmentReportSerializer, Q18DetachmentReportSerializer
 )
 # сигналы ниже не удалять, иначе сломается
-from competitions.signal_handlers import create_score_q7, create_score_q8
+from competitions.signal_handlers import (
+    create_score_q7, create_score_q8, create_score_q9
+)
 from competitions.swagger_schemas import (request_update_application,
                                           response_competitions_applications,
                                           response_competitions_participants,
                                           response_create_application,
                                           response_junior_detachments,
-                                          q7schema_request)
+                                          q7schema_request, q9schema_request)
 from headquarters.models import Detachment, RegionalHeadquarter
 from rso_backend.settings import BASE_DIR
 
@@ -687,9 +689,6 @@ class Q8ViewSet(Q7ViewSet):
                     а также комиссары региональных штабов.
                     Если подтверждена - только комиссар регионального штаба.
     ! При редактировании нельзя изменять event_name.
-    Поиск:
-        - ключ для поиска: ?search
-        - поле для поиска: id отряда и id конкурса.
     """
     queryset = Q8.objects.all()
     serializer_class = Q8Serializer
@@ -751,89 +750,88 @@ class Q8ViewSet(Q7ViewSet):
                         status=status.HTTP_200_OK)
 
 
-# class PrizePlacesInDistrAndInterregEventsViewSet(
-#     ParticipationInDistrictAndInterregionalEventsViewSet
-# ):
-#     """Вью сет для показателя 'Призовые места отряда в
-#     окружных и межрегиональных мероприятиях и конкурсах РСО.'.
+class Q9ViewSet(
+    Q7ViewSet
+):
+    """Вью сет для показателя 'Призовые места отряда в
+    окружных и межрегиональных мероприятиях и конкурсах РСО.'.
 
-#     Доступ:
-#         - чтение: Командир отряда из инстанса объекта к которому
-#                   нужен доступ, а также комиссары региональных штабов.
-#         - чтение(list): только комиссары региональных штабов.
-#         - изменение: Если заявка не подтверждена - командир отряда из
-#                      инстанса объекта который изменяют,
-#                      а также комиссары региональных штабов.
-#                      Если подтверждена - только комиссар регионального штаба.
-#         - удаление: Если заявка не подтверждена - командир отряда из
-#                     инстанса объекта который удаляют,
-#                     а также комиссары региональных штабов.
-#                     Если подтверждена - только комиссар регионального штаба.
-#     ! При редактировании нельзя изменять event_name.
-#     Поиск:
-#         - ключ для поиска: ?search
-#         - поле для поиска: id отряда и id конкурса.
-#     """
-#     queryset = PrizePlacesInDistrAndInterregEvents.objects.all()
-#     serializer_class = PrizePlacesInDistrAndInterregEventsSerializer
+    Доступ:
+        - чтение: Командир отряда из инстанса объекта к которому
+                  нужен доступ, а также комиссары региональных штабов.
+        - чтение(list): только комиссары региональных штабов.
+        - изменение: Если заявка не подтверждена - командир отряда из
+                     инстанса объекта который изменяют,
+                     а также комиссары региональных штабов.
+                     Если подтверждена - только комиссар регионального штаба.
+        - удаление: Если заявка не подтверждена - командир отряда из
+                    инстанса объекта который удаляют,
+                    а также комиссары региональных штабов.
+                    Если подтверждена - только комиссар регионального штаба.
+    ! При редактировании нельзя изменять event_name.
+    """
+    queryset = Q9.objects.all()
+    serializer_class = Q9Serializer
 
-#     def create(self, request, *args, **kwargs):
-#         """Action для создания отчета.
+    @swagger_auto_schema(
+        request_body=q9schema_request,
+        responses={201: Q9ReportSerializer}
+    )
+    def create(self, request, *args, **kwargs):
+        """Action для создания отчета.
 
-#         Доступ: командиры отрядов, которые участвуют в конкурсе.
-#         'event_name' к передаче обязателен.
-#         """
-#         # TODO: как согласуем схему ответа, дописать event_name в сваггере как обязательный
-#         competition = get_object_or_404(
-#             Competitions, id=self.kwargs.get('competition_pk')
-#         )
-#         detachment = get_object_or_404(
-#             Detachment, id=request.user.detachment_commander.id
-#         )
-#         serializer = CreatePrizePlacesInDistrAndInterregEventsSerializer(
-#             data=request.data,
-#             context={'request': request,
-#                      'competition': competition,
-#                      'detachment': detachment})
-#         serializer.is_valid(raise_exception=True)
-#         serializer.save(competition=competition,
-#                         detachment=detachment,
-#                         is_verified=False)
-#         return Response(serializer.data,
-#                         status=status.HTTP_201_CREATED)
+        Доступ: командиры отрядов, которые участвуют в конкурсе.
+        'event_name' к передаче обязателен.
+        """
+        competition = self.get_competitions()
+        detachment = get_object_or_404(
+            Detachment, id=request.user.detachment_commander.id
+        )
+        detachment_report, _ = Q9Report.objects.get_or_create(
+            detachment=detachment,
+            competition=competition
+        )
+        if not request.data:
+            return Response({'error': 'Отчет пустой.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        # event_data = request.data.get('event')
+        for event in request.data:
+            serializer = CreateQ9Serializer(
+                data=event,
+                context={'request': request,
+                         'competition': competition,
+                         'event': event,
+                         'detachment_report': detachment_report},
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save(detachment_report=detachment_report,
+                            is_verified=False)
+        return Response(Q9ReportSerializer(detachment_report).data,
+                        status=status.HTTP_201_CREATED)
 
-#     @action(detail=True,
-#             methods=['post'],
-#             url_path='accept',
-#             permission_classes=(permissions.IsAuthenticated,
-#                                 IsRegionalCommissioner,))
-#     @swagger_auto_schema(
-#         request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={})
-#     )
-#     def accept_report(self, request, competition_pk, pk, *args, **kwargs):
-#         """
-#         Action для верификации отчета рег. комиссаром.
+    @action(detail=True,
+            methods=['post'],
+            url_path='accept',
+            permission_classes=(permissions.IsAuthenticated,
+                                IsRegionalCommissioner,))
+    @swagger_auto_schema(
+        request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={},),
+        responses={200: Q9Serializer}
+    )
+    def accept_report(self, request, competition_pk, pk, *args, **kwargs):
+        """
+        Action для верификации мероприятия рег. комиссаром.
 
-#         Принимает пустой POST запрос.
-#         """
-#         report = self.get_object()
-#         if report.is_verified:
-#             return Response({'error': 'Отчет уже подтвержден.'},
-#                             status=status.HTTP_400_BAD_REQUEST)
-#         serializer = (
-#             ConfirmPrizePlacesInDistrAndInterregEventsSerializer(
-#                 report,
-#                 data={'is_verified': True},
-#                 context={'request': request},
-#                 partial=True)
-#         )
-#         try:
-#             serializer.is_valid(raise_exception=True)
-#             serializer.save()
-#             return Response(serializer.data, status=status.HTTP_200_OK)
-#         except Exception as error:
-#             return Response({'error': str(error)},
-#                             status=status.HTTP_400_BAD_REQUEST)
+        Принимает пустой POST запрос.
+        """
+        event = self.get_object()
+        if event.is_verified:
+            return Response({'error': 'Отчет уже подтвержден.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        event.is_verified = True
+        event.save()
+        return Response(Q9Serializer(event).data,
+                        status=status.HTTP_200_OK)
 
 
 # class PrizePlacesInAllRussianEventsViewSet(

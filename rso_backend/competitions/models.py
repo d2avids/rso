@@ -530,37 +530,77 @@ class Q8(ParticipationBase):
         ]
 
 
-# class PrizePlacesInDistrAndInterregEvents(Report):
-#     """
-#     Призовые места в окружных и межрегиональных мероприятиях и
-#     конкурсах РСО.
-#     Модель для хранения каждого места.
-#     """
-#     prize_place = models.IntegerField(
-#         choices=Report.PrizePlaces.choices,
-#         verbose_name='Призовое место'
-#     )
+class Q9TandemRanking(QBaseTandemRanking):
+    """
+    Рейтинг для тандема-участников.
+    Создается и заполняется переодической таской.
+    """
+    place = models.PositiveSmallIntegerField(
+        verbose_name='Итоговое место по показателю 8'
+    )
 
-#     def __str__(self):
-#         return (f'Призовое место СО {self.detachment.name} в окружных '
-#                 f'и межрегиональных  мероприятиях, id {self.id}')
 
-#     class Meta:
-#         ordering = ['-competition__id']
-#         verbose_name = (
-#             'Призовое место в окружных и межрегиональных мероприятиях '
-#             'и конкурсах РСО'
-#         )
-#         verbose_name_plural = (
-#             'Призовые места в окружных и межрегиональных мероприятиях '
-#             'и конкурсах РСО'
-#         )
-#         constraints = [
-#             models.UniqueConstraint(
-#                 fields=('competition', 'detachment', 'event_name'),
-#                 name='unique_prize_places_in_distr_and_interreg_events'
-#             )
-#         ]
+class Q9Ranking(QBaseRanking):
+    """
+    Рейтинг для старт-участников.
+    Создается и заполняется переодической таской.
+    """
+    place = models.PositiveSmallIntegerField(
+        verbose_name='Итоговое место по показателю 8'
+    )
+
+
+class Q9Report(CalcBase, QBaseReport):
+    """
+    Отчет призовых местах в окружных и межрегиональных мероприятиях.
+    Поля: отряд, конкурс, очки + FK поле на мероприятия в которых участвовали.
+    Очки - сумма участий sum(number_of_participants).
+    Отчет имеет методы для подсчета очков (из абстрактной модели).
+    """
+    score = (
+        models.PositiveSmallIntegerField(
+            verbose_name='Общее количество участий',
+            default=0  # чем больше, тем выше итоговое место в рейтинге
+        )
+    )
+
+
+class Q9(ParticipationBase):
+    """
+    Призовые места в окружных и межрегиональных мероприятиях и
+    конкурсах РСО.
+    Модель для хранения каждого места.
+    """
+    prize_place = models.IntegerField(
+        choices=ParticipationBase.PrizePlaces.choices,
+        verbose_name='Призовое место'
+    )
+    detachment_report = models.ForeignKey(
+        'Q9Report',
+        on_delete=models.CASCADE,
+        related_name='participation_data',
+        verbose_name='Отчет отряда',
+    )
+
+    def __str__(self):
+        return (f'Призовое место СО в окружных '
+                f'и межрегиональных  мероприятиях, id {self.id}')
+
+    class Meta:
+        verbose_name = (
+            'Призовое место в окружных и межрегиональных мероприятиях '
+            'и конкурсах РСО'
+        )
+        verbose_name_plural = (
+            'Призовые места в окружных и межрегиональных мероприятиях '
+            'и конкурсах РСО'
+        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=('detachment_report', 'event_name'),
+                name='unique_prize_places_in_distr_and_interreg_events'
+            )
+        ]
 
 
 # class PrizePlacesInAllRussianEvents(Report):

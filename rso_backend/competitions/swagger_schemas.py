@@ -175,3 +175,31 @@ q7schema_request = openapi.Schema(
                 }
             )
         )
+
+
+q9schema_request = openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                required=['event_name', 'prize_place''certificate_scans'],
+                properties={
+                    'event_name': openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        title='Название мероприятия',
+                        required='true'
+                    ),
+                    'prize_place': openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        title='Количество участников',
+                        required='true',
+                        enum=[1, 2, 3]
+                    ),
+                    'certificate_scans': openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        title='Сканы сертификатов',
+                        required='true',
+                        format='url'
+                    )
+                }
+            )
+        )
