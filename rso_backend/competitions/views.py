@@ -1112,6 +1112,16 @@ class PrizePlacesInAllRussianLaborProjectsViewSet(
 
 class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
 
+    """
+    Пример POST-запроса:
+    {
+    "commander_achievement": true,
+    "commissioner_achievement": true,
+    "commander_link": "https://some-link.com",
+    "commissioner_link": "https://some-link.com"
+    }
+    """
+
     serializer_class = Q2DetachmentReportSerializer
 
     def get_queryset(self):
@@ -1133,6 +1143,26 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
         except ObjectDoesNotExist:
             return Response(
                 {'error': 'Заполнять данные может только командир отряда.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if not (CompetitionParticipants.objects.filter(
+            competition=competition,
+            detachment=detachment
+        ).exists()) or not (
+            CompetitionParticipants.objects.filter(
+                competition=competition,
+                junior_detachment=detachment
+            ).exists()
+        ):
+            return Response(
+                {'error': 'Вы не зарегистрировались как участник конкурса.'},
+            )
+        if Q2DetachmentReport.objects.filter(
+            competition=competition,
+            detachment=detachment
+        ).exists():
+            return Response(
+                {'error': 'Отчет уже был подан ранее.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         commander_achievement = request.data.get(
@@ -1170,7 +1200,6 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
             detachment=detachment,
             # is_verified=False
         )
-        print('сер дата', serializer.data)
         return Response(serializer.data,
                         status=status.HTTP_201_CREATED)
 

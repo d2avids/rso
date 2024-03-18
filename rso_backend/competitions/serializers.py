@@ -904,6 +904,7 @@ class Q2DetachmentReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = Q2DetachmentReport
         fields = (
+            'id',
             'competition',
             'detachment',
             'commander_achievement',
@@ -912,13 +913,10 @@ class Q2DetachmentReportSerializer(serializers.ModelSerializer):
             'commissioner_link'
 
         )
-        read_only_fields = ('competition', 'detachment')
+        read_only_fields = ('id', 'competition', 'detachment')
 
     def create(self, validated_data):
-        print('метод create сериализатора')
-        print(validated_data)
-        # print(self)
-        # print(self.context)
+
         with transaction.atomic():
             competition = self.context.get('competition')
             detachment = self.context.get('detachment')
@@ -936,13 +934,6 @@ class Q2DetachmentReportSerializer(serializers.ModelSerializer):
                 commander_link=commander_link,
                 commissioner_link=commissioner_link,
             )
-            # Q2Links.objects.create(
-            #     commander_achievement=commander_achievement,
-            #     commissioner_achievement=commissioner_achievement,
-            #     commander_link=commander_link,
-            #     commissioner_link=commissioner_link,
-            #     detachment_report_id=q2_report.id
-            # )
         return q2_report
 
 
