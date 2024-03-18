@@ -107,13 +107,6 @@ class EventViewSet(viewsets.ModelViewSet):
             permission_classes = [IsEventOrganizerOrAuthor]
         return [permission() for permission in permission_classes]
 
-    def get_queryset(self):
-        return cache.get_or_set(
-            'events',
-            Event.objects.all(),
-            timeout=settings.EVENTS_CACHE_TTL
-        )
-
     @swagger_auto_schema(request_body=EventSwaggerSerializer)
     def create(self, request, *args, **kwargs):
         author = request.user
