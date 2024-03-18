@@ -81,9 +81,9 @@ class EventViewSet(viewsets.ModelViewSet):
         'Отрядное': IsDetachmentCommander,
     }
 
-    @method_decorator(cache_page(settings.EVENTS_CACHE_TTL))
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+    # @method_decorator(cache_page(settings.EVENTS_CACHE_TTL))
+    # def list(self, request, *args, **kwargs):
+    #     return super().list(request, *args, **kwargs)
 
     def get_permissions(self):
         """
