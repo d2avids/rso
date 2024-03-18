@@ -1135,20 +1135,21 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
                 {'error': 'Заполнять данные может только командир отряда.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        commander_achievement = request.data.get('q2_data').get(
+        commander_achievement = request.data.get(
             'commander_achievement'
         )
-        commissioner_achievement = request.data.get('q2_data').get(
+        commissioner_achievement = request.data.get(
             'commissioner_achievement'
         )
-        commander_link = request.data.get('q2_data').get('commander_link')
-        commissioner_link = request.data.get('q2_data').get('commissioner_link')
+        commander_link = request.data.get('commander_link')
+        commissioner_link = request.data.get('commissioner_link')
         q2_data = {
                 'commander_achievement': commander_achievement,
                 'commissioner_achievement': commissioner_achievement,
                 'commander_link': commander_link,
                 'commissioner_link': commissioner_link
         }
+        print('q2_data view',q2_data)
         serializer = Q2DetachmentReportSerializer(
             data={'q2_data': q2_data},
             context={

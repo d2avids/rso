@@ -917,6 +917,9 @@ class Q2DetachmentReportSerializer(serializers.ModelSerializer):
 
 
     def create(self, validated_data):
+        print('метод create сериализатора')
+        print(validated_data)
+        print(self)
         print(self.context)
         with transaction.atomic():
             competition = self.context.get('competition')
