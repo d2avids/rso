@@ -1149,14 +1149,19 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
                 'commander_link': commander_link,
                 'commissioner_link': commissioner_link
         }
-        print('q2_data view',q2_data)
+        if (commander_achievement and not commander_link) or (
+            commissioner_achievement and not commissioner_link
+        ):
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={'error': 'Не указана подтверждающая ссылка.'}
+            )
         serializer = Q2DetachmentReportSerializer(
             data=q2_data,
             context={
                 'request': request,
                 'competition': competition,
                 'detachment': detachment,
-
             }
         )
         serializer.is_valid(raise_exception=True)
