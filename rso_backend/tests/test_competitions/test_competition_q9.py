@@ -6,7 +6,7 @@ from competitions.models import Q9, Q9Report
 
 
 @pytest.mark.django_db(transaction=True, reset_sequences=True)
-class TestPrizePlacesInDistrAndInterregEventsViewSet:
+class TestQ9ViewSet:
     competition_url = '/api/v1/competitions/'
     question_url = '/reports/q9/'
 
@@ -16,11 +16,11 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
     }
 
     report_list = [
-            {
-                "event_name": "Мероприятие New",
-                "prize_place": 2,
-            }
-        ]
+        {
+            "event_name": "Мероприятие New",
+            "prize_place": 2,
+        }
+    ]
     report_without_prize_place = [
         {
             "event_name": "Мероприятие 1"
@@ -37,7 +37,7 @@ class TestPrizePlacesInDistrAndInterregEventsViewSet:
             "prize_place": 1
         }
     ]
-    report_with_verif =  {
+    report_with_verif = {
             "event_name": "Мероприятие New",
             "prize_place": 1,
             "is_verified": True

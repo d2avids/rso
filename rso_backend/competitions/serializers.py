@@ -5,8 +5,8 @@ from django.conf import settings
 from rest_framework import serializers
 
 from competitions.models import (
-    Q7, Q8, Q9, CompetitionApplications, CompetitionParticipants, Competitions,
-    LinksQ7, LinksQ8,
+    Q10, Q11, Q12, Q7, Q8, Q9, CompetitionApplications, CompetitionParticipants, Competitions,
+    LinksQ7, LinksQ8, Q10Report, Q11Report, Q12Report,
     Q13EventOrganization, Q13DetachmentReport,
     Q18DetachmentReport, Q7Report, Q8Report, Q9Report)
 from headquarters.models import Detachment
@@ -497,14 +497,6 @@ class Q8ReportSerializer(
         fields = '__all__'
 
 
-
-
-
-
-
-
-
-
 class Q9Serializer(
     serializers.ModelSerializer
 ):
@@ -582,262 +574,236 @@ class Q9ReportSerializer(
         model = Q9Report
         fields = '__all__'
 
-# class PrizePlacesInAllRussianEventsSerializer(
-#     serializers.ModelSerializer
-# ):
-#     class Meta:
-#         model = PrizePlacesInAllRussianEvents
-#         fields = (
-#             'id',
-#             'competition',
-#             'detachment',
-#             'certificate_scans',
-#             'event_name',
-#             'prize_place',
-#             'is_verified'
-#         )
-#         read_only_fields = (
-#             'id',
-#             'competition',
-#             'event_name',
-#             'detachment',
-#             'is_verified'
-#         )
+
+class Q10Serializer(
+    serializers.ModelSerializer
+):
+    class Meta:
+        model = Q10
+        fields = (
+            'id',
+            'detachment_report',
+            'certificate_scans',
+            'event_name',
+            'prize_place',
+            'is_verified'
+        )
+        read_only_fields = (
+            'id',
+            'event_name',
+            'detachment_report',
+            'is_verified'
+        )
 
 
-# class ConfirmPrizePlacesInAllRussianEventsSerializer(
-#     serializers.ModelSerializer
-# ):
-#     class Meta:
-#         model = PrizePlacesInAllRussianEvents
-#         fields = '__all__'
-#         read_only_fields = (
-#             'id',
-#             'competition',
-#             'detachment',
-#             'event_name',
-#             'certificate_scans',
-#             'prize_place'
-#         )
+class CreateQ10Serializer(
+        serializers.ModelSerializer
+):
+    class Meta:
+        model = Q10
+        fields = (
+            'id',
+            'detachment_report',
+            'event_name',
+            'certificate_scans',
+            'prize_place',
+            'is_verified'
+        )
+        read_only_fields = (
+            'id',
+            'detachment_report',
+            'is_verified'
+        )
+
+    def validate(self, attrs):
+        prize_place = attrs.get('prize_place', None)
+        if not attrs.get('event_name'):
+            raise serializers.ValidationError(
+                {'event_name': 'Укажите название мероприятия/конкурса.'}
+            )
+        if not prize_place:
+            raise serializers.ValidationError(
+                {'prize_place': 'Не указано призовое место.'}
+            )
+        if prize_place <= 0 or prize_place > 3:
+            raise serializers.ValidationError(
+                {'prize_place': 'Призовое место должно быть от 1 до 3.'}
+            )
+        if self.Meta.model.objects.filter(
+            detachment_report=self.context.get('detachment_report'),
+            event_name=attrs.get('event_name')
+        ).exists():
+            raise serializers.ValidationError(
+                {'event_name':
+                 'Отчетность по этому мероприятию/конкурсу уже подана.'}
+            )
+        return attrs
 
 
-# class CreatePrizePlacesInAllRussianEventsSerializer(
-#         serializers.ModelSerializer
-# ):
-#     class Meta:
-#         model = PrizePlacesInAllRussianEvents
-#         fields = (
-#             'id',
-#             'competition',
-#             'detachment',
-#             'event_name',
-#             'certificate_scans',
-#             'prize_place',
-#             'is_verified'
-#         )
-#         read_only_fields = (
-#             'id',
-#             'competition',
-#             'detachment',
-#             'is_verified'
-#         )
+class Q10ReportSerializer(
+    serializers.ModelSerializer
+):
+    participation_data = Q10Serializer(many=True)
+    detachment = ShortDetachmentCompetitionSerializer()
+    competition = CompetitionSerializer()
 
-#     def validate(self, attrs):
-#         prize_place = attrs.get('prize_place', None)
-#         if not attrs.get('event_name'):
-#             raise serializers.ValidationError(
-#                 {'event_name': 'Укажите название мероприятия/конкурса.'}
-#             )
-#         if not prize_place:
-#             raise serializers.ValidationError(
-#                 {'prize_place': 'Не указано призовое место.'}
-#             )
-#         if prize_place <= 0 or prize_place > 3:
-#             raise serializers.ValidationError(
-#                 {'prize_place': 'Призовое место должно быть от 1 до 3.'}
-#             )
-#         if self.Meta.model.objects.filter(
-#             competition=self.context.get('competition'),
-#             detachment=self.context.get('detachment'),
-#             event_name=attrs.get('event_name')
-#         ).exists():
-#             raise serializers.ValidationError(
-#                 {'event_name':
-#                  'Отчетность по этому мероприятию/конкурсу уже подана.'}
-#             )
-#         return attrs
+    class Meta:
+        model = Q10Report
+        fields = '__all__'
 
 
-# class PrizePlacesInDistrAndInterregLaborProjectsSerializer(
-#     serializers.ModelSerializer
-# ):
-#     class Meta:
-#         model = PrizePlacesInDistrAndInterregLaborProjects
-#         fields = (
-#             'id',
-#             'competition',
-#             'detachment',
-#             'certificate_scans',
-#             'event_name',
-#             'prize_place',
-#             'is_verified'
-#         )
-#         read_only_fields = (
-#             'id',
-#             'competition',
-#             'event_name',
-#             'detachment',
-#             'is_verified'
-#         )
+class Q11Serializer(
+    serializers.ModelSerializer
+):
+    class Meta:
+        model = Q11
+        fields = (
+            'id',
+            'detachment_report',
+            'certificate_scans',
+            'event_name',
+            'prize_place',
+            'is_verified'
+        )
+        read_only_fields = (
+            'id',
+            'event_name',
+            'detachment_report',
+            'is_verified'
+        )
 
 
-# class ConfirmPrizePlacesInDistrAndInterregLaborProjectsSerializer(
-#     serializers.ModelSerializer
-# ):
-#     class Meta:
-#         model = PrizePlacesInDistrAndInterregLaborProjects
-#         fields = '__all__'
-#         read_only_fields = (
-#             'id',
-#             'competition',
-#             'detachment',
-#             'event_name',
-#             'certificate_scans',
-#             'prize_place'
-#         )
+class CreateQ11Serializer(
+        serializers.ModelSerializer
+):
+    class Meta:
+        model = Q11
+        fields = (
+            'id',
+            'detachment_report',
+            'event_name',
+            'certificate_scans',
+            'prize_place',
+            'is_verified'
+        )
+        read_only_fields = (
+            'id',
+            'detachment_report',
+            'is_verified'
+        )
+
+    def validate(self, attrs):
+        prize_place = attrs.get('prize_place', None)
+        if not attrs.get('event_name'):
+            raise serializers.ValidationError(
+                {'event_name': 'Укажите название мероприятия/конкурса.'}
+            )
+        if not prize_place:
+            raise serializers.ValidationError(
+                {'prize_place': 'Не указано призовое место.'}
+            )
+        if prize_place <= 0 or prize_place > 3:
+            raise serializers.ValidationError(
+                {'prize_place': 'Призовое место должно быть от 1 до 3.'}
+            )
+        if self.Meta.model.objects.filter(
+            detachment_report=self.context.get('detachment_report'),
+            event_name=attrs.get('event_name')
+        ).exists():
+            raise serializers.ValidationError(
+                {'event_name':
+                 'Отчетность по этому мероприятию/конкурсу уже подана.'}
+            )
+        return attrs
 
 
-# class CreatePrizePlacesInDistrAndInterregLaborProjectsSerializer(
-#         serializers.ModelSerializer
-# ):
-#     class Meta:
-#         model = PrizePlacesInDistrAndInterregLaborProjects
-#         fields = (
-#             'id',
-#             'competition',
-#             'detachment',
-#             'event_name',
-#             'certificate_scans',
-#             'prize_place',
-#             'is_verified'
-#         )
-#         read_only_fields = (
-#             'id',
-#             'competition',
-#             'detachment',
-#             'is_verified'
-#         )
+class Q11ReportSerializer(
+    serializers.ModelSerializer
+):
+    participation_data = Q11Serializer(many=True)
+    detachment = ShortDetachmentCompetitionSerializer()
+    competition = CompetitionSerializer()
 
-#     def validate(self, attrs):
-#         prize_place = attrs.get('prize_place', None)
-#         if not attrs.get('event_name'):
-#             raise serializers.ValidationError(
-#                 {'event_name': 'Укажите название трудового проекта.'}
-#             )
-#         if not prize_place:
-#             raise serializers.ValidationError(
-#                 {'prize_place': 'Не указано призовое место.'}
-#             )
-#         if prize_place <= 0 or prize_place > 3:
-#             raise serializers.ValidationError(
-#                 {'prize_place': 'Призовое место должно быть от 1 до 3.'}
-#             )
-#         if self.Meta.model.objects.filter(
-#             competition=self.context.get('competition'),
-#             detachment=self.context.get('detachment'),
-#             event_name=attrs.get('event_name')
-#         ).exists():
-#             raise serializers.ValidationError(
-#                 {'event_name':
-#                  'Отчетность по этому трудовому проекту уже подана.'}
-#             )
-#         return attrs
+    class Meta:
+        model = Q11Report
+        fields = '__all__'
 
 
-# class PrizePlacesInAllRussianLaborProjectsSerializer(
-#     serializers.ModelSerializer
-# ):
-#     class Meta:
-#         model = PrizePlacesInAllRussianLaborProjects
-#         fields = (
-#             'id',
-#             'competition',
-#             'detachment',
-#             'certificate_scans',
-#             'event_name',
-#             'prize_place',
-#             'is_verified'
-#         )
-#         read_only_fields = (
-#             'id',
-#             'competition',
-#             'event_name',
-#             'detachment',
-#             'is_verified'
-#         )
+class Q12Serializer(
+    serializers.ModelSerializer
+):
+    class Meta:
+        model = Q12
+        fields = (
+            'id',
+            'detachment_report',
+            'certificate_scans',
+            'event_name',
+            'prize_place',
+            'is_verified'
+        )
+        read_only_fields = (
+            'id',
+            'event_name',
+            'detachment_report',
+            'is_verified'
+        )
 
 
-# class ConfirmPrizePlacesInAllRussianLaborProjectsSerializer(
-#     serializers.ModelSerializer
-# ):
-#     class Meta:
-#         model = PrizePlacesInAllRussianLaborProjects
-#         fields = '__all__'
-#         read_only_fields = (
-#             'id',
-#             'competition',
-#             'detachment',
-#             'event_name',
-#             'certificate_scans',
-#             'prize_place'
-#         )
+class CreateQ12Serializer(
+        serializers.ModelSerializer
+):
+    class Meta:
+        model = Q12
+        fields = (
+            'id',
+            'detachment_report',
+            'event_name',
+            'certificate_scans',
+            'prize_place',
+            'is_verified'
+        )
+        read_only_fields = (
+            'id',
+            'detachment_report',
+            'is_verified'
+        )
+
+    def validate(self, attrs):
+        prize_place = attrs.get('prize_place', None)
+        if not attrs.get('event_name'):
+            raise serializers.ValidationError(
+                {'event_name': 'Укажите название мероприятия/конкурса.'}
+            )
+        if not prize_place:
+            raise serializers.ValidationError(
+                {'prize_place': 'Не указано призовое место.'}
+            )
+        if prize_place <= 0 or prize_place > 3:
+            raise serializers.ValidationError(
+                {'prize_place': 'Призовое место должно быть от 1 до 3.'}
+            )
+        if self.Meta.model.objects.filter(
+            detachment_report=self.context.get('detachment_report'),
+            event_name=attrs.get('event_name')
+        ).exists():
+            raise serializers.ValidationError(
+                {'event_name':
+                 'Отчетность по этому мероприятию/конкурсу уже подана.'}
+            )
+        return attrs
 
 
-# class CreatePrizePlacesInAllRussianLaborProjectsSerializer(
-#         serializers.ModelSerializer
-# ):
-#     class Meta:
-#         model = PrizePlacesInAllRussianLaborProjects
-#         fields = (
-#             'id',
-#             'competition',
-#             'detachment',
-#             'event_name',
-#             'certificate_scans',
-#             'prize_place',
-#             'is_verified'
-#         )
-#         read_only_fields = (
-#             'id',
-#             'competition',
-#             'detachment',
-#             'is_verified'
-#         )
+class Q12ReportSerializer(
+    serializers.ModelSerializer
+):
+    participation_data = Q12Serializer(many=True)
+    detachment = ShortDetachmentCompetitionSerializer()
+    competition = CompetitionSerializer()
 
-#     def validate(self, attrs):
-#         prize_place = attrs.get('prize_place', None)
-#         if not attrs.get('event_name'):
-#             raise serializers.ValidationError(
-#                 {'event_name': 'Укажите название трудового проекта.'}
-#             )
-#         if not prize_place:
-#             raise serializers.ValidationError(
-#                 {'prize_place': 'Не указано призовое место.'}
-#             )
-#         if prize_place <= 0 or prize_place > 3:
-#             raise serializers.ValidationError(
-#                 {'prize_place': 'Призовое место должно быть от 1 до 3.'}
-#             )
-#         if self.Meta.model.objects.filter(
-#             competition=self.context.get('competition'),
-#             detachment=self.context.get('detachment'),
-#             event_name=attrs.get('event_name')
-#         ).exists():
-#             raise serializers.ValidationError(
-#                 {'event_name':
-#                  'Отчетность по этому трудовому проекту уже подана.'}
-#             )
-#         return attrs
+    class Meta:
+        model = Q12Report
+        fields = '__all__'
 
 
 class Q13EventOrganizationSerializer(serializers.ModelSerializer):

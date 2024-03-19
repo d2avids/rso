@@ -13,7 +13,7 @@ from api.views import (AreaViewSet, EducationalInstitutionViewSet,
                        change_membership_fee_status, verify_user)
 from competitions.views import (
     CompetitionApplicationsViewSet, CompetitionParticipantsViewSet,
-    CompetitionViewSet, Q7ViewSet,
+    CompetitionViewSet, Q10ViewSet, Q11ViewSet, Q12ViewSet, Q7ViewSet,
     Q13DetachmentReportViewSet, Q13EventOrganizationViewSet,
     Q18DetachmentReportViewSet, Q8ViewSet, Q9ViewSet,
 )
@@ -120,33 +120,28 @@ router.register(
 router.register(
     r'competitions/(?P<competition_pk>\d+)/reports/q8',
     Q8ViewSet,
-    basename='q7'
+    basename='q8'
 )
 router.register(
     r'competitions/(?P<competition_pk>\d+)/reports/q9',
     Q9ViewSet,
     basename='q9'
 )
-# router.register(
-#     r'competitions/(?P<competition_pk>\d+)/reports/prize_places_in_distr_and_interreg_events',
-#     PrizePlacesInDistrAndInterregEventsViewSet,
-#     basename='prize_places_in_distr_and_interreg_events'
-# )
-# router.register(
-#     r'competitions/(?P<competition_pk>\d+)/reports/prize_places_in_all_russian_events',
-#     PrizePlacesInAllRussianEventsViewSet,
-#     basename='prize_places_in_all_russian_events'
-# )
-# router.register(
-#     r'competitions/(?P<competition_pk>\d+)/reports/prize_places_in_distr_and_interreg_labor_projects',
-#     PrizePlacesInDistrAndInterregLaborProjectsViewSet,
-#     basename='prize_places_in_distr_and_interreg_labor_projects'
-# )
-# router.register(
-#     r'competitions/(?P<competition_pk>\d+)/reports/prize_places_in_all_russian_labor_projects',
-#     PrizePlacesInAllRussianLaborProjectsViewSet,
-#     basename='prize_places_in_all_russian_labor_projects'
-# )
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q10',
+    Q10ViewSet,
+    basename='q10'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q11',
+    Q11ViewSet,
+    basename='q11'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q12',
+    Q12ViewSet,
+    basename='q12'
+)
 
 
 UserEduVS = UserEducationViewSet.as_view(UPDATE_RETRIEVE)

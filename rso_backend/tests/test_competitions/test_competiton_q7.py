@@ -5,7 +5,7 @@ from competitions.models import Q7, Q7Report
 
 
 @pytest.mark.django_db(transaction=True, reset_sequences=True)
-class TestParticipationInDistrictAndInterregionalEventsViewSet:
+class TestQ7ViewSet:
     competition_url = '/api/v1/competitions/'
     question_url = '/reports/q7/'
 

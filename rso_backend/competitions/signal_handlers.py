@@ -3,6 +3,9 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
 from competitions.models import (
+    Q10,
+    Q11,
+    Q12,
     Q7,
     Q8,
     Q9
@@ -72,89 +75,67 @@ def create_score_q9(sender, instance, created=False, **kwargs):
             return report
 
 
-# @receiver(post_save, sender=PrizePlacesInAllRussianEvents)
-# def create_score_q10(sender, instance, created, **kwargs):
-#     """
-#     Сигнал для подсчета среднего призового места при сохранении отчета и
-#     пересчета при изменении рег командиром.
-#     """
-#     if created:
-#         pass
-#     else:
-#         if instance.is_verified:
-#             events = PrizePlacesInAllRussianEvents.objects.filter(
-#                         competition=instance.competition,
-#                         detachment=instance.detachment,
-#                         is_verified=True
-#             )
-#             score_table_instance, created = Score.objects.get_or_create(
-#                 detachment=instance.detachment,
-#                 competition=instance.competition
-#             )
-#             score_table_instance.prize_places_in_all_russian_events = (
-#                 instance.score_calculation_avg(
-#                     events, 'prize_place'
-#                 )
-#             )
-#             score_table_instance.save()
+@receiver([post_save, post_delete], sender=Q10)
+def create_score_q10(sender, instance, created=False, **kwargs):
+    if created:
+        pass
+    else:
+        if instance.is_verified:
+            report = instance.detachment_report
+            events = Q10.objects.filter(
+                        detachment_report=report,
+                        is_verified=True
+            ).all()
+            report.score = (
+                report.score_calculation_avg(
+                    events, 'prize_place'
+                )
+            )
+            report.save()
 
-#             return score_table_instance
+            return report
 
 
-# def create_score_q11(sender, instance, created, **kwargs):
-#     """
-#     Сигнал для подсчета среднего призового места при сохранении отчета и
-#     пересчета при изменении рег командиром.
-#     """
-#     if created:
-#         pass
-#     else:
-#         if instance.is_verified:
-#             events = PrizePlacesInDistrAndInterregLaborProjects.objects.filter(
-#                         competition=instance.competition,
-#                         detachment=instance.detachment,
-#                         is_verified=True
-#             )
-#             score_table_instance, created = Score.objects.get_or_create(
-#                 detachment=instance.detachment,
-#                 competition=instance.competition
-#             )
-#             score_table_instance.prize_places_in_distr_and_interreg_labor_projects = (
-#                 instance.score_calculation_avg(
-#                     events, 'prize_place'
-#                 )
-#             )
-#             score_table_instance.save()
+@receiver([post_save, post_delete], sender=Q11)
+def create_score_q11(sender, instance, created=False, **kwargs):
+    if created:
+        pass
+    else:
+        if instance.is_verified:
+            report = instance.detachment_report
+            events = Q11.objects.filter(
+                        detachment_report=report,
+                        is_verified=True
+            ).all()
+            report.score = (
+                report.score_calculation_avg(
+                    events, 'prize_place'
+                )
+            )
+            report.save()
 
-#             return score_table_instance
+            return report
 
 
-# def create_score_q12(sender, instance, created, **kwargs):
-#     """
-#     Сигнал для подсчета среднего призового места при сохранении отчета и
-#     пересчета при изменении рег командиром.
-#     """
-#     if created:
-#         pass
-#     else:
-#         if instance.is_verified:
-#             events = PrizePlacesInAllRussianLaborProjects.objects.filter(
-#                         competition=instance.competition,
-#                         detachment=instance.detachment,
-#                         is_verified=True
-#             )
-#             score_table_instance, created = Score.objects.get_or_create(
-#                 detachment=instance.detachment,
-#                 competition=instance.competition
-#             )
-#             score_table_instance.prize_places_in_all_russian_labor_projects = (
-#                 instance.score_calculation_avg(
-#                     events, 'prize_place'
-#                 )
-#             )
-#             score_table_instance.save()
+@receiver([post_save, post_delete], sender=Q12)
+def create_score_q12(sender, instance, created=False, **kwargs):
+    if created:
+        pass
+    else:
+        if instance.is_verified:
+            report = instance.detachment_report
+            events = Q12.objects.filter(
+                        detachment_report=report,
+                        is_verified=True
+            ).all()
+            report.score = (
+                report.score_calculation_avg(
+                    events, 'prize_place'
+                )
+            )
+            report.save()
 
-#             return score_table_instance
+            return report
 
 
 signals.post_save.connect(
@@ -169,15 +150,15 @@ signals.post_save.connect(
     create_score_q9,
     sender=Q9
 )
-# signals.post_save.connect(
-#     create_score_q10,
-#     sender=PrizePlacesInAllRussianEvents
-# )
-# signals.post_save.connect(
-#     create_score_q11,
-#     sender=PrizePlacesInDistrAndInterregLaborProjects
-# )
-# signals.post_save.connect(
-#     create_score_q12,
-#     sender=PrizePlacesInAllRussianLaborProjects
-# )
+signals.post_save.connect(
+    create_score_q10,
+    sender=Q10
+)
+signals.post_save.connect(
+    create_score_q11,
+    sender=Q11
+)
+signals.post_save.connect(
+    create_score_q12,
+    sender=Q12
+)
