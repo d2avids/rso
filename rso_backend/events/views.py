@@ -240,6 +240,15 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
     """
     queryset = EventApplications.objects.all()
     serializer_class = EventApplicationsSerializer
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter)
+    search_fields = (
+        'user__username',
+        'user__first_name',
+        'user__last_name',
+        'user__patronymic_name'
+        'event__name'
+    )
+    ordering_fields = ('user__last_name',)
     permission_classes = (permissions.IsAuthenticated, IsEventOrganizer)
 
     def get_queryset(self):

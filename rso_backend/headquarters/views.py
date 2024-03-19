@@ -327,7 +327,7 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Detachment.objects.all()
-    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter)
     search_fields = ('name',)
     filterset_class = DetachmentFilter
     ordering_fields = ('name', 'founding_date',)
@@ -426,7 +426,7 @@ class CentralPositionViewSet(BasePositionViewSet):
     Доступен поиск по username, first_name, last_name, patronymic_name
     """
 
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
     search_fields = (
         'user__username',
         'user__first_name',
@@ -435,6 +435,8 @@ class CentralPositionViewSet(BasePositionViewSet):
     )
     permission_classes = (IsStuffOrCentralCommander,)
     serializer_class = CentralPositionSerializer
+    ordering_fields = ('user__last_name',)
+
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -456,7 +458,8 @@ class DistrictPositionViewSet(BasePositionViewSet):
     Доступен поиск по username, first_name, last_name, patronymic_name
     """
 
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    ordering_fields = ('user__last_name',)
     search_fields = (
         'user__username',
         'user__first_name',
@@ -486,7 +489,8 @@ class RegionalPositionViewSet(BasePositionViewSet):
     Доступен поиск по username, first_name, last_name, patronymic_name
     """
 
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    ordering_fields = ('user__last_name',)
     search_fields = (
         'user__username',
         'user__first_name',
@@ -516,7 +520,8 @@ class LocalPositionViewSet(BasePositionViewSet):
     Доступен поиск по username, first_name, last_name, patronymic_name
     """
 
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    ordering_fields = ('user__last_name',)
     search_fields = (
         'user__username',
         'user__first_name',
@@ -546,7 +551,8 @@ class EducationalPositionViewSet(BasePositionViewSet):
     Доступен поиск по username, first_name, last_name, patronymic_name
     """
 
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    ordering_fields = ('user__last_name',)
     search_fields = (
         'user__username',
         'user__first_name',
@@ -576,14 +582,14 @@ class DetachmentPositionViewSet(BasePositionViewSet):
     Доступен поиск по username, first_name, last_name, patronymic_name
     """
 
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    ordering_fields = ('user__last_name',)
     search_fields = (
         'user__username',
         'user__first_name',
         'user__last_name',
         'user__patronymic_name'
     )
-    ordering_fields = ('last_name',)
     permission_classes = (IsUserModelPositionCommander,)
     serializer_class = DetachmentPositionSerializer
 
