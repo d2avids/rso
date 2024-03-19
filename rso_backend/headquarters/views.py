@@ -140,7 +140,7 @@ class RegionalViewSet(viewsets.ModelViewSet):
     верификацию и относящихся к тому же региону, что и текущий региональный
     штаб, по ключу users_for_verification.
     Доступен поиск по name при передаче ?search=<value> query-параметра.
-    Доступна сортировка по ключам name, founding_date, count_related.
+    Доступна сортировка по ключам name, founding_date.
     Сортировка по умолчанию - количество участников.
     Доступна фильтрация по Окружным Штабам. Ключ - district_headquarter__name.
     Доступна фильтрация по имени региона. Ключ - region.
@@ -195,7 +195,7 @@ class LocalViewSet(viewsets.ModelViewSet):
     единице по ключу members_count, а также список всех участников по ключу
     members.
     Доступен поиск по name при передаче ?search=<value> query-параметра.
-    Доступна сортировка по ключам name, founding_date, count_related.
+    Доступна сортировка по ключам name, founding_date.
     Доступна фильтрация по РШ и ОШ. Ключи - regional_headquarter__name,
     district_headquarter__name.
     При указании registry=True в качестве query_param, выводит список объектов,
@@ -239,7 +239,7 @@ class EducationalViewSet(viewsets.ModelViewSet):
     единице по ключу members_count, а также список всех участников по ключу
     members.
     Доступен поиск по name при передаче ?search=<value> query-параметра.
-    Доступна сортировка по ключам name, founding_date, count_related.
+    Доступна сортировка по ключам name, founding_date.
     Доступна фильтрация по РШ, ОШ и ОИ. Ключи - regional_headquarter__name,
     district_headquarter__name, local_headquarter__name.
     При указании registry=True в качестве query_param, выводит список объектов,
@@ -289,7 +289,7 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     При операции чтения доступен список пользователей, подавших заявку на
     вступление в отряд по эндпоинту /applications/.
     Доступен поиск по name при передаче ?search=<value> query-параметра.
-    Доступна сортировка по ключам name, founding_date, count_related.
+    Доступна сортировка по ключам name, founding_date.
     Доступна фильтрация по ключам area__name, educational_institution__name.
     При указании registry=True в качестве query_param, выводит список объектов,
     адаптированный под блок "Реестр участников".

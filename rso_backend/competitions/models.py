@@ -619,6 +619,11 @@ class Q2DetachmentReport(QBaseReport, QBaseReportIsVerified):
         verbose_name=('Ссылка на публикацию о прохождении'
                       ' школы командного состава комиссаром отряда'),
     )
+    individual_place = models.PositiveSmallIntegerField(
+        verbose_name='Расчетное место по показателю',
+        validators=[MinValueValidator(1), MaxValueValidator(3)],
+        default=3
+    )
 
 
 class Q13TandemRanking(QBaseTandemRanking):

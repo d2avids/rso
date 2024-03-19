@@ -28,7 +28,7 @@ from competitions.models import (
     PrizePlacesInAllRussianLaborProjects,
     PrizePlacesInDistrAndInterregEvents,
     PrizePlacesInDistrAndInterregLaborProjects, Q13EventOrganization,
-    Q13DetachmentReport, Q2DetachmentReport
+    Q13DetachmentReport, Q2DetachmentReport, Q2Ranking, Q2TandemRanking
 )
 from competitions.q_calculations import calculate_q13_place
 from competitions.serializers import (
@@ -1145,18 +1145,19 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
                 {'error': 'Заполнять данные может только командир отряда.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        if not (CompetitionParticipants.objects.filter(
+        if (not CompetitionParticipants.objects.filter(
             competition=competition,
             detachment=detachment
-        ).exists()) or not (
-            CompetitionParticipants.objects.filter(
-                competition=competition,
-                junior_detachment=detachment
-            ).exists()
-        ):
-            return Response(
-                {'error': 'Вы не зарегистрировались как участник конкурса.'},
-            )
+        ).exists()):
+            if (not (
+                CompetitionParticipants.objects.filter(
+                    competition=competition,
+                    junior_detachment=detachment
+                ).exists())
+                ):
+                return Response(
+                    {'error': 'Вы не зарегистрировались как участник конкурса.'},
+                )
         if Q2DetachmentReport.objects.filter(
             competition=competition,
             detachment=detachment
@@ -1203,10 +1204,106 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
         return Response(serializer.data,
                         status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['post'], url_path='get-place')
-    def get_place():
-        pass
+    @action(
+            detail=True,
+            methods=['post'],
+            url_path='get-place',
+            serializer_class=None
+    )
+    def get_place(self, request, *args, **kwargs):
+        """Определение места по показателю.
 
+        Метод возвращает место или статус показателя.
+        Если показатель не был подан ранее, то возвращается код 400.
+        """
+
+        report = self.get_object()
+
+        tandem_ranking = Q2TandemRanking.objects.filter(
+            detachment=report.detachment
+        ).first()
+        if not tandem_ranking:
+            tandem_ranking = Q2TandemRanking.objects.filter(
+                junior_detachment=report.detachment
+            ).first()
+
+        # Пытаемся найти place в Q2TandemRanking
+        if tandem_ranking and tandem_ranking.place is not None:
+            return Response(
+                {"place": tandem_ranking.place},
+                status=status.HTTP_200_OK
+            )
+
+        # Если не найдено в Q2TandemRanking, ищем в Q13Ranking
+        ranking = Q2Ranking.objects.filter(
+            detachment=report.detachment
+        ).first()
+        if ranking and ranking.place is not None:
+            return Response(
+                {"place": ranking.place}, status=status.HTTP_200_OK
+            )
+
+        # Если не найдено ни в одной из моделей
+        return Response(
+            {"place": "Показатель в обработке"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+        #Тандем или Соло
+        # try:
+        #     if (CompetitionParticipants.objects.filter(
+        #         competition=kwargs.get('competition_pk'),
+        #         detachment=kwargs.get('pk')
+        #     ).exists()) or(
+        #         CompetitionParticipants.objects.filter(
+        #             competition=kwargs.get('competition_pk'),
+        #             junior_detachment=kwargs.get('pk')
+        #         ).exists
+        #     ):
+        #         is_tandem = True
+        # except (ObjectDoesNotExist, ValueError):
+        #     is_tandem = False
+        #Код ниже в метод верификации:
+        # if is_verified:
+        #     commander_achievment = report.commander_achievement
+        #     commissioner_achievement = report.commissioner_achievement
+        #     print(commissioner_achievement, commander_achievment)
+        #     if commander_achievment and commissioner_achievement:
+        #         place = 1
+        #     if (
+        #         commander_achievment and not commissioner_achievement
+        #     ) or (
+        #         not commander_achievment and commissioner_achievement
+        #     ):
+        #         place = 2
+        #     report.individual_place = place
+        #     report.save()
+        # return Response(status=status.HTTP_200_OK,
+        #                 data={'is_verified': is_verified, 'individual_place': report.individual_place})
+
+    @action(
+            detail=True,
+            methods=['post'],
+            serializer_class=None
+    )
+    def verify(self, *args, **kwargs):
+        """Верификация отчета по показателю.
+
+        Доступно только командиру РШ связанного с отрядом.
+        Если отчет уже верифицирован, возвращается 400 Bad Request с описанием
+        ошибки `{"detail": "Данный отчет уже верифицирован"}`.
+        """
+        detachment_report = self.get_object()
+        if detachment_report.is_verified:
+            return Response({
+                'detail': 'Данный отчет уже верифицирован'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        if self.request.method == 'POST':
+            detachment_report.is_verified = True
+            detachment_report.save()
+            return Response(status=status.HTTP_201_CREATED)
+        if self.request.method == 'DELETE':
+            detachment_report.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 class Q13DetachmentReportViewSet(viewsets.ModelViewSet):
     """Пример POST-запроса:
