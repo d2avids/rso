@@ -1,7 +1,7 @@
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
-from competitions.utils import get_certificate_scans_path, document_path
+from competitions.utils import get_certificate_scans_path, document_path, round_math
 
 
 class Competitions(models.Model):
@@ -228,6 +228,13 @@ class QBaseReportIsVerified(models.Model):
 
 
 class QBaseTandemRanking(models.Model):
+    competition = models.ForeignKey(
+        'Competitions',
+        on_delete=models.CASCADE,
+        related_name='%(class)s',
+        verbose_name='Конкурс',
+        default=1
+    )
     detachment = models.OneToOneField(
         'headquarters.Detachment',
         on_delete=models.CASCADE,
@@ -246,6 +253,13 @@ class QBaseTandemRanking(models.Model):
 
 
 class QBaseRanking(models.Model):
+    competition = models.ForeignKey(
+        'Competitions',
+        on_delete=models.CASCADE,
+        related_name='%(class)s',
+        verbose_name='Конкурс',
+        default=1
+    )
     detachment = models.OneToOneField(
         'headquarters.Detachment',
         on_delete=models.CASCADE,
@@ -293,8 +307,8 @@ class CalcBase:
         """
         average_prize = events.aggregate(
             average=models.Avg(field_name)
-        ).get('average') or 0
-        return average_prize
+        ).get('average') or 10
+        return round_math(average_prize)
 
 
 class ParticipationBase(models.Model):
@@ -555,7 +569,7 @@ class Q9Report(CalcBase, QBaseReport):
     score = (
         models.PositiveSmallIntegerField(
             verbose_name='Среднее призовое место',
-            default=0  # чем меньше, тем выше итоговое место в рейтинге
+            default=10  # чем меньше, тем выше итоговое место в рейтинге
         )
     )
 
@@ -629,7 +643,7 @@ class Q10Report(CalcBase, QBaseReport):
     score = (
         models.PositiveSmallIntegerField(
             verbose_name='Среднее призовое место',
-            default=0  # чем меньше, тем выше итоговое место в рейтинге
+            default=10  # чем меньше, тем выше итоговое место в рейтинге
         )
     )
 
@@ -701,7 +715,7 @@ class Q11Report(CalcBase, QBaseReport):
     score = (
         models.PositiveSmallIntegerField(
             verbose_name='Среднее призовых мест',
-            default=0  # чем меньше, тем выше итоговое место в рейтинге
+            default=10  # чем меньше, тем выше итоговое место в рейтинге
         )
     )
 
@@ -775,7 +789,7 @@ class Q12Report(CalcBase, QBaseReport):
     score = (
         models.PositiveSmallIntegerField(
             verbose_name='Среднее призовых мест',
-            default=0  # чем меньше, тем выше итоговое место в рейтинге
+            default=10  # чем меньше, тем выше итоговое место в рейтинге
         )
     )
 

@@ -2,8 +2,8 @@ from django.contrib import admin
 
 from competitions.models import (
     CompetitionApplications, CompetitionParticipants, Competitions,
-    Q7, Q18Ranking, Q7Report, LinksQ7,
-    Q13TandemRanking, Q18TandemRanking, Q13Ranking
+    Q7, Q18Ranking, Q7Ranking, Q7Report, LinksQ7,
+    Q13TandemRanking, Q18TandemRanking, Q13Ranking, Q7TandemRanking
 )
 
 
@@ -38,6 +38,13 @@ class Q18TandemRankingAdmin(admin.ModelAdmin):
 admin.site.register(CompetitionParticipants)
 admin.site.register(CompetitionApplications)
 admin.site.register(Competitions)
-admin.site.register(Q7)
+
+
+@admin.register(Q7)
+class Q7Admin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'detachment_report', 'is_verified', 'number_of_participants')
+
 admin.site.register(Q7Report)
 admin.site.register(LinksQ7)
+admin.site.register(Q7Ranking)
+admin.site.register(Q7TandemRanking)

@@ -1,7 +1,10 @@
 from datetime import date
+import logging
 from competitions.models import Q13EventOrganization, Q18Ranking, \
-    Q18DetachmentReport, CompetitionParticipants, Q18TandemRanking
+    Q18DetachmentReport, CompetitionParticipants, Q18TandemRanking, Q7Ranking, Q7Report, Q7TandemRanking
 
+
+logger = logging.getLogger('tasks')
 
 def calculate_q13_place(objects: list[Q13EventOrganization]) -> int:
     """
@@ -125,8 +128,139 @@ def process_and_save_entries(entries_with_ratio, is_tandem):
                 detachment=entry.detachment
             )
 
+def calculate_q7_place(competition_id):
+    """
+    Таска для рассчета рейтинга Q7.
 
-if __name__ == "__main__":
-    print("Starting Q calculations...")
-    calculate_q18_place()
-    print("Finished Q calculations.")
+    Для celery-beat, считает вплоть до 15 октября 2024 года.
+    :param competition_id: id конкурса
+    """
+    today = date.today()
+    cutoff_date = date(2024, 10, 15)
+
+    logger.info(f'Рассчет рейтинга Q7. competition_id: {competition_id}')
+
+    if today >= cutoff_date:  # если уже прошло 15 октября
+        return
+
+    participants = CompetitionParticipants.objects.filter(
+        competition_id=competition_id
+    ).all()
+
+    if not participants:
+        logger.info('Нет участников')
+        return
+
+    logger.info(f'Участники: {participants}')
+    tandem_ids: list[tuple[int, int]] = []  # список пар id отрядов(junior_detachment и detachment)
+    start_ids: list[int] = []
+
+    logger.info(f'Все участники: {participants}')
+    for entry in participants:  # сортируем отряды по типу заявки
+        if entry.detachment is None:
+            start_ids.append(entry.junior_detachment.id) # сохраняем их айдишники в список
+        else:
+            tandem_ids.append((entry.junior_detachment.id, entry.detachment.id))
+    logger.info(f'ID отчетов старт: {start_ids}')
+
+    logger.info(f'ID отчетов тандем: {tandem_ids}')
+    reports_start = Q7Report.objects.filter(  # получаем отчеты по типу заявки
+        competition_id=competition_id,
+        detachment_id__in=start_ids
+    )
+    logger.info(f'Отчеты старт получили: {reports_start}')
+
+    sorted_by_score_start_reports = sorted(  # сортируем отчеты старт по очкам
+        reports_start, key=lambda x: x.score, reverse=True
+    )
+
+    logger.info(f'Отчеты старт отсортированы')
+
+    Q7Ranking.objects.filter(competition_id=competition_id).delete()  # удаляем старые данные
+    to_create_entries = []
+    for index, report in enumerate(sorted_by_score_start_reports):
+        to_create_entries.append(
+            Q7Ranking(competition=report.competition,
+                      detachment=report.detachment,
+                      place=index + 1)
+        )
+
+    Q7Ranking.objects.bulk_create(to_create_entries)  # создаем новый рейтинг старт
+
+    logger.info("Старт рейтинг создан")
+
+    # Начинаем считать тандем
+    tandem_reports = []
+
+    for ids in tandem_ids:  # получаем отчеты тандем попарно объектами
+        tandem = []   # Если один или оба еще не подали отчет, тут будет (None, None)
+        for id in ids:
+            tandem.append(Q7Report.objects.filter(
+                competition_id=competition_id,
+                detachment_id=id
+            ).first())
+
+        tandem_reports.append(tandem)
+    logger.info("Тандем заявка начало")
+
+    # сортируем отчеты тандем по очкам если они есть
+    # если их нет хоть у одного - сортируем только по партнеру
+    # если их нет ни у одного - они будут в конце списка
+    sorted_by_score_tandem_reports = sorted(
+        tandem_reports,
+        key=lambda x: ((x[0].score + x[1].score) if (x[0] and x[1])
+                       else (x[0].score if x[0] is not None
+                             else (x[1].score if x[1] is not None
+                                   else 0))),
+        reverse=True
+    )
+    logger.info("Тандем заявка сортировка окончена")
+
+    Q7TandemRanking.objects.filter(competition_id=competition_id).delete()
+    to_create_entries = []
+    for index, report in enumerate(sorted_by_score_tandem_reports):
+        if report[0] is None and report[1] is None:
+            continue
+            # не попадают в рейтинг.
+            # при формировании итогового нужно взять последнее место + 1
+
+        if report[0] is not None and report[1] is not None:
+            to_create_entries.append(
+                Q7TandemRanking(competition=report[0].competition,
+                                junior_detachment=report[0].detachment,
+                                detachment=report[1].detachment,
+                                place=index + 1)
+            )
+            logger.info("Тандем заявка конец")
+
+        elif report[0] is not None:  # если junior_detachment не None
+            detachment = CompetitionParticipants.objects.get(
+                junior_detachment=report[0].detachment,
+                competition=report[0].competition
+            ).detachment
+            logger.info("Тандем заявка конец")
+            to_create_entries.append(
+                Q7TandemRanking(competition=report[0].competition,
+                                junior_detachment=report[0].detachment,
+                                detachment=detachment,
+                                place=index + 1)
+            )
+
+        elif report[1] is not None:  # если detachment не None
+            junior_detachment = CompetitionParticipants.objects.get(
+                detachment=report[1].detachment,
+                competition=report[1].competition
+            ).junior_detachment
+            logger.info("Тандем заявка конец")
+            to_create_entries.append(
+                Q7TandemRanking(competition=report[1].competition,
+                                junior_detachment=junior_detachment,
+                                detachment=report[1].detachment,
+                                place=index + 1)
+            )
+
+    Q7TandemRanking.objects.bulk_create(to_create_entries)  # создаем новый рейтинг тандем
+
+    logger.info("Тандем рейтинг создан")
+
+    return True

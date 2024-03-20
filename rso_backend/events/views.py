@@ -681,8 +681,8 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
         if (event.participants_number and
                 total_participants > event.participants_number):
             raise serializers.ValidationError(
-                'Общее количество поданых участников превышает общее '
-                'разрешенное количество участников мероприятя.'
+                'Общее количество поданных участников превышает общее '
+                'разрешенное количество участников мероприятия.'
             )
 
         serializer = CreateMultiEventApplicationSerializer(

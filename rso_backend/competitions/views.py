@@ -504,7 +504,7 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
             return None
         except Detachment.MultipleObjectsReturned:
             return Response({'error':
-                                 'Пользователь командир нескольких отрядов'},
+                             'Пользователь командир нескольких отрядов'},
                             status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False,
@@ -671,6 +671,66 @@ class Q7ViewSet(
         поданых отчетов, вернется пустой список.
         """
         return super().list(request, *args, **kwargs)
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='get_place',
+            permission_classes=(permissions.IsAuthenticated,
+                                IsCommanderAndCompetitionParticipant))
+    def get_place(self, request, **kwargs):
+        """
+        Action для получения рейтинга по данному показателю.
+
+        Доступ: командиры отрядов, которые участвуют в конкурсе.
+        Если отчета еще не подан, вернется ошибка 404. (данные не отправлены)
+        Если отчет подан, но еще не верифицировн - вернется
+        {"place": "Показатель в обработке"}.
+        Если отчет подан и верифицирован - вернется место в рейтинге:
+        {"place": int}
+        """
+        detachment = Detachment.objects.get(
+            id=request.user.detachment_commander.id
+        )
+        report = self.serializer_class.Meta.model.objects.get(
+            detachment=detachment,
+            competition__id=self.kwargs.get('competition_pk')
+        )
+        if not report:
+            return Response(status=status.HTTP_404_NOT_FOUND)  # Еще нет отчета
+        class_name = self.serializer_class.Meta.model.__name__  # Q7
+        ranking_fk = f'{class_name.lower()}ranking'  # q7ranking
+        if hasattr(detachment, ranking_fk):  # Если есть FK на стартовый рейтинг
+            ranking = getattr(detachment, ranking_fk)
+            return Response(
+                {"place": ranking.place}, status=status.HTTP_200_OK
+            )
+        else:  #  Если нет, то ищем в тандем рейтингах
+            tandem_ranking_fk = (
+                f'{class_name.lower()}tandemranking_main_detachment'
+            )
+            if hasattr(detachment, tandem_ranking_fk):  # Если есть FK на наставника
+                tandem_ranking = getattr(detachment, tandem_ranking_fk)
+                return Response(
+                    {"place": tandem_ranking.place},
+                    status=status.HTTP_200_OK
+                )
+            else:
+                tandem_ranking_fk = (
+                    f'{class_name.lower()}tandemranking_junior_detachment'
+                )
+                if hasattr(detachment, tandem_ranking_fk):  # Если есть FK на junior
+                    tandem_ranking = getattr(
+                        detachment, tandem_ranking_fk
+                        )
+                    return Response(
+                        {"place": tandem_ranking.place},
+                        status=status.HTTP_200_OK
+                    )
+                else:  # Отчет уже есть(проверяли в начале), значит еще не верифицировано ни одно мероприятие
+                    return Response(
+                        {"place": "Показатель в обработке"},
+                        status=status.HTTP_200_OK
+                    )
 
 
 class Q8ViewSet(Q7ViewSet):

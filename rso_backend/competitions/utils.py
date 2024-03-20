@@ -50,3 +50,24 @@ def is_competition_participant(detachment, competition):
     """Проверяет, является ли отряд участником конкурса."""
     return detachment in (competition.junior_detachment.all() +
                           competition.detachment.all())
+
+
+def round_math(num, decimals=0):
+    """
+    Функция математического округления.
+
+    :param num: округляемое число
+    :param decimals: количество знаков после запятой
+    :return: округленное число
+
+    Решает проблему округления round(2.5) = 2
+    (округления к ближайшему четному)
+    """
+    if isinstance(num, int):
+        return num
+    elif decimals < 0:
+        raise ValueError("decimal places has to be 0 or more")
+    if not isinstance(decimals, int):
+        raise ValueError("decimal places has to be an integer")
+    factor = int('1' + '0' * decimals)
+    return int(num * factor + 0.5) / factor
