@@ -55,7 +55,20 @@ def calculate_q2_place(
     if not commander_achievment and not commissioner_achievment:
         place = 3
     return place
-
+    #Тандем или Стандарт
+    # try:
+    #     if (CompetitionParticipants.objects.filter(
+    #         competition=kwargs.get('competition_pk'),
+    #         detachment=kwargs.get('pk')
+    #     ).exists()) or(
+    #         CompetitionParticipants.objects.filter(
+    #             competition=kwargs.get('competition_pk'),
+    #             junior_detachment=kwargs.get('pk')
+    #         ).exists
+    #     ):
+    #         is_tandem = True
+    # except (ObjectDoesNotExist, ValueError):
+    #     is_tandem = False
 
 def calculate_q13_place(objects: list[Q13EventOrganization]) -> int:
     """

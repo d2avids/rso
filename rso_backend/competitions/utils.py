@@ -50,3 +50,24 @@ def is_competition_participant(detachment, competition):
     """Проверяет, является ли отряд участником конкурса."""
     return detachment in (competition.junior_detachment.all() +
                           competition.detachment.all())
+
+
+def tandem_or_start(competition, detachment, competition_model) -> bool:
+    """Вычисление Тандем | Старт."""
+
+    is_tandem = False
+    try:
+        if ((competition_model.objects.filter(
+            competition=competition,
+            detachment=detachment
+        ).exists())
+         or (
+            competition_model.objects.filter(
+                competition=competition,
+                junior_detachment=detachment
+            ).exclude(detachment=None)
+        )):
+            is_tandem = True
+    except (competition_model.DoesNotExist, ValueError):
+        is_tandem = False
+    return is_tandem

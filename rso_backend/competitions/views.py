@@ -62,6 +62,7 @@ from competitions.swagger_schemas import (request_update_application,
                                           response_competitions_participants,
                                           response_create_application,
                                           response_junior_detachments)
+from competitions.utils import tandem_or_start
 from headquarters.models import Detachment, RegionalHeadquarter
 from rso_backend.settings import BASE_DIR
 
@@ -1122,6 +1123,9 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
     }
     """
 
+    PLACE_FIRST = 1
+    PLACE_SECOND = 2
+
     serializer_class = Q2DetachmentReportSerializer
 
     def get_queryset(self):
@@ -1140,23 +1144,22 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
             detachment = get_object_or_404(
                 Detachment, id=request.user.detachment_commander.id
             )
-        except ObjectDoesNotExist:
+        except Detachment.DoesNotExist:
             return Response(
                 {'error': 'Заполнять данные может только командир отряда.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        if (not CompetitionParticipants.objects.filter(
-            competition=competition,
-            detachment=detachment
-        ).exists()):
-            if (not (
-                CompetitionParticipants.objects.filter(
-                    competition=competition,
-                    junior_detachment=detachment
-                ).exists())
-                ):
+        if not CompetitionParticipants.objects.filter(
+            competition=competition, detachment=detachment
+        ).exists():
+            if not CompetitionParticipants.objects.filter(
+                competition=competition, junior_detachment=detachment
+            ).exists():
                 return Response(
-                    {'error': 'Вы не зарегистрировались как участник конкурса.'},
+                    {
+                        'error': 'Ваш отряд не зарегистрирован'
+                        ' как участник конкурса.'
+                    },
                 )
         if Q2DetachmentReport.objects.filter(
             competition=competition,
@@ -1206,19 +1209,30 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
 
     @action(
             detail=True,
-            methods=['post'],
+            methods=['get'],
             url_path='get-place',
             serializer_class=None
     )
     def get_place(self, request, *args, **kwargs):
         """Определение места по показателю.
 
-        Метод возвращает место или статус показателя.
+        Возвращается место или статус показателя.
         Если показатель не был подан ранее, то возвращается код 400.
         """
 
         report = self.get_object()
+        is_verified = report.is_verified
+        is_tandem = tandem_or_start(
+            competition=report.competition,
+            detachment=report.detachment,
+            competition_model=CompetitionParticipants
+        )
 
+        if not is_verified:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={'detail': 'Показатель в обработке.'}
+            )
         tandem_ranking = Q2TandemRanking.objects.filter(
             detachment=report.detachment
         ).first()
@@ -1227,58 +1241,56 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
                 junior_detachment=report.detachment
             ).first()
 
-        # Пытаемся найти place в Q2TandemRanking
-        if tandem_ranking and tandem_ranking.place is not None:
-            return Response(
-                {"place": tandem_ranking.place},
-                status=status.HTTP_200_OK
-            )
+        if is_tandem:
+            if tandem_ranking and tandem_ranking.place is not None:
+                return Response(
+                    {"place": tandem_ranking.place},
+                    status=status.HTTP_200_OK
+                )
+        else:
+            ranking = Q2Ranking.objects.filter(
+                detachment=report.detachment
+            ).first()
+            if ranking and ranking.place is not None:
+                return Response(
+                    {"place": ranking.place}, status=status.HTTP_200_OK
+                )
 
-        # Если не найдено в Q2TandemRanking, ищем в Q13Ranking
-        ranking = Q2Ranking.objects.filter(
-            detachment=report.detachment
-        ).first()
-        if ranking and ranking.place is not None:
-            return Response(
-                {"place": ranking.place}, status=status.HTTP_200_OK
-            )
+        """
+        Если показателей нет в таблицах Rankin, то вычисляем место,
+        так, как будто у отряда личный результат.
 
-        # Если не найдено ни в одной из моделей
+        Ниже вычисляем индивидуальное место. Третье место заполняется
+        по умолчанию.
+        Если ни одно условие не выполнено, то место остается равным 3.
+        """
+
+        commander_achievment = report.commander_achievement
+        commissioner_achievement = report.commissioner_achievement
+        place = None
+        if commander_achievment and commissioner_achievement:
+            place = self.PLACE_FIRST
+        if (
+            commander_achievment and not commissioner_achievement
+        ) or (
+            not commander_achievment and commissioner_achievement
+        ):
+            place = self.PLACE_SECOND
+        if place:
+            report.individual_place = place
+            report.save()
+        if not is_tandem:
+            return Response(data={'place': report.individual_place})
+
+        """
+        Последний return  нужен для того, чтобы отряд не получал место,
+        пока напарник не заполнит показатель.
+        Для избежания ошибок и лишних вопросов от командиров.
+        """
         return Response(
-            {"place": "Показатель в обработке"},
-            status=status.HTTP_404_NOT_FOUND
-        )
-        #Тандем или Соло
-        # try:
-        #     if (CompetitionParticipants.objects.filter(
-        #         competition=kwargs.get('competition_pk'),
-        #         detachment=kwargs.get('pk')
-        #     ).exists()) or(
-        #         CompetitionParticipants.objects.filter(
-        #             competition=kwargs.get('competition_pk'),
-        #             junior_detachment=kwargs.get('pk')
-        #         ).exists
-        #     ):
-        #         is_tandem = True
-        # except (ObjectDoesNotExist, ValueError):
-        #     is_tandem = False
-        #Код ниже в метод верификации:
-        # if is_verified:
-        #     commander_achievment = report.commander_achievement
-        #     commissioner_achievement = report.commissioner_achievement
-        #     print(commissioner_achievement, commander_achievment)
-        #     if commander_achievment and commissioner_achievement:
-        #         place = 1
-        #     if (
-        #         commander_achievment and not commissioner_achievement
-        #     ) or (
-        #         not commander_achievment and commissioner_achievement
-        #     ):
-        #         place = 2
-        #     report.individual_place = place
-        #     report.save()
-        # return Response(status=status.HTTP_200_OK,
-        #                 data={'is_verified': is_verified, 'individual_place': report.individual_place})
+                status=status.HTTP_400_BAD_REQUEST,
+                data={'detail': 'Показатель не заполнен у отряда - напарника.'}
+            )
 
     @action(
             detail=True,
@@ -1304,6 +1316,7 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
         if self.request.method == 'DELETE':
             detachment_report.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class Q13DetachmentReportViewSet(viewsets.ModelViewSet):
     """Пример POST-запроса:
