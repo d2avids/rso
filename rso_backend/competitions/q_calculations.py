@@ -298,21 +298,22 @@ def calculate_q1_score(competition_id):
     #       первый элемент - id отряда-участника,
     #       второй - количество участников в отряде,
     #       третий - количество участников с оплаченным членским взносом
+    # Добавляем везде единичку, т.к. командира нет в members
     for entry in participants:
         detachments_data.append([
             entry.junior_detachment_id,
-            entry.junior_detachment.members.count(),
+            entry.junior_detachment.members.count() + 1,
             entry.junior_detachment.members.filter(
                 user__membership_fee=True
-            ).count()
+            ).count() + 1 if entry.junior_detachment.commander.membership_fee else 0
         ])
         if entry.detachment:
             detachments_data.append([
                 entry.detachment_id,
-                entry.detachment.members.count(),
+                entry.detachment.members.count() + 1,
                 entry.detachment.members.filter(
                     user__membership_fee=True
-                ).count()
+                ).count() + 1 if entry.detachment.commander.membership_fee else 0
             ])
 
     # Создаем отчеты каждому отряду с посчитанными score
@@ -325,7 +326,7 @@ def calculate_q1_score(competition_id):
     # score по дефолту 1, иначе в таске как False проходит, не считается
     for data in detachments_data:
         score = 1  # TODO: Если в отряде меньше 10 человек - то score = 1 УТОЧНИТЬ
-        if data[1] <= 10:  # Изменить на == 10 после тестов
+        if data[1] == 10:
             score = data[2] * 1 + 1
         elif data[1] > 10 and data[1] <= 20:
             score = data[2] * 0.75 + 1

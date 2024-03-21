@@ -57,10 +57,7 @@ EMAIL_SERVER = EMAIL_HOST_USER
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 EMAIL_ADMIN = EMAIL_HOST_USER
 
-if DEBUG:  # TODO: для локального запуска. Но вопрос с rso.sprint...
-    COMPETITION_ID = 2
-else:
-    COMPETITION_ID = 1
+COMPETITION_ID = 1
 
 INSTALLED_APPS = [
     'dal',
