@@ -87,6 +87,21 @@ class DetachmentFilter(filters.FilterSet):
         lookup_expr='iexact',
         label='Название образовательной организации'
     )
+    district_headquarter__name = filters.CharFilter(
+        field_name='district_headquarter__name',
+        lookup_expr='iexact',
+        label='Название окружного штаба'
+    )
+    regional_headquarter__name = filters.CharFilter(
+        field_name='regional_headquarter__name',
+        lookup_expr='iexact',
+        label='Название регионального штаба'
+    )
+    local_headquarter__name = filters.CharFilter(
+        field_name='local_headquarter__name',
+        lookup_expr='iexact',
+        label='Название местного штаба'
+    )
     educational_headquarter__name = filters.CharFilter(
         field_name='educational_headquarter__name',
         lookup_expr='iexact',

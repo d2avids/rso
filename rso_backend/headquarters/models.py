@@ -252,7 +252,7 @@ class RegionalHeadquarter(Unit):
         null=True,
     )
     requisites = models.CharField(
-        max_length=250,
+        max_length=1000,
         verbose_name='Реквизиты (для справок)',
         blank=True,
         null=True,
