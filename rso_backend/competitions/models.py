@@ -134,76 +134,6 @@ class CompetitionParticipants(models.Model):
         ]
 
 
-# class Score(models.Model):
-#     """
-#     Таблица для хранения очков отрядов за верифицированные отчеты.
-#     """
-#     detachment = models.ForeignKey(
-#         to='headquarters.Detachment',
-#         on_delete=models.CASCADE,
-#         related_name='competition_scores',
-#         verbose_name='Отряд'
-#     )
-#     competition = models.ForeignKey(
-#         to='Competitions',
-#         on_delete=models.CASCADE,
-#         related_name='competition_scores',
-#         verbose_name='Конкурс'
-#     )
-#     participation_in_distr_and_interreg_events = ( # чем больше, тем выше место
-#         models.PositiveSmallIntegerField(
-#             verbose_name='Общее количество участий',
-#             default=0
-#         )
-#     )
-#     participation_in_all_russian_events = ( # чем больше, тем выше место
-#         models.PositiveSmallIntegerField(
-#             verbose_name='Общее количество участий',
-#             default=0
-#         )
-#     )
-#     prize_places_in_distr_and_interreg_events = ( # чем меньше, тем выше место
-#         models.FloatField(
-#             verbose_name='Среднее место',
-#             default=100.0
-#         )
-#     )
-#     prize_places_in_all_russian_events = ( # чем меньше, тем выше место
-#         models.FloatField(
-#             verbose_name='Среднее место',
-#             default=100.0
-#         )
-#     )
-#     prize_places_in_distr_and_interreg_labor_projects = ( # чем меньше, тем выше место
-#         models.FloatField(
-#             verbose_name='Среднее место',
-#             default=100.0
-#         )
-#     )
-#     prize_places_in_all_russian_labor_projects = ( # чем меньше, тем выше место
-#         models.FloatField(
-#             verbose_name='Среднее место',
-#             default=100.0
-#         )
-#     )
-
-#     def __str__(self):
-#         return (
-#             f'Оценки отряда {self.detachment.name} '
-#             f'в конкурсе {self.competition.name}'
-#         )
-
-#     class Meta:
-#         verbose_name_plural = 'Оценки отрядов'
-#         verbose_name = 'Оценка отряда'
-#         constraints = [
-#             models.UniqueConstraint(
-#                 fields=('detachment', 'competition'),
-#                 name='unique_competition_score'
-#             )
-#         ]
-
-
 class QBaseReport(models.Model):
     competition = models.ForeignKey(
         'Competitions',
@@ -308,7 +238,7 @@ class CalcBase:
         average_prize = events.aggregate(
             average=models.Avg(field_name)
         ).get('average') or 10
-        return round_math(average_prize)
+        return average_prize
 
 
 class ParticipationBase(models.Model):
@@ -350,6 +280,10 @@ class Q7TandemRanking(QBaseTandemRanking):
         verbose_name='Итоговое место по показателю 7'
     )
 
+    class Meta:
+        verbose_name = 'Тандем-место по 7 показателю'
+        verbose_name_plural = 'Тандем-места по 7 показателю'
+
 
 class Q7Ranking(QBaseRanking):
     """
@@ -359,6 +293,10 @@ class Q7Ranking(QBaseRanking):
     place = models.PositiveSmallIntegerField(
         verbose_name='Итоговое место по показателю 7'
     )
+
+    class Meta:
+        verbose_name = 'Место по 7 показателю'
+        verbose_name_plural = 'Места по 7 показателю'
 
 
 class Q7Report(CalcBase, QBaseReport):
@@ -451,6 +389,10 @@ class Q8TandemRanking(QBaseTandemRanking):
         verbose_name='Итоговое место по показателю 8'
     )
 
+    class Meta:
+        verbose_name = 'Тандем-место по 8 показателю'
+        verbose_name_plural = 'Тандем-места по 8 показателю'
+
 
 class Q8Ranking(QBaseRanking):
     """
@@ -460,6 +402,10 @@ class Q8Ranking(QBaseRanking):
     place = models.PositiveSmallIntegerField(
         verbose_name='Итоговое место по показателю 8'
     )
+
+    class Meta:
+        verbose_name = 'Место по 8 показателю'
+        verbose_name_plural = 'Места по 8 показателю'
 
 
 class Q8Report(CalcBase, QBaseReport):
@@ -548,6 +494,10 @@ class Q9TandemRanking(QBaseTandemRanking):
         verbose_name='Итоговое место по показателю 9'
     )
 
+    class Meta:
+        verbose_name = 'Тандем-место по 9 показателю'
+        verbose_name_plural = 'Тандем-места по 9 показателю'
+
 
 class Q9Ranking(QBaseRanking):
     """
@@ -558,6 +508,10 @@ class Q9Ranking(QBaseRanking):
         verbose_name='Итоговое место по показателю 9'
     )
 
+    class Meta:
+        verbose_name = 'Место по 9 показателю'
+        verbose_name_plural = 'Места по 9 показателю'
+
 
 class Q9Report(CalcBase, QBaseReport):
     """
@@ -567,9 +521,10 @@ class Q9Report(CalcBase, QBaseReport):
     Отчет имеет методы для подсчета очков (из абстрактной модели).
     """
     score = (
-        models.PositiveSmallIntegerField(
+        models.FloatField(
             verbose_name='Среднее призовое место',
-            default=10  # чем меньше, тем выше итоговое место в рейтинге
+            validators=[MinValueValidator(0), MaxValueValidator(4)],
+            default=4  # чем меньше, тем выше итоговое место в рейтинге
         )
     )
 
@@ -621,6 +576,10 @@ class Q10TandemRanking(QBaseTandemRanking):
         verbose_name='Итоговое место по показателю 10'
     )
 
+    class Meta:
+        verbose_name = 'Тандем-место по 10 показателю'
+        verbose_name_plural = 'Тандем-места по 10 показателю'
+
 
 class Q10Ranking(QBaseRanking):
     """
@@ -630,6 +589,10 @@ class Q10Ranking(QBaseRanking):
     place = models.PositiveSmallIntegerField(
         verbose_name='Итоговое место по показателю 10'
     )
+
+    class Meta:
+        verbose_name = 'Место по 10 показателю'
+        verbose_name_plural = 'Места по 10 показателю'
 
 
 class Q10Report(CalcBase, QBaseReport):
@@ -641,9 +604,10 @@ class Q10Report(CalcBase, QBaseReport):
     Отчет имеет методы для подсчета очков (из абстрактной модели).
     """
     score = (
-        models.PositiveSmallIntegerField(
+        models.FloatField(
             verbose_name='Среднее призовое место',
-            default=10  # чем меньше, тем выше итоговое место в рейтинге
+            validators=[MinValueValidator(0), MaxValueValidator(4)],
+            default=4  # чем меньше, тем выше итоговое место в рейтинге
         )
     )
 
@@ -693,6 +657,10 @@ class Q11TandemRanking(QBaseTandemRanking):
         verbose_name='Итоговое место по показателю 11'
     )
 
+    class Meta:
+        verbose_name = 'Тандем-место по 11 показателю'
+        verbose_name_plural = 'Тандем-места по 11 показателю'
+
 
 class Q11Ranking(QBaseRanking):
     """
@@ -703,19 +671,24 @@ class Q11Ranking(QBaseRanking):
         verbose_name='Итоговое место по показателю 11'
     )
 
+    class Meta:
+        verbose_name = 'Место по 11 показателю'
+        verbose_name_plural = 'Места по 11 показателю'
+
 
 class Q11Report(CalcBase, QBaseReport):
     """
     Отчет призовых местах отряда на окружных и межрегиональных
     трудовых проектах.
     Поля: отряд, конкурс, очки + FK поле на мероприятия в которых участвовали.
-    Очки - cреднее призовых мест avg(prize_place).
+    Очки - среднее призовых мест avg(prize_place).
     Отчет имеет методы для подсчета очков (из абстрактной модели).
     """
     score = (
-        models.PositiveSmallIntegerField(
-            verbose_name='Среднее призовых мест',
-            default=10  # чем меньше, тем выше итоговое место в рейтинге
+        models.FloatField(
+            verbose_name='Среднее призовое место',
+            validators=[MinValueValidator(0), MaxValueValidator(4)],
+            default=4  # чем меньше, тем выше итоговое место в рейтинге
         )
     )
 
@@ -767,6 +740,10 @@ class Q12TandemRanking(QBaseTandemRanking):
         verbose_name='Итоговое место по показателю 12'
     )
 
+    class Meta:
+        verbose_name = 'Тандем-место по 12 показателю'
+        verbose_name_plural = 'Тандем-места по 12 показателю'
+
 
 class Q12Ranking(QBaseRanking):
     """
@@ -776,6 +753,10 @@ class Q12Ranking(QBaseRanking):
     place = models.PositiveSmallIntegerField(
         verbose_name='Итоговое место по показателю 12'
     )
+
+    class Meta:
+        verbose_name = 'Место по 12 показателю'
+        verbose_name_plural = 'Места по 12 показателю'
 
 
 class Q12Report(CalcBase, QBaseReport):
@@ -787,9 +768,10 @@ class Q12Report(CalcBase, QBaseReport):
     Отчет имеет методы для подсчета очков (из абстрактной модели).
     """
     score = (
-        models.PositiveSmallIntegerField(
-            verbose_name='Среднее призовых мест',
-            default=10  # чем меньше, тем выше итоговое место в рейтинге
+        models.FloatField(
+            verbose_name='Среднее призовое место',
+            validators=[MinValueValidator(0), MaxValueValidator(4)],
+            default=4  # чем меньше, тем выше итоговое место в рейтинге
         )
     )
 
