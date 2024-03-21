@@ -15,7 +15,7 @@ from competitions.views import (
     CompetitionApplicationsViewSet, CompetitionParticipantsViewSet,
     CompetitionViewSet, Q10ViewSet, Q11ViewSet, Q12ViewSet, Q7ViewSet,
     Q13DetachmentReportViewSet, Q13EventOrganizationViewSet,
-    Q18DetachmentReportViewSet, Q8ViewSet, Q9ViewSet,
+    Q18DetachmentReportViewSet, Q8ViewSet, Q9ViewSet, get_place_q1,
 )
 from events.views import (AnswerDetailViewSet, EventAdditionalIssueViewSet,
                           EventApplicationsViewSet,
@@ -361,6 +361,11 @@ user_nested_urls = [
         'events/<int:event_pk>/answers/',
         create_answers,
         name='create-answers'
+    ),
+    path(
+        'competitions/<int:competition_pk>/reports/q1/get_place/',
+        get_place_q1,
+        name='get-place-q1'
     ),
     path('', include('djoser.urls')),
 ]

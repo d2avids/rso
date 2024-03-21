@@ -5,13 +5,16 @@ import zipfile
 from datetime import datetime
 
 from django.db import IntegrityError
+from django.db.models import Q
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers, status
 from rest_framework.permissions import SAFE_METHODS
 from rest_framework.response import Response
+from competitions.models import CompetitionParticipants
 
-from headquarters.models import (CentralHeadquarter, RegionalHeadquarter,
+from headquarters.models import (CentralHeadquarter, Detachment,
+                                 RegionalHeadquarter,
                                  UserCentralHeadquarterPosition,
                                  UserDetachmentPosition,
                                  UserDistrictHeadquarterPosition,
@@ -614,3 +617,47 @@ def is_regional_commissioner(user):
     except UserRegionalHeadquarterPosition.DoesNotExist:
         return False
     return position_name == 'Комиссар' or user.is_staff
+
+
+def get_detachment_tandem(user, competition_id):
+    """
+    Возвращает отряд-участник заявки тандем, в котором юзер командир.
+    Если юзер не командир, то возвращает 404.
+    Если юзер командир отряда, но его отряд не участвует в мероприятии
+    как один из тандем участников, то функция возвращает None.
+
+    :param user: объект пользователя, например request.user
+    :param competition_id: id мероприятия
+    """
+    detachment = get_object_or_404(
+        Detachment,
+        commander=user
+    )
+    if CompetitionParticipants.objects.filter(
+        Q(detachment=detachment) | Q(junior_detachment=detachment) &
+        Q(detachment__isnull=False) &
+        Q(competition_id=competition_id)
+    ).exists():
+        return detachment
+
+
+def get_detachment_start(user, competition_id):
+    """
+    Возвращает отряд-участник заявки старт, в котором юзер командир.
+    Если юзер не командир, то возвращает 404.
+    Если юзер командир отряда, но его отряд не участвует в мероприятии
+    как старт-участник, то функция возвращает None.
+
+    :param user: объект пользователя, например request.user
+    :param competition_id: id мероприятия
+    """
+    detachment = get_object_or_404(
+        Detachment,
+        commander=user
+    )
+    if CompetitionParticipants.objects.filter(
+        Q(junior_detachment=detachment) &
+        Q(detachment__isnull=True) &
+        Q(competition_id=competition_id)
+    ).exists():
+        return detachment

@@ -2,8 +2,9 @@ from django.contrib import admin
 
 from competitions.models import (
     Q10, Q9, CompetitionApplications, CompetitionParticipants, Competitions,
-    Q7, Q10Ranking, Q10Report, Q10TandemRanking, Q18Ranking, Q7Ranking, Q7Report, LinksQ7,
-    Q13TandemRanking, Q18TandemRanking, Q13Ranking, Q7TandemRanking, Q9Ranking, Q9Report, Q9TandemRanking
+    Q7, Q10Ranking, Q10Report, Q10TandemRanking, Q18Ranking, Q1Ranking, Q1Report, Q1TandemRanking, Q7Ranking,
+    Q7Report, LinksQ7, Q13TandemRanking, Q18TandemRanking, Q13Ranking,
+    Q7TandemRanking, Q9Ranking, Q9Report, Q9TandemRanking
 )
 
 
@@ -47,6 +48,7 @@ class Q7Admin(admin.ModelAdmin):
         'number_of_participants'
     )
 
+
 admin.site.register(Q7Report)
 admin.site.register(LinksQ7)
 admin.site.register(Q7Ranking)
@@ -74,3 +76,10 @@ class Q10Admin(admin.ModelAdmin):
 admin.site.register(Q10Report)
 admin.site.register(Q10Ranking)
 admin.site.register(Q10TandemRanking)
+
+@admin.register(Q1Report)
+class Q1ReportAdmin(admin.ModelAdmin):
+    list_display = ('id', 'detachment', 'score')
+
+admin.site.register(Q1TandemRanking)
+admin.site.register(Q1Ranking)

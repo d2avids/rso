@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import filters, permissions, status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from rest_framework.serializers import ListSerializer
 
@@ -24,18 +24,24 @@ from api.permissions import (
     IsRegionalCommissionerOrCommanderDetachmentWithVerif,
     IsDetachmentReportAuthor
 )
+from api.utils import get_detachment_start, get_detachment_tandem
 from competitions.models import (
-    Q10, Q11, Q12, Q7, Q8, Q9, CompetitionApplications, CompetitionParticipants, Competitions, Q10Report, Q11Report, Q12Report,
+    Q10, Q11, Q12, Q7, Q8, Q9, CompetitionApplications,
+    CompetitionParticipants, Competitions, Q10Report, Q11Report, Q12Report,
     Q13EventOrganization,
-    Q13DetachmentReport, Q13Ranking, Q13TandemRanking, Q7Report, Q18DetachmentReport,
+    Q13DetachmentReport, Q13Ranking, Q13TandemRanking, Q1Ranking, Q1TandemRanking,
+    Q7Report, Q18DetachmentReport,
     Q18TandemRanking, Q18Ranking, Q8Report, Q9Report
 )
 from competitions.q_calculations import calculate_q13_place
 from competitions.serializers import (
     CompetitionApplicationsObjectSerializer, CompetitionApplicationsSerializer,
     CompetitionParticipantsObjectSerializer, CompetitionParticipantsSerializer,
-    CompetitionSerializer, CreateQ10Serializer, CreateQ11Serializer, CreateQ12Serializer,
-    CreateQ7Serializer, CreateQ8Serializer, CreateQ9Serializer, Q10ReportSerializer, Q10Serializer, Q11ReportSerializer, Q11Serializer, Q12ReportSerializer, Q12Serializer, Q7ReportSerializer, Q7Serializer,
+    CompetitionSerializer, CreateQ10Serializer, CreateQ11Serializer,
+    CreateQ12Serializer, CreateQ7Serializer, CreateQ8Serializer,
+    CreateQ9Serializer, Q10ReportSerializer, Q10Serializer,
+    Q11ReportSerializer, Q11Serializer, Q12ReportSerializer, Q12Serializer,
+    Q7ReportSerializer, Q7Serializer,
     Q8ReportSerializer, Q8Serializer, Q9ReportSerializer, Q9Serializer,
     ShortDetachmentCompetitionSerializer, Q13EventOrganizationSerializer,
     Q13DetachmentReportSerializer, Q18DetachmentReportSerializer
@@ -533,6 +539,59 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
         return Response(serializer.data)
 
 
+@api_view(['GET'])
+def get_place_q1(request, competition_pk):
+    """Вью для показателя 'Численность членов линейного студенческого
+    отряда в соответствии с объемом уплаченных членских взносов'.
+
+    Место в рейтинге автоматически рассчитается 15 апреля 2024 года,
+    до этого дня для участников будет выводится ошибка 400
+    {'error': 'Рейтинг еще не сформирован'}.
+
+    После 15 апреля, при запросе участником мероприятия будет
+    возвращаться место в формате {'place': int}
+
+    Для тандем заявки место для обоих участников будет одинаковым.
+
+    Доступ: все авторизованные пользователи.
+    Если пользователь не командир, либо не участвует в мероприятии -
+    выводится ошибка 404.
+    """
+    if request.user.is_anonymous:
+        return Response(status=status.HTTP_401_UNAUTHORIZED)
+    detachment_start = get_detachment_start(
+        request.user, competition_pk
+    )
+    if detachment_start is None:
+        detachment_tandem = get_detachment_tandem(
+            request.user, competition_pk
+        )
+        # Если командир, но не участник старт и не участник тандем
+        if detachment_tandem is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        if detachment_start:
+            ranking_start = Q1Ranking.objects.filter(
+                competition_id=competition_pk,
+                detachment=detachment_start
+            ).first()
+            if ranking_start:
+                return Response({'place': ranking_start.place})
+
+        if detachment_tandem:
+            ranking_tandem = Q1TandemRanking.objects.filter(
+                Q(competition_id=competition_pk) &
+                Q(junior_detachment=detachment_tandem) |
+                Q(detachment=detachment_tandem)
+            ).first()
+            if ranking_tandem:
+                return Response({'place': ranking_tandem.place})
+
+    # Если отряд является участником конкурса, но нет рейтинга
+    return Response({'error': 'Рейтинг еще не сформирован'},
+                    status=status.HTTP_400_BAD_REQUEST)
+
+
 class Q7ViewSet(
     viewsets.ModelViewSet
 ):
@@ -691,12 +750,13 @@ class Q7ViewSet(
         detachment = Detachment.objects.get(
             id=request.user.detachment_commander.id
         )
-        report = self.serializer_class.Meta.model.objects.get(
-            detachment=detachment,
-            competition__id=self.kwargs.get('competition_pk')
-        )
+        report = self.serializer_class.Meta.model.objects.filter(
+            detachment_report__detachment=detachment,
+            detachment_report__competition_id=self.kwargs.get('competition_pk')
+        ).first()
         if not report:
-            return Response(status=status.HTTP_404_NOT_FOUND)  # Еще нет отчета
+            # Отряд участник, но еще не подал отчет по данному показателю.
+            return Response(status=status.HTTP_404_NOT_FOUND)
         class_name = self.serializer_class.Meta.model.__name__  # Q7
         ranking_fk = f'{class_name.lower()}ranking'  # q7ranking
         if hasattr(detachment, ranking_fk):  # Если есть FK на стартовый рейтинг

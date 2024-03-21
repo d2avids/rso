@@ -1,7 +1,7 @@
 from datetime import date
 import logging
 from competitions.models import Q13EventOrganization, Q18Ranking, \
-    Q18DetachmentReport, CompetitionParticipants, Q18TandemRanking, Q7Ranking, Q7Report, Q7TandemRanking
+    Q18DetachmentReport, CompetitionParticipants, Q18TandemRanking, Q1Report, Q7Ranking, Q7Report, Q7TandemRanking
 
 
 logger = logging.getLogger('tasks')
@@ -133,7 +133,7 @@ def calculate_place(
         reverse=True
 ):
     """
-    Таска для расчета рейтинга Q7.
+    Таска для расчета рейтинга Q7 - Q12.
 
     Для celery-beat, считает вплоть до 15 октября 2024 года.
     :param competition_id: id конкурса
@@ -270,3 +270,72 @@ def calculate_place(
     model_tandem_ranking.objects.bulk_create(to_create_entries)  # создаем новый рейтинг тандем
 
     logger.info("Тандем рейтинг создан")
+
+
+def calculate_q1_score(competition_id):
+    """ 
+    Функция для расчета очков по 1 показателю.
+
+    Выполняется только 15.04.2024.
+    """
+    today = date.today()
+    start_date = date(2024, 4, 15)
+
+    if today != start_date:
+        return
+
+    participants = CompetitionParticipants.objects.filter(
+        competition_id=competition_id
+    ).all()
+
+    if not participants:
+        logger.info('Нет участников')
+        return
+
+    detachments_data = []
+
+    # Собираем список списков, где
+    #       первый элемент - id отряда-участника,
+    #       второй - количество участников в отряде,
+    #       третий - количество участников с оплаченным членским взносом
+    for entry in participants:
+        detachments_data.append([
+            entry.junior_detachment_id,
+            entry.junior_detachment.members.count(),
+            entry.junior_detachment.members.filter(
+                user__membership_fee=True
+            ).count()
+        ])
+        if entry.detachment:
+            detachments_data.append([
+                entry.detachment_id,
+                entry.detachment.members.count(),
+                entry.detachment.members.filter(
+                    user__membership_fee=True
+                ).count()
+            ])
+
+    # Создаем отчеты каждому отряду с посчитанными score
+    #       10 человек в отряде  – за каждого уплатившего 1 балл
+    #       11-20 человек – за каждого уплатившего 0.75 балла
+    #       21 и более человек – за каждого уплатившего 0.5 балла
+
+    to_create_entries = []
+
+    # score по дефолту 1, иначе в таске как False проходит, не считается
+    for data in detachments_data:
+        score = 1  # TODO: Если в отряде меньше 10 человек - то score = 1 УТОЧНИТЬ
+        if data[1] <= 10:  # Изменить на == 10 после тестов
+            score = data[2] * 1 + 1
+        elif data[1] > 10 and data[1] <= 20:
+            score = data[2] * 0.75 + 1
+        elif data[1] > 20:
+            score = data[2] * 0.5 + 1
+        to_create_entries.append(
+            Q1Report(competition_id=competition_id,
+                     detachment_id=data[0],
+                     score=score)
+        )
+
+    Q1Report.objects.filter(competition_id=competition_id).delete()
+    Q1Report.objects.bulk_create(to_create_entries)

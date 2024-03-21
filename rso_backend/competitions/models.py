@@ -271,6 +271,54 @@ class ParticipationBase(models.Model):
         abstract = True
 
 
+class Q1Report(QBaseReport):
+    """
+    Отчет по 1 показателю -'Численность членов линейного студенческого
+    отряда в соответствии с объемом уплаченных членских взносов.'
+
+    Баллы за оплаченный членский взнос:
+    10 человек в отряде  – за каждого уплатившего 1 балл
+    11-20 человек – за каждого уплатившего 0.75 балла
+    21 и более человек – за каждого уплатившего 0.5 балла
+
+    Создается и заполняется переодической таской 15 апреля.
+    """
+    score = (
+        models.FloatField(
+            verbose_name='Баллы за оплаченный членский взнос',
+            validators=[MinValueValidator(0)],
+        )
+    )
+
+
+class Q1TandemRanking(QBaseTandemRanking):
+    """
+    Рейтинг для тандема-участников.
+    Создается и заполняется переодической таской.
+    """
+    place = models.PositiveSmallIntegerField(
+        verbose_name='Итоговое место по показателю 1'
+    )
+
+    class Meta:
+        verbose_name = 'Тандем-место по 1 показателю'
+        verbose_name_plural = 'Тандем-места по 1 показателю'
+
+
+class Q1Ranking(QBaseRanking):
+    """
+    Рейтинг для старт-участников.
+    Создается и заполняется переодической таской.
+    """
+    place = models.PositiveSmallIntegerField(
+        verbose_name='Итоговое место по показателю 1'
+    )
+
+    class Meta:
+        verbose_name = 'Место по 1 показателю'
+        verbose_name_plural = 'Места по 1 показателю'
+
+
 class Q7TandemRanking(QBaseTandemRanking):
     """
     Рейтинг для тандема-участников.

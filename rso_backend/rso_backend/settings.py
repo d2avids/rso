@@ -57,6 +57,11 @@ EMAIL_SERVER = EMAIL_HOST_USER
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 EMAIL_ADMIN = EMAIL_HOST_USER
 
+if DEBUG:  # TODO: для локального запуска. Но вопрос с rso.sprint...
+    COMPETITION_ID = 2
+else:
+    COMPETITION_ID = 1
+
 INSTALLED_APPS = [
     'dal',
     'dal_select2',
@@ -295,9 +300,13 @@ CELERY_BEAT_SCHEDULE = {
             month_of_year=10,
         )
     },
-    'calculate_q18': {
-        'task': 'competitions.tasks.calculate_q18_places_task',
-        'schedule': timedelta(seconds=30)
+    # 'calculate_q18': {
+    #     'task': 'competitions.tasks.calculate_q18_places_task',
+    #     'schedule': timedelta(seconds=30)
+    # },
+    'calculate_q1': {
+        'task': 'competitions.tasks.calculate_q1_places_task',
+        'schedule': timedelta(hours=24)
     },
     'calculate_q7': {
         'task': 'competitions.tasks.calculate_q7_places_task',
@@ -322,7 +331,11 @@ CELERY_BEAT_SCHEDULE = {
     'calculate_q12': {
         'task': 'competitions.tasks.calculate_q12_places_task',
         'schedule': timedelta(hours=24)
-    }
+    },
+    'calculate_q1_score': {
+        'task': 'competitions.tasks.calculate_q1_score_task',
+        'schedule': timedelta(seconds=30)
+    },
 }
 
 if DEBUG:
