@@ -88,7 +88,7 @@ class DetachmentFilter(filters.FilterSet):
         label='Название образовательной организации'
     )
     district_headquarter__name = filters.CharFilter(
-        field_name='district_headquarter__name',
+        field_name='regional_headquarter__district_headquarter__name',
         lookup_expr='iexact',
         label='Название окружного штаба'
     )
@@ -113,5 +113,8 @@ class DetachmentFilter(filters.FilterSet):
         fields = (
             'area__name',
             'educational_institution__name',
+            'district_headquarter__name',
+            'regional_headquarter__name',
+            'local_headquarter__name',
             'educational_headquarter__name',
         )
