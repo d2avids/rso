@@ -105,7 +105,7 @@ class DetachmentFilter(filters.FilterSet):
     educational_headquarter__name = filters.CharFilter(
         field_name='educational_headquarter__name',
         lookup_expr='iexact',
-        label='Название образовательной организации'
+        label='Название образовательного штаба'
     )
 
     class Meta:
