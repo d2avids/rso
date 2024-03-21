@@ -113,6 +113,7 @@ class DistrictViewSet(viewsets.ModelViewSet):
     members.
     Доступен поиск по name при передаче ?search=<value> query-параметра.
     Сортировка по умолчанию - количество участников
+    Доступна сортировка по ключу ordering по полям name и founding_date.
     При указании registry=True в качестве query_param, выводит список объектов,
     адаптированный под блок "Реестр участников".
     """
@@ -121,7 +122,8 @@ class DistrictViewSet(viewsets.ModelViewSet):
     serializer_class = DistrictHeadquarterSerializer
     filter_backends = (filters.SearchFilter, filters.OrderingFilter)
     search_fields = ('name', 'founding_date')
-    ordering = ('name',)
+    ordering_fields = ('name', 'founding_date')
+    ordering = ('name', 'founding_date')
 
     def get_serializer_class(self):
         if (
@@ -161,6 +163,7 @@ class RegionalViewSet(viewsets.ModelViewSet):
     Сортировка по умолчанию - количество участников.
     Доступна фильтрация по Окружным Штабам. Ключ - district_headquarter__name.
     Доступна фильтрация по имени региона. Ключ - region.
+    Доступна сортировка по ключу ordering по полям name и founding_date.
     При указании registry=True в качестве query_param, выводит список объектов,
     адаптированный под блок "Реестр участников".
     """
@@ -221,6 +224,7 @@ class LocalViewSet(viewsets.ModelViewSet):
     Доступна сортировка по ключам name, founding_date, count_related.
     Доступна фильтрация по РШ и ОШ. Ключи - regional_headquarter__name,
     district_headquarter__name.
+    Доступна сортировка по ключу ordering по полям name и founding_date.
     При указании registry=True в качестве query_param, выводит список объектов,
     адаптированный под блок "Реестр участников".
     """
@@ -269,6 +273,7 @@ class EducationalViewSet(viewsets.ModelViewSet):
     Доступна сортировка по ключам name, founding_date, count_related.
     Доступна фильтрация по РШ, ОШ и ОИ. Ключи - regional_headquarter__name,
     district_headquarter__name, local_headquarter__name.
+    Доступна сортировка по ключу ordering по полям name и founding_date.
     При указании registry=True в качестве query_param, выводит список объектов,
     адаптированный под блок "Реестр участников".
     """
@@ -320,14 +325,15 @@ class DetachmentViewSet(viewsets.ModelViewSet):
     При операции чтения доступен список пользователей, подавших заявку на
     вступление в отряд по эндпоинту /applications/.
     Доступен поиск по name при передаче ?search=<value> query-параметра.
-    Доступна сортировка по ключам name, founding_date, count_related.
+    Доступны фильтры по ключам name, founding_date, count_related.
     Доступна фильтрация по ключам area__name, educational_institution__name.
+    Доступна сортировка по ключу ordering по полям name и founding_date.
     При указании registry=True в качестве query_param, выводит список объектов,
     адаптированный под блок "Реестр участников".
     """
 
     queryset = Detachment.objects.all()
-    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter)
     search_fields = ('name',)
     filterset_class = DetachmentFilter
     ordering_fields = ('name', 'founding_date',)
@@ -385,6 +391,15 @@ class BasePositionViewSet(viewsets.ModelViewSet):
     Необходимо переопределять метод get_queryset и атрибут serializer_class.
     """
 
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    ordering_fields = ('user__last_name', 'user__date_of_birth')
+    search_fields = (
+        'user__username',
+        'user__first_name',
+        'user__last_name',
+        'user__patronymic_name'
+    )
+    permission_classes = (IsUserModelPositionCommander,)
     serializer_class = None
 
     @method_decorator(cache_page(settings.HEADQUARTERS_MEMBERS_CACHE_TTL))
@@ -424,17 +439,14 @@ class CentralPositionViewSet(BasePositionViewSet):
     Доступно только командиру.
 
     Доступен поиск по username, first_name, last_name, patronymic_name
+    Доступна сортировка по ключу ordering по следующим полям:
+    user__last_name, user__date_of_birth
     """
 
-    filter_backends = (filters.SearchFilter,)
-    search_fields = (
-        'user__username',
-        'user__first_name',
-        'user__last_name',
-        'user__patronymic_name'
-    )
     permission_classes = (IsStuffOrCentralCommander,)
     serializer_class = CentralPositionSerializer
+    ordering_fields = ('user__last_name', 'user__date_of_birth',)
+
 
     def get_queryset(self):
         return get_headquarter_users_positions_queryset(
@@ -454,16 +466,11 @@ class DistrictPositionViewSet(BasePositionViewSet):
     Доступно только командиру.
 
     Доступен поиск по username, first_name, last_name, patronymic_name
+    Доступна сортировка по ключу ordering по следующим полям:
+    user__last_name, user__date_of_birth
+
     """
 
-    filter_backends = (filters.SearchFilter,)
-    search_fields = (
-        'user__username',
-        'user__first_name',
-        'user__last_name',
-        'user__patronymic_name'
-    )
-    permission_classes = (IsUserModelPositionCommander,)
     serializer_class = DistrictPositionSerializer
 
     def get_queryset(self):
@@ -484,16 +491,10 @@ class RegionalPositionViewSet(BasePositionViewSet):
     Доступно только командиру.
 
     Доступен поиск по username, first_name, last_name, patronymic_name
+    Доступна сортировка по ключу ordering по следующим полям:
+    user__last_name, user__date_of_birth
     """
 
-    filter_backends = (filters.SearchFilter,)
-    search_fields = (
-        'user__username',
-        'user__first_name',
-        'user__last_name',
-        'user__patronymic_name'
-    )
-    permission_classes = (IsUserModelPositionCommander,)
     serializer_class = RegionalPositionSerializer
 
     @method_decorator(cache_page(settings.HEADQUARTERS_MEMBERS_CACHE_TTL))
@@ -514,16 +515,10 @@ class LocalPositionViewSet(BasePositionViewSet):
     Доступно только командиру.
 
     Доступен поиск по username, first_name, last_name, patronymic_name
+    Доступна сортировка по ключу ordering по следующим полям:
+    user__last_name, user__date_of_birth
     """
 
-    filter_backends = (filters.SearchFilter,)
-    search_fields = (
-        'user__username',
-        'user__first_name',
-        'user__last_name',
-        'user__patronymic_name'
-    )
-    permission_classes = (IsUserModelPositionCommander,)
     serializer_class = LocalPositionSerializer
 
     @method_decorator(cache_page(settings.HEADQUARTERS_MEMBERS_CACHE_TTL))
@@ -544,16 +539,10 @@ class EducationalPositionViewSet(BasePositionViewSet):
     Доступно только командиру.
 
     Доступен поиск по username, first_name, last_name, patronymic_name
+    Доступна сортировка по ключу ordering по следующим полям:
+    user__last_name, user__date_of_birth
     """
 
-    filter_backends = (filters.SearchFilter,)
-    search_fields = (
-        'user__username',
-        'user__first_name',
-        'user__last_name',
-        'user__patronymic_name'
-    )
-    permission_classes = (IsUserModelPositionCommander,)
     serializer_class = EducationalPositionSerializer
 
     @method_decorator(cache_page(settings.HEADQUARTERS_MEMBERS_CACHE_TTL))
@@ -574,17 +563,10 @@ class DetachmentPositionViewSet(BasePositionViewSet):
     Доступно только командиру.
 
     Доступен поиск по username, first_name, last_name, patronymic_name
+    Доступна сортировка по ключу ordering по следующим полям:
+    user__last_name, user__date_of_birth
     """
 
-    filter_backends = (filters.SearchFilter,)
-    search_fields = (
-        'user__username',
-        'user__first_name',
-        'user__last_name',
-        'user__patronymic_name'
-    )
-    ordering_fields = ('last_name',)
-    permission_classes = (IsUserModelPositionCommander,)
     serializer_class = DetachmentPositionSerializer
 
     @method_decorator(cache_page(settings.HEADQUARTERS_MEMBERS_CACHE_TTL))

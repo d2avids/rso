@@ -240,6 +240,15 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
     """
     queryset = EventApplications.objects.all()
     serializer_class = EventApplicationsSerializer
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter)
+    search_fields = (
+        'user__username',
+        'user__first_name',
+        'user__last_name',
+        'user__patronymic_name'
+        'event__name'
+    )
+    ordering_fields = ('user__last_name',)
     permission_classes = (permissions.IsAuthenticated, IsEventOrganizer)
 
     def get_queryset(self):
@@ -1083,6 +1092,11 @@ def group_applications(request, event_pk):
             диапазону возрастов, основываясь на дате рождения.
             - `gender`: фильтрация по полу (male/female).
 
+        Поддерживает сортировку по:
+           - `user__last_name`: сортировка по фамилии (в алф. пор.).
+           - `user__date_of_birth`: сортировка по дате рождения (по возр.)
+        Note: использовать знак "-" перед значением для обратной сортировки.
+
     Метод `POST`:
         Обрабатывает подачу айдишников участников на участие в мероприятии.
         Перед созданием заявки проверяется, не была ли уже подана заявка от
@@ -1143,6 +1157,7 @@ def group_applications(request, event_pk):
         birth_date_from = request.query_params.get('birth_date_from')
         birth_date_to = request.query_params.get('birth_date_to')
         gender = request.query_params.get('gender')
+        ordering = request.query_params.get('ordering')
 
         # Получение списка пользователей штаба
         users_query = headquarter.members.all()
@@ -1172,6 +1187,10 @@ def group_applications(request, event_pk):
         # Фильтрация по полу
         if gender:
             users_query = users_query.filter(user__gender=gender)
+
+        # Сортировка
+        if ordering:
+            users_query = users_query.order_by(ordering)
 
         users = [user.user for user in users_query]
         serializer = ShortUserSerializer(users, many=True)
