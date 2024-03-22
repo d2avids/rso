@@ -140,22 +140,6 @@ def create_score_q12(sender, instance, created=False, **kwargs):
             return report
 
 
-# @receiver([post_save, post_delete], sender=Q19Report)
-# def create_rank_q19(sender, instance, created=False, **kwargs):
-#     if created:
-#         pass
-#     else:
-#         if instance.is_verified:
-#             report = instance
-#             if CompetitionParticipants.objects.filter(
-#                 Q(detachment=report.detachment) |
-#                 Q(junior_detachment=report.detachment) &
-#                 Q(detachment__isnull=False) &
-#                 Q(competition=report.competition)
-#             ).exists():
-
-#             return report
-
 signals.post_save.connect(
     create_score_q7,
     sender=Q7

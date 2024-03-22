@@ -61,7 +61,7 @@ from competitions.swagger_schemas import (request_update_application,
                                           response_create_application,
                                           response_junior_detachments,
                                           q7schema_request, q9schema_request)
-from headquarters.models import Detachment, RegionalHeadquarter
+from headquarters.models import Detachment, RegionalHeadquarter, UserDetachmentPosition
 from rso_backend.settings import BASE_DIR
 from users.models import RSOUser
 
@@ -543,6 +543,57 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
         serializer = CompetitionParticipantsObjectSerializer(participant_unit)
         return Response(serializer.data)
 
+    @action(detail=False,
+            methods=['get'],
+            url_path='status',
+            permission_classes=(permissions.IsAuthenticated,))
+    @swagger_auto_schema(responses={
+        status.HTTP_200_OK: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'is_commander_detachment': openapi.Schema(
+                    type=openapi.TYPE_BOOLEAN,
+                    title='Является ли командиром отряда-участника конкурса',
+                    read_only=True
+                ),
+                'is_commissar_detachment': openapi.Schema(
+                    type=openapi.TYPE_BOOLEAN,
+                    title='Является ли комиссаром отряда-участника конкурса',
+                    read_only=True
+                )
+            }
+            )
+        })
+    def status(self, request, competition_pk, *args, **kwargs):
+        """Action для получения статуса пользователя в конкурсе.
+
+        Доступ: все пользователи.
+        """
+        if self.get_queryset().filter(
+            Q(detachment__commander=request.user) |
+            Q(junior_detachment__commander=request.user)
+        ).exists():
+            return Response({
+                'is_commander_detachment': True,
+                'is_commissar_detachment': False
+            })
+        try:
+            position = request.user.userdetachmentposition.position
+        except UserDetachmentPosition.DoesNotExist:
+            return Response({
+                'is_commander_detachment': False,
+                'is_commissar_detachment': False
+            })
+        if position.name == 'Комиссар':
+            return Response({
+                'is_commander_detachment': False,
+                'is_commissar_detachment': True
+            })
+        return Response({
+            'is_commander_detachment': False,
+            'is_commissar_detachment': False
+        })
+
 
 @api_view(['GET'])
 def get_place_q1(request, competition_pk):
@@ -741,7 +792,7 @@ class Q7ViewSet(
             url_path='get_place',
             permission_classes=(permissions.IsAuthenticated,
                                 IsCommanderAndCompetitionParticipant))
-    def get_place(self, request, **kwargs):
+    def get_place(self, request, competition_pk, *args, **kwargs):
         """
         Action для получения рейтинга по данному показателю.
 
@@ -755,45 +806,51 @@ class Q7ViewSet(
         detachment = request.user.detachment_commander
         report = self.serializer_class.Meta.model.objects.filter(
             detachment_report__detachment=detachment,
-            detachment_report__competition_id=self.kwargs.get('competition_pk')
+            detachment_report__competition_id=competition_pk
         ).first()
         if not report:
             # Отряд участник, но еще не подал отчет по данному показателю.
             return Response(status=status.HTTP_404_NOT_FOUND)
         class_name = self.serializer_class.Meta.model.__name__  # Q7
         ranking_fk = f'{class_name.lower()}ranking'  # q7ranking
-        if hasattr(detachment, ranking_fk):  # Если есть FK на стартовый рейтинг
-            ranking = getattr(detachment, ranking_fk)
+        # Если есть FK на стартовый рейтинг
+        ranking = getattr(detachment, ranking_fk).filter(
+            competition_id=competition_pk
+        ).first()
+        if ranking:
             return Response(
                 {"place": ranking.place}, status=status.HTTP_200_OK
             )
-        else:  #  Если нет, то ищем в тандем рейтингах
-            tandem_ranking_fk = (
-                f'{class_name.lower()}tandemranking_main_detachment'
+        #  Если нет, то ищем в тандем рейтингах
+        tandem_ranking_fk = (
+            f'{class_name.lower()}tandemranking_main_detachment'
+        )
+        # Если есть FK на наставника
+        tandem_ranking = getattr(detachment, tandem_ranking_fk).filter(
+            competition_id=competition_pk
+        ).first()
+        if tandem_ranking:
+            return Response(
+                {"place": tandem_ranking.place},
+                status=status.HTTP_200_OK
             )
-            if hasattr(detachment, tandem_ranking_fk):  # Если есть FK на наставника
-                tandem_ranking = getattr(detachment, tandem_ranking_fk)
-                return Response(
-                    {"place": tandem_ranking.place},
-                    status=status.HTTP_200_OK
-                )
-            else:
-                tandem_ranking_fk = (
-                    f'{class_name.lower()}tandemranking_junior_detachment'
-                )
-                if hasattr(detachment, tandem_ranking_fk):  # Если есть FK на junior
-                    tandem_ranking = getattr(
-                        detachment, tandem_ranking_fk
-                        )
-                    return Response(
-                        {"place": tandem_ranking.place},
-                        status=status.HTTP_200_OK
-                    )
-                else:  # Отчет уже есть(проверяли в начале), значит еще не верифицировано ни одно мероприятие
-                    return Response(
-                        {"place": "Показатель в обработке"},
-                        status=status.HTTP_200_OK
-                    )
+        tandem_ranking_fk = (
+            f'{class_name.lower()}tandemranking_junior_detachment'
+        )
+        # Если есть FK на junior
+        tandem_ranking = getattr(
+            detachment, tandem_ranking_fk
+            ).filter(competition_id=competition_pk).first()
+        if tandem_ranking:
+            return Response(
+                {"place": tandem_ranking.place},
+                status=status.HTTP_200_OK
+            )
+        # Отчет уже есть(проверяли в начале), значит еще не верифицировано ни одно мероприятие
+        return Response(
+            {"place": "Показатель в обработке"},
+            status=status.HTTP_200_OK
+        )
 
 
 class Q8ViewSet(Q7ViewSet):
@@ -1710,24 +1767,6 @@ class Q19ViewSet(CreateListRetrieveUpdateViewSet):
             Competitions, id=self.kwargs.get('competition_pk')
         )
 
-    # def perform_create(self, serializer):
-    #     competition = get_object_or_404(
-    #         Competitions, id=self.kwargs.get('competition_pk')
-    #     )
-    #     detachment = get_object_or_404(
-    #         Detachment, id=self.request.user.detachment_commander.id
-    #     )
-    #     serializer.save(competition=competition, detachment=detachment)
-
-    def perform_update(self, serializer):
-        competition = get_object_or_404(
-            Competitions, id=self.kwargs.get('competition_pk')
-        )
-        detachment = get_object_or_404(
-            Detachment, id=self.request.user.detachment_commander.id
-        )
-        serializer.save(competition=competition, detachment=detachment)
-
     @action(detail=False,
             methods=['get'],
             url_path='me',
@@ -1772,7 +1811,7 @@ class Q19ViewSet(CreateListRetrieveUpdateViewSet):
             url_path='get_place',
             permission_classes=(permissions.IsAuthenticated,
                                 IsCompetitionParticipantAndCommander))
-    def get_place(self, request, **kwargs):
+    def get_place(self, request, competition_pk, **kwargs):
         """
         Action для получения рейтинга по данному показателю.
 
@@ -1786,38 +1825,37 @@ class Q19ViewSet(CreateListRetrieveUpdateViewSet):
         detachment = self.request.user.detachment_commander
         report = Q19Report.objects.filter(
             detachment=detachment,
-            competition_id=self.kwargs.get('competition_pk')
+            competition_id=competition_pk
         ).first()
         if not report:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        if hasattr(detachment, 'q19ranking'):
-            ranking = getattr(detachment, 'q19ranking').get()
+        ranking = getattr(
+            detachment, 'q19ranking'
+        ).filter(competition_id=competition_pk).first()
+        if ranking:
             return Response(
                 {"place": ranking.place}, status=status.HTTP_200_OK
             )
-        else:
-            if hasattr(detachment, 'q19tandemranking_main_detachment'):
-                tandem_ranking = getattr(
+        tandem_ranking = getattr(
                     detachment, 'q19tandemranking_main_detachment'
-                ).get()
-                return Response(
-                    {"place": tandem_ranking.place},
-                    status=status.HTTP_200_OK
-                )
-            else:
-                if hasattr(detachment, 'q19tandemranking_junior_detachment'):
-                    tandem_ranking = getattr(
-                        detachment, 'q19tandemranking_junior_detachment'
-                        ).get()
-                    return Response(
-                        {"place": tandem_ranking.place},
-                        status=status.HTTP_200_OK
-                    )
-                else:
-                    return Response(
-                        {"place": "Показатель в обработке"},
-                        status=status.HTTP_200_OK
-                    )
+        ).filter(competition_id=competition_pk).first()
+        if tandem_ranking:
+            return Response(
+                {"place": tandem_ranking.place},
+                status=status.HTTP_200_OK
+            )
+        tandem_ranking = getattr(
+            detachment, 'q19tandemranking_junior_detachment'
+            ).filter(competition_id=competition_pk).first()
+        if tandem_ranking:
+            return Response(
+                {"place": tandem_ranking.place},
+                status=status.HTTP_200_OK
+            )
+        return Response(
+            {"place": "Показатель в обработке"},
+            status=status.HTTP_200_OK
+        )
 
     def create(self, request, competition_pk, *args, **kwargs):
         """
@@ -1827,7 +1865,7 @@ class Q19ViewSet(CreateListRetrieveUpdateViewSet):
         Доступ: командиры отрядов-участников конкурса.
         """
         competition = get_object_or_404(
-            Competitions, id=self.kwargs.get('competition_pk')
+            Competitions, id=competition_pk
         )
         detachment = get_object_or_404(
             Detachment, id=self.request.user.detachment_commander.id
@@ -1838,4 +1876,4 @@ class Q19ViewSet(CreateListRetrieveUpdateViewSet):
                                                   'detachment': detachment})
         serializer.is_valid(raise_exception=True)
         serializer.save(competition=competition, detachment=detachment)
-        return super().create(request, *args, **kwargs)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

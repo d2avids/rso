@@ -50,7 +50,6 @@ class Q7Admin(admin.ModelAdmin):
 
 
 admin.site.register(Q7Report)
-admin.site.register(LinksQ7)
 admin.site.register(Q7Ranking)
 admin.site.register(Q7TandemRanking)
 

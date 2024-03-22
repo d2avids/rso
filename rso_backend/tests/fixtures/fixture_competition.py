@@ -3,7 +3,7 @@ import datetime
 from competitions.models import (
     Q10, Q11, Q12, Q7, Q8, Q9, CompetitionApplications, 
     CompetitionParticipants, Competitions, LinksQ7, LinksQ8,
-    Q10Report, Q11Report, Q12Report, Q7Report, Q8Report, Q9Report
+    Q10Report, Q11Report, Q12Report, Q19Report, Q7Report, Q8Report, Q9Report
 )
 import pytest
 from rest_framework.authtoken.models import Token
@@ -1348,3 +1348,47 @@ def report_question12_verif3(
     event.is_verified = True
     event.save()
     return event
+
+
+@pytest.fixture
+def report_question19_verif(
+    competition, participants_competition_tandem,
+    junior_detachment
+):
+    """
+    Верифицированный отчет отряда по 'Отсутствие нарушений
+    техники безопасности, охраны труда и противопожарной
+    безопасности'
+    Подал отчет участник отряда
+    тандем-младший отряд - участник конкурса. Регион 1.
+    """
+    report, _ = Q19Report.objects.get_or_create(
+        competition=competition,
+        detachment=junior_detachment,
+        safety_violations=Q19Report.SafetyViolationsChoices.NONE.value
+    )
+    report.is_verified = True
+    report.save()
+    return report
+
+
+@pytest.fixture
+def report_question19_verif2(
+    competition, participants_competition_start,
+    junior_detachment_3
+):
+    """
+    Верифицированный отчет отряда по 'Отсутствие нарушений
+    техники безопасности, охраны труда и противопожарной
+    безопасности'
+    Подал отчет участник отряда
+    старт- участник конкурса. Регион 1
+    """
+    report, _ = Q19Report.objects.get_or_create(
+        competition=competition,
+        detachment=junior_detachment_3,
+        safety_violations=Q19Report.SafetyViolationsChoices.NONE.value
+    )
+    report.is_verified = True
+    report.save()
+    return report

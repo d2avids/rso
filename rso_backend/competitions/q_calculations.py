@@ -457,4 +457,4 @@ def calculate_q19_place(competition_id):
             )
 
     Q19Ranking.objects.filter(competition_id=competition_id).delete()
-    Q19Ranking.objects.bulk_create(to_create_entries)
+    Q19Ranking.objects.bulk_create(to_create_entries_start)

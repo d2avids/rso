@@ -307,7 +307,7 @@ CELERY_BEAT_SCHEDULE = {
     },
     'calculate_q7': {
         'task': 'competitions.tasks.calculate_q7_places_task',
-        'schedule': timedelta(hours=24)
+        'schedule': timedelta(seconds=24)
     },
     'calculate_q8': {
         'task': 'competitions.tasks.calculate_q7_places_task',
@@ -331,7 +331,7 @@ CELERY_BEAT_SCHEDULE = {
     },
     'calculate_q1_score': {
         'task': 'competitions.tasks.calculate_q1_score_task',
-        'schedule': timedelta(hours=24)
+        'schedule': timedelta(seconds=24)
     },
     'calculate_q19': {
         'task': 'competitions.tasks.calculate_q19',

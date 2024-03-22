@@ -900,6 +900,7 @@ class Q19ReportSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, attrs):
+        request = self.context.get('request')
         if not attrs.get('safety_violations'):
             raise serializers.ValidationError(
                 {'safety_violations': 'Не указано количество нарушений.'}
@@ -908,10 +909,10 @@ class Q19ReportSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {'safety_violations': 'Некорректное значение.'}
             )
-        if self.context.get('request').method == 'POST':
+        if request.method == 'POST':
             competition = self.context.get('competition')
             detachment = self.context.get('detachment')
-            if Q18DetachmentReport.objects.filter(
+            if Q19Report.objects.filter(
                     competition=competition, detachment=detachment
             ).exists():
                 raise serializers.ValidationError(

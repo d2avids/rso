@@ -442,10 +442,8 @@ class Q7(ParticipationBase):
                 f'и межрегиональных  мероприятиях, id {self.id}')
 
     class Meta:
-        verbose_name = 'Участие в окружных и межрегиональных мероприятиях'
-        verbose_name = 'Участие в окружных и межрегиональных мероприятиях'
-        verbose_name_plural = ('Участия в окружных и межрегиональных '
-                               'мероприятиях')
+        verbose_name = 'Q7 участия'
+        verbose_name_plural = ('Q7 участия')
         constraints = [
             models.UniqueConstraint(
                 fields=('detachment_report', 'event_name'),
@@ -553,8 +551,8 @@ class Q8(ParticipationBase):
                 f'мероприятиях, id {self.id}')
 
     class Meta:
-        verbose_name = 'Участие во всероссийских мероприятиях'
-        verbose_name_plural = 'Участия во всероссийских мероприятиях'
+        verbose_name = 'Q8 участие'
+        verbose_name_plural = 'Q8 участия'
         constraints = [
             models.UniqueConstraint(
                 fields=('detachment_report', 'event_name'),
@@ -633,14 +631,8 @@ class Q9(ParticipationBase):
                 f'и межрегиональных  мероприятиях, id {self.id}')
 
     class Meta:
-        verbose_name = (
-            'Призовое место в окружных и межрегиональных мероприятиях '
-            'и конкурсах РСО'
-        )
-        verbose_name_plural = (
-            'Призовые места в окружных и межрегиональных мероприятиях '
-            'и конкурсах РСО'
-        )
+        verbose_name = ('Q9 призовое место')
+        verbose_name_plural = ('Q9 призовые места')
         constraints = [
             models.UniqueConstraint(
                 fields=('detachment_report', 'event_name'),
@@ -721,10 +713,10 @@ class Q10(ParticipationBase):
 
     class Meta:
         verbose_name = (
-            'Призовое место во всероссийских мероприятиях и конкурсах РСО'
+            'Q10 призовое место'
         )
         verbose_name_plural = (
-            'Призовые места во всероссийских мероприятиях и конкурсах РСО'
+            'Q10 призовые места'
         )
         constraints = [
             models.UniqueConstraint(
@@ -805,14 +797,8 @@ class Q11(ParticipationBase):
                 f'и межрегиональных  трудовых проектах, id {self.id}')
 
     class Meta:
-        verbose_name = (
-            'Призовое место в окружных и межрегиональных '
-            'трудовых проектах'
-        )
-        verbose_name_plural = (
-            'Призовые места в окружных и межрегиональных '
-            'трудовых проектах'
-        )
+        verbose_name = ('Q11 призовое место')
+        verbose_name_plural = ('Q11 призовые места')
         constraints = [
             models.UniqueConstraint(
                 fields=('detachment_report', 'event_name'),
@@ -892,14 +878,8 @@ class Q12(ParticipationBase):
                 f' трудовых проектах, id {self.id}')
 
     class Meta:
-        verbose_name = (
-            'Призовое место на всероссийских'
-            'трудовых проектах'
-        )
-        verbose_name_plural = (
-            'Призовые места на всероссийских '
-            'трудовых проектах'
-        )
+        verbose_name = ('Q12 призовое место')
+        verbose_name_plural = ('Q12 призовые места')
         constraints = [
             models.UniqueConstraint(
                 fields=('detachment_report', 'event_name'),
@@ -929,7 +909,6 @@ class Q13Ranking(QBaseRanking):
     class Meta:
         verbose_name = 'Места по 13 показателю'
         verbose_name_plural = 'Места по 13 показателю'
-
 
 
 class Q13DetachmentReport(QBaseReport):
