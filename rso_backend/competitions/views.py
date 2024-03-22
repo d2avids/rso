@@ -5,6 +5,7 @@ from dal import autocomplete
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
+from django_filters.rest_framework import DjangoFilterBackend
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
@@ -16,6 +17,7 @@ from rest_framework.response import Response
 from api.mixins import ListRetrieveDestroyViewSet
 from api.permissions import (IsRegionalCommanderOrAdmin,
                              IsRegionalCommanderOrAdminOrAuthor)
+from competitions.filters import CompetitionParticipantsFilter
 from competitions.models import (CompetitionApplications,
                                  CompetitionParticipants, Competitions)
 from competitions.serializers import (CompetitionApplicationsObjectSerializer,
@@ -447,11 +449,15 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
     Поиск:
         - ключ для поиска: ?search
         - поле для поиска: name младшего отряда и отряда-наставника.
+    Фильтрация:
+        - is_tandem: фильтр по типу участия (старт или тандем),
+          принимает значения True и False (или true и false в нижнем регистре).
     """
     queryset = CompetitionParticipants.objects.all()
     serializer_class = CompetitionParticipantsSerializer
     permission_classes = (permissions.AllowAny,)
-    filter_backends = (filters.SearchFilter, )
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter,)
+    filterset_class = CompetitionParticipantsFilter
     search_fields = (
         'detachment__name',
         'junior_detachment__name'
