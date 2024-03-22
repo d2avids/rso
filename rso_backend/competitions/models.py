@@ -78,10 +78,6 @@ class CompetitionApplications(models.Model):
             models.UniqueConstraint(
                 fields=('competition', 'junior_detachment'),
                 name='unique_junior_detachment_application'
-            ),
-            models.UniqueConstraint(
-                fields=('detachment', 'junior_detachment'),
-                name='unique_tandem_application'
             )
         ]
 
@@ -126,10 +122,6 @@ class CompetitionParticipants(models.Model):
             models.UniqueConstraint(
                 fields=('competition', 'junior_detachment'),
                 name='unique_junior_detachment_participant'
-            ),
-            models.UniqueConstraint(
-                fields=('detachment', 'junior_detachment'),
-                name='unique_tandem_participant'
             )
         ]
 
@@ -139,15 +131,23 @@ class QBaseReport(models.Model):
         'Competitions',
         on_delete=models.CASCADE,
         related_name='%(class)s_competition_reports',
+        verbose_name='Конкурс',
     )
     detachment = models.ForeignKey(
         'headquarters.Detachment',
         on_delete=models.CASCADE,
         related_name='%(class)s_detachment_reports',
+        verbose_name='Отряд',
     )
 
     class Meta:
         abstract = True
+        constraints = [
+            models.UniqueConstraint(
+                fields=('competition', 'detachment'),
+                name='unique_report_%(class)s'
+            )
+        ]
 
 
 class QBaseReportIsVerified(models.Model):
@@ -162,16 +162,15 @@ class QBaseTandemRanking(models.Model):
         'Competitions',
         on_delete=models.CASCADE,
         related_name='%(class)s',
-        verbose_name='Конкурс',
-        default=1
+        verbose_name='Конкурс'
     )
-    detachment = models.OneToOneField(
+    detachment = models.ForeignKey(
         'headquarters.Detachment',
         on_delete=models.CASCADE,
         related_name='%(class)s_main_detachment',
         verbose_name='Отряд-наставник'
     )
-    junior_detachment = models.OneToOneField(
+    junior_detachment = models.ForeignKey(
         'headquarters.Detachment',
         on_delete=models.CASCADE,
         related_name='%(class)s_junior_detachment',
@@ -180,6 +179,20 @@ class QBaseTandemRanking(models.Model):
 
     class Meta:
         abstract = True
+        constraints = [
+            models.UniqueConstraint(
+                fields=('competition', 'detachment', 'junior_detachment'),
+                name='unique_tandem_ranking_%(class)s'
+            ),
+            models.UniqueConstraint(
+                fields=('competition', 'detachment'),
+                name='unique_main_ranking_%(class)s'
+            ),
+            models.UniqueConstraint(
+                fields=('competition', 'junior_detachment'),
+                name='unique_junior_ranking_%(class)s'
+            )
+        ]
 
 
 class QBaseRanking(models.Model):
@@ -187,10 +200,9 @@ class QBaseRanking(models.Model):
         'Competitions',
         on_delete=models.CASCADE,
         related_name='%(class)s',
-        verbose_name='Конкурс',
-        default=1
+        verbose_name='Конкурс'
     )
-    detachment = models.OneToOneField(
+    detachment = models.ForeignKey(
         'headquarters.Detachment',
         on_delete=models.CASCADE,
         related_name='%(class)s',
@@ -199,6 +211,12 @@ class QBaseRanking(models.Model):
 
     class Meta:
         abstract = True
+        constraints = [
+            models.UniqueConstraint(
+                fields=('competition', 'detachment'),
+                name='unique_ranking_%(class)s'
+            )
+        ]
 
 
 class Links(models.Model):
@@ -290,6 +308,10 @@ class Q1Report(QBaseReport):
         )
     )
 
+    class Meta:
+        verbose_name = 'Отчет по 1 показателю'
+        verbose_name_plural = 'Отчеты по 1 показателю'
+
 
 class Q1TandemRanking(QBaseTandemRanking):
     """
@@ -360,6 +382,10 @@ class Q7Report(CalcBase, QBaseReport):
             default=0  # чем больше, тем выше итоговое место в рейтинге
         )
     )
+
+    class Meta:
+        verbose_name = 'Отчет по 7 показателю'
+        verbose_name_plural = 'Отчеты по 7 показателю'
 
 
 class LinksQ7(Links):
@@ -470,6 +496,10 @@ class Q8Report(CalcBase, QBaseReport):
         )
     )
 
+    class Meta:
+        verbose_name = 'Отчет по 8 показателю'
+        verbose_name_plural = 'Отчеты по 8 показателю'
+
 
 class LinksQ8(Links):
     """
@@ -576,6 +606,10 @@ class Q9Report(CalcBase, QBaseReport):
         )
     )
 
+    class Meta:
+        verbose_name = 'Отчет по 9 показателю'
+        verbose_name_plural = 'Отчеты по 9 показателям'
+
 
 class Q9(ParticipationBase):
     """
@@ -659,6 +693,10 @@ class Q10Report(CalcBase, QBaseReport):
         )
     )
 
+    class Meta:
+        verbose_name = 'Отчет по 10 показателю'
+        verbose_name_plural = 'Отчеты по 10 показателям'
+
 
 class Q10(ParticipationBase):
     """
@@ -739,6 +777,10 @@ class Q11Report(CalcBase, QBaseReport):
             default=4  # чем меньше, тем выше итоговое место в рейтинге
         )
     )
+
+    class Meta:
+        verbose_name = 'Отчет по 11 показателю'
+        verbose_name_plural = 'Отчеты по 11 показателям'
 
 
 class Q11(ParticipationBase):
@@ -822,6 +864,10 @@ class Q12Report(CalcBase, QBaseReport):
             default=4  # чем меньше, тем выше итоговое место в рейтинге
         )
     )
+
+    class Meta:
+        verbose_name = 'Отчет по 12 показателю'
+        verbose_name_plural = 'Отчеты по 12 показателям'
 
 
 class Q12(ParticipationBase):
@@ -945,3 +991,60 @@ class Q18DetachmentReport(QBaseReport, QBaseReportIsVerified):
     )
     june_15_detachment_members = models.PositiveSmallIntegerField(default=1)
     score = models.FloatField(verbose_name='Очки', default=0)
+
+
+
+
+
+
+
+
+class Q19TandemRanking(QBaseTandemRanking):
+    """
+    Рейтинг для тандема-участников.
+    Создается и заполняется переодической таской.
+    """
+    place = models.PositiveSmallIntegerField(
+        verbose_name='Итоговое место по показателю 19',
+        validators=[MinValueValidator(1), MaxValueValidator(2)],
+    )
+
+    class Meta:
+        verbose_name = 'Тандем-место по 19 показателю'
+        verbose_name_plural = 'Тандем-места по 19 показателю'
+
+
+class Q19Ranking(QBaseRanking):
+    """
+    Рейтинг для старт-участников.
+    Создается и заполняется переодической таской.
+    """
+    place = models.PositiveSmallIntegerField(
+        verbose_name='Итоговое место по показателю 19'
+    )
+
+    class Meta:
+        verbose_name = 'Место по 9 показателю'
+        verbose_name_plural = 'Места по 19 показателю'
+
+
+class Q19Report(QBaseReport, QBaseReportIsVerified):
+    """
+    Отчет по показателю 'Отсутствие нарушений техники безопасности,
+    охраны труда и противопожарной безопасности.'
+    Поля: отряд, конкурс, флаг верификации и имеются или нет нарушения.
+    Очки - 1.
+    """
+    class SafetyViolationsChoices(models.TextChoices):
+        NONE = 'Отсутствуют', 'Отсутствуют'
+        SOME = 'Имеются', 'Имеются'
+    safety_violations = models.CharField(
+        max_length=16,
+        choices=SafetyViolationsChoices.choices,
+        default=SafetyViolationsChoices.SOME,
+        verbose_name='Нарушения техники безопасности'
+    )
+
+    class Meta:
+        verbose_name = 'Отчет по 19 показателю'
+        verbose_name_plural = 'Отчеты по 19 показателю'

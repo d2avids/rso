@@ -13,7 +13,7 @@ from api.views import (AreaViewSet, EducationalInstitutionViewSet,
                        change_membership_fee_status, verify_user)
 from competitions.views import (
     CompetitionApplicationsViewSet, CompetitionParticipantsViewSet,
-    CompetitionViewSet, Q10ViewSet, Q11ViewSet, Q12ViewSet, Q7ViewSet,
+    CompetitionViewSet, Q10ViewSet, Q11ViewSet, Q12ViewSet, Q19ViewSet, Q7ViewSet,
     Q13DetachmentReportViewSet, Q13EventOrganizationViewSet,
     Q18DetachmentReportViewSet, Q8ViewSet, Q9ViewSet, get_place_q1,
 )
@@ -141,6 +141,11 @@ router.register(
     r'competitions/(?P<competition_pk>\d+)/reports/q12',
     Q12ViewSet,
     basename='q12'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q19',
+    Q19ViewSet,
+    basename='q19'
 )
 
 

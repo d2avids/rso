@@ -101,3 +101,11 @@ class UpdateDestroyViewSet(mixins.UpdateModelMixin,
                            GenericViewSet):
     """Миксин для вложенных объектов 13 конкурсного показателя."""
     pass
+
+
+class CreateListRetrieveUpdateViewSet(mixins.CreateModelMixin,
+                                      mixins.RetrieveModelMixin,
+                                      mixins.UpdateModelMixin,
+                                      mixins.ListModelMixin,
+                                      GenericViewSet):
+    pass

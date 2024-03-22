@@ -801,6 +801,8 @@ class IsCommanderAndCompetitionParticipant(BasePermission):
     отряда, который является участником конкурса.
     Для detail=True - проверяет, является ли пользователь командиром отряда
     из инстанса(отчета), и этот отряд является участником конкурса.
+
+    Метод для отчетов q где есть поля detachment_report.
     """
     def has_permission(self, request, view):
         competition = view.get_competitions()
@@ -818,6 +820,40 @@ class IsCommanderAndCompetitionParticipant(BasePermission):
     def has_object_permission(self, request, view, obj):
         detachment = obj.detachment_report.detachment
         competition = obj.detachment_report.competition
+        if detachment:
+            return (
+                is_commander_this_detachment(request.user, detachment) and
+                is_competition_participant(detachment, competition)
+            )
+
+
+class IsCompetitionParticipantAndCommander(
+    IsCommanderAndCompetitionParticipant
+):
+    """
+    Для detail=False - проверяет, является ли пользователь командиром
+    отряда, который является участником конкурса.
+    Для detail=True - проверяет, является ли пользователь командиром отряда
+    из инстанса(отчета), и этот отряд является участником конкурса.
+
+    Метод для отчетов q где нет полей detachment_report.
+    """
+    def has_permission(self, request, view):
+        competition = view.get_competitions()
+        try:
+            detachment = request.user.detachment_commander
+        except Detachment.DoesNotExist:
+            return False
+        return (
+            CompetitionParticipants.objects.filter(
+                Q(competition=competition, detachment=detachment) |
+                Q(competition=competition, junior_detachment=detachment)
+            ).exists()
+        )
+
+    def has_object_permission(self, request, view, obj):
+        detachment = obj.detachment
+        competition = obj.competition
         if detachment:
             return (
                 is_commander_this_detachment(request.user, detachment) and
@@ -888,3 +924,18 @@ class IsDetachmentReportAuthor(permissions.BasePermission):
         report_pk = view.kwargs.get('report_pk')
         report = get_object_or_404(Q13DetachmentReport, pk=report_pk)
         return report.detachment_id == detachment_id
+
+
+class IsRegionalCommanderOrAuthor(permissions.BasePermission):
+    """
+    Проверяет, является ли пользователь командиром регионального штаба
+    или командиром отряда из инстанса параметра.
+
+    Только для операций с одиночными объектами.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        return (
+            is_regional_commander(request.user) or
+            obj.detachment.commander == request.user
+        )

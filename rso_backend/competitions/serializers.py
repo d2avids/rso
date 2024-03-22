@@ -1,4 +1,5 @@
 from datetime import date
+import logging
 
 from django.db import transaction
 from django.conf import settings
@@ -8,7 +9,7 @@ from competitions.models import (
     Q10, Q11, Q12, Q7, Q8, Q9, CompetitionApplications, CompetitionParticipants, Competitions,
     LinksQ7, LinksQ8, Q10Report, Q11Report, Q12Report,
     Q13EventOrganization, Q13DetachmentReport,
-    Q18DetachmentReport, Q7Report, Q8Report, Q9Report)
+    Q18DetachmentReport, Q19Report, Q7Report, Q8Report, Q9Report)
 from headquarters.models import Detachment
 from headquarters.serializers import BaseShortUnitSerializer
 
@@ -879,4 +880,41 @@ class Q18DetachmentReportSerializer(serializers.ModelSerializer):
                              'участвует в конкурсе.'
                 },
             )
+        return attrs
+
+logger = logging.getLogger('tasks')
+class Q19ReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Q19Report
+        fields = (
+            'id',
+            'detachment',
+            'competition',
+            'is_verified',
+            'safety_violations'
+        )
+        read_only_fields = (
+            'is_verified',
+            'detachment',
+            'competition'
+        )
+
+    def validate(self, attrs):
+        if not attrs.get('safety_violations'):
+            raise serializers.ValidationError(
+                {'safety_violations': 'Не указано количество нарушений.'}
+            )
+        if attrs.get('safety_violations') not in ['Имеются', 'Отсутствуют']:
+            raise serializers.ValidationError(
+                {'safety_violations': 'Некорректное значение.'}
+            )
+        if self.context.get('request').method == 'POST':
+            competition = self.context.get('competition')
+            detachment = self.context.get('detachment')
+            if Q18DetachmentReport.objects.filter(
+                    competition=competition, detachment=detachment
+            ).exists():
+                raise serializers.ValidationError(
+                    {'error': 'Отчет по данному показателю уже существует'}
+                )
         return attrs

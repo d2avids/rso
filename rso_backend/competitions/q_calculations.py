@@ -1,7 +1,7 @@
 from datetime import date
 import logging
 from competitions.models import Q13EventOrganization, Q18Ranking, \
-    Q18DetachmentReport, CompetitionParticipants, Q18TandemRanking, Q1Report, Q7Ranking, Q7Report, Q7TandemRanking
+    Q18DetachmentReport, CompetitionParticipants, Q18TandemRanking, Q19Ranking, Q19Report, Q19TandemRanking, Q1Report, Q7Ranking, Q7Report, Q7TandemRanking
 
 
 logger = logging.getLogger('tasks')
@@ -224,7 +224,6 @@ def calculate_place(
     )
     logger.info(f"Тандем заявка сортировка окончена {sorted_by_score_tandem_reports}")
 
-    model_tandem_ranking.objects.filter(competition_id=competition_id).delete()
     to_create_entries = []
     for index, report in enumerate(sorted_by_score_tandem_reports):
         if report[0] is None and report[1] is None:
@@ -266,8 +265,8 @@ def calculate_place(
                                      detachment=report[1].detachment,
                                      place=index + 1)
             )
-
-    model_tandem_ranking.objects.bulk_create(to_create_entries)  # создаем новый рейтинг тандем
+    model_tandem_ranking.objects.filter(competition_id=competition_id).delete()
+    model_tandem_ranking.objects.bulk_create(to_create_entries)
 
     logger.info("Тандем рейтинг создан")
 
@@ -286,7 +285,7 @@ def calculate_q1_score(competition_id):
 
     participants = CompetitionParticipants.objects.filter(
         competition_id=competition_id
-    ).all()
+    ).all()  # добавить select_related('junior_detachment__members', 'detachment__members')
 
     if not participants:
         logger.info('Нет участников')
@@ -340,3 +339,122 @@ def calculate_q1_score(competition_id):
 
     Q1Report.objects.filter(competition_id=competition_id).delete()
     Q1Report.objects.bulk_create(to_create_entries)
+
+
+def calculate_q19_place(competition_id):
+    today = date.today()
+    cutoff_date = date(2024, 10, 15)
+
+    if today >= cutoff_date:  # если уже прошло 15 октября
+        return
+
+    participants = CompetitionParticipants.objects.filter(
+        competition_id=competition_id
+    ).all()
+
+    if not participants:
+        logger.info('Нет участников')
+        return
+
+    tandem_ids: list[tuple[int, int]] = []
+    start_ids: list[int] = []
+
+    for entry in participants:
+        if entry.detachment is None:
+            start_ids.append(entry.junior_detachment.id)
+        else:
+            tandem_ids.append(
+                (entry.junior_detachment.id, entry.detachment.id)
+            )
+
+    to_create_entries = []
+
+    for tandem in tandem_ids:
+        report_main = Q19Report.objects.filter(
+            competition_id=competition_id,
+            detachment_id=tandem[0]
+        ).first()
+        report_junior = Q19Report.objects.filter(
+            competition_id=competition_id,
+            detachment_id=tandem[1]
+        ).first()
+        # если у обоих есть отчеты и нет нарушений
+        if (
+            report_main and report_junior and
+            report_main.is_verified and report_junior.is_verified and
+            report_main.safety_violations == Q19Report.SafetyViolationsChoices.NONE.value and
+            report_junior.safety_violations == Q19Report.SafetyViolationsChoices.NONE.value
+        ):
+            to_create_entries.append(
+                Q19TandemRanking(
+                    competition_id=competition_id,
+                    junior_detachment_id=tandem[0],
+                    detachment_id=tandem[1],
+                    place=1
+                )
+            )
+        # если у обоих есть нет отчетов
+        elif report_main is None and report_junior is None:
+            to_create_entries.append(
+                Q19TandemRanking(
+                    competition_id=competition_id,
+                    junior_detachment_id=tandem[0],
+                    detachment_id=tandem[1],
+                    place=3
+                )
+            )
+        # во всех остальных случаях - 2 место
+        else:
+            to_create_entries.append(
+                Q19TandemRanking(
+                    competition_id=competition_id,
+                    junior_detachment_id=tandem[0],
+                    detachment_id=tandem[1],
+                    place=2
+                )
+            )
+
+    Q19TandemRanking.objects.filter(competition_id=competition_id).delete()
+    Q19TandemRanking.objects.bulk_create(to_create_entries)
+
+    to_create_entries_start = []
+    for start_id in start_ids:
+        report = Q19Report.objects.filter(
+            competition_id=competition_id,
+            detachment_id=start_id
+        ).first()
+        # если есть отчет и нет нарушений
+        if (
+            report and report.is_verified and
+            report.safety_violations == Q19Report.SafetyViolationsChoices.NONE.value
+        ):
+            to_create_entries_start.append(
+                Q19Ranking(
+                    competition_id=competition_id,
+                    detachment_id=start_id,
+                    place=1
+                )
+            )
+        # если есть отчет, он верифицирован, но есть нарушения
+        elif (
+            report and report.is_verified and
+            report.safety_violations != Q19Report.SafetyViolationsChoices.NONE.value
+        ):
+            to_create_entries_start.append(
+                Q19Ranking.objects.create(
+                    competition_id=competition_id,
+                    detachment_id=start_id,
+                    place=2
+                )
+            )
+        else:
+            to_create_entries_start.append(
+                Q19Ranking.objects.create(
+                    competition_id=competition_id,
+                    detachment_id=start_id,
+                    place=3
+                )
+            )
+
+    Q19Ranking.objects.filter(competition_id=competition_id).delete()
+    Q19Ranking.objects.bulk_create(to_create_entries)

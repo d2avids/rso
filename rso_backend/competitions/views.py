@@ -2,7 +2,7 @@ import os
 from datetime import date
 
 from django.conf import settings
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import Q
 from django.http.response import HttpResponse
@@ -14,12 +14,16 @@ from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from rest_framework.serializers import ListSerializer
 
-from api.mixins import ListRetrieveDestroyViewSet, RetrieveCreateViewSet, \
-    UpdateDestroyViewSet
+from api.mixins import (
+    CreateListRetrieveUpdateViewSet, ListRetrieveDestroyViewSet,
+    RetrieveCreateViewSet, UpdateDestroyViewSet
+)
 from api.permissions import (
     IsCommanderAndCompetitionParticipant,
     IsCommanderDetachmentInParameterOrRegionalCommissioner,
+    IsCompetitionParticipantAndCommander,
     IsRegionalCommanderOrAdmin, IsRegionalCommanderOrAdminOrAuthor,
+    IsRegionalCommanderOrAuthor,
     IsRegionalCommissioner,
     IsRegionalCommissionerOrCommanderDetachmentWithVerif,
     IsDetachmentReportAuthor
@@ -29,8 +33,8 @@ from competitions.models import (
     Q10, Q11, Q12, Q7, Q8, Q9, CompetitionApplications,
     CompetitionParticipants, Competitions, Q10Report, Q11Report, Q12Report,
     Q13EventOrganization,
-    Q13DetachmentReport, Q13Ranking, Q13TandemRanking, Q1Ranking, Q1TandemRanking,
-    Q7Report, Q18DetachmentReport,
+    Q13DetachmentReport, Q13Ranking, Q13TandemRanking, Q19Report, Q1Ranking,
+    Q1TandemRanking, Q7Report, Q18DetachmentReport,
     Q18TandemRanking, Q18Ranking, Q8Report, Q9Report
 )
 from competitions.q_calculations import calculate_q13_place
@@ -41,7 +45,7 @@ from competitions.serializers import (
     CreateQ12Serializer, CreateQ7Serializer, CreateQ8Serializer,
     CreateQ9Serializer, Q10ReportSerializer, Q10Serializer,
     Q11ReportSerializer, Q11Serializer, Q12ReportSerializer, Q12Serializer,
-    Q7ReportSerializer, Q7Serializer,
+    Q19ReportSerializer, Q7ReportSerializer, Q7Serializer,
     Q8ReportSerializer, Q8Serializer, Q9ReportSerializer, Q9Serializer,
     ShortDetachmentCompetitionSerializer, Q13EventOrganizationSerializer,
     Q13DetachmentReportSerializer, Q18DetachmentReportSerializer
@@ -59,6 +63,7 @@ from competitions.swagger_schemas import (request_update_application,
                                           q7schema_request, q9schema_request)
 from headquarters.models import Detachment, RegionalHeadquarter
 from rso_backend.settings import BASE_DIR
+from users.models import RSOUser
 
 
 class CompetitionViewSet(viewsets.ModelViewSet):
@@ -725,9 +730,9 @@ class Q7ViewSet(
         Action для получения списка всех отчетов об участии
         в региональных и межрегиональных мероприятиях текущего пользователя.
 
-        Доступ: все пользователи, кроме анонимов.
+        Доступ: все авторизованные пользователи.
         Если пользователь не командир отряда, и у его отряда нет
-        поданых отчетов, вернется пустой список.
+        поданных отчетов - вернется пустой список.
         """
         return super().list(request, *args, **kwargs)
 
@@ -747,9 +752,7 @@ class Q7ViewSet(
         Если отчет подан и верифицирован - вернется место в рейтинге:
         {"place": int}
         """
-        detachment = Detachment.objects.get(
-            id=request.user.detachment_commander.id
-        )
+        detachment = request.user.detachment_commander
         report = self.serializer_class.Meta.model.objects.filter(
             detachment_report__detachment=detachment,
             detachment_report__competition_id=self.kwargs.get('competition_pk')
@@ -1653,3 +1656,186 @@ class Q18DetachmentReportViewSet(RetrieveCreateViewSet):
             {"place": "Показатель в обработке"},
             status=status.HTTP_404_NOT_FOUND
         )
+
+
+class Q19ViewSet(CreateListRetrieveUpdateViewSet):
+    """Вьюсет по показателю 'Отсутствие нарушений техники безопасности,
+    охраны труда и противопожарной безопасности в трудовом семестре'.
+
+    Доступ:
+        - retrieve (GET) авторам отчета;
+        - list (GET) командирам РШ;
+        - create командирам отрядов-участников конкурса;
+        - update командирам отрядов-участников конкурса;
+    """
+    serializer_class = Q19ReportSerializer
+    permission_classes = (permissions.IsAuthenticated,
+                          IsCompetitionParticipantAndCommander)
+
+    def get_queryset(self):
+        if self.action == 'list':
+            try:
+                regional_headquarter = (
+                    self.request.user.regionalheadquarter_commander
+                )
+            except ObjectDoesNotExist:
+                return Q19Report.objects.all()
+            return Q19Report.objects.filter(
+                detachment__regional_headquarter=regional_headquarter,
+                competition_id=self.kwargs.get('competition_pk')
+            )
+        if self.action == 'me':
+            return Q19Report.objects.filter(
+                detachment__commander=self.request.user,
+                competition_id=self.kwargs.get('competition_pk')
+            )
+        return Q19Report.objects.filter(
+            competition_id=self.kwargs.get('competition_pk')
+        )
+
+    def get_permissions(self):
+        if self.action == 'retrieve':
+            return [permissions.IsAuthenticated(),
+                    IsCommanderDetachmentInParameterOrRegionalCommissioner()]
+        if self.action == 'list':
+            return [permissions.IsAuthenticated(),
+                    IsRegionalCommanderOrAdmin()]
+        if self.action in ['update', 'partial_update']:
+            return [permissions.IsAuthenticated(),
+                    IsRegionalCommanderOrAuthor()]
+        return super().get_permissions()
+
+    def get_competitions(self):
+        return get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+
+    # def perform_create(self, serializer):
+    #     competition = get_object_or_404(
+    #         Competitions, id=self.kwargs.get('competition_pk')
+    #     )
+    #     detachment = get_object_or_404(
+    #         Detachment, id=self.request.user.detachment_commander.id
+    #     )
+    #     serializer.save(competition=competition, detachment=detachment)
+
+    def perform_update(self, serializer):
+        competition = get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+        detachment = get_object_or_404(
+            Detachment, id=self.request.user.detachment_commander.id
+        )
+        serializer.save(competition=competition, detachment=detachment)
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='me',
+            permission_classes=(permissions.IsAuthenticated,))
+    def me(self, request, competition_pk, *args, **kwargs):
+        """
+        Action для получения своего отчета по параметру 19
+        для текущего пользователя.
+
+        Доступ: все авторизованные пользователи.
+        Если пользователь не командир отряда, или у его отряда нет
+        поданного отчета - вернется пустой список.
+        """
+        return super().list(request, *args, **kwargs)
+
+    @action(detail=True,
+            methods=['post'],
+            url_path='accept',
+            permission_classes=(permissions.IsAuthenticated,
+                                IsRegionalCommanderOrAdmin,))
+    @swagger_auto_schema(
+        request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={},),
+        responses={200: Q19ReportSerializer}
+    )
+    def accept_report(self, request, competition_pk, pk, *args, **kwargs):
+        """
+        Action для верификации мероприятия рег. комиссаром.
+
+        Принимает пустой POST запрос.
+        """
+        report = self.get_object()
+        if report.is_verified:
+            return Response({'error': 'Отчет уже подтвержден.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        report.is_verified = True
+        report.save()
+        return Response(Q19ReportSerializer(report).data,
+                        status=status.HTTP_200_OK)
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='get_place',
+            permission_classes=(permissions.IsAuthenticated,
+                                IsCompetitionParticipantAndCommander))
+    def get_place(self, request, **kwargs):
+        """
+        Action для получения рейтинга по данному показателю.
+
+        Доступ: командиры отрядов, которые участвуют в конкурсе.
+        Если отчета еще не подан, вернется ошибка 404. (данные не отправлены)
+        Если отчет подан, но еще не верифицировн - вернется
+        {"place": "Показатель в обработке"}.
+        Если отчет подан и верифицирован - вернется место в рейтинге:
+        {"place": int}
+        """
+        detachment = self.request.user.detachment_commander
+        report = Q19Report.objects.filter(
+            detachment=detachment,
+            competition_id=self.kwargs.get('competition_pk')
+        ).first()
+        if not report:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if hasattr(detachment, 'q19ranking'):
+            ranking = getattr(detachment, 'q19ranking').get()
+            return Response(
+                {"place": ranking.place}, status=status.HTTP_200_OK
+            )
+        else:
+            if hasattr(detachment, 'q19tandemranking_main_detachment'):
+                tandem_ranking = getattr(
+                    detachment, 'q19tandemranking_main_detachment'
+                ).get()
+                return Response(
+                    {"place": tandem_ranking.place},
+                    status=status.HTTP_200_OK
+                )
+            else:
+                if hasattr(detachment, 'q19tandemranking_junior_detachment'):
+                    tandem_ranking = getattr(
+                        detachment, 'q19tandemranking_junior_detachment'
+                        ).get()
+                    return Response(
+                        {"place": tandem_ranking.place},
+                        status=status.HTTP_200_OK
+                    )
+                else:
+                    return Response(
+                        {"place": "Показатель в обработке"},
+                        status=status.HTTP_200_OK
+                    )
+
+    def create(self, request, competition_pk, *args, **kwargs):
+        """
+        Action для создания отчета по параметру 19
+        для текущего пользователя.
+
+        Доступ: командиры отрядов-участников конкурса.
+        """
+        competition = get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+        detachment = get_object_or_404(
+            Detachment, id=self.request.user.detachment_commander.id
+        )
+        serializer = Q19ReportSerializer(data=request.data,
+                                         context={'request': request,
+                                                  'competition': competition,
+                                                  'detachment': detachment})
+        serializer.is_valid(raise_exception=True)
+        serializer.save(competition=competition, detachment=detachment)
+        return super().create(request, *args, **kwargs)
