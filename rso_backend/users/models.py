@@ -178,7 +178,7 @@ class UserEducation(models.Model):
     )
     study_year = models.CharField(
         verbose_name='Курс',
-        max_length=10,
+        max_length=50,
         blank=True,
         null=True,
     )

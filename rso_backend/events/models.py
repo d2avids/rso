@@ -346,8 +346,6 @@ class EventOrganizationData(models.Model):
         on_delete=models.CASCADE,
         related_name='events',
         verbose_name='Пользователь-организатор',
-        blank=True,
-        null=True,
     )
     organizer_phone_number = models.CharField(
         max_length=30,
@@ -414,7 +412,7 @@ class EventOrganizationData(models.Model):
 
     def __str__(self):
         return (
-            f'{self.organizer.first_name, self.organizer.last_name} '
+            f'{self.organizer.first_name}, {self.organizer.last_name} '
             f'- {self.organizer_phone_number}, '
             f'id {self.organizer} - организатора '
             f'мероприятия {self.event.name}, id {self.event.id}'

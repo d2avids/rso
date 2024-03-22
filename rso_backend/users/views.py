@@ -66,11 +66,12 @@ class CustomUserViewSet(UserViewSet):
     - region - имя региона.
     """
 
-    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
+    filter_backends = (
+        filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter
+    )
     search_fields = ('username', 'first_name', 'last_name', 'patronymic_name')
     filterset_class = RSOUserFilter
-    ordering_fields = ('last_name',)
-    pagination_class = None
+    ordering_fields = ('last_name', 'date_of_birth')
 
     @method_decorator(cache_page(settings.RSOUSERS_CACHE_TTL))
     def list(self, request, *args, **kwargs):

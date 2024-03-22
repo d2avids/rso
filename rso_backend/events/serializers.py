@@ -64,6 +64,7 @@ class EventDocumentDataSerializer(serializers.ModelSerializer):
 
 
 class EventOrganizerDataSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = EventOrganizationData
         fields = (
@@ -76,6 +77,12 @@ class EventOrganizerDataSerializer(serializers.ModelSerializer):
             'is_contact_person',
         )
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        organizer_id = representation['organizer']
+        organizer = get_object_or_404(RSOUser, id=organizer_id)
+        representation['organizer'] = ShortUserSerializer(organizer).data
+        return representation
 
 class EventDocumentSerializer(serializers.ModelSerializer):
     class Meta:
