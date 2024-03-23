@@ -1121,6 +1121,19 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
     "commander_link": "https://some-link.com",
     "commissioner_link": "https://some-link.com"
     }
+
+    Поля “Региональная школа командного состава пройдена командиром отряда”
+    и “Региональная школа командного состава пройдена комиссаром отряда”
+    обязательные.
+    При выборе “Да” обязательным также становится поле
+    “Ссылка на публикацию о прохождении школы командного состава”,
+    так как прохождение обучения засчитывается только
+    при предоставлении ссылки на документ.
+
+    Командир выбрал “Да” + Комиссар выбрал “Да” - 1 место
+    Командир выбрал “Да” + Комиссар выбрал “Нет” - 2 место
+    Командир выбрал “Нет” + Комиссар выбрал “Да” - 2 место
+    Командир выбрал “Нет” + Комиссар выбрал “Нет” - 3 место
     """
 
     PLACE_FIRST = 1
@@ -1279,23 +1292,17 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
         if place:
             report.individual_place = place
             report.save()
-        if not is_tandem:
-            return Response(data={'place': report.individual_place})
 
-        """
-        Последний return  нужен для того, чтобы отряд не получал место,
-        пока напарник не заполнит показатель.
-        Для избежания ошибок и лишних вопросов от командиров.
-        """
         return Response(
-                status=status.HTTP_400_BAD_REQUEST,
-                data={'detail': 'Показатель не заполнен у отряда - напарника.'}
+                status=status.HTTP_404_NOT_FOUND,
+                data={'detail': 'Показатель в обработке.'}
             )
 
     @action(
             detail=True,
             methods=['post'],
-            serializer_class=None
+            serializer_class=None,
+            # permissions=[IsRegionalCommanderOrAuthor, ] TODO: раскомментировать после мерджа в ветку пказателей
     )
     def verify(self, *args, **kwargs):
         """Верификация отчета по показателю.

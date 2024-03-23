@@ -1,74 +1,72 @@
 from datetime import date
 from competitions.models import Q13EventOrganization, Q18Ranking, \
-    Q18DetachmentReport, CompetitionParticipants, Q18TandemRanking, Q2DetachmentReport
+    Q18DetachmentReport, CompetitionParticipants, Q18TandemRanking, Q2DetachmentReport, Q2Ranking, Q2TandemRanking
+from competitions.utils import tandem_or_start
 
 
 def calculate_q2_place(
         commander_achievment: bool, commissioner_achievment: bool
-) -> int:
+) -> None:
     """
-
-    Поля “Региональная школа командного состава пройдена командиром отряда”
-    и “Региональная школа командного состава пройдена комиссаром отряда”
-    обязательные.
-    При выборе “Да” обязательным также становится поле
-    “Ссылка на публикацию о прохождении школы командного состава”,
-    так как прохождение обучения засчитывается только
-    при предоставлении ссылки на документ.
-
-    Командир выбрал “Да” + Комиссар выбрал “Да” - 1 место
-    Командир выбрал “Да” + Комиссар выбрал “Нет” - 2 место
-    Командир выбрал “Нет” + Комиссар выбрал “Да” - 2 место
-    Командир выбрал “Нет” + Комиссар выбрал “Нет” - 3 место
-
+    Таска для вычисления места по 2 показателю.
+    Циклом проходим по всем верифицированным записям
+    из таблицы Q2DetachmentReport.
+    Если отряд участвует в Тандеме, то место вычисляется
+    по среднему для двух отрядов и переносится в таблицу Q2TandemRanking.
+    Если отряд участвует в Стандарте, то место, вычисленное при
+    сохранении отчета переносится в таблицу Q2Ranking.
     """
 
     verified_entries = Q2DetachmentReport.objects.filter(is_verified=True)
-    solo_entries = []
-    tandem_entries = []
 
     for entry in verified_entries:
-        participants_entry = CompetitionParticipants.objects.filter(
-            junior_detachment=entry.detachment
-        ).first()
-
-        if participants_entry and not participants_entry.detachment:
-            category = solo_entries
+        competition = entry.competition
+        detachment = entry.detachment
+        is_tandem = tandem_or_start(
+            competition=competition,
+            detachment=detachment,
+            competition_model=CompetitionParticipants
+        )
+        if is_tandem:
+            try:
+                partner_detachment = CompetitionParticipants.objects.filter(
+                    competition=competition,
+                    detachment=detachment
+                ).first().junior_detachment
+                partner_is_junior = True
+            except CompetitionParticipants.DoesNotExist:
+                partner_detachment = CompetitionParticipants.objects.filter(
+                    competition=competition,
+                    junior_detachment=detachment
+                ).first().detachment
+                partner_is_junior = False
+            place_1 = verified_entries.filter(
+                competition=competition,
+                detachment=detachment,
+            ).first().individual_place
+            place_2 = verified_entries.filter(
+                competition=competition,
+                detachment=partner_detachment,
+            ).first().individual_place
+            result_place = (place_1 + place_2)/2
+            if partner_is_junior:
+                Q2TandemRanking.objects.create(
+                    detachment=detachment,
+                    junior_detachment=partner_detachment,
+                    place=result_place
+                )
+            else:
+                Q2TandemRanking.objects.create(
+                    detachment=partner_detachment,
+                    junior_detachment=detachment,
+                    place=result_place
+                )
         else:
-            category = tandem_entries
-            if participants_entry:
-                partner_entry = Q2DetachmentReport.objects.filter(
-                    detachment=participants_entry.detachment,
-                    is_verified=True
-                ).first()
-                if partner_entry:
-                    pass
+            Q2Ranking.objects.create(
+                detachment=detachment,
+                place=entry.individual_place
+            )
 
-    if commander_achievment and commissioner_achievment:
-        place = 1
-    if (
-        commander_achievment and not commissioner_achievment
-    ) or (
-        not commander_achievment and commissioner_achievment
-    ):
-        place = 2
-    if not commander_achievment and not commissioner_achievment:
-        place = 3
-    return place
-    #Тандем или Стандарт
-    # try:
-    #     if (CompetitionParticipants.objects.filter(
-    #         competition=kwargs.get('competition_pk'),
-    #         detachment=kwargs.get('pk')
-    #     ).exists()) or(
-    #         CompetitionParticipants.objects.filter(
-    #             competition=kwargs.get('competition_pk'),
-    #             junior_detachment=kwargs.get('pk')
-    #         ).exists
-    #     ):
-    #         is_tandem = True
-    # except (ObjectDoesNotExist, ValueError):
-    #     is_tandem = False
 
 def calculate_q13_place(objects: list[Q13EventOrganization]) -> int:
     """

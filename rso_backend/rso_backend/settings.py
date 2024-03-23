@@ -57,6 +57,8 @@ EMAIL_SERVER = EMAIL_HOST_USER
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 EMAIL_ADMIN = EMAIL_HOST_USER
 
+COMPETITION_ID = 1
+
 INSTALLED_APPS = [
     'dal',
     'dal_select2',
@@ -294,6 +296,10 @@ CELERY_BEAT_SCHEDULE = {
             day_of_month=1,
             month_of_year=10,
         )
+    },
+    'calculate_q2': {
+        'task': 'competitions.tasks.calculate_q2_place_task',
+        'schedule': timedelta(seconds=5)
     },
 }
 

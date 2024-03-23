@@ -591,7 +591,7 @@ class Q2Ranking(QBaseRanking):
 
 
 class Q2TandemRanking(QBaseTandemRanking):
-    place = models.PositiveSmallIntegerField(
+    place = models.FloatField(
         verbose_name='Итоговое место по показателю в тандеме'
     )
 
