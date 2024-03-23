@@ -1440,7 +1440,10 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
     @action(
         detail=True,
         methods=['post', 'delete'],
-        url_path='verify-event/(?P<event_id>\d+)'
+        url_path='verify-event/(?P<event_id>\d+)',
+        permission_classes=[
+            permissions.IsAuthenticated, IsRegionalCommissioner,
+        ]
     )
     def verify_event(self, request, competition_pk=None, pk=None,
                      event_id=None):
@@ -1463,6 +1466,7 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
             # Подсчет места для индивидуальных и тандем участников:
             if participants_entry and not participants_entry.detachment:
                 Q13Ranking.objects.get_or_create(
+                    competition_id=settings.COMPETITION_ID,
                     detachment=report.detachment,
                     place=calculate_q13_place(
                         Q13EventOrganization.objects.filter(
@@ -1474,6 +1478,7 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
             else:
                 if participants_entry:
                     tandem_ranking, _ = Q13TandemRanking.objects.get_or_create(
+                        competition_id=settings.COMPETITION_ID,
                         junior_detachment=report.detachment,
                         detachment=participants_entry.detachment
                     )
@@ -1507,6 +1512,7 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
                             status=status.HTTP_400_BAD_REQUEST
                         )
                     tandem_ranking, _ = Q13TandemRanking.objects.get_or_create(
+                        competition_id=settings.COMPETITION_ID,
                         junior_detachment=participants_entry.junior_detachment,
                         detachment=report.detachment
                     )
@@ -1659,7 +1665,9 @@ class Q18DetachmentReportViewSet(RetrieveCreateViewSet):
         detail=True,
         url_path='verify',
         methods=(['POST', 'DELETE']),
-        permission_classes=[permissions.IsAuthenticated]
+        permission_classes=[
+            permissions.IsAuthenticated, IsRegionalCommanderOrAdmin
+        ]
     )
     def verify(self, *args, **kwargs):
         """Верификация отчета по показателю.
