@@ -518,6 +518,10 @@ class IsRegionalCommanderForCert(BasePermission):
                     users_regional_head_id != commanders_regional_head_id
                 ):
                     check_model_instance = False
+                    self.message = (
+                        'В списке указаны юзеры'
+                        ' не из вашего регионального штаба.'
+                    )
                     break
         except (
             RegionalHeadquarter.DoesNotExist,
