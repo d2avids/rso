@@ -1,7 +1,7 @@
 import logging
 
 from celery import shared_task
-
+from django.conf import settings
 from rso_backend.settings import COMPETITION_ID
 from competitions.models import (
     Q10Ranking, Q10Report, Q10TandemRanking, Q11Ranking,
@@ -12,7 +12,10 @@ from competitions.models import (
 )
 
 from competitions.q_calculations import (
-    calculate_q18_place, calculate_place, calculate_q19_place, calculate_q1_score
+    calculate_q18_place,
+    calculate_place,
+    calculate_q19_place,
+    calculate_q1_score
 )
 
 logger = logging.getLogger('tasks')
@@ -21,7 +24,7 @@ logger = logging.getLogger('tasks')
 @shared_task
 def calculate_q18_places_task():
     logger.info('Начинаем считать места по 18 показателю')
-    calculate_q18_place()
+    calculate_q18_place(competition_id=settings.COMPETITION_ID)
     logger.info(
         'Посчитали.'
     )

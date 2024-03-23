@@ -969,7 +969,7 @@ class Q18DetachmentReport(QBaseReport, QBaseReportIsVerified):
                      'Всероссийском дне ударного труда'
     )
     june_15_detachment_members = models.PositiveSmallIntegerField(default=1)
-    score = models.FloatField(verbose_name='Очки', default=0)
+    score = models.FloatField(verbose_name='Очки', default=1000)
 
 
 
