@@ -4,7 +4,7 @@ from events.models import Event
 
 
 class EventFilter(filters.FilterSet):
-    format = filters.CharFilter(
+    format_type = filters.CharFilter(
         field_name='format', lookup_expr='icontains', label='Формат'
     )
     direction = filters.CharFilter(
@@ -21,4 +21,4 @@ class EventFilter(filters.FilterSet):
 
     class Meta:
         model = Event
-        fields = ('format', 'direction', 'status', 'scale')
+        fields = ('format_type', 'direction', 'status', 'scale')
