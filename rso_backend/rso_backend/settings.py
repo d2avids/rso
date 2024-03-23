@@ -297,17 +297,17 @@ CELERY_BEAT_SCHEDULE = {
             month_of_year=10,
         )
     },
-    # 'calculate_q18': {
-    #     'task': 'competitions.tasks.calculate_q18_places_task',
-    #     'schedule': timedelta(seconds=30)
-    # },
+    'calculate_q18': {
+        'task': 'competitions.tasks.calculate_q18_places_task',
+        'schedule': timedelta(hours=24)
+    },
     'calculate_q1': {
         'task': 'competitions.tasks.calculate_q1_places_task',
         'schedule': timedelta(hours=24)
     },
     'calculate_q7': {
         'task': 'competitions.tasks.calculate_q7_places_task',
-        'schedule': timedelta(seconds=24)
+        'schedule': timedelta(hours=24)
     },
     'calculate_q8': {
         'task': 'competitions.tasks.calculate_q7_places_task',
@@ -331,11 +331,11 @@ CELERY_BEAT_SCHEDULE = {
     },
     'calculate_q1_score': {
         'task': 'competitions.tasks.calculate_q1_score_task',
-        'schedule': timedelta(seconds=24)
+        'schedule': timedelta(hours=24)
     },
     'calculate_q19': {
         'task': 'competitions.tasks.calculate_q19',
-        'schedule': timedelta(seconds=30)
+        'schedule': timedelta(hours=30)
     },
 }
 
@@ -351,7 +351,6 @@ if DEBUG:
 
 # FOR WINDOWS:
 # celery -A rso_backend worker --loglevel=info -P eventlet
-# celery -A rso_backend beat -l info -P eventlet
 
 CORS_ORIGIN_WHITELIST = [
     'http://localhost:3000',

@@ -889,9 +889,9 @@ class Q12(ParticipationBase):
 
 
 class Q13TandemRanking(QBaseTandemRanking):
-    place = models.PositiveSmallIntegerField(
+    place = models.FloatField(
         verbose_name='Итоговое место по показателю',
-        default=12
+        default=6.0
     )
 
     class Meta:
