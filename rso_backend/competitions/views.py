@@ -1536,7 +1536,7 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
                                 is_verified=True
                             )
                         )
-
+                tandem_ranking.place = round(tandem_ranking / 2, 2)
                 tandem_ranking.save()
             return Response(
                 {"status": "Данные по организации "
