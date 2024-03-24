@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import filters, permissions, status, viewsets
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.serializers import ListSerializer
 
@@ -37,7 +37,7 @@ from competitions.models import (
     Q1TandemRanking, Q20Report, Q2DetachmentReport, Q2Ranking,
     Q2TandemRanking, Q7Report, Q18DetachmentReport,
     Q18TandemRanking, Q18Ranking, Q8Report, Q9Report, Q19Ranking,
-    Q19TandemRanking
+    Q19TandemRanking, Q4TandemRanking, Q4Ranking, Q3TandemRanking, Q3Ranking
 )
 from competitions.q_calculations import calculate_q13_place, \
     calculate_q19_place
@@ -651,7 +651,7 @@ def get_place_q1(request, competition_pk):
                     status=status.HTTP_400_BAD_REQUEST)
 
 
-class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
+class Q2DetachmentReportViewSet(RetrieveCreateViewSet):
 
     """
     Пример POST-запроса:
@@ -680,8 +680,8 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
     PLACE_SECOND = 2
 
     serializer_class = Q2DetachmentReportSerializer
-    # permission_classes = (permissions.IsAuthenticated,
-    #                       IsCompetitionParticipantAndCommander)
+    permission_classes = (permissions.IsAuthenticated,
+                          IsCompetitionParticipantAndCommander)
 
     def get_queryset(self):
         competition = get_object_or_404(
@@ -783,33 +783,8 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
         return Response(serializer.data,
                         status=status.HTTP_201_CREATED)
 
-    def update(self, request, *args, **kwargs):
-        event_org = self.get_object()
-        if event_org.is_verified:
-            return Response(
-                {
-                    'detail': 'Нельзя редактировать/удалять верифицированные '
-                              'записи.'
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        return super().update(request, *args, **kwargs)
-
-    def destroy(self, request, *args, **kwargs):
-        event_org = self.get_object()
-        if event_org.is_verified:
-            return Response(
-                {
-                    'detail': 'Нельзя редактировать/удалять верифицированные '
-                              'записи.'
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        return super().destroy(request, *args, **kwargs)
-
     @action(
-            detail=True,
+            detail=False,
             methods=['get'],
             url_path='get-place',
             serializer_class=None
@@ -821,7 +796,13 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
         Если показатель не был подан ранее, то возвращается код 400.
         """
 
-        report = self.get_object()
+        detachment = self.request.user.detachment_commander
+        report = Q18DetachmentReport.objects.filter(
+            detachment=detachment,
+            competition_id=self.kwargs.get('competition_pk')
+        ).first()
+        if not report:
+            return Response(status=status.HTTP_404_NOT_FOUND)
         is_verified = report.is_verified
         is_tandem = tandem_or_start(
             competition=report.competition,
@@ -1776,7 +1757,13 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
 
     @action(detail=True, methods=['get'], url_path='get-place')
     def get_place(self, request, **kwargs):
-        report = self.get_object()
+        detachment = self.request.user.detachment_commander
+        report = Q13DetachmentReport.objects.filter(
+            detachment=detachment,
+            competition_id=self.kwargs.get('competition_pk')
+        ).first()
+        if not report:
+            return Response(status=status.HTTP_404_NOT_FOUND)
         tandem_ranking = Q13TandemRanking.objects.filter(
             detachment=report.detachment
         ).first()
@@ -2016,26 +2003,6 @@ class Q18DetachmentReportViewSet(RetrieveCreateViewSet):
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
 
-    def get_serializer_context(self):
-        """
-        Переопределение стандартного контекста,
-        добавление competition и detachment.
-        """
-        if self.action == 'post':
-            context = super().get_serializer_context()
-            competition_id = self.kwargs.get('competition_pk')
-            try:
-                detachment_id = self.request.user.detachment_commander.id
-            except Detachment.DoesNotExist:
-                detachment_id = None
-            context['competition'] = get_object_or_404(
-                Competitions, id=competition_id
-            )
-            context['detachment'] = get_object_or_404(
-                Detachment, id=detachment_id
-            )
-            return context
-
     def get_queryset(self):
         competition_id = self.kwargs.get('competition_pk')
         return Q18DetachmentReport.objects.filter(
@@ -2079,9 +2046,15 @@ class Q18DetachmentReportViewSet(RetrieveCreateViewSet):
             detachment_report.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=['get'], url_path='get-place')
+    @action(detail=False, methods=['get'], url_path='get-place')
     def get_place(self, request, **kwargs):
-        report = self.get_object()
+        detachment = self.request.user.detachment_commander
+        report = Q18DetachmentReport.objects.filter(
+            detachment=detachment,
+            competition_id=self.kwargs.get('competition_pk')
+        ).first()
+        if not report:
+            return Response(status=status.HTTP_404_NOT_FOUND)
         tandem_ranking = Q18TandemRanking.objects.filter(
             detachment=report.detachment
         ).first()
@@ -2517,3 +2490,91 @@ class Q20ViewSet(CreateListRetrieveUpdateViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save(competition=competition, detachment=detachment)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_place_q3(request, competition_pk=None):
+    """
+    Action для получения рейтинга по данному показателю.
+
+    Доступ: командиры отрядов, которые участвуют в конкурсе.
+    Если отчета еще не подан, вернется ошибка 404. (данные не отправлены)
+    Если отчет подан, но еще не верифицировн - вернется
+    {"place": "Показатель в обработке"}.
+    Если отчет подан и верифицирован - вернется место в рейтинге:
+    {"place": int}
+    """
+    detachment = request.user.detachment_commander
+    if not detachment:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    tandem_ranking = Q3TandemRanking.objects.filter(
+        detachment=detachment
+    ).first()
+    if not tandem_ranking:
+        tandem_ranking = Q3TandemRanking.objects.filter(
+            junior_detachment=detachment
+        ).first()
+
+    if tandem_ranking and tandem_ranking.place is not None:
+        return Response(
+            {"place": tandem_ranking.place},
+            status=status.HTTP_200_OK
+        )
+
+    ranking = Q3Ranking.objects.filter(
+        detachment=detachment
+    ).first()
+    if ranking and ranking.place is not None:
+        return Response(
+            {"place": ranking.place}, status=status.HTTP_200_OK
+        )
+
+    return Response(
+        {"place": "Показатель в обработке"},
+        status=status.HTTP_404_NOT_FOUND
+    )
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_place_q4(request, competition_pk=None):
+    """
+    Action для получения рейтинга по данному показателю.
+
+    Доступ: командиры отрядов, которые участвуют в конкурсе.
+    Если отчета еще не подан, вернется ошибка 404. (данные не отправлены)
+    Если отчет подан, но еще не верифицировн - вернется
+    {"place": "Показатель в обработке"}.
+    Если отчет подан и верифицирован - вернется место в рейтинге:
+    {"place": int}
+    """
+    detachment = request.user.detachment_commander
+    if not detachment:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    tandem_ranking = Q4TandemRanking.objects.filter(
+        detachment=detachment
+    ).first()
+    if not tandem_ranking:
+        tandem_ranking = Q4TandemRanking.objects.filter(
+            junior_detachment=detachment
+        ).first()
+
+    if tandem_ranking and tandem_ranking.place is not None:
+        return Response(
+            {"place": tandem_ranking.place},
+            status=status.HTTP_200_OK
+        )
+
+    ranking = Q4Ranking.objects.filter(
+        detachment=detachment
+    ).first()
+    if ranking and ranking.place is not None:
+        return Response(
+            {"place": ranking.place}, status=status.HTTP_200_OK
+        )
+
+    return Response(
+        {"place": "Показатель в обработке"},
+        status=status.HTTP_404_NOT_FOUND
+    )

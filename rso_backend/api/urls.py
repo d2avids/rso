@@ -15,7 +15,7 @@ from competitions.views import (
     CompetitionApplicationsViewSet, CompetitionParticipantsViewSet,
     CompetitionViewSet, Q10ViewSet, Q11ViewSet, Q12ViewSet, Q19DetachmentReportViewset, Q20ViewSet, Q2DetachmentReportViewSet, Q7ViewSet,
     Q13DetachmentReportViewSet, Q13EventOrganizationViewSet,
-    Q18DetachmentReportViewSet, Q8ViewSet, Q9ViewSet, get_place_q1,
+    Q18DetachmentReportViewSet, Q8ViewSet, Q9ViewSet, get_place_q1, get_place_q3, get_place_q4
 )
 from events.views import (AnswerDetailViewSet, EventAdditionalIssueViewSet,
                           EventApplicationsViewSet,
@@ -38,6 +38,7 @@ from users.views import (CustomUserViewSet, ForeignUserDocumentsViewSet,
                          UserProfessionalEducationViewSet, UserRegionViewSet,
                          UsersParentViewSet, UserStatementDocumentsViewSet,
                          apply_for_verification)
+from questions.views import QuestionsView, submit_answers
 
 app_name = 'api'
 
@@ -382,6 +383,16 @@ user_nested_urls = [
         get_place_q1,
         name='get-place-q1'
     ),
+    path(
+        'competitions/<int:competition_pk>/reports/q2/get_place/',
+        get_place_q3,
+        name='get-place-q2'
+    ),
+    path(
+        'competitions/<int:competition_pk>/reports/q3/get_place/',
+        get_place_q4,
+        name='get-place-q3'
+    ),
     path('', include('djoser.urls')),
 ]
 
@@ -395,5 +406,7 @@ urlpatterns = [
     path(
         'rsousers', CustomUserViewSet.as_view(LIST),
     ),
+    path('questions/', QuestionsView.as_view(), name='questions'),
+    path('submit_answers/', submit_answers, name='submit-answers'),
     path('', include(router.urls)),
 ] + user_nested_urls

@@ -11,46 +11,47 @@ from competitions.models import (
 
 admin.site.register(Q2DetachmentReport)
 
-@admin.register(Q2Ranking)
-class Q2RankingAdmin(admin.ModelAdmin):
+
+class QBaseRankingAdmin(admin.ModelAdmin):
     list_display = ('id', 'detachment', 'place')
     search_fields = ('detachment__name', 'place')
+
+
+class QBaseTandemRankingAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'detachment', 'junior_detachment', 'place'
+    )
+    search_fields = ('detachment__name', 'junior_detachment__name', 'place')
+
+
+@admin.register(Q2Ranking)
+class Q2RankingAdmin(QBaseRankingAdmin):
+    pass
 
 
 @admin.register(Q2TandemRanking)
-class Q2TandemRankingAdmin(admin.ModelAdmin):
-    list_display = (
-        'id', 'detachment', 'junior_detachment', 'place'
-    )
-    search_fields = ('detachment__name', 'junior_detachment__name', 'place')
+class Q2TandemRankingAdmin(QBaseTandemRankingAdmin):
+    pass
 
 
 @admin.register(Q13Ranking)
-class Q13RankingAdmin(admin.ModelAdmin):
-    list_display = ('id', 'detachment', 'place')
-    search_fields = ('detachment__name', 'place')
+class Q13RankingAdmin(QBaseRankingAdmin):
+    pass
 
 
 @admin.register(Q13TandemRanking)
-class Q13TandemRankingAdmin(admin.ModelAdmin):
-    list_display = (
-        'id', 'detachment', 'junior_detachment', 'place'
-    )
-    search_fields = ('detachment__name', 'junior_detachment__name', 'place')
+class Q13TandemRankingAdmin(QBaseTandemRankingAdmin):
+    pass
 
 
 @admin.register(Q18Ranking)
-class Q18RankingAdmin(admin.ModelAdmin):
-    list_display = ('id', 'detachment', 'place')
-    search_fields = ('detachment__name', 'place')
+class Q18RankingAdmin(QBaseRankingAdmin):
+    pass
 
 
 @admin.register(Q18TandemRanking)
-class Q18TandemRankingAdmin(admin.ModelAdmin):
-    list_display = (
-        'id', 'detachment', 'junior_detachment', 'place'
-    )
-    search_fields = ('detachment__name', 'junior_detachment__name', 'place')
+class Q18TandemRankingAdmin(QBaseTandemRankingAdmin):
+    pass
 
 
 admin.site.register(CompetitionParticipants)

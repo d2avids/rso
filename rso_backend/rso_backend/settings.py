@@ -84,6 +84,7 @@ INSTALLED_APPS += [
     'headquarters.apps.HeadquartersConfig',
     'events.apps.EventsConfig',
     'competitions.apps.CompetitionsConfig',
+    'questions.apps.QuestionsConfig'
 ]
 
 MIDDLEWARE = [

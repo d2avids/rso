@@ -1,8 +1,13 @@
 from datetime import date
+from django.db.models import Max
+from django.conf import settings
 import logging
 from competitions.models import Q13EventOrganization, Q18Ranking, \
-    Q18DetachmentReport, CompetitionParticipants, Q18TandemRanking, Q19Ranking, Q19Report, Q19TandemRanking, Q1Report, Q7Ranking, Q7Report, Q7TandemRanking
-
+    Q18DetachmentReport, CompetitionParticipants, Q18TandemRanking, Q19Ranking, \
+    Q19Report, Q19TandemRanking, Q1Report, Q7Ranking, Q7Report, \
+    Q7TandemRanking, Q3Ranking, Q3TandemRanking, Q4Ranking, Q4TandemRanking
+from headquarters.models import UserDetachmentPosition
+from questions.models import Attempt
 
 logger = logging.getLogger('tasks')
 
@@ -59,7 +64,8 @@ def calculate_q18_place(competition_id):
     logger.info(f'Сегодняшняя дата: {cutoff_date}')
 
     verified_entries = Q18DetachmentReport.objects.filter(is_verified=True)
-    logger.info(f'Получили верифицированные отчеты: {verified_entries.count()}')
+    logger.info(
+        f'Получили верифицированные отчеты: {verified_entries.count()}')
 
     solo_entries = []
     tandem_entries = []
@@ -115,14 +121,16 @@ def calculate_q18_place(competition_id):
         if partner_entry:
             partner_entry.score = partner_entry.participants_number / partner_entry.june_15_detachment_members
             partner_entry.save()
-            tuple_to_append = (entry, partner_entry, entry.score + partner_entry.score)
+            tuple_to_append = (
+                entry, partner_entry, entry.score + partner_entry.score)
             if tuple_to_append not in category:
                 category.append(tuple_to_append)
         else:
             category.append((entry, entry.score))
 
     if solo_entries:
-        logger.info('Есть записи для соло-участников. Удаляем записи из таблицы Q18 Ranking')
+        logger.info(
+            'Есть записи для соло-участников. Удаляем записи из таблицы Q18 Ranking')
         Q18Ranking.objects.all().delete()
         solo_entries.sort(key=lambda entry: entry[1])
         place = len(solo_entries)
@@ -138,7 +146,8 @@ def calculate_q18_place(competition_id):
             place -= 1
 
     if tandem_entries:
-        logger.info('Есть записи для тандем-участников. Удаляем записи из таблицы Q18 TandemRanking')
+        logger.info(
+            'Есть записи для тандем-участников. Удаляем записи из таблицы Q18 TandemRanking')
         Q18TandemRanking.objects.all().delete()
         tandem_entries.sort(key=lambda entry: entry[2])
         place = len(tandem_entries)
@@ -184,7 +193,8 @@ def calculate_place(
     if today >= cutoff_date:
         return
 
-    participants = CompetitionParticipants.objects.filter(  # первый запрос к бд
+    participants = CompetitionParticipants.objects.filter(
+        # первый запрос к бд
         competition_id=competition_id
     ).select_related('junior_detachment', 'detachment')
 
@@ -214,8 +224,10 @@ def calculate_place(
                           place=index + 1)
         )
 
-    model_ranking.objects.filter(competition_id=competition_id).delete()  # третий запрос к бд
-    model_ranking.objects.bulk_create(to_create_entries)  # четвертый запрос к бд
+    model_ranking.objects.filter(
+        competition_id=competition_id).delete()  # третий запрос к бд
+    model_ranking.objects.bulk_create(
+        to_create_entries)  # четвертый запрос к бд
 
     reports = model_report.objects.filter(  # пятый запрос к бд
         competition_id=competition_id
@@ -271,8 +283,10 @@ def calculate_place(
                                      detachment=report[1].detachment,
                                      place=index + 1)
             )
-    model_tandem_ranking.objects.filter(competition_id=competition_id).delete()  # шестой запрос к бд
-    model_tandem_ranking.objects.bulk_create(to_create_entries)  # седьмой запрос к бд
+    model_tandem_ranking.objects.filter(
+        competition_id=competition_id).delete()  # шестой запрос к бд
+    model_tandem_ranking.objects.bulk_create(
+        to_create_entries)  # седьмой запрос к бд
 
 
 def calculate_q1_score(competition_id):
@@ -343,6 +357,121 @@ def calculate_q1_score(competition_id):
 
     Q1Report.objects.filter(competition_id=competition_id).delete()
     Q1Report.objects.bulk_create(to_create_entries)
+
+
+def calculate_q3_q4_place(competition_id: int):
+    logger.info(
+        'Удаляем все записи из Q3Ranking, Q3TandemRanking, '
+        'Q4Ranking, Q4TandemRanking, '
+    )
+    Q3TandemRanking.objects.all().delete()
+    Q3Ranking.objects.all().delete()
+    Q4Ranking.objects.all().delete()
+    Q4TandemRanking.objects.all().delete()
+    logger.info('Считаем места по 3 показателю')
+    solo_entries = CompetitionParticipants.objects.filter(
+        competition_id=competition_id,
+        junior_detachment=True,
+        detachment__isnull=True
+    )
+    tandem_entries = CompetitionParticipants.objects.filter(
+        competition_id=competition_id,
+        junior_detachment=True,
+        detachment=True
+    )
+    for entry in solo_entries:
+        # Получаем результаты для командира отряда
+        q3_place = get_q3_q4_place(entry, 'university')
+        q4_place = get_q3_q4_place(entry, 'safety')
+        if q3_place:
+            logger.info(f'Для СОЛО {entry} посчитали Q3 место - {q3_place}')
+            Q3Ranking.objects.create(
+                competition_id=competition_id,
+                detachment=entry,
+                place=q3_place,
+            )
+        if q4_place:
+            logger.info(f'Для {entry} посчитали Q4 место - {q4_place}')
+            Q4Ranking.objects.create(
+                competition_id=competition_id,
+                detachment=entry,
+                place=q3_place,
+            )
+    for tandem_entry in tandem_entries:
+        q3_place_1 = get_q3_q4_place(tandem_entry.junior_detachment, 'university')
+        q3_place_2 = get_q3_q4_place(tandem_entry.detachment, 'university')
+        q4_place_1 = get_q3_q4_place(tandem_entry.junior_detachment, 'safety')
+        q4_place_2 = get_q3_q4_place(tandem_entry.detachment, 'safety')
+        if q3_place_1 and q3_place_2:
+            final_place = round((q3_place_1 + q3_place_2) / 2)
+            logger.info(f'Для ТАНДЕМ {tandem_entry} посчитали Q3 место - {final_place}')
+            Q3TandemRanking.objects.create(
+                competition_id=competition_id,
+                detachment=tandem_entry.detachment,
+                junior_detachment=tandem_entry.junior_detachment,
+                place=final_place
+            )
+        if q4_place_1 and q4_place_2:
+            final_place = round((q4_place_1 + q4_place_2) / 2)
+            logger.info(f'Для ТАНДЕМ {tandem_entry} посчитали Q4 место - {final_place}')
+            Q4TandemRanking.objects.create(
+                competition_id=competition_id,
+                detachment=tandem_entry.detachment,
+                junior_detachment=tandem_entry.junior_detachment,
+                place=final_place
+            )
+
+
+def get_q3_q4_place(entry: CompetitionParticipants, category: str):
+    commander_score = Attempt.objects.filter(
+        user=entry.detachment.commander,
+        category=category
+    ).aggregate(Max('score'))['score__max'] or 0
+
+    # Получаем результаты для комиссара отряда
+    commissioner_score = 0
+    commissioners = UserDetachmentPosition.objects.filter(
+        position__name=settings.COMMISSIONER_POSITION_NAME,
+        detachment=entry.detachment
+    )
+    for commissioner in commissioners:
+        commissioner_max_score = Attempt.objects.filter(
+            user=commissioner.user,
+            category=category
+        ).aggregate(Max('score'))['score__max']
+        if commissioner_max_score:
+            commissioner_score = max(commissioner_score,
+                                     commissioner_max_score)
+
+    # Рассчитываем средний балл
+    average_score = (
+                            commander_score + commissioner_score
+                    ) / 2 if commander_score + commissioner_score > 0 else 0
+
+    # Определяем место
+    place = determine_q3_q4_place(average_score)
+    return place
+
+
+def determine_q3_q4_place(average_score):
+    if average_score > 95:
+        return 1
+    elif 90 <= average_score <= 95:
+        return 2
+    elif 85 <= average_score < 90:
+        return 3
+    elif 80 <= average_score < 85:
+        return 4
+    elif 75 <= average_score < 80:
+        return 5
+    elif 70 <= average_score < 75:
+        return 6
+    elif 65 <= average_score < 70:
+        return 7
+    elif 60 <= average_score < 65:
+        return 8
+    else:
+        return None
 
 
 def calculate_q19_place(report: Q19Report) -> int:

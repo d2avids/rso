@@ -364,6 +364,7 @@ class Q2TandemRanking(QBaseTandemRanking):
         verbose_name = 'Тандем-место по 2 показателю'
         verbose_name_plural = 'Тандем-места по 2 показателю'
 
+
 class Q2DetachmentReport(QBaseReport, QBaseReportIsVerified):
     commander_achievement = models.BooleanField(
         verbose_name=('Региональная школа командного состава'
@@ -395,6 +396,52 @@ class Q2DetachmentReport(QBaseReport, QBaseReportIsVerified):
     class Meta:
         verbose_name = 'Отчет по 2 показателю'
         verbose_name_plural = 'Отчеты по 2 показателю'
+
+
+class Q3Ranking(QBaseRanking):
+    place = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(8)],
+        default=3,
+        verbose_name='Итоговое место по показателю'
+    )
+
+    class Meta:
+        verbose_name = 'Место по 2 показателю'
+        verbose_name_plural = 'Места по 2 показателю'
+
+
+class Q3TandemRanking(QBaseTandemRanking):
+    place = models.FloatField(
+        verbose_name='Итоговое место по показателю в тандеме',
+        default=8.0,
+    )
+
+    class Meta:
+        verbose_name = 'Тандем-место по 2 показателю'
+        verbose_name_plural = 'Тандем-места по 2 показателю'
+
+
+class Q4Ranking(QBaseRanking):
+    place = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(8)],
+        default=3,
+        verbose_name='Итоговое место по показателю'
+    )
+
+    class Meta:
+        verbose_name = 'Место по 2 показателю'
+        verbose_name_plural = 'Места по 2 показателю'
+
+
+class Q4TandemRanking(QBaseTandemRanking):
+    place = models.FloatField(
+        verbose_name='Итоговое место по показателю в тандеме',
+        default=8.0,
+    )
+
+    class Meta:
+        verbose_name = 'Тандем-место по 2 показателю'
+        verbose_name_plural = 'Тандем-места по 2 показателю'
 
 
 class Q7TandemRanking(QBaseTandemRanking):
