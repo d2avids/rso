@@ -1692,7 +1692,7 @@ class Q5DetachmentReportViewSet(RetrieveCreateViewSet):
                 event_serializer = Q5EducatedParticipantSerializer(
                     data=event_data)
                 if event_serializer.is_valid(raise_exception=True):
-                    Q5EducatedParticipantSerializer.objects.create(
+                    Q5EducatedParticipant.objects.create(
                         **event_serializer.validated_data,
                         detachment_report=report
                     )
@@ -1872,6 +1872,62 @@ class Q5DetachmentReportViewSet(RetrieveCreateViewSet):
             )
         raw.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class Q5EducatedParticipantViewSet(UpdateDestroyViewSet):
+    """
+    Обеспечивает возможность редактирования и
+    удаления объектов Q5EducatedParticipant.
+
+    - `PUT/PATCH`: Обновляет объект Q5EducatedParticipant, если
+                   он не был верифицирован.
+                   Ограничено для объектов, принадлежащих отчету подразделения
+                   пользователя (где является командиром).
+
+    - `DELETE`: Удаляет объект Q5EducatedParticipant,
+                если он не был верифицирован.
+                Ограничено для объектов, принадлежащих отчету
+                подразделения пользователя (где является командиром).
+
+    Примечание: Операции обновления и удаления доступны только
+                если `is_verified` объекта равно `False`
+                и если подразделение пользователя  (где является командиром)
+                соответствует подразделению в отчете.
+    """
+
+    serializer_class = Q13EventOrganizationSerializer
+    permission_classes = (IsDetachmentReportAuthor,)
+
+    def get_queryset(self):
+        report_pk = self.kwargs.get('report_pk')
+        return Q13EventOrganization.objects.filter(
+            detachment_report_id=report_pk
+        )
+
+    def update(self, request, *args, **kwargs):
+        event_org = self.get_object()
+        if event_org.is_verified:
+            return Response(
+                {
+                    'detail': 'Нельзя редактировать/удалять верифицированные '
+                              'записи.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        event_org = self.get_object()
+        if event_org.is_verified:
+            return Response(
+                {
+                    'detail': 'Нельзя редактировать/удалять верифицированные '
+                              'записи.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return super().destroy(request, *args, **kwargs)
 
 
 class Q13DetachmentReportViewSet(RetrieveCreateViewSet):

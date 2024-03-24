@@ -14,10 +14,13 @@ from api.views import (AreaViewSet, EducationalInstitutionViewSet,
 from competitions.models import Q5EducatedParticipant
 from competitions.views import (
     CompetitionApplicationsViewSet, CompetitionParticipantsViewSet,
-    CompetitionViewSet, Q10ViewSet, Q11ViewSet, Q12ViewSet, Q19DetachmentReportViewset, Q20ViewSet, Q2DetachmentReportViewSet, Q7ViewSet,
+    CompetitionViewSet, Q10ViewSet, Q11ViewSet, Q12ViewSet,
+    Q19DetachmentReportViewset, Q20ViewSet, Q2DetachmentReportViewSet,
+    Q7ViewSet,
     Q13DetachmentReportViewSet, Q13EventOrganizationViewSet,
-    Q18DetachmentReportViewSet, Q8ViewSet, Q9ViewSet, get_place_q1, get_place_q3, get_place_q4,
-    Q5DetachmentReport
+    Q18DetachmentReportViewSet, Q8ViewSet, Q9ViewSet, get_place_q1,
+    get_place_q3, get_place_q4,
+    Q5DetachmentReport, Q5DetachmentReportViewSet, Q5EducatedParticipantViewSet
 )
 from events.views import (AnswerDetailViewSet, EventAdditionalIssueViewSet,
                           EventApplicationsViewSet,
@@ -162,12 +165,12 @@ router.register(
 )
 router.register(
     r'competitions/(?P<competition_pk>\d+)/reports/q15',
-    Q5DetachmentReport,
+    Q5DetachmentReportViewSet,
     basename='q5'
 )
 router.register(
     r'competitions/(?P<competition_pk>\d+)/reports/q13/(?P<report_pk>\d+)/participants',
-    Q5EducatedParticipant,
+    Q5EducatedParticipantViewSet,
     basename='q5educatedparticipant'
 )
 
