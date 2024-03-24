@@ -56,6 +56,30 @@ def q8_ranking(
 
 
 @pytest.fixture
+def q9_tandem_ranking(
+    competition, detachment_competition, junior_detachment,
+    report_question9_verif
+):
+    return Q9TandemRanking.objects.create(
+        place=1,
+        competition=competition,
+        detachment=detachment_competition,
+        junior_detachment=junior_detachment
+    )
+
+
+@pytest.fixture
+def q9_ranking(
+    competition, junior_detachment_3, report_question9_verif2
+):
+    """Стартовая заявка."""
+    return Q9Ranking.objects.create(
+        place=2,
+        competition=competition,
+        detachment=junior_detachment_3
+    )
+
+@pytest.fixture
 def q19_tandem_ranking(
     competition, detachment_competition, junior_detachment,
     report_question19_verif

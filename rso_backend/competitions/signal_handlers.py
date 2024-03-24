@@ -3,14 +3,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
 from competitions.models import (
-    Q10,
-    Q11,
-    Q12,
-    Q7,
-    Q8,
-    Q9,
-    CompetitionParticipants,
-    Q19Report
+    Q10, Q11, Q12, Q7, Q8, Q9, Q20Report
 )
 
 
@@ -140,27 +133,20 @@ def create_score_q12(sender, instance, created=False, **kwargs):
             return report
 
 
-signals.post_save.connect(
-    create_score_q7,
-    sender=Q7
-)
-signals.post_save.connect(
-    create_score_q8,
-    sender=Q8
-)
-signals.post_save.connect(
-    create_score_q9,
-    sender=Q9
-)
-signals.post_save.connect(
-    create_score_q10,
-    sender=Q10
-)
-signals.post_save.connect(
-    create_score_q11,
-    sender=Q11
-)
-signals.post_save.connect(
-    create_score_q12,
-    sender=Q12
-)
+@receiver([post_save, post_delete], sender=Q20Report)
+def create_score_q20(sender, instance, created=False, **kwargs):
+    if created:
+        pass
+    else:
+        if instance.is_verified and instance.score == 0:
+            score = 0
+            if instance.link_emblem and instance.link_emblem_img:
+                score += 1
+            if instance.link_flag and instance.link_flag_img:
+                score += 1
+            if instance.link_banner and instance.link_banner_img:
+                score += 1
+            instance.score = score
+            instance.save()
+
+            return instance

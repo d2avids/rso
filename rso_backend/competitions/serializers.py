@@ -1,15 +1,15 @@
 from datetime import date
-import logging
 
 from django.db import transaction
 from django.conf import settings
 from rest_framework import serializers
 
 from competitions.models import (
-    Q10, Q11, Q12, Q7, Q8, Q9, CompetitionApplications, CompetitionParticipants, Competitions,
+    Q10, Q11, Q12, Q7, Q8, Q9, CompetitionApplications,
+    CompetitionParticipants, Competitions,
     LinksQ7, LinksQ8, Q10Report, Q11Report, Q12Report,
     Q13EventOrganization, Q13DetachmentReport,
-    Q18DetachmentReport, Q19Report, Q7Report, Q8Report, Q9Report)
+    Q18DetachmentReport, Q19Report, Q20Report, Q7Report, Q8Report, Q9Report)
 from headquarters.models import Detachment
 from headquarters.serializers import BaseShortUnitSerializer
 
@@ -882,8 +882,10 @@ class Q18DetachmentReportSerializer(serializers.ModelSerializer):
             )
         return attrs
 
-logger = logging.getLogger('tasks')
+
 class Q19ReportSerializer(serializers.ModelSerializer):
+    detachment = ShortDetachmentCompetitionSerializer(read_only=True)
+
     class Meta:
         model = Q19Report
         fields = (
@@ -913,6 +915,43 @@ class Q19ReportSerializer(serializers.ModelSerializer):
             competition = self.context.get('competition')
             detachment = self.context.get('detachment')
             if Q19Report.objects.filter(
+                    competition=competition, detachment=detachment
+            ).exists():
+                raise serializers.ValidationError(
+                    {'error': 'Отчет по данному показателю уже существует'}
+                )
+        return attrs
+
+
+class Q20ReportSerializer(serializers.ModelSerializer):
+    detachment = ShortDetachmentCompetitionSerializer(read_only=True)
+
+    class Meta:
+        model = Q20Report
+        fields = (
+            'id',
+            'detachment',
+            'competition',
+            'is_verified',
+            'link_emblem',
+            'link_emblem_img',
+            'link_flag',
+            'link_flag_img',
+            'link_banner',
+            'link_banner_img'
+        )
+        read_only_fields = (
+            'is_verified',
+            'detachment',
+            'competition'
+        )
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if request.method == 'POST':
+            competition = self.context.get('competition')
+            detachment = self.context.get('detachment')
+            if Q20Report.objects.filter(
                     competition=competition, detachment=detachment
             ).exists():
                 raise serializers.ValidationError(

@@ -34,7 +34,7 @@ from competitions.models import (
     CompetitionParticipants, Competitions, Q10Report, Q11Report, Q12Report,
     Q13EventOrganization,
     Q13DetachmentReport, Q13Ranking, Q13TandemRanking, Q19Report, Q1Ranking,
-    Q1TandemRanking, Q7Report, Q18DetachmentReport,
+    Q1TandemRanking, Q20Report, Q7Report, Q18DetachmentReport,
     Q18TandemRanking, Q18Ranking, Q8Report, Q9Report
 )
 from competitions.q_calculations import calculate_q13_place
@@ -45,7 +45,7 @@ from competitions.serializers import (
     CreateQ12Serializer, CreateQ7Serializer, CreateQ8Serializer,
     CreateQ9Serializer, Q10ReportSerializer, Q10Serializer,
     Q11ReportSerializer, Q11Serializer, Q12ReportSerializer, Q12Serializer,
-    Q19ReportSerializer, Q7ReportSerializer, Q7Serializer,
+    Q19ReportSerializer, Q20ReportSerializer, Q7ReportSerializer, Q7Serializer,
     Q8ReportSerializer, Q8Serializer, Q9ReportSerializer, Q9Serializer,
     ShortDetachmentCompetitionSerializer, Q13EventOrganizationSerializer,
     Q13DetachmentReportSerializer, Q18DetachmentReportSerializer
@@ -53,7 +53,7 @@ from competitions.serializers import (
 # сигналы ниже не удалять, иначе сломается
 from competitions.signal_handlers import (
     create_score_q7, create_score_q8, create_score_q9, create_score_q10,
-    create_score_q11, create_score_q12
+    create_score_q11, create_score_q12, create_score_q20
 )
 from competitions.swagger_schemas import (request_update_application,
                                           response_competitions_applications,
@@ -658,6 +658,7 @@ class Q7ViewSet(
         - чтение: Командир отряда из инстанса объекта к которому
                   нужен доступ, а также комиссары региональных штабов.
         - чтение(list): только комиссары региональных штабов.
+                        Выводятся заявки только его рег штаба.
         - изменение: Если заявка не подтверждена - командир отряда из
                      инстанса объекта который изменяют,
                      а также комиссары региональных штабов.
@@ -667,11 +668,7 @@ class Q7ViewSet(
                     а также комиссары региональных штабов.
                     Если подтверждена - только комиссар регионального штаба.
     ! При редактировании нельзя изменять event_name.
-    Поиск:
-        - ключ для поиска: ?search
-        - поле для поиска: id отряда и id конкурса.
     """
-    queryset = Q7.objects.all()
     serializer_class = Q7Serializer
     permission_classes = (
         permissions.IsAuthenticated,
@@ -715,6 +712,9 @@ class Q7ViewSet(
             Competitions, id=self.kwargs.get('competition_pk')
         )
 
+    def get_detachment(self, obj):
+        return obj.detachment_report.detachment
+
     @swagger_auto_schema(
         # request_body=ListSerializer(child=CreateQ7Serializer()), # работает.
         request_body=q7schema_request,
@@ -749,7 +749,7 @@ class Q7ViewSet(
                         status=status.HTTP_201_CREATED)
 
     @action(detail=True,
-            methods=['post'],
+            methods=['post', 'delete'],
             url_path='accept',
             permission_classes=(permissions.IsAuthenticated,
                                 IsRegionalCommissioner,))
@@ -762,15 +762,19 @@ class Q7ViewSet(
         Action для верификации мероприятия рег. комиссаром.
 
         Принимает пустой POST запрос.
+        Доступ: комиссары региональных штабов.
         """
         event = self.get_object()
         if event.is_verified:
             return Response({'error': 'Отчет уже подтвержден.'},
                             status=status.HTTP_400_BAD_REQUEST)
-        event.is_verified = True
-        event.save()
-        return Response(Q7Serializer(event).data,
-                        status=status.HTTP_200_OK)
+        if request.method == 'POST':
+            event.is_verified = True
+            event.save()
+            return Response(Q7Serializer(event).data,
+                            status=status.HTTP_200_OK)
+        event.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False,
             methods=['get'],
@@ -861,6 +865,7 @@ class Q8ViewSet(Q7ViewSet):
         - чтение: Командир отряда из инстанса объекта к которому
                   нужен доступ, а также комиссары региональных штабов.
         - чтение(list): только комиссары региональных штабов.
+                        Выводятся заявки только его рег штаба.
         - изменение: Если заявка не подтверждена - командир отряда из
                      инстанса объекта который изменяют,
                      а также комиссары региональных штабов.
@@ -907,7 +912,7 @@ class Q8ViewSet(Q7ViewSet):
                         status=status.HTTP_201_CREATED)
 
     @action(detail=True,
-            methods=['post'],
+            methods=['post', 'delete'],
             url_path='accept',
             permission_classes=(permissions.IsAuthenticated,
                                 IsRegionalCommissioner,))
@@ -920,15 +925,19 @@ class Q8ViewSet(Q7ViewSet):
         Action для верификации мероприятия рег. комиссаром.
 
         Принимает пустой POST запрос.
+        Доступ: комиссары региональных штабов.
         """
         event = self.get_object()
         if event.is_verified:
             return Response({'error': 'Отчет уже подтвержден.'},
                             status=status.HTTP_400_BAD_REQUEST)
-        event.is_verified = True
-        event.save()
-        return Response(Q8Serializer(event).data,
-                        status=status.HTTP_200_OK)
+        if request.method == 'POST':
+            event.is_verified = True
+            event.save()
+            return Response(Q8Serializer(event).data,
+                            status=status.HTTP_200_OK)
+        event.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class Q9ViewSet(
@@ -941,6 +950,7 @@ class Q9ViewSet(
         - чтение: Командир отряда из инстанса объекта к которому
                   нужен доступ, а также комиссары региональных штабов.
         - чтение(list): только комиссары региональных штабов.
+                        Выводятся заявки только его рег штаба.
         - изменение: Если заявка не подтверждена - командир отряда из
                      инстанса объекта который изменяют,
                      а также комиссары региональных штабов.
@@ -975,7 +985,6 @@ class Q9ViewSet(
         if not request.data:
             return Response({'error': 'Отчет пустой.'},
                             status=status.HTTP_400_BAD_REQUEST)
-        # event_data = request.data.get('event')
         for event in request.data:
             serializer = CreateQ9Serializer(
                 data=event,
@@ -991,7 +1000,7 @@ class Q9ViewSet(
                         status=status.HTTP_201_CREATED)
 
     @action(detail=True,
-            methods=['post'],
+            methods=['post', 'delete'],
             url_path='accept',
             permission_classes=(permissions.IsAuthenticated,
                                 IsRegionalCommissioner,))
@@ -1004,15 +1013,19 @@ class Q9ViewSet(
         Action для верификации мероприятия рег. комиссаром.
 
         Принимает пустой POST запрос.
+        Доступ: комиссары региональных штабов.
         """
         event = self.get_object()
         if event.is_verified:
             return Response({'error': 'Отчет уже подтвержден.'},
                             status=status.HTTP_400_BAD_REQUEST)
-        event.is_verified = True
-        event.save()
-        return Response(Q9Serializer(event).data,
-                        status=status.HTTP_200_OK)
+        if request.method == 'POST':
+            event.is_verified = True
+            event.save()
+            return Response(Q9Serializer(event).data,
+                            status=status.HTTP_200_OK)
+        event.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class Q10ViewSet(
@@ -1025,6 +1038,7 @@ class Q10ViewSet(
         - чтение: Командир отряда из инстанса объекта к которому
                   нужен доступ, а также комиссары региональных штабов.
         - чтение(list): только комиссары региональных штабов.
+                        Выводятся заявки только его рег штаба.
         - изменение: Если заявка не подтверждена - командир отряда из
                      инстанса объекта который изменяют,
                      а также комиссары региональных штабов.
@@ -1074,7 +1088,7 @@ class Q10ViewSet(
                         status=status.HTTP_201_CREATED)
 
     @action(detail=True,
-            methods=['post'],
+            methods=['post', 'delete'],
             url_path='accept',
             permission_classes=(permissions.IsAuthenticated,
                                 IsRegionalCommissioner,))
@@ -1087,15 +1101,19 @@ class Q10ViewSet(
         Action для верификации мероприятия рег. комиссаром.
 
         Принимает пустой POST запрос.
+        Доступ: комиссары региональных штабов.
         """
         event = self.get_object()
         if event.is_verified:
             return Response({'error': 'Отчет уже подтвержден.'},
                             status=status.HTTP_400_BAD_REQUEST)
-        event.is_verified = True
-        event.save()
-        return Response(Q10Serializer(event).data,
-                        status=status.HTTP_200_OK)
+        if request.method == 'POST':
+            event.is_verified = True
+            event.save()
+            return Response(Q10Serializer(event).data,
+                            status=status.HTTP_200_OK)
+        event.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class Q11ViewSet(
@@ -1108,6 +1126,7 @@ class Q11ViewSet(
         - чтение: Командир отряда из инстанса объекта к которому
                   нужен доступ, а также комиссары региональных штабов.
         - чтение(list): только комиссары региональных штабов.
+                        Выводятся заявки только его рег штаба.
         - изменение: Если заявка не подтверждена - командир отряда из
                      инстанса объекта который изменяют,
                      а также комиссары региональных штабов.
@@ -1157,7 +1176,7 @@ class Q11ViewSet(
                         status=status.HTTP_201_CREATED)
 
     @action(detail=True,
-            methods=['post'],
+            methods=['post', 'delete'],
             url_path='accept',
             permission_classes=(permissions.IsAuthenticated,
                                 IsRegionalCommissioner,))
@@ -1170,15 +1189,19 @@ class Q11ViewSet(
         Action для верификации мероприятия рег. комиссаром.
 
         Принимает пустой POST запрос.
+        Доступ: комиссары региональных штабов.
         """
         event = self.get_object()
         if event.is_verified:
             return Response({'error': 'Отчет уже подтвержден.'},
                             status=status.HTTP_400_BAD_REQUEST)
-        event.is_verified = True
-        event.save()
-        return Response(Q11Serializer(event).data,
-                        status=status.HTTP_200_OK)
+        if request.method == 'POST':
+            event.is_verified = True
+            event.save()
+            return Response(Q11Serializer(event).data,
+                            status=status.HTTP_200_OK)
+        event.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class Q12ViewSet(
@@ -1191,6 +1214,7 @@ class Q12ViewSet(
         - чтение: Командир отряда из инстанса объекта к которому
                   нужен доступ, а также комиссары региональных штабов.
         - чтение(list): только комиссары региональных штабов.
+                        Выводятся заявки только его рег штаба.
         - изменение: Если заявка не подтверждена - командир отряда из
                      инстанса объекта который изменяют,
                      а также комиссары региональных штабов.
@@ -1240,7 +1264,7 @@ class Q12ViewSet(
                         status=status.HTTP_201_CREATED)
 
     @action(detail=True,
-            methods=['post'],
+            methods=['post', 'delete'],
             url_path='accept',
             permission_classes=(permissions.IsAuthenticated,
                                 IsRegionalCommissioner,))
@@ -1253,15 +1277,19 @@ class Q12ViewSet(
         Action для верификации мероприятия рег. комиссаром.
 
         Принимает пустой POST запрос.
+        Доступ: комиссары региональных штабов.
         """
         event = self.get_object()
         if event.is_verified:
             return Response({'error': 'Отчет уже подтвержден.'},
                             status=status.HTTP_400_BAD_REQUEST)
-        event.is_verified = True
-        event.save()
-        return Response(Q12Serializer(event).data,
-                        status=status.HTTP_200_OK)
+        if request.method == 'POST':
+            event.is_verified = True
+            event.save()
+            return Response(Q12Serializer(event).data,
+                            status=status.HTTP_200_OK)
+        event.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
@@ -1729,7 +1757,7 @@ class Q19ViewSet(CreateListRetrieveUpdateViewSet):
 
     Доступ:
         - retrieve (GET) авторам отчета;
-        - list (GET) командирам РШ;
+        - list (GET) командирам РШ, выводятся отчеты только его рег штаба;
         - create командирам отрядов-участников конкурса;
         - update командирам отрядов-участников конкурса;
     """
@@ -1775,6 +1803,9 @@ class Q19ViewSet(CreateListRetrieveUpdateViewSet):
             Competitions, id=self.kwargs.get('competition_pk')
         )
 
+    def get_detachment(self, obj):
+        return obj.detachment
+
     @action(detail=False,
             methods=['get'],
             url_path='me',
@@ -1791,7 +1822,7 @@ class Q19ViewSet(CreateListRetrieveUpdateViewSet):
         return super().list(request, *args, **kwargs)
 
     @action(detail=True,
-            methods=['post'],
+            methods=['post', 'delete'],
             url_path='accept',
             permission_classes=(permissions.IsAuthenticated,
                                 IsRegionalCommanderOrAdmin,))
@@ -1804,15 +1835,20 @@ class Q19ViewSet(CreateListRetrieveUpdateViewSet):
         Action для верификации мероприятия рег. комиссаром.
 
         Принимает пустой POST запрос.
+
+        Доступ: рег. командиры или админ
         """
         report = self.get_object()
         if report.is_verified:
             return Response({'error': 'Отчет уже подтвержден.'},
                             status=status.HTTP_400_BAD_REQUEST)
-        report.is_verified = True
-        report.save()
-        return Response(Q19ReportSerializer(report).data,
-                        status=status.HTTP_200_OK)
+        if request.method == 'POST':
+            report.is_verified = True
+            report.save()
+            return Response(Q19ReportSerializer(report).data,
+                            status=status.HTTP_200_OK)
+        report.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False,
             methods=['get'],
@@ -1879,6 +1915,180 @@ class Q19ViewSet(CreateListRetrieveUpdateViewSet):
             Detachment, id=self.request.user.detachment_commander.id
         )
         serializer = Q19ReportSerializer(data=request.data,
+                                         context={'request': request,
+                                                  'competition': competition,
+                                                  'detachment': detachment})
+        serializer.is_valid(raise_exception=True)
+        serializer.save(competition=competition, detachment=detachment)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class Q20ViewSet(CreateListRetrieveUpdateViewSet):
+    """Вьюсет для показателя 'Соответствие требованиями положения символики
+    и атрибутике форменной одежды и символики отрядов.'.
+
+    Доступ:
+        - чтение: Командир отряда из инстанса объекта к которому
+                  нужен доступ, а также комиссары региональных штабов.
+        - чтение(list): только комиссары региональных штабов.
+                        Выводятся заявки только его рег штаба.
+        - изменение: Если заявка не подтверждена - командир отряда из
+                     инстанса объекта который изменяют,
+                     а также комиссары региональных штабов.
+                     Если подтверждена - только комиссар регионального штаба.
+    """
+    queryset = Q20Report.objects.all()
+    serializer_class = Q20ReportSerializer
+    permission_classes = (
+        permissions.IsAuthenticated,
+        IsCommanderDetachmentInParameterOrRegionalCommissioner
+    )
+
+    def get_queryset(self):
+        if self.action == 'list':
+            regional_headquarter = (
+                self.request.user.userregionalheadquarterposition.headquarter
+            )
+            return Q20Report.objects.filter(
+                detachment__regional_headquarter=regional_headquarter,
+                competition_id=self.kwargs.get('competition_pk')
+            )
+        if self.action == 'me':
+            return Q20Report.objects.filter(
+                detachment__commander=self.request.user,
+                competition_id=self.kwargs.get('competition_pk')
+            )
+        return Q20Report.objects.filter(
+            competition_id=self.kwargs.get('competition_pk')
+        )
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [permissions.IsAuthenticated(),
+                    IsCommanderAndCompetitionParticipant()]
+        if self.action == 'list':
+            return [permissions.IsAuthenticated(), IsRegionalCommissioner()]
+        if self.action in ['update', 'partial_update']:
+            return [permissions.IsAuthenticated(),
+                    IsRegionalCommissionerOrCommanderDetachmentWithVerif()]
+        return super().get_permissions()
+
+    def get_competitions(self):
+        return get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+
+    def get_detachment(self, obj):
+        return obj.detachment
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='me',
+            permission_classes=(permissions.IsAuthenticated,))
+    def me(self, request, competition_pk, *args, **kwargs):
+        """
+        Action для получения своего отчета по параметру 20
+        для текущего пользователя.
+
+        Доступ: все авторизованные пользователи.
+        Если пользователь не командир отряда, или у его отряда нет
+        поданного отчета - вернется пустой список.
+        """
+        return super().list(request, *args, **kwargs)
+
+    @action(detail=True,
+            methods=['post', 'delete'],
+            url_path='accept',
+            permission_classes=(permissions.IsAuthenticated,
+                                IsRegionalCommissioner,))
+    @swagger_auto_schema(
+        request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={},),
+        responses={200: Q20ReportSerializer}
+    )
+    def accept_report(self, request, competition_pk, pk, *args, **kwargs):
+        """
+        Action для верификации мероприятия рег. комиссаром.
+
+        Принимает пустой POST запрос.
+        Доступ: комиссары региональных штабов.
+        """
+        report = self.get_object()
+        if report.is_verified:
+            return Response({'error': 'Отчет уже подтвержден.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if request.method == 'POST':
+            report.is_verified = True
+            report.save()
+            return Response(Q20ReportSerializer(report).data,
+                            status=status.HTTP_200_OK)
+        report.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='get_place',
+            permission_classes=(permissions.IsAuthenticated,
+                                IsCompetitionParticipantAndCommander))
+    def get_place(self, request, competition_pk, **kwargs):
+        """
+        Action для получения рейтинга по данному показателю.
+
+        Доступ: командиры отрядов, которые участвуют в конкурсе.
+        Если отчета еще не подан, вернется ошибка 404. (данные не отправлены)
+        Если отчет подан, но еще не верифицировн - вернется
+        {"place": "Показатель в обработке"}.
+        Если отчет подан и верифицирован - вернется место в рейтинге:
+        {"place": int}
+        """
+        detachment = self.request.user.detachment_commander
+        report = Q20Report.objects.filter(
+            detachment=detachment,
+            competition_id=competition_pk
+        ).first()
+        if not report:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        ranking = getattr(
+            detachment, 'q20ranking'
+        ).filter(competition_id=competition_pk).first()
+        if ranking:
+            return Response(
+                {"place": ranking.place}, status=status.HTTP_200_OK
+            )
+        tandem_ranking = getattr(
+                    detachment, 'q20tandemranking_main_detachment'
+        ).filter(competition_id=competition_pk).first()
+        if tandem_ranking:
+            return Response(
+                {"place": tandem_ranking.place},
+                status=status.HTTP_200_OK
+            )
+        tandem_ranking = getattr(
+            detachment, 'q20tandemranking_junior_detachment'
+            ).filter(competition_id=competition_pk).first()
+        if tandem_ranking:
+            return Response(
+                {"place": tandem_ranking.place},
+                status=status.HTTP_200_OK
+            )
+        return Response(
+            {"place": "Показатель в обработке"},
+            status=status.HTTP_200_OK
+        )
+
+    def create(self, request, competition_pk, *args, **kwargs):
+        """
+        Action для создания отчета по параметру 20
+        для текущего пользователя.
+
+        Доступ: командиры отрядов-участников конкурса.
+        """
+        competition = get_object_or_404(
+            Competitions, id=competition_pk
+        )
+        detachment = get_object_or_404(
+            Detachment, id=self.request.user.detachment_commander.id
+        )
+        serializer = Q20ReportSerializer(data=request.data,
                                          context={'request': request,
                                                   'competition': competition,
                                                   'detachment': detachment})

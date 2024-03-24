@@ -1,7 +1,9 @@
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
-from competitions.utils import get_certificate_scans_path, document_path, round_math
+from competitions.utils import (
+    get_certificate_scans_path, document_path, round_math
+)
 
 
 class Competitions(models.Model):
@@ -223,7 +225,7 @@ class Links(models.Model):
     """Абстрактная модель для ссылок."""
     link = models.URLField(
         verbose_name='Ссылка',
-        max_length=500
+        max_length=300
     )
 
     def __str__(self):
@@ -268,7 +270,7 @@ class ParticipationBase(models.Model):
 
     event_name = models.CharField(
         verbose_name='Название мероприятия',
-        max_length=255
+        max_length=150
     )
     certificate_scans = models.FileField(
         verbose_name='Сканы сертификатов',
@@ -428,7 +430,7 @@ class Q7(ParticipationBase):
     number_of_participants = models.PositiveIntegerField(
         verbose_name='Количество участников',
         default=0,
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
+        validators=[MinValueValidator(0), MaxValueValidator(1000)]
     )
     detachment_report = models.ForeignKey(
         'Q7Report',
@@ -537,7 +539,7 @@ class Q8(ParticipationBase):
     number_of_participants = models.PositiveIntegerField(
         verbose_name='Количество участников',
         default=0,
-        validators=[MinValueValidator(0), MaxValueValidator(100)]
+        validators=[MinValueValidator(0), MaxValueValidator(1000)]
     )
     detachment_report = models.ForeignKey(
         'Q8Report',
@@ -972,12 +974,6 @@ class Q18DetachmentReport(QBaseReport, QBaseReportIsVerified):
     score = models.FloatField(verbose_name='Очки', default=1000)
 
 
-
-
-
-
-
-
 class Q19TandemRanking(QBaseTandemRanking):
     """
     Рейтинг для тандема-участников.
@@ -1003,7 +999,7 @@ class Q19Ranking(QBaseRanking):
     )
 
     class Meta:
-        verbose_name = 'Место по 9 показателю'
+        verbose_name = 'Место по 19 показателю'
         verbose_name_plural = 'Места по 19 показателю'
 
 
@@ -1027,3 +1023,97 @@ class Q19Report(QBaseReport, QBaseReportIsVerified):
     class Meta:
         verbose_name = 'Отчет по 19 показателю'
         verbose_name_plural = 'Отчеты по 19 показателю'
+
+
+
+
+
+
+class Q20TandemRanking(QBaseTandemRanking):
+    """
+    Рейтинг для тандема-участников.
+    Создается и заполняется переодической таской.
+    """
+    place = models.PositiveSmallIntegerField(
+        verbose_name='Итоговое место по показателю 20'
+    )
+
+    class Meta:
+        verbose_name = 'Тандем-место по 20 показателю'
+        verbose_name_plural = 'Тандем-места по 20 показателю'
+
+
+class Q20Ranking(QBaseRanking):
+    """
+    Рейтинг для старт-участников.
+    Создается и заполняется переодической таской.
+    """
+    place = models.PositiveSmallIntegerField(
+        verbose_name='Итоговое место по показателю 20'
+    )
+
+    class Meta:
+        verbose_name = 'Место по 20 показателю'
+        verbose_name_plural = 'Места по 20 показателю'
+
+
+class Q20Report(QBaseReport, QBaseReportIsVerified):
+    """
+    Отчет по показателю 'Соответствие требованиями положения
+    символики и атрибутике форменной одежды и символики отрядов'
+    Поля: отряд, конкурс, флаг верификации и необязательные поля ссылок.
+    Очки - 1.
+
+    # TODO: Примечание ниже для понятности. Временно.
+    # Очки считаются после сохранения верифицированной заявки (сигналом
+    после верификации), если заявка не верифицирована - очков ноль.
+    # Далее при подсчете они будут в конце рейтинга. Т.е. они будут в рейтинге,
+    но на последних местах среди нулей.
+    # То есть не отправить хуже, чем не верифицировать, те, кто не
+    отправил будут делить самое последнее место на всех при подсчете в
+    финальной таске.
+    """
+    link_emblem = models.URLField(
+        verbose_name='Ссылка на фото эмблемы',
+        max_length=300,
+        blank=True,
+        null=True
+    )
+    link_emblem_img = models.URLField(
+        verbose_name='Ссылка на изображение эмблемы',
+        max_length=300,
+        blank=True,
+        null=True
+    )
+    link_flag = models.URLField(
+        verbose_name='Ссылка на фото флага',
+        max_length=300,
+        blank=True,
+        null=True
+    )
+    link_flag_img = models.URLField(
+        verbose_name='Ссылка на изображение флага',
+        max_length=300,
+        blank=True,
+        null=True
+    )
+    link_banner = models.URLField(
+        verbose_name='Ссылка на фото знамени',
+        max_length=300,
+        blank=True,
+        null=True
+    )
+    link_banner_img = models.URLField(
+        verbose_name='Ссылка на изображение знамени',
+        max_length=300,
+        blank=True,
+        null=True
+    )
+    score = models.PositiveSmallIntegerField(
+        verbose_name='Очки',
+        default=0  # Чем больше, тем выше рейтинг
+    )
+
+    class Meta:
+        verbose_name = 'Отчет по 20 показателю'
+        verbose_name_plural = 'Отчеты по 20 показателю'

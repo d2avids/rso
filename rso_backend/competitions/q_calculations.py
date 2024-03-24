@@ -168,7 +168,7 @@ def calculate_place(
         reverse=True
 ):
     """
-    Таска для расчета рейтинга Q7 - Q12.
+    Таска для расчета рейтингов Q7 - Q12 и Q20.
 
     Для celery-beat, считает вплоть до 15 октября 2024 года.
     :param competition_id: id конкурса
@@ -188,7 +188,7 @@ def calculate_place(
 
     participants = CompetitionParticipants.objects.filter(
         competition_id=competition_id
-    ).all()
+    ).select_related('junior_detachment', 'detachment')
 
     if not participants:
         logger.info('Нет участников')
@@ -214,7 +214,7 @@ def calculate_place(
     logger.info(f'Отчеты старт получили: {reports_start}')
 
     sorted_by_score_start_reports = sorted(  # сортируем отчеты старт по очкам
-        reports_start, key=lambda x: x.score, reverse=True
+        reports_start, key=lambda x: x.score, reverse=reverse
     )
 
     logger.info('Отчеты старт отсортированы')
@@ -238,10 +238,12 @@ def calculate_place(
     for ids in tandem_ids:  # получаем отчеты тандем попарно объектами
         tandem = []   # Если один или оба еще не подали отчет, тут будет (None, None)
         for id in ids:
-            tandem.append(model_report.objects.filter(
-                competition_id=competition_id,
-                detachment_id=id
-            ).first())
+            tandem.append(
+                model_report.objects.filter(
+                    competition_id=competition_id,
+                    detachment_id=id
+                ).first()
+            )
 
         tandem_reports.append(tandem)
     logger.info("Тандем заявка начало")
@@ -307,7 +309,7 @@ def calculate_place(
 
 
 def calculate_q1_score(competition_id):
-    """ 
+    """
     Функция для расчета очков по 1 показателю.
 
     Выполняется только 15.04.2024.
@@ -320,7 +322,7 @@ def calculate_q1_score(competition_id):
 
     participants = CompetitionParticipants.objects.filter(
         competition_id=competition_id
-    ).all()  # добавить select_related('junior_detachment__members', 'detachment__members')
+    ).all()  # мб добавить select_related('junior_detachment__members', 'detachment__members')
 
     if not participants:
         logger.info('Нет участников')
@@ -476,7 +478,7 @@ def calculate_q19_place(competition_id):
             report.safety_violations != Q19Report.SafetyViolationsChoices.NONE.value
         ):
             to_create_entries_start.append(
-                Q19Ranking.objects.create(
+                Q19Ranking(
                     competition_id=competition_id,
                     detachment_id=start_id,
                     place=2
@@ -484,7 +486,7 @@ def calculate_q19_place(competition_id):
             )
         else:
             to_create_entries_start.append(
-                Q19Ranking.objects.create(
+                Q19Ranking(
                     competition_id=competition_id,
                     detachment_id=start_id,
                     place=3

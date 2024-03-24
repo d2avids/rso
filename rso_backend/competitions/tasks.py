@@ -6,7 +6,8 @@ from rso_backend.settings import COMPETITION_ID
 from competitions.models import (
     Q10Ranking, Q10Report, Q10TandemRanking, Q11Ranking,
     Q11Report, Q11TandemRanking, Q12Ranking, Q12Report,
-    Q12TandemRanking, Q1Ranking, Q1Report, Q1TandemRanking, Q7Ranking, Q7Report, Q7TandemRanking,
+    Q12TandemRanking, Q1Ranking, Q1Report, Q1TandemRanking, Q20Ranking,
+    Q20Report, Q20TandemRanking, Q7Ranking, Q7Report, Q7TandemRanking,
     Q8Ranking, Q8Report, Q8TandemRanking, Q9Ranking, Q9Report,
     Q9TandemRanking
 )
@@ -101,11 +102,19 @@ def calculate_q1_places_task():
     calculate_place(competition_id=COMPETITION_ID,
                     model_report=Q1Report,
                     model_ranking=Q1Ranking,
-                    model_tandem_ranking=Q1TandemRanking,
-                    reverse=True)
+                    model_tandem_ranking=Q1TandemRanking)
 
 
 @shared_task
 def calculate_q19():
     """Считает места по 19 показателю."""
     calculate_q19_place(competition_id=COMPETITION_ID)
+
+
+@shared_task
+def calculate_q20_places_task():
+    """Считает места по 20 показателю."""
+    calculate_place(competition_id=COMPETITION_ID,
+                    model_report=Q20Report,
+                    model_ranking=Q20Ranking,
+                    model_tandem_ranking=Q20TandemRanking)
