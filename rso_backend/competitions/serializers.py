@@ -9,7 +9,8 @@ from competitions.models import (
     CompetitionParticipants, Competitions,
     LinksQ7, LinksQ8, Q10Report, Q11Report, Q12Report,
     Q13EventOrganization, Q13DetachmentReport,
-    Q18DetachmentReport, Q19Report, Q20Report, Q7Report, Q8Report, Q9Report)
+    Q18DetachmentReport, Q19Report, Q20Report, Q2DetachmentReport, Q7Report,
+    Q8Report, Q9Report)
 from headquarters.models import Detachment
 from headquarters.serializers import BaseShortUnitSerializer
 
@@ -162,6 +163,23 @@ class CompetitionParticipantsSerializer(serializers.ModelSerializer):
                     'Заявка еще не подтверждена младшим отрядом.'
                 )
         return attrs
+
+
+class Q2DetachmentReportSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Q2DetachmentReport
+        fields = (
+            'id',
+            'is_verified',
+            'competition',
+            'detachment',
+            'commander_achievement',
+            'commissioner_achievement',
+            'commander_link',
+            'commissioner_link'
+        )
+        read_only_fields = ('id', 'competition', 'detachment', 'is_verified')
 
 
 class LinksQ7Serializer(

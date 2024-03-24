@@ -71,3 +71,24 @@ def round_math(num, decimals=0):
         raise ValueError("decimal places has to be an integer")
     factor = int('1' + '0' * decimals)
     return int(num * factor + 0.5) / factor
+
+
+def tandem_or_start(competition, detachment, competition_model) -> bool:
+    """Вычисление Тандем | Старт."""
+
+    is_tandem = False
+    try:
+        if ((competition_model.objects.filter(
+            competition=competition,
+            detachment=detachment
+        ).exists())
+         or (
+            competition_model.objects.filter(
+                competition=competition,
+                junior_detachment=detachment
+            ).exclude(detachment=None)
+        )):
+            is_tandem = True
+    except (competition_model.DoesNotExist, ValueError):
+        is_tandem = False
+    return is_tandem

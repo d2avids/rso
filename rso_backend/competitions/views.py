@@ -34,7 +34,8 @@ from competitions.models import (
     CompetitionParticipants, Competitions, Q10Report, Q11Report, Q12Report,
     Q13EventOrganization,
     Q13DetachmentReport, Q13Ranking, Q13TandemRanking, Q19Report, Q1Ranking,
-    Q1TandemRanking, Q20Report, Q7Report, Q18DetachmentReport,
+    Q1TandemRanking, Q20Report, Q2DetachmentReport, Q2Ranking,
+    Q2TandemRanking, Q7Report, Q18DetachmentReport,
     Q18TandemRanking, Q18Ranking, Q8Report, Q9Report
 )
 from competitions.q_calculations import calculate_q13_place
@@ -45,11 +46,12 @@ from competitions.serializers import (
     CreateQ12Serializer, CreateQ7Serializer, CreateQ8Serializer,
     CreateQ9Serializer, Q10ReportSerializer, Q10Serializer,
     Q11ReportSerializer, Q11Serializer, Q12ReportSerializer, Q12Serializer,
-    Q19ReportSerializer, Q20ReportSerializer, Q7ReportSerializer, Q7Serializer,
+    Q19ReportSerializer, Q20ReportSerializer, Q2DetachmentReportSerializer, Q7ReportSerializer, Q7Serializer,
     Q8ReportSerializer, Q8Serializer, Q9ReportSerializer, Q9Serializer,
     ShortDetachmentCompetitionSerializer, Q13EventOrganizationSerializer,
     Q13DetachmentReportSerializer, Q18DetachmentReportSerializer
 )
+from competitions.utils import tandem_or_start
 # сигналы ниже не удалять, иначе сломается
 from competitions.signal_handlers import (
     create_score_q7, create_score_q8, create_score_q9, create_score_q10,
@@ -62,7 +64,6 @@ from competitions.swagger_schemas import (request_update_application,
                                           response_junior_detachments,
                                           q7schema_request, q9schema_request)
 from headquarters.models import Detachment, RegionalHeadquarter, UserDetachmentPosition
-from rso_backend.settings import BASE_DIR
 from users.models import RSOUser
 
 
@@ -226,7 +227,7 @@ class CompetitionViewSet(viewsets.ModelViewSet):
         Доступ - все пользователи.
         """
         filename = 'Regulation_on_the_best_LSO_2024.pdf'
-        filepath = str(BASE_DIR) + '/templates/competitions/' + filename
+        filepath = str(settings.BASE_DIR) + '/templates/competitions/' + filename
         return self.download_file_competitions(filepath, filename)
 
 
@@ -646,6 +647,337 @@ def get_place_q1(request, competition_pk):
     # Если отряд является участником конкурса, но нет рейтинга
     return Response({'error': 'Рейтинг еще не сформирован'},
                     status=status.HTTP_400_BAD_REQUEST)
+
+
+class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
+
+    """
+    Пример POST-запроса:
+    {
+    "commander_achievement": true,
+    "commissioner_achievement": true,
+    "commander_link": "https://some-link.com",
+    "commissioner_link": "https://some-link.com"
+    }
+
+    Поля “Региональная школа командного состава пройдена командиром отряда”
+    и “Региональная школа командного состава пройдена комиссаром отряда”
+    обязательные.
+    При выборе “Да” обязательным также становится поле
+    “Ссылка на публикацию о прохождении школы командного состава”,
+    так как прохождение обучения засчитывается только
+    при предоставлении ссылки на документ.
+
+    Командир выбрал “Да” + Комиссар выбрал “Да” - 1 место
+    Командир выбрал “Да” + Комиссар выбрал “Нет” - 2 место
+    Командир выбрал “Нет” + Комиссар выбрал “Да” - 2 место
+    Командир выбрал “Нет” + Комиссар выбрал “Нет” - 3 место
+    """
+
+    PLACE_FIRST = 1
+    PLACE_SECOND = 2
+
+    serializer_class = Q2DetachmentReportSerializer
+
+    def get_queryset(self):
+        competition = get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+        return Q2DetachmentReport.objects.filter(
+            competition=competition
+        )
+
+    def create(self, request, *args, **kwargs):
+        competition = get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+        try:
+            detachment = get_object_or_404(
+                Detachment, id=request.user.detachment_commander.id
+            )
+        except Detachment.DoesNotExist:
+            return Response(
+                {'error': 'Заполнять данные может только командир отряда.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if not CompetitionParticipants.objects.filter(
+            competition=competition, detachment=detachment
+        ).exists():
+            if not CompetitionParticipants.objects.filter(
+                competition=competition, junior_detachment=detachment
+            ).exists():
+                return Response(
+                    {
+                        'error': 'Ваш отряд не зарегистрирован'
+                        ' как участник конкурса.'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        if Q2DetachmentReport.objects.filter(
+            competition=competition,
+            detachment=detachment
+        ).exists():
+            return Response(
+                {'error': 'Отчет уже был подан ранее.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        commander_achievement = request.data.get(
+            'commander_achievement'
+        )
+        commissioner_achievement = request.data.get(
+            'commissioner_achievement'
+        )
+        commander_link = request.data.get('commander_link')
+        commissioner_link = request.data.get('commissioner_link')
+        q2_data = {
+                'commander_achievement': commander_achievement,
+                'commissioner_achievement': commissioner_achievement,
+                'commander_link': commander_link,
+                'commissioner_link': commissioner_link
+        }
+        if (commander_achievement and not commander_link) or (
+            commissioner_achievement and not commissioner_link
+        ):
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={'error': 'Не указана подтверждающая ссылка.'}
+            )
+        serializer = Q2DetachmentReportSerializer(
+            data=q2_data,
+            context={
+                'request': request,
+                'competition': competition,
+                'detachment': detachment,
+            }
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save(
+            competition=competition,
+            detachment=detachment,
+            is_verified=False
+        )
+        return Response(serializer.data,
+                        status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        event_org = self.get_object()
+        if event_org.is_verified:
+            return Response(
+                {
+                    'detail': 'Нельзя редактировать/удалять верифицированные '
+                              'записи.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        event_org = self.get_object()
+        if event_org.is_verified:
+            return Response(
+                {
+                    'detail': 'Нельзя редактировать/удалять верифицированные '
+                              'записи.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return super().destroy(request, *args, **kwargs)
+
+    @action(
+            detail=True,
+            methods=['get'],
+            url_path='get-place',
+            serializer_class=None
+    )
+    def get_place(self, request, *args, **kwargs):
+        """Определение места по показателю.
+
+        Возвращается место или статус показателя.
+        Если показатель не был подан ранее, то возвращается код 400.
+        """
+
+        report = self.get_object()
+        is_verified = report.is_verified
+        is_tandem = tandem_or_start(
+            competition=report.competition,
+            detachment=report.detachment,
+            competition_model=CompetitionParticipants
+        )
+
+        if not is_verified:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={'detail': 'Показатель в обработке.'}
+            )
+        tandem_ranking = Q2TandemRanking.objects.filter(
+            detachment=report.detachment
+        ).first()
+        if not tandem_ranking:
+            tandem_ranking = Q2TandemRanking.objects.filter(
+                junior_detachment=report.detachment
+            ).first()
+
+        if is_tandem:
+            if tandem_ranking and tandem_ranking.place is not None:
+                return Response(
+                    {"place": tandem_ranking.place},
+                    status=status.HTTP_200_OK
+                )
+        else:
+            ranking = Q2Ranking.objects.filter(
+                detachment=report.detachment
+            ).first()
+            if ranking and ranking.place is not None:
+                return Response(
+                    {"place": ranking.place}, status=status.HTTP_200_OK
+                )
+
+        """
+        Если показателей нет в таблицах Rankin, то вычисляем место,
+        так, как будто у отряда личный результат.
+
+        Ниже вычисляем индивидуальное место. Третье место заполняется
+        по умолчанию.
+        Если ни одно условие не выполнено, то место остается равным 3.
+        """
+
+        commander_achievment = report.commander_achievement
+        commissioner_achievement = report.commissioner_achievement
+        place = None
+        if commander_achievment and commissioner_achievement:
+            place = self.PLACE_FIRST
+        if (
+            commander_achievment and not commissioner_achievement
+        ) or (
+            not commander_achievment and commissioner_achievement
+        ):
+            place = self.PLACE_SECOND
+        if place:
+            report.individual_place = place
+            report.save()
+
+        return Response(
+                status=status.HTTP_404_NOT_FOUND,
+                data={'detail': 'Показатель в обработке.'}
+            )
+
+    @action(
+            detail=True,
+            methods=['post', 'delete'],
+            serializer_class=None,
+            # permissions=[IsRegionalCommanderOrAuthor, ] TODO: раскомментировать после мерджа в ветку пказателей
+    )
+    def verify(self, *args, **kwargs):
+        """Верификация отчета по показателю.
+
+        Доступно только командиру РШ связанного с отрядом.
+        Если отчет уже верифицирован, возвращается 400 Bad Request с описанием
+        ошибки `{"detail": "Данный отчет уже верифицирован"}`.
+        При удалении отчета удаляются записи из таблиц Rankin и TandemRankin.
+        """
+
+        detachment_report = self.get_object()
+        competition = detachment_report.competition
+        detachment = detachment_report.detachment
+
+        if self.request.method == 'DELETE':
+            with transaction.atomic():
+                try:
+                    Q2Ranking.objects.get(
+                        detachment=detachment,
+                    ).delete()
+                except Q2Ranking.DoesNotExist:
+                    try:
+                        Q2TandemRanking.objects.get(
+                            detachment=detachment,
+                        ).delete()
+                    except Q2TandemRanking.DoesNotExist:
+                        try:
+                            Q2TandemRanking.objects.get(
+                                junior_detachment=detachment,
+                            ).delete()
+                        except Q2TandemRanking.DoesNotExist:
+                            pass
+                detachment_report.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+        with transaction.atomic():
+            if detachment_report.is_verified:
+                return Response({
+                    'detail': 'Данный отчет уже верифицирован'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            detachment_report.is_verified = True
+            detachment_report.save()
+
+            """Расчет мест по показателю и запись в таблицы Ranking."""
+
+            is_tandem = tandem_or_start(
+                competition=competition,
+                detachment=detachment,
+                competition_model=CompetitionParticipants
+            )
+            if is_tandem:
+                try:
+                    partner_detachment = CompetitionParticipants.objects.get(
+                        competition=competition,
+                        detachment=detachment
+                    ).junior_detachment
+                    partner_is_junior = True
+                except CompetitionParticipants.DoesNotExist:
+                    partner_detachment = (
+                        CompetitionParticipants.objects.filter(
+                            competition=competition,
+                            junior_detachment=detachment
+                        ).first().detachment
+                    )
+                    partner_is_junior = False
+                try:
+                    partner_detahcment_report = (
+                        Q2DetachmentReport.objects.filter(
+                            competition=competition,
+                            detachment=partner_detachment
+                        ).first()
+                    )
+                except Q2DetachmentReport.DoesNotExist:
+                    return Response(
+                        status=status.HTTP_404_NOT_FOUND,
+                        data={
+                            'detail': 'Отряд-напарник не подал отчет'
+                            ' по показателю.'
+                        }
+                    )
+                place_1 = detachment_report.individual_place
+                place_2 = partner_detahcment_report.individual_place
+                result_place = (place_1 + place_2)/2
+                if partner_is_junior:
+                    Q2TandemRanking.objects.create(
+                        detachment=detachment,
+                        junior_detachment=partner_detachment,
+                        place=result_place
+                    )
+                else:
+                    Q2TandemRanking.objects.create(
+                        detachment=partner_detachment,
+                        junior_detachment=detachment,
+                        place=result_place
+                    )
+                return Response(
+                    status=status.HTTP_201_CREATED,
+                    data={
+                        'detail': 'Отчет верифицирован, '
+                        f'место - {result_place}.'
+                    }
+                )
+            else:
+                Q2Ranking.objects.create(
+                    detachment=detachment,
+                    place=detachment_report.individual_place
+                )
+                return Response(
+                    status=status.HTTP_201_CREATED,
+                    data={'detail': f'Отчет верифицирован, место - {place_1}.'}
+                )
 
 
 class Q7ViewSet(

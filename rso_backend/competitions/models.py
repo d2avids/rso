@@ -343,6 +343,55 @@ class Q1Ranking(QBaseRanking):
         verbose_name_plural = 'Места по 1 показателю'
 
 
+class Q2Ranking(QBaseRanking):
+    place = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(3)],
+        default=3,
+        verbose_name='Итоговое место по показателю'
+    )
+
+
+class Q2TandemRanking(QBaseTandemRanking):
+    place = models.FloatField(
+        verbose_name='Итоговое место по показателю в тандеме',
+        default=3.0,
+    )
+
+
+class Q2DetachmentReport(QBaseReport, QBaseReportIsVerified):
+    commander_achievement = models.BooleanField(
+        verbose_name=('Региональная школа командного состава'
+                      ' пройдена командиром отряда'),
+        default=False,
+        null=False,
+        blank=False
+    )
+    commissioner_achievement = models.BooleanField(
+        verbose_name=('Региональная школа командного состава'
+                      ' пройдена комиссаром отряда'),
+        default=False,
+        null=False,
+        blank=False
+    )
+    commander_link = models.URLField(
+        verbose_name=('Ссылка на публикацию о прохождении'
+                      ' школы командного состава командиром отряда'),
+        null=True,
+        blank=True
+    )
+    commissioner_link = models.URLField(
+        verbose_name=('Ссылка на публикацию о прохождении'
+                      ' школы командного состава комиссаром отряда'),
+        null=True,
+        blank=True
+    )
+    individual_place = models.PositiveSmallIntegerField(
+        verbose_name='Расчетное место по показателю',
+        validators=[MinValueValidator(1), MaxValueValidator(3)],
+        default=3
+    )
+
+
 class Q7TandemRanking(QBaseTandemRanking):
     """
     Рейтинг для тандема-участников.
@@ -1023,10 +1072,6 @@ class Q19Report(QBaseReport, QBaseReportIsVerified):
     class Meta:
         verbose_name = 'Отчет по 19 показателю'
         verbose_name_plural = 'Отчеты по 19 показателю'
-
-
-
-
 
 
 class Q20TandemRanking(QBaseTandemRanking):
