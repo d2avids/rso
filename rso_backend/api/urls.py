@@ -384,14 +384,14 @@ user_nested_urls = [
         name='get-place-q1'
     ),
     path(
-        'competitions/<int:competition_pk>/reports/q2/get_place/',
+        'competitions/<int:competition_pk>/reports/q3/get_place/',
         get_place_q3,
-        name='get-place-q2'
+        name='get-place-q3'
     ),
     path(
-        'competitions/<int:competition_pk>/reports/q3/get_place/',
+        'competitions/<int:competition_pk>/reports/q4/get_place/',
         get_place_q4,
-        name='get-place-q3'
+        name='get-place-q4'
     ),
     path('', include('djoser.urls')),
 ]
