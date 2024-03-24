@@ -60,7 +60,6 @@ class QuestionsView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
-        operation_description="Получение вопросов по заданной категории",
         manual_parameters=[
             openapi.Parameter(
                 name='category',
