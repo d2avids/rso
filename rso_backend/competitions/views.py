@@ -1902,7 +1902,7 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
                                 is_verified=True
                             )
                         )
-                tandem_ranking.place = round(tandem_ranking / 2, 2)
+                tandem_ranking.place = round(tandem_ranking.place / 2, 2)
                 tandem_ranking.save()
             return Response(
                 {"status": "Данные по организации "
@@ -2100,8 +2100,8 @@ class Q19DetachmentReportViewset(CreateListRetrieveUpdateViewSet):
         - update командирам отрядов-участников конкурса;
     """
     serializer_class = Q19DetachmenrtReportSerializer
-    permission_classes = (permissions.IsAuthenticated,
-                          IsCompetitionParticipantAndCommander)
+    # permission_classes = (permissions.IsAuthenticated,
+    #                       IsCompetitionParticipantAndCommander)
 
     def get_queryset(self):
         if self.action == 'list':
@@ -2161,14 +2161,15 @@ class Q19DetachmentReportViewset(CreateListRetrieveUpdateViewSet):
 
     @action(detail=True,
             methods=['post', 'delete'],
-            url_path='accept',
-            permission_classes=(permissions.IsAuthenticated,
-                                IsRegionalCommanderOrAdmin,))
+            url_path='verify',
+            # permission_classes=(permissions.IsAuthenticated,
+            #                     IsRegionalCommanderOrAdmin,)
+     )
     @swagger_auto_schema(
         request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={},),
         responses={200: Q19DetachmenrtReportSerializer}
     )
-    def accept_report(self, request, competition_pk, pk, *args, **kwargs):
+    def verify(self, request, competition_pk, pk, *args, **kwargs):
         """
         Action для верификации мероприятия рег. комиссаром.
 
@@ -2232,11 +2233,16 @@ class Q19DetachmentReportViewset(CreateListRetrieveUpdateViewSet):
                             detachment=tandem_ranking.junior_detachment
                         )
                     except Q19Report.DoesNotExist:
-                        tandem_ranking.place += 6
+                        tandem_ranking.place += 2
                     if junior_detachment_report:
                         tandem_ranking.place += calculate_q19_place(report)
-                tandem_ranking.place = round(tandem_ranking / 2, 2)
+                tandem_ranking.place = round(tandem_ranking.place / 2, 2)
                 tandem_ranking.save()
+            return Response(
+                {"status": "Данные "
+                           "Успешно верифицированы"},
+                status=status.HTTP_200_OK
+            )
         report.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 

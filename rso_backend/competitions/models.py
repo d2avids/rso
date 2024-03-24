@@ -1004,7 +1004,7 @@ class Q18TandemRanking(QBaseTandemRanking):
 
 class Q18Ranking(QBaseRanking):
     place = models.PositiveSmallIntegerField(
-        verbose_name='Итоговое место по показателю'
+        verbose_name='Итоговое место по показателю',
     )
 
     class Meta:
@@ -1028,9 +1028,9 @@ class Q19TandemRanking(QBaseTandemRanking):
     Рейтинг для тандема-участников.
     Создается и заполняется переодической таской.
     """
-    place = models.PositiveSmallIntegerField(
+    place = models.FloatField(
         verbose_name='Итоговое место по показателю 19',
-        validators=[MinValueValidator(1), MaxValueValidator(2)],
+        default=2.0
     )
 
     class Meta:
@@ -1044,7 +1044,8 @@ class Q19Ranking(QBaseRanking):
     Создается и заполняется переодической таской.
     """
     place = models.PositiveSmallIntegerField(
-        verbose_name='Итоговое место по показателю 19'
+        verbose_name='Итоговое место по показателю 19',
+        default=2
     )
 
     class Meta:
