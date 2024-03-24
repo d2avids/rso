@@ -15,7 +15,6 @@ from competitions.models import (
 from competitions.q_calculations import (
     calculate_q18_place,
     calculate_place,
-    calculate_q19_place,
     calculate_q1_score
 )
 

@@ -1992,7 +1992,23 @@ class Q18DetachmentReportViewSet(RetrieveCreateViewSet):
 
     @swagger_auto_schema(request_body=Q18DetachmentReportSerializer)
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        context = super().get_serializer_context()
+        competition_id = self.kwargs.get('competition_pk')
+        try:
+            detachment_id = self.request.user.detachment_commander.id
+        except Detachment.DoesNotExist:
+            detachment_id = None
+        context['competition'] = get_object_or_404(
+            Competitions, id=competition_id
+        )
+        context['detachment'] = get_object_or_404(
+            Detachment, id=detachment_id
+        )
+        serializer = self.get_serializer(data=request.data,
+                                         context={'request': request,
+                                                  'competition_id': competition_id,
+                                                  'detachment_id': detachment_id}
+                                         )
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
