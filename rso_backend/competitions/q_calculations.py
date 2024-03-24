@@ -181,45 +181,31 @@ def calculate_place(
     today = date.today()
     cutoff_date = date(2024, 10, 15)
 
-    logger.info(f'Расчет рейтинга Q7. competition_id: {competition_id}')
-
-    if today >= cutoff_date:  # если уже прошло 15 октября
+    if today >= cutoff_date:
         return
 
-    participants = CompetitionParticipants.objects.filter(
+    participants = CompetitionParticipants.objects.filter(  # первый запрос к бд
         competition_id=competition_id
     ).select_related('junior_detachment', 'detachment')
 
     if not participants:
-        logger.info('Нет участников')
         return
 
-    logger.info(f'Участники: {participants}')
-    tandem_ids: list[tuple[int, int]] = []  # список пар id отрядов(junior_detachment и detachment)
-    start_ids: list[int] = []
+    start_ids = list(participants.filter(detachment__isnull=True)
+                     .values_list('junior_detachment__id', flat=True))
 
-    logger.info(f'Все участники: {participants}')
-    for entry in participants:  # сортируем отряды по типу заявки
-        if entry.detachment is None:
-            start_ids.append(entry.junior_detachment.id) # сохраняем их айдишники в список
-        else:
-            tandem_ids.append((entry.junior_detachment.id, entry.detachment.id))
-    logger.info(f'ID отчетов старт: {start_ids}')
+    tandem_ids = list(participants.filter(detachment__isnull=False)
+                      .values_list('junior_detachment__id', 'detachment__id'))
 
-    logger.info(f'ID отчетов тандем: {tandem_ids}')
-    reports_start = model_report.objects.filter(  # получаем отчеты по типу заявки
+    reports_start = model_report.objects.filter(  # второй запрос к бд
         competition_id=competition_id,
         detachment_id__in=start_ids
     )
-    logger.info(f'Отчеты старт получили: {reports_start}')
 
-    sorted_by_score_start_reports = sorted(  # сортируем отчеты старт по очкам
+    sorted_by_score_start_reports = sorted(
         reports_start, key=lambda x: x.score, reverse=reverse
     )
 
-    logger.info('Отчеты старт отсортированы')
-
-    model_ranking.objects.filter(competition_id=competition_id).delete()  # удаляем старые данные
     to_create_entries = []
     for index, report in enumerate(sorted_by_score_start_reports):
         to_create_entries.append(
@@ -228,45 +214,33 @@ def calculate_place(
                           place=index + 1)
         )
 
-    model_ranking.objects.bulk_create(to_create_entries)  # создаем новый рейтинг старт
+    model_ranking.objects.filter(competition_id=competition_id).delete()  # третий запрос к бд
+    model_ranking.objects.bulk_create(to_create_entries)  # четвертый запрос к бд
 
-    logger.info("Старт рейтинг создан")
+    reports = model_report.objects.filter(  # пятый запрос к бд
+        competition_id=competition_id
+    ).select_related('detachment').all()
 
-    # Начинаем считать тандем
-    tandem_reports = []
+    tandem_reports = [
+        [reports.filter(detachment_id=id).first() for id in ids]
+        for ids in tandem_ids
+    ]
 
-    for ids in tandem_ids:  # получаем отчеты тандем попарно объектами
-        tandem = []   # Если один или оба еще не подали отчет, тут будет (None, None)
-        for id in ids:
-            tandem.append(
-                model_report.objects.filter(
-                    competition_id=competition_id,
-                    detachment_id=id
-                ).first()
-            )
-
-        tandem_reports.append(tandem)
-    logger.info("Тандем заявка начало")
-
-    # сортируем отчеты тандем по очкам если они есть
-    # если их нет хоть у одного - сортируем только по партнеру
-    # если их нет ни у одного - они будут в конце списка
     sorted_by_score_tandem_reports = sorted(
         tandem_reports,
         key=lambda x: ((x[0].score + x[1].score) if (x[0] and x[1])
                        else (x[0].score if x[0] is not None
                              else (x[1].score if x[1] is not None
-                                   else (0 if reverse else len(tandem_ids))))),  # Вес ноль когда чем больше-тем лучше и вес максимальный когда чем меньше-тем лучше
+                                   else (0 if reverse else len(tandem_ids))))),
         reverse=reverse
     )
-    logger.info(f"Тандем заявка сортировка окончена {sorted_by_score_tandem_reports}")
+
+    logger.info(f'Отчеты: {sorted_by_score_tandem_reports}')
 
     to_create_entries = []
     for index, report in enumerate(sorted_by_score_tandem_reports):
         if report[0] is None and report[1] is None:
             continue
-            # не попадают в рейтинг.
-            # при формировании итогового нужно взять последнее место + 1
 
         if report[0] is not None and report[1] is not None:
             to_create_entries.append(
@@ -275,14 +249,11 @@ def calculate_place(
                                      detachment=report[1].detachment,
                                      place=index + 1)
             )
-            logger.info(f"Тандем заявка конец {index, report[0], report[1]}")
 
-        elif report[0] is not None:  # если junior_detachment не None
-            detachment = CompetitionParticipants.objects.get(
+        elif report[0] is not None:
+            detachment = participants.get(
                 junior_detachment=report[0].detachment,
-                competition=report[0].competition
             ).detachment
-            logger.info(f"Тандем заявка конец {index, report[0], report[1]}")
             to_create_entries.append(
                 model_tandem_ranking(competition=report[0].competition,
                                      junior_detachment=report[0].detachment,
@@ -290,22 +261,18 @@ def calculate_place(
                                      place=index + 1)
             )
 
-        elif report[1] is not None:  # если detachment не None
-            junior_detachment = CompetitionParticipants.objects.get(
+        elif report[1] is not None:
+            junior_detachment = participants.get(
                 detachment=report[1].detachment,
-                competition=report[1].competition
             ).junior_detachment
-            logger.info("Тандем заявка конец")
             to_create_entries.append(
                 model_tandem_ranking(competition=report[1].competition,
                                      junior_detachment=junior_detachment,
                                      detachment=report[1].detachment,
                                      place=index + 1)
             )
-    model_tandem_ranking.objects.filter(competition_id=competition_id).delete()
-    model_tandem_ranking.objects.bulk_create(to_create_entries)
-
-    logger.info("Тандем рейтинг создан")
+    model_tandem_ranking.objects.filter(competition_id=competition_id).delete()  # шестой запрос к бд
+    model_tandem_ranking.objects.bulk_create(to_create_entries)  # седьмой запрос к бд
 
 
 def calculate_q1_score(competition_id):
@@ -382,7 +349,7 @@ def calculate_q19_place(competition_id):
     today = date.today()
     cutoff_date = date(2024, 10, 15)
 
-    if today >= cutoff_date:  # если уже прошло 15 октября
+    if today >= cutoff_date:
         return
 
     participants = CompetitionParticipants.objects.filter(
@@ -390,7 +357,6 @@ def calculate_q19_place(competition_id):
     ).all()
 
     if not participants:
-        logger.info('Нет участников')
         return
 
     tandem_ids: list[tuple[int, int]] = []
