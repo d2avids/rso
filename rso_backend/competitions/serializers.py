@@ -901,7 +901,7 @@ class Q18DetachmentReportSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class Q19ReportSerializer(serializers.ModelSerializer):
+class Q19DetachmenrtReportSerializer(serializers.ModelSerializer):
     detachment = ShortDetachmentCompetitionSerializer(read_only=True)
 
     class Meta:

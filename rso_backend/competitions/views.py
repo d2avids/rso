@@ -36,9 +36,11 @@ from competitions.models import (
     Q13DetachmentReport, Q13Ranking, Q13TandemRanking, Q19Report, Q1Ranking,
     Q1TandemRanking, Q20Report, Q2DetachmentReport, Q2Ranking,
     Q2TandemRanking, Q7Report, Q18DetachmentReport,
-    Q18TandemRanking, Q18Ranking, Q8Report, Q9Report
+    Q18TandemRanking, Q18Ranking, Q8Report, Q9Report, Q19Ranking,
+    Q19TandemRanking
 )
-from competitions.q_calculations import calculate_q13_place
+from competitions.q_calculations import calculate_q13_place, \
+    calculate_q19_place
 from competitions.serializers import (
     CompetitionApplicationsObjectSerializer, CompetitionApplicationsSerializer,
     CompetitionParticipantsObjectSerializer, CompetitionParticipantsSerializer,
@@ -46,7 +48,7 @@ from competitions.serializers import (
     CreateQ12Serializer, CreateQ7Serializer, CreateQ8Serializer,
     CreateQ9Serializer, Q10ReportSerializer, Q10Serializer,
     Q11ReportSerializer, Q11Serializer, Q12ReportSerializer, Q12Serializer,
-    Q19ReportSerializer, Q20ReportSerializer, Q2DetachmentReportSerializer, Q7ReportSerializer, Q7Serializer,
+    Q19DetachmenrtReportSerializer, Q20ReportSerializer, Q2DetachmentReportSerializer, Q7ReportSerializer, Q7Serializer,
     Q8ReportSerializer, Q8Serializer, Q9ReportSerializer, Q9Serializer,
     ShortDetachmentCompetitionSerializer, Q13EventOrganizationSerializer,
     Q13DetachmentReportSerializer, Q18DetachmentReportSerializer
@@ -1814,6 +1816,10 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
             pk=event_id,
             detachment_report=report
         )
+        if event.is_verified:
+            return Response({
+                'detail': 'Данный отчет уже верифицирован'
+            }, status=status.HTTP_400_BAD_REQUEST)
         if request.method == 'POST':
             event.is_verified = True
             event.save()
@@ -1894,7 +1900,7 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
                                 is_verified=True
                             )
                         )
-                tandem_ranking.place = round(tandem_ranking / 2, 2)
+                tandem_ranking.place = round(tandem_ranking.place / 2, 2)
                 tandem_ranking.save()
             return Response(
                 {"status": "Данные по организации "
@@ -2081,7 +2087,7 @@ class Q18DetachmentReportViewSet(RetrieveCreateViewSet):
         )
 
 
-class Q19ViewSet(CreateListRetrieveUpdateViewSet):
+class Q19DetachmentReportViewset(CreateListRetrieveUpdateViewSet):
     """Вьюсет по показателю 'Отсутствие нарушений техники безопасности,
     охраны труда и противопожарной безопасности в трудовом семестре'.
 
@@ -2091,9 +2097,9 @@ class Q19ViewSet(CreateListRetrieveUpdateViewSet):
         - create командирам отрядов-участников конкурса;
         - update командирам отрядов-участников конкурса;
     """
-    serializer_class = Q19ReportSerializer
-    permission_classes = (permissions.IsAuthenticated,
-                          IsCompetitionParticipantAndCommander)
+    serializer_class = Q19DetachmenrtReportSerializer
+    # permission_classes = (permissions.IsAuthenticated,
+    #                       IsCompetitionParticipantAndCommander)
 
     def get_queryset(self):
         if self.action == 'list':
@@ -2153,14 +2159,15 @@ class Q19ViewSet(CreateListRetrieveUpdateViewSet):
 
     @action(detail=True,
             methods=['post', 'delete'],
-            url_path='accept',
-            permission_classes=(permissions.IsAuthenticated,
-                                IsRegionalCommanderOrAdmin,))
+            url_path='verify',
+            # permission_classes=(permissions.IsAuthenticated,
+            #                     IsRegionalCommanderOrAdmin,)
+     )
     @swagger_auto_schema(
         request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={},),
-        responses={200: Q19ReportSerializer}
+        responses={200: Q19DetachmenrtReportSerializer}
     )
-    def accept_report(self, request, competition_pk, pk, *args, **kwargs):
+    def verify(self, request, competition_pk, pk, *args, **kwargs):
         """
         Action для верификации мероприятия рег. комиссаром.
 
@@ -2175,8 +2182,65 @@ class Q19ViewSet(CreateListRetrieveUpdateViewSet):
         if request.method == 'POST':
             report.is_verified = True
             report.save()
-            return Response(Q19ReportSerializer(report).data,
-                            status=status.HTTP_200_OK)
+            participants_entry = CompetitionParticipants.objects.filter(
+                junior_detachment=report.detachment
+            ).first()
+
+            # Подсчет места для индивидуальных и тандем участников:
+            if participants_entry and not participants_entry.detachment:
+                Q19Ranking.objects.get_or_create(
+                    competition_id=settings.COMPETITION_ID,
+                    detachment=report.detachment,
+                    place=calculate_q19_place(report)
+                )
+            else:
+                if participants_entry:
+                    tandem_ranking, _ = Q19TandemRanking.objects.get_or_create(
+                        competition_id=settings.COMPETITION_ID,
+                        junior_detachment=report.detachment,
+                        detachment=participants_entry.detachment
+                    )
+                    tandem_ranking.place = calculate_q19_place(report)
+                    elder_detachment_report = None
+                    try:
+                        elder_detachment_report = Q19Report.objects.get(
+                            detachment=tandem_ranking.detachment
+                        )
+                    except Q19Report.DoesNotExist:
+                        tandem_ranking.place += 2
+                    if elder_detachment_report:
+                        tandem_ranking.place += calculate_q19_place(elder_detachment_report)
+                else:
+                    participants_entry = CompetitionParticipants.objects.filter(
+                        detachment=report.detachment
+                    ).first()
+                    if not participants_entry:
+                        return Response(
+                            {'error': 'отряд не найден в участниках'},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    tandem_ranking, _ = Q19TandemRanking.objects.get_or_create(
+                        competition_id=settings.COMPETITION_ID,
+                        junior_detachment=participants_entry.junior_detachment,
+                        detachment=report.detachment
+                    )
+                    tandem_ranking.place = calculate_q19_place(report)
+                    junior_detachment_report = None
+                    try:
+                        junior_detachment_report = Q19Report.objects.get(
+                            detachment=tandem_ranking.junior_detachment
+                        )
+                    except Q19Report.DoesNotExist:
+                        tandem_ranking.place += 2
+                    if junior_detachment_report:
+                        tandem_ranking.place += calculate_q19_place(report)
+                tandem_ranking.place = round(tandem_ranking.place / 2, 2)
+                tandem_ranking.save()
+            return Response(
+                {"status": "Данные "
+                           "Успешно верифицированы"},
+                status=status.HTTP_200_OK
+            )
         report.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -2244,8 +2308,8 @@ class Q19ViewSet(CreateListRetrieveUpdateViewSet):
         detachment = get_object_or_404(
             Detachment, id=self.request.user.detachment_commander.id
         )
-        serializer = Q19ReportSerializer(data=request.data,
-                                         context={'request': request,
+        serializer = Q19DetachmenrtReportSerializer(data=request.data,
+                                                    context={'request': request,
                                                   'competition': competition,
                                                   'detachment': detachment})
         serializer.is_valid(raise_exception=True)
