@@ -11,11 +11,13 @@ from api.constants import (CREATE_DELETE, CREATE_METHOD, DELETE,
 from api.views import (AreaViewSet, EducationalInstitutionViewSet,
                        MemberCertViewSet, RegionViewSet,
                        change_membership_fee_status, verify_user)
+from competitions.models import Q5EducatedParticipant
 from competitions.views import (
     CompetitionApplicationsViewSet, CompetitionParticipantsViewSet,
     CompetitionViewSet, Q10ViewSet, Q11ViewSet, Q12ViewSet, Q19DetachmentReportViewset, Q20ViewSet, Q2DetachmentReportViewSet, Q7ViewSet,
     Q13DetachmentReportViewSet, Q13EventOrganizationViewSet,
-    Q18DetachmentReportViewSet, Q8ViewSet, Q9ViewSet, get_place_q1, get_place_q3, get_place_q4
+    Q18DetachmentReportViewSet, Q8ViewSet, Q9ViewSet, get_place_q1, get_place_q3, get_place_q4,
+    Q5DetachmentReport
 )
 from events.views import (AnswerDetailViewSet, EventAdditionalIssueViewSet,
                           EventApplicationsViewSet,
@@ -58,21 +60,6 @@ router.register(r'positions', PositionViewSet)
 router.register('eduicational_institutions', EducationalInstitutionViewSet)
 router.register('membership_certificates', MemberCertViewSet)
 router.register('events', EventViewSet)
-router.register(
-    r'competitions/(?P<competition_pk>\d+)/reports/q18',
-    Q18DetachmentReportViewSet,
-    basename='q18_report'
-)
-router.register(
-    r'competitions/(?P<competition_pk>\d+)/reports/q13',
-    Q13DetachmentReportViewSet,
-    basename='q13_report'
-)
-router.register(
-    r'competitions/(?P<competition_pk>\d+)/reports/q13/(?P<report_pk>\d+)/events',
-    Q13EventOrganizationViewSet,
-    basename='q13eventorganization'
-)
 router.register(
     r'events/(?P<event_pk>\d+)/applications',
     EventApplicationsViewSet,
@@ -158,7 +145,31 @@ router.register(
     Q20ViewSet,
     basename='q20'
 )
-
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q18',
+    Q18DetachmentReportViewSet,
+    basename='q18'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q13',
+    Q13DetachmentReportViewSet,
+    basename='q13'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q13/(?P<report_pk>\d+)/events',
+    Q13EventOrganizationViewSet,
+    basename='q13eventorganization'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q15',
+    Q5DetachmentReport,
+    basename='q5'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q13/(?P<report_pk>\d+)/participants',
+    Q5EducatedParticipant,
+    basename='q5educatedparticipant'
+)
 
 UserEduVS = UserEducationViewSet.as_view(UPDATE_RETRIEVE)
 UserProfEduRetrieveCreateVS = UserProfessionalEducationViewSet.as_view(

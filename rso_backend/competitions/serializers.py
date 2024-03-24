@@ -10,7 +10,7 @@ from competitions.models import (
     LinksQ7, LinksQ8, Q10Report, Q11Report, Q12Report,
     Q13EventOrganization, Q13DetachmentReport,
     Q18DetachmentReport, Q19Report, Q20Report, Q2DetachmentReport, Q7Report,
-    Q8Report, Q9Report)
+    Q8Report, Q9Report, Q5EducatedParticipant)
 from headquarters.models import Detachment
 from headquarters.serializers import BaseShortUnitSerializer
 
@@ -823,6 +823,45 @@ class Q12ReportSerializer(
     class Meta:
         model = Q12Report
         fields = '__all__'
+
+
+class Q5EducatedParticipantSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Q5EducatedParticipant
+        fields = (
+            'id',
+            'detachment_report',
+            'name',
+            'document',
+            'is_verified'
+        )
+        read_only_fields = ('is_verified', 'detachment_report')
+
+
+class Q5DetachmentReportSerializer(serializers.ModelSerializer):
+    participants_data = serializers.ListField(
+        child=Q5EducatedParticipantSerializer(),
+        write_only=True
+    )
+    educated_participants = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Q13DetachmentReport
+        fields = (
+            'id',
+            'competition',
+            'detachment',
+            'participants_data',
+            'educated_participants',
+        )
+        read_only_fields = ('competition', 'detachment')
+
+    @staticmethod
+    def get_organized_events(instance):
+        educated_participants = Q5EducatedParticipant.objects.filter(
+            detachment_report=instance
+        )
+        return Q5EducatedParticipantSerializer(educated_participants, many=True).data
 
 
 class Q13EventOrganizationSerializer(serializers.ModelSerializer):

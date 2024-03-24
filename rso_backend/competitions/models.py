@@ -406,8 +406,8 @@ class Q3Ranking(QBaseRanking):
     )
 
     class Meta:
-        verbose_name = 'Место по 2 показателю'
-        verbose_name_plural = 'Места по 2 показателю'
+        verbose_name = 'Место по 3 показателю'
+        verbose_name_plural = 'Места по 3 показателю'
 
 
 class Q3TandemRanking(QBaseTandemRanking):
@@ -417,8 +417,8 @@ class Q3TandemRanking(QBaseTandemRanking):
     )
 
     class Meta:
-        verbose_name = 'Тандем-место по 2 показателю'
-        verbose_name_plural = 'Тандем-места по 2 показателю'
+        verbose_name = 'Тандем-место по 3 показателю'
+        verbose_name_plural = 'Тандем-места по 3 показателю'
 
 
 class Q4Ranking(QBaseRanking):
@@ -429,8 +429,8 @@ class Q4Ranking(QBaseRanking):
     )
 
     class Meta:
-        verbose_name = 'Место по 2 показателю'
-        verbose_name_plural = 'Места по 2 показателю'
+        verbose_name = 'Место по 4 показателю'
+        verbose_name_plural = 'Места по 4 показателю'
 
 
 class Q4TandemRanking(QBaseTandemRanking):
@@ -440,8 +440,50 @@ class Q4TandemRanking(QBaseTandemRanking):
     )
 
     class Meta:
-        verbose_name = 'Тандем-место по 2 показателю'
-        verbose_name_plural = 'Тандем-места по 2 показателю'
+        verbose_name = 'Тандем-место по 4 показателю'
+        verbose_name_plural = 'Тандем-места по 4 показателю'
+
+
+class Q5TandemRanking(QBaseTandemRanking):
+    place = models.FloatField(
+        verbose_name='Итоговое место по показателю',
+        default=20.0
+    )
+
+    class Meta:
+        verbose_name = 'Тандем-места по 13 показателю'
+        verbose_name_plural = 'Тандем-места по 13 показателю'
+
+
+class Q5Ranking(QBaseRanking):
+    place = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(20)],
+        default=20,
+        verbose_name='Итоговое место по показателю'
+    )
+
+    class Meta:
+        verbose_name = 'Места по 13 показателю'
+        verbose_name_plural = 'Места по 13 показателю'
+
+
+class Q5DetachmentReport(QBaseReport):
+    pass
+
+
+class Q5EducatedParticipant(models.Model):
+    detachment_report = models.ForeignKey(
+        'Q5DetachmentReport', on_delete=models.CASCADE, verbose_name='Отчет'
+    )
+    name = models.CharField(
+        max_length=200, verbose_name='ФИО участника, прошедшего '
+                                     'профессиональное обучение',
+    )
+    document = models.FileField(
+        verbose_name='Документ, подтверждающий прохождение '
+                     'профессионального обучения.'
+    )
+    is_verified = models.BooleanField(default=False)
 
 
 class Q7TandemRanking(QBaseTandemRanking):

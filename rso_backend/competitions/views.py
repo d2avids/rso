@@ -37,7 +37,8 @@ from competitions.models import (
     Q1TandemRanking, Q20Report, Q2DetachmentReport, Q2Ranking,
     Q2TandemRanking, Q7Report, Q18DetachmentReport,
     Q18TandemRanking, Q18Ranking, Q8Report, Q9Report, Q19Ranking,
-    Q19TandemRanking, Q4TandemRanking, Q4Ranking, Q3TandemRanking, Q3Ranking
+    Q19TandemRanking, Q4TandemRanking, Q4Ranking, Q3TandemRanking, Q3Ranking,
+    Q5DetachmentReport, Q5TandemRanking, Q5Ranking, Q5EducatedParticipant
 )
 from competitions.q_calculations import calculate_q13_place, \
     calculate_q19_place
@@ -48,10 +49,12 @@ from competitions.serializers import (
     CreateQ12Serializer, CreateQ7Serializer, CreateQ8Serializer,
     CreateQ9Serializer, Q10ReportSerializer, Q10Serializer,
     Q11ReportSerializer, Q11Serializer, Q12ReportSerializer, Q12Serializer,
-    Q19DetachmenrtReportSerializer, Q20ReportSerializer, Q2DetachmentReportSerializer, Q7ReportSerializer, Q7Serializer,
+    Q19DetachmenrtReportSerializer, Q20ReportSerializer,
+    Q2DetachmentReportSerializer, Q7ReportSerializer, Q7Serializer,
     Q8ReportSerializer, Q8Serializer, Q9ReportSerializer, Q9Serializer,
     ShortDetachmentCompetitionSerializer, Q13EventOrganizationSerializer,
-    Q13DetachmentReportSerializer, Q18DetachmentReportSerializer
+    Q13DetachmentReportSerializer, Q18DetachmentReportSerializer,
+    Q5EducatedParticipantSerializer, Q5DetachmentReportSerializer
 )
 from competitions.utils import get_place_q2, tandem_or_start
 # сигналы ниже не удалять, иначе сломается
@@ -1613,6 +1616,264 @@ class Q12ViewSet(
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class Q5DetachmentReportViewSet(RetrieveCreateViewSet):
+    """Показатель 5.
+
+    Пример POST-запроса:
+    ```
+    {
+      "participants_data": [
+        {
+          "name": "Фамилия Имя Отчества",
+          "document": <FILE>
+        },
+        {
+          "name": "Фамилия Имя Отчества",
+          "document": <FILE>
+        }
+      ]
+    }
+
+    Доступ:
+        - GET: Всем пользователям;
+        - POST: Командирам отрядов, принимающих участие в конкурсе;
+        - VERIFY-EVENT (POST/DELETE): Комиссарам РШ подвластных отрядов;
+        - GET-PLACE (GET): Всем пользователям
+
+    Note:
+        - 404 возвращается в случае, если не найден объект конкурса или отряд,
+          в котором юзер является командиром
+    ```
+    """
+
+    serializer_class = Q5DetachmentReportSerializer
+
+    MAX_PLACE = 20
+
+    def create(self, request, *args, **kwargs):
+        competition = get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+        detachment = get_object_or_404(
+            Detachment, id=self.request.user.detachment_commander.id
+        )
+        organization_data = request.data.get('organization_data', [])
+
+        if not CompetitionParticipants.objects.filter(
+                competition=competition,
+                junior_detachment=detachment
+        ).exists() and not CompetitionParticipants.objects.filter(
+            competition=competition,
+            detachment=detachment
+        ).exists():
+            return Response(
+                {
+                    'error': 'Отряд подающего пользователя не '
+                             'участвует в конкурсе.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not organization_data:
+            return Response(
+                {
+                    'non_field_errors': 'organization_data '
+                                        'должно быть заполнено'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        with transaction.atomic():
+            report, created = Q5DetachmentReport.objects.get_or_create(
+                competition_id=competition.id,
+                detachment_id=detachment.id
+            )
+
+            for event_data in organization_data:
+                event_serializer = Q5EducatedParticipantSerializer(
+                    data=event_data)
+                if event_serializer.is_valid(raise_exception=True):
+                    Q5EducatedParticipantSerializer.objects.create(
+                        **event_serializer.validated_data,
+                        detachment_report=report
+                    )
+                else:
+                    return Response(event_serializer.errors,
+                                    status=status.HTTP_400_BAD_REQUEST)
+
+            return Response(
+                self.get_serializer(report).data,
+                status=(
+                    status.HTTP_201_CREATED if created else status.HTTP_200_OK
+                )
+            )
+
+    def get_queryset(self):
+        competition = get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+        return Q5DetachmentReport.objects.filter(
+            competition_id=competition.id
+        )
+
+    def perform_create(self, serializer):
+        competition = get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+        detachment = get_object_or_404(
+            Detachment, id=self.request.user.detachment_commander.id
+        )
+        serializer.save(competition=competition, detachment=detachment)
+
+    @action(detail=False, methods=['get'], url_path='get-place')
+    def get_place(self, request, **kwargs):
+        detachment = self.request.user.detachment_commander
+        report = Q5DetachmentReport.objects.filter(
+            detachment=detachment,
+            competition_id=self.kwargs.get('competition_pk')
+        ).first()
+        if not report:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        tandem_ranking = Q5TandemRanking.objects.filter(
+            detachment=report.detachment
+        ).first()
+        if not tandem_ranking:
+            tandem_ranking = Q5TandemRanking.objects.filter(
+                junior_detachment=report.detachment
+            ).first()
+
+        if tandem_ranking and tandem_ranking.place is not None:
+            return Response(
+                {"place": tandem_ranking.place},
+                status=status.HTTP_200_OK
+            )
+
+        ranking = Q5Ranking.objects.filter(
+            detachment=report.detachment
+        ).first()
+        if ranking and ranking.place is not None:
+            return Response(
+                {"place": ranking.place}, status=status.HTTP_200_OK
+            )
+
+        return Response(
+            {"place": "Показатель в обработке"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    @action(
+        detail=True,
+        methods=['post', 'delete'],
+        url_path='verify-raw/(?P<participant_id>\d+)',
+        permission_classes=[
+            permissions.IsAuthenticated, IsRegionalCommissioner,
+        ]
+    )
+    def verify_raw(self, request, competition_pk=None, pk=None,
+                     participant_id=None):
+        """
+        Верифицирует конкретное мероприятие по его ID.
+        """
+        report = self.get_object()
+        raw = get_object_or_404(
+            Q5EducatedParticipant,
+            pk=participant_id,
+            detachment_report=report
+        )
+        if raw.is_verified:
+            return Response({
+                'detail': 'Данный отчет уже верифицирован'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        if request.method == 'POST':
+            raw.is_verified = True
+            raw.save()
+            participants_entry = CompetitionParticipants.objects.filter(
+                junior_detachment=report.detachment
+            ).first()
+
+            # Подсчет места для индивидуальных и тандем участников:
+            if participants_entry and not participants_entry.detachment:
+                Q5Ranking.objects.get_or_create(
+                    competition_id=settings.COMPETITION_ID,
+                    detachment=report.detachment,
+                    place=calculate_q13_place(
+                        Q5EducatedParticipant.objects.filter(
+                            detachment_report=report,
+                            is_verified=True
+                        )
+                    )
+                )
+            else:
+                if participants_entry:
+                    tandem_ranking, _ = Q5TandemRanking.objects.get_or_create(
+                        competition_id=settings.COMPETITION_ID,
+                        junior_detachment=report.detachment,
+                        detachment=participants_entry.detachment
+                    )
+                    tandem_ranking.place = calculate_q13_place(
+                        Q5EducatedParticipant.objects.filter(
+                            detachment_report=report,
+                            is_verified=True
+                        )
+                    )
+                    elder_detachment_report = None
+                    try:
+                        elder_detachment_report = Q5DetachmentReport.objects.get(
+                            detachment=tandem_ranking.detachment
+                        )
+                    except Q5DetachmentReport.DoesNotExist:
+                        tandem_ranking.place += self.MAX_PLACE
+                    if elder_detachment_report:
+                        tandem_ranking.place += calculate_q13_place(
+                            Q5EducatedParticipant.objects.filter(
+                                detachment_report=elder_detachment_report,
+                                is_verified=True
+                            )
+                        )
+                else:
+                    participants_entry = CompetitionParticipants.objects.filter(
+                        detachment=report.detachment
+                    ).first()
+                    if not participants_entry:
+                        return Response(
+                            {'error': 'отряд не найден в участниках'},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    tandem_ranking, _ = Q5TandemRanking.objects.get_or_create(
+                        competition_id=settings.COMPETITION_ID,
+                        junior_detachment=participants_entry.junior_detachment,
+                        detachment=report.detachment
+                    )
+                    tandem_ranking.place = calculate_q13_place(
+                        Q5EducatedParticipant.objects.filter(
+                            detachment_report=report,
+                            is_verified=True
+                        )
+                    )
+                    junior_detachment_report = None
+                    try:
+                        junior_detachment_report = Q5DetachmentReport.objects.get(
+                            detachment=tandem_ranking.junior_detachment
+                        )
+                    except Q5DetachmentReport.DoesNotExist:
+                        tandem_ranking.place += self.MAX_PLACE
+                    if junior_detachment_report:
+                        tandem_ranking.place += calculate_q13_place(
+                            Q5EducatedParticipant.objects.filter(
+                                detachment_report=junior_detachment_report,
+                                is_verified=True
+                            )
+                        )
+                tandem_ranking.place = round(tandem_ranking.place / 2, 2)
+                tandem_ranking.save()
+            return Response(
+                {"status": "Данные по организации "
+                           "мероприятия верифицированы"},
+                status=status.HTTP_200_OK
+            )
+        raw.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
     """Показатель "Организация собственных мероприятий отряда".
 
@@ -1755,7 +2016,7 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
         )
         serializer.save(competition=competition, detachment=detachment)
 
-    @action(detail=True, methods=['get'], url_path='get-place')
+    @action(detail=False, methods=['get'], url_path='get-place')
     def get_place(self, request, **kwargs):
         detachment = self.request.user.detachment_commander
         report = Q13DetachmentReport.objects.filter(
