@@ -106,12 +106,6 @@ def calculate_q1_places_task():
 
 
 @shared_task
-def calculate_q19():
-    """Считает места по 19 показателю."""
-    calculate_q19_place(competition_id=COMPETITION_ID)
-
-
-@shared_task
 def calculate_q20_places_task():
     """Считает места по 20 показателю."""
     calculate_place(competition_id=COMPETITION_ID,
