@@ -392,6 +392,10 @@ class Q2DetachmentReport(QBaseReport, QBaseReportIsVerified):
         blank=True
     )
 
+    class Meta:
+        verbose_name = 'Отчет по 2 показателю'
+        verbose_name_plural = 'Отчеты по 2 показателю'
+
 
 class Q7TandemRanking(QBaseTandemRanking):
     """
@@ -1005,7 +1009,7 @@ class Q18TandemRanking(QBaseTandemRanking):
 
 class Q18Ranking(QBaseRanking):
     place = models.PositiveSmallIntegerField(
-        verbose_name='Итоговое место по показателю',
+        verbose_name='Итоговое место по показателю'
     )
 
     class Meta:
@@ -1029,9 +1033,9 @@ class Q19TandemRanking(QBaseTandemRanking):
     Рейтинг для тандема-участников.
     Создается и заполняется переодической таской.
     """
-    place = models.FloatField(
+    place = models.PositiveSmallIntegerField(
         verbose_name='Итоговое место по показателю 19',
-        default=2.0
+        validators=[MinValueValidator(1), MaxValueValidator(2)],
     )
 
     class Meta:
@@ -1045,8 +1049,7 @@ class Q19Ranking(QBaseRanking):
     Создается и заполняется переодической таской.
     """
     place = models.PositiveSmallIntegerField(
-        verbose_name='Итоговое место по показателю 19',
-        default=2
+        verbose_name='Итоговое место по показателю 19'
     )
 
     class Meta:

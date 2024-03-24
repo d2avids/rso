@@ -4,10 +4,12 @@ from competitions.models import (
     Q10, Q9, CompetitionApplications, CompetitionParticipants, Competitions,
     Q7, Q10Ranking, Q10Report, Q10TandemRanking, Q18Ranking, Q19Ranking,
     Q19Report, Q19TandemRanking, Q1Ranking, Q1Report, Q1TandemRanking,
-    Q20Ranking, Q20Report, Q20TandemRanking, Q2Ranking, Q2TandemRanking,
+    Q20Ranking, Q20Report, Q20TandemRanking, Q2DetachmentReport, Q2Ranking,
     Q7Ranking, Q7Report, Q13TandemRanking, Q18TandemRanking, Q13Ranking,
-    Q7TandemRanking, Q9Ranking, Q9Report, Q9TandemRanking
+    Q7TandemRanking, Q9Ranking, Q9Report, Q9TandemRanking, Q2TandemRanking,
 )
+
+admin.site.register(Q2DetachmentReport)
 
 @admin.register(Q2Ranking)
 class Q2RankingAdmin(admin.ModelAdmin):

@@ -703,6 +703,14 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
                     IsRegionalCommanderOrAuthor()]
         return super().get_permissions()
 
+    def get_competitions(self):
+        return get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+
+    def get_detachment(self, obj):
+        return obj.detachment
+
     def create(self, request, *args, **kwargs):
         competition = get_object_or_404(
             Competitions, id=self.kwargs.get('competition_pk')
