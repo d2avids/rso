@@ -2,7 +2,6 @@ import os
 from datetime import date
 
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import Q
 from django.http.response import HttpResponse
@@ -1173,6 +1172,7 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
                         'error': 'Ваш отряд не зарегистрирован'
                         ' как участник конкурса.'
                     },
+                    status=status.HTTP_400_BAD_REQUEST
                 )
         if Q2DetachmentReport.objects.filter(
             competition=competition,
@@ -1219,6 +1219,31 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
         )
         return Response(serializer.data,
                         status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        event_org = self.get_object()
+        if event_org.is_verified:
+            return Response(
+                {
+                    'detail': 'Нельзя редактировать/удалять верифицированные '
+                              'записи.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        event_org = self.get_object()
+        if event_org.is_verified:
+            return Response(
+                {
+                    'detail': 'Нельзя редактировать/удалять верифицированные '
+                              'записи.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return super().destroy(request, *args, **kwargs)
 
     @action(
             detail=True,
@@ -1300,7 +1325,7 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
 
     @action(
             detail=True,
-            methods=['post'],
+            methods=['post', 'delete'],
             serializer_class=None,
             # permissions=[IsRegionalCommanderOrAuthor, ] TODO: раскомментировать после мерджа в ветку пказателей
     )
@@ -1310,19 +1335,111 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
         Доступно только командиру РШ связанного с отрядом.
         Если отчет уже верифицирован, возвращается 400 Bad Request с описанием
         ошибки `{"detail": "Данный отчет уже верифицирован"}`.
+        При удалении отчета удаляются записи из таблиц Rankin и TandemRankin.
         """
+
         detachment_report = self.get_object()
-        if detachment_report.is_verified:
-            return Response({
-                'detail': 'Данный отчет уже верифицирован'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        if self.request.method == 'POST':
+        competition = detachment_report.competition
+        detachment = detachment_report.detachment
+
+        if self.request.method == 'DELETE':
+            with transaction.atomic():
+                try:
+                    Q2Ranking.objects.get(
+                        detachment=detachment,
+                    ).delete()
+                except Q2Ranking.DoesNotExist:
+                    try:
+                        Q2TandemRanking.objects.get(
+                            detachment=detachment,
+                        ).delete()
+                    except Q2TandemRanking.DoesNotExist:
+                        try:
+                            Q2TandemRanking.objects.get(
+                                junior_detachment=detachment,
+                            ).delete()
+                        except Q2TandemRanking.DoesNotExist:
+                            pass
+                detachment_report.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+        with transaction.atomic():
+            if detachment_report.is_verified:
+                return Response({
+                    'detail': 'Данный отчет уже верифицирован'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             detachment_report.is_verified = True
             detachment_report.save()
-            return Response(status=status.HTTP_201_CREATED)
-        if self.request.method == 'DELETE':
-            detachment_report.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+
+            """Расчет мест по показателю и запись в таблицы Ranking."""
+
+            is_tandem = tandem_or_start(
+                competition=competition,
+                detachment=detachment,
+                competition_model=CompetitionParticipants
+            )
+            if is_tandem:
+                try:
+                    partner_detachment = CompetitionParticipants.objects.get(
+                        competition=competition,
+                        detachment=detachment
+                    ).junior_detachment
+                    partner_is_junior = True
+                except CompetitionParticipants.DoesNotExist:
+                    partner_detachment = (
+                        CompetitionParticipants.objects.filter(
+                            competition=competition,
+                            junior_detachment=detachment
+                        ).first().detachment
+                    )
+                    partner_is_junior = False
+                try:
+                    partner_detahcment_report = (
+                        Q2DetachmentReport.objects.filter(
+                            competition=competition,
+                            detachment=partner_detachment
+                        ).first()
+                    )
+                except Q2DetachmentReport.DoesNotExist:
+                    return Response(
+                        status=status.HTTP_404_NOT_FOUND,
+                        data={
+                            'detail': 'Отряд-напарник не подал отчет'
+                            ' по показателю.'
+                        }
+                    )
+                place_1 = detachment_report.individual_place
+                place_2 = partner_detahcment_report.individual_place
+                result_place = (place_1 + place_2)/2
+                if partner_is_junior:
+                    Q2TandemRanking.objects.create(
+                        detachment=detachment,
+                        junior_detachment=partner_detachment,
+                        place=result_place
+                    )
+                else:
+                    Q2TandemRanking.objects.create(
+                        detachment=partner_detachment,
+                        junior_detachment=detachment,
+                        place=result_place
+                    )
+                return Response(
+                    status=status.HTTP_201_CREATED,
+                    data={
+                        'detail': 'Отчет верифицирован, '
+                        f'место - {result_place}.'
+                    }
+                )
+            else:
+                Q2Ranking.objects.create(
+                    detachment=detachment,
+                    place=place_1
+                )
+                return Response(
+                    status=status.HTTP_201_CREATED,
+                    data={'detail': f'Отчет верифицирован, место - {place_1}.'}
+                )
+
 
 
 class Q13DetachmentReportViewSet(viewsets.ModelViewSet):

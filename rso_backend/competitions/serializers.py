@@ -901,30 +901,8 @@ class Q2DetachmentReportSerializer(serializers.ModelSerializer):
             'commissioner_achievement',
             'commander_link',
             'commissioner_link'
-
         )
-        read_only_fields = ('id', 'competition', 'detachment')
-
-    def create(self, validated_data):
-
-        with transaction.atomic():
-            competition = self.context.get('competition')
-            detachment = self.context.get('detachment')
-
-            commander_achievement = validated_data.get('commander_achievement')
-            commissioner_achievement = validated_data.get('commissioner_achievement')
-            commander_link = validated_data.get('commander_link')
-            commissioner_link = validated_data.get('commissioner_link')
-            print('проверка', commander_achievement)
-            q2_report = Q2DetachmentReport.objects.create(
-                competition=competition,
-                detachment=detachment,
-                commander_achievement=commander_achievement,
-                commissioner_achievement=commissioner_achievement,
-                commander_link=commander_link,
-                commissioner_link=commissioner_link,
-            )
-        return q2_report
+        read_only_fields = ('id', 'competition', 'detachment', 'is_verified')
 
 
 class Q13EventOrganizationSerializer(serializers.ModelSerializer):
