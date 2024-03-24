@@ -428,25 +428,42 @@ def get_q3_q4_place(entry: CompetitionParticipants, category: str):
         category=category
     ).aggregate(Max('score'))['score__max'] or 0
 
-    # Получаем результаты для комиссара отряда
-    commissioner_score = 0
-    commissioners = UserDetachmentPosition.objects.filter(
-        position__name=settings.COMMISSIONER_POSITION_NAME,
-        detachment=entry.detachment
-    )
-    for commissioner in commissioners:
-        commissioner_max_score = Attempt.objects.filter(
-            user=commissioner.user,
-            category=category
-        ).aggregate(Max('score'))['score__max']
-        if commissioner_max_score:
-            commissioner_score = max(commissioner_score,
-                                     commissioner_max_score)
+    if category == 'university':
+        # Получаем результаты для комиссара отряда
+        commissioner_score = 0
+        commissioners = UserDetachmentPosition.objects.filter(
+            position__name=settings.COMMISSIONER_POSITION_NAME,
+            detachment=entry.detachment
+        )
+        for commissioner in commissioners:
+            commissioner_max_score = Attempt.objects.filter(
+                user=commissioner.user,
+                category=category
+            ).aggregate(Max('score'))['score__max']
+            if commissioner_max_score:
+                commissioner_score = max(commissioner_score,
+                                         commissioner_max_score)
 
-    # Рассчитываем средний балл
-    average_score = (
-                            commander_score + commissioner_score
-                    ) / 2 if commander_score + commissioner_score > 0 else 0
+        # Рассчитываем средний балл
+        average_score = (
+                                commander_score + commissioner_score
+                        ) / 2 if commander_score + commissioner_score > 0 else 0
+    else:
+        # Получаем результаты для всех участников отряда
+        score = 0
+        participants = UserDetachmentPosition.objects.filter(
+            detachment=entry.detachment
+        )
+        for participant in participants:
+            participant_max_score = Attempt.objects.filter(
+                user=participant.user,
+                category=category
+            ).aggregate(Max('score'))['score__max']
+            if participant_max_score:
+                score += participant_max_score
+
+        # Рассчитываем средний балл
+        average_score = (commander_score + score) / (len(participants) + 1)
 
     # Определяем место
     place = determine_q3_q4_place(average_score)

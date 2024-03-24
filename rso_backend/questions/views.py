@@ -1,5 +1,7 @@
 from django.http import Http404
 from django.utils import timezone
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from datetime import datetime
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -11,6 +13,8 @@ from rest_framework import status
 from questions.models import Question, Attempt, UserAnswer
 from questions.serializers import QuestionSerializer
 import random
+
+from questions.swagger_schemas import answers_request_body
 
 
 class QuestionsView(APIView):
@@ -55,6 +59,21 @@ class QuestionsView(APIView):
 
     permission_classes = (permissions.IsAuthenticated,)
 
+    @swagger_auto_schema(
+        operation_description="Получение вопросов по заданной категории",
+        manual_parameters=[
+            openapi.Parameter(
+                name='category',
+                in_=openapi.IN_QUERY,
+                description="Категория вопросов ('university' или 'safety')",
+                type=openapi.TYPE_STRING,
+            ),
+        ],
+        responses={
+            200: QuestionSerializer(many=True),
+            400: 'Превышено макс. число попыток (3) или иные ошибки запроса'
+        },
+    )
     def get(self, request, format=None):
         user = request.user
         category = request.query_params.get('category', None)
@@ -115,6 +134,20 @@ class QuestionsView(APIView):
         return list(questions)
 
 
+@swagger_auto_schema(
+    method='post',
+    request_body=answers_request_body,
+    responses={
+        200: openapi.Response(
+            description="Ответы успешно отправлены. Получено баллов: X"
+        ),
+        400: openapi.Response(
+            description="Ошибка в запросе"
+        ),
+    },
+    security=[],
+    operation_id="submit_answers",
+)
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def submit_answers(request):
