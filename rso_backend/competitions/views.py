@@ -1656,6 +1656,8 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
 
     serializer_class = Q13DetachmentReportSerializer
 
+    MAX_PLACE = 6
+
     @swagger_auto_schema(
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
@@ -1858,7 +1860,7 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
                             detachment=tandem_ranking.detachment
                         )
                     except Q13DetachmentReport.DoesNotExist:
-                        tandem_ranking.place += 6
+                        tandem_ranking.place += self.MAX_PLACE
                     if elder_detachment_report:
                         tandem_ranking.place += calculate_q13_place(
                             Q13EventOrganization.objects.filter(
@@ -1892,7 +1894,7 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
                             detachment=tandem_ranking.junior_detachment
                         )
                     except Q13DetachmentReport.DoesNotExist:
-                        tandem_ranking.place += 6
+                        tandem_ranking.place += self.MAX_PLACE
                     if junior_detachment_report:
                         tandem_ranking.place += calculate_q13_place(
                             Q13EventOrganization.objects.filter(
@@ -2101,6 +2103,8 @@ class Q19DetachmentReportViewset(CreateListRetrieveUpdateViewSet):
     # permission_classes = (permissions.IsAuthenticated,
     #                       IsCompetitionParticipantAndCommander)
 
+    MAX_PLACE = 2
+
     def get_queryset(self):
         if self.action == 'list':
             try:
@@ -2207,7 +2211,7 @@ class Q19DetachmentReportViewset(CreateListRetrieveUpdateViewSet):
                             detachment=tandem_ranking.detachment
                         )
                     except Q19Report.DoesNotExist:
-                        tandem_ranking.place += 2
+                        tandem_ranking.place += self.MAX_PLACE
                     if elder_detachment_report:
                         tandem_ranking.place += calculate_q19_place(elder_detachment_report)
                 else:
@@ -2231,7 +2235,7 @@ class Q19DetachmentReportViewset(CreateListRetrieveUpdateViewSet):
                             detachment=tandem_ranking.junior_detachment
                         )
                     except Q19Report.DoesNotExist:
-                        tandem_ranking.place += 2
+                        tandem_ranking.place += self.MAX_PLACE
                     if junior_detachment_report:
                         tandem_ranking.place += calculate_q19_place(report)
                 tandem_ranking.place = round(tandem_ranking.place / 2, 2)
