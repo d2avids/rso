@@ -92,3 +92,23 @@ def tandem_or_start(competition, detachment, competition_model) -> bool:
     except (competition_model.DoesNotExist, ValueError):
         is_tandem = False
     return is_tandem
+
+
+def get_place_q2(
+        commander_achievment: bool, commissioner_achievement: bool
+) -> int:
+    """Определение места по показателю 2."""
+
+    PLACE_FIRST = 1
+    PLACE_SECOND = 2
+
+    place = None
+    if commander_achievment and commissioner_achievement:
+        place = PLACE_FIRST
+    if (
+        commander_achievment and not commissioner_achievement
+    ) or (
+        not commander_achievment and commissioner_achievement
+    ):
+        place = PLACE_SECOND
+    return place

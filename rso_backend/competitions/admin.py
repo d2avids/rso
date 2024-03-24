@@ -2,10 +2,25 @@ from django.contrib import admin
 
 from competitions.models import (
     Q10, Q9, CompetitionApplications, CompetitionParticipants, Competitions,
-    Q7, Q10Ranking, Q10Report, Q10TandemRanking, Q18Ranking, Q19Ranking, Q19Report, Q19TandemRanking, Q1Ranking, Q1Report, Q1TandemRanking, Q20Ranking, Q20Report, Q20TandemRanking, Q7Ranking,
-    Q7Report, LinksQ7, Q13TandemRanking, Q18TandemRanking, Q13Ranking,
+    Q7, Q10Ranking, Q10Report, Q10TandemRanking, Q18Ranking, Q19Ranking,
+    Q19Report, Q19TandemRanking, Q1Ranking, Q1Report, Q1TandemRanking,
+    Q20Ranking, Q20Report, Q20TandemRanking, Q2Ranking, Q2TandemRanking,
+    Q7Ranking, Q7Report, Q13TandemRanking, Q18TandemRanking, Q13Ranking,
     Q7TandemRanking, Q9Ranking, Q9Report, Q9TandemRanking
 )
+
+@admin.register(Q2Ranking)
+class Q2RankingAdmin(admin.ModelAdmin):
+    list_display = ('id', 'detachment', 'place')
+    search_fields = ('detachment__name', 'place')
+
+
+@admin.register(Q2TandemRanking)
+class Q2TandemRankingAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'detachment', 'junior_detachment', 'place'
+    )
+    search_fields = ('detachment__name', 'junior_detachment__name', 'place')
 
 
 @admin.register(Q13Ranking)

@@ -51,7 +51,7 @@ from competitions.serializers import (
     ShortDetachmentCompetitionSerializer, Q13EventOrganizationSerializer,
     Q13DetachmentReportSerializer, Q18DetachmentReportSerializer
 )
-from competitions.utils import tandem_or_start
+from competitions.utils import get_place_q2, tandem_or_start
 # сигналы ниже не удалять, иначе сломается
 from competitions.signal_handlers import (
     create_score_q7, create_score_q8, create_score_q9, create_score_q10,
@@ -678,6 +678,8 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
     PLACE_SECOND = 2
 
     serializer_class = Q2DetachmentReportSerializer
+    # permission_classes = (permissions.IsAuthenticated,
+    #                       IsCompetitionParticipantAndCommander)
 
     def get_queryset(self):
         competition = get_object_or_404(
@@ -686,6 +688,18 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
         return Q2DetachmentReport.objects.filter(
             competition=competition
         )
+
+    def get_permissions(self):
+        if self.action == 'retrieve':
+            return [permissions.IsAuthenticated(),
+                    IsCommanderDetachmentInParameterOrRegionalCommissioner()]
+        if self.action == 'list':
+            return [permissions.IsAuthenticated(),
+                    IsRegionalCommanderOrAdmin()]
+        if self.action in ['update', 'partial_update']:
+            return [permissions.IsAuthenticated(),
+                    IsRegionalCommanderOrAuthor()]
+        return super().get_permissions()
 
     def create(self, request, *args, **kwargs):
         competition = get_object_or_404(
@@ -833,30 +847,6 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
                     {"place": ranking.place}, status=status.HTTP_200_OK
                 )
 
-        """
-        Если показателей нет в таблицах Rankin, то вычисляем место,
-        так, как будто у отряда личный результат.
-
-        Ниже вычисляем индивидуальное место. Третье место заполняется
-        по умолчанию.
-        Если ни одно условие не выполнено, то место остается равным 3.
-        """
-
-        commander_achievment = report.commander_achievement
-        commissioner_achievement = report.commissioner_achievement
-        place = None
-        if commander_achievment and commissioner_achievement:
-            place = self.PLACE_FIRST
-        if (
-            commander_achievment and not commissioner_achievement
-        ) or (
-            not commander_achievment and commissioner_achievement
-        ):
-            place = self.PLACE_SECOND
-        if place:
-            report.individual_place = place
-            report.save()
-
         return Response(
                 status=status.HTTP_404_NOT_FOUND,
                 data={'detail': 'Показатель в обработке.'}
@@ -866,7 +856,6 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
             detail=True,
             methods=['post', 'delete'],
             serializer_class=None,
-            # permissions=[IsRegionalCommanderOrAuthor, ] TODO: раскомментировать после мерджа в ветку пказателей
     )
     def verify(self, *args, **kwargs):
         """Верификация отчета по показателю.
@@ -882,25 +871,13 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
         detachment = detachment_report.detachment
 
         if self.request.method == 'DELETE':
-            with transaction.atomic():
-                try:
-                    Q2Ranking.objects.get(
-                        detachment=detachment,
-                    ).delete()
-                except Q2Ranking.DoesNotExist:
-                    try:
-                        Q2TandemRanking.objects.get(
-                            detachment=detachment,
-                        ).delete()
-                    except Q2TandemRanking.DoesNotExist:
-                        try:
-                            Q2TandemRanking.objects.get(
-                                junior_detachment=detachment,
-                            ).delete()
-                        except Q2TandemRanking.DoesNotExist:
-                            pass
-                detachment_report.delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
+            if detachment_report.is_verified:
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST,
+                    data={'detail': 'Верифицированный отчет нельзя удалить.'}
+                )
+            detachment_report.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
         with transaction.atomic():
             if detachment_report.is_verified:
                 return Response({
@@ -916,6 +893,14 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
                 competition=competition,
                 detachment=detachment,
                 competition_model=CompetitionParticipants
+            )
+            place_1 = get_place_q2(
+                commander_achievment=(
+                    detachment_report.commander_achievement
+                ),
+                commissioner_achievement=(
+                    detachment_report.commissioner_achievement
+                )
             )
             if is_tandem:
                 try:
@@ -947,21 +932,29 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
                             ' по показателю.'
                         }
                     )
-                place_1 = detachment_report.individual_place
-                place_2 = partner_detahcment_report.individual_place
-                result_place = (place_1 + place_2)/2
+                place_2 = get_place_q2(
+                    commander_achievment=(
+                        partner_detahcment_report.commander_achievement
+                    ),
+                    commissioner_achievement=(
+                        partner_detahcment_report.commissioner_achievement
+                    )
+                )
+                result_place = round((place_1 + place_2)/2, 2)
                 if partner_is_junior:
-                    Q2TandemRanking.objects.create(
+                    tandem_ranking, _ = Q2TandemRanking.objects.get_or_create(
+                        competition=competition,
                         detachment=detachment,
                         junior_detachment=partner_detachment,
-                        place=result_place
                     )
                 else:
-                    Q2TandemRanking.objects.create(
+                    tandem_ranking, _ = Q2TandemRanking.objects.get_or_create(
+                        competition=competition,
                         detachment=partner_detachment,
                         junior_detachment=detachment,
-                        place=result_place
                     )
+                tandem_ranking.place = result_place
+                tandem_ranking.save()
                 return Response(
                     status=status.HTTP_201_CREATED,
                     data={
@@ -970,13 +963,18 @@ class Q2DetachmentReportViewSet(viewsets.ModelViewSet):
                     }
                 )
             else:
-                Q2Ranking.objects.create(
+                ranking, _ = Q2Ranking.objects.get_or_create(
+                    competition=competition,
                     detachment=detachment,
-                    place=detachment_report.individual_place
                 )
+                ranking.place = place_1
+                ranking.save()
                 return Response(
                     status=status.HTTP_201_CREATED,
-                    data={'detail': f'Отчет верифицирован, место - {place_1}.'}
+                    data={
+                        'detail': 'Отчет верифицирован, место - '
+                        f'{place_1}.'
+                    }
                 )
 
 
