@@ -5,7 +5,8 @@ import logging
 from competitions.models import Q13EventOrganization, Q18Ranking, \
     Q18DetachmentReport, CompetitionParticipants, Q18TandemRanking, Q19Ranking, \
     Q19Report, Q19TandemRanking, Q1Report, Q7Ranking, Q7Report, \
-    Q7TandemRanking, Q3Ranking, Q3TandemRanking, Q4Ranking, Q4TandemRanking
+    Q7TandemRanking, Q3Ranking, Q3TandemRanking, Q4Ranking, Q4TandemRanking, Q5TandemRanking, Q5Ranking, \
+    Q5EducatedParticipant
 from headquarters.models import UserDetachmentPosition
 from questions.models import Attempt
 
@@ -420,6 +421,152 @@ def calculate_q3_q4_place(competition_id: int):
                 junior_detachment=tandem_entry.junior_detachment,
                 place=final_place
             )
+
+
+def calculate_q5_place(competition_id: int):
+    """
+    Кол-во участников, прошедших профессиональное обучение
+    делится на количество участников в отряде на дату 15 июня 2024
+    года, далее результат умножается на 100%.
+
+    Значение:
+    более 95% - 1 место
+    от 90% до 95% - 2 место
+    от 85% до 90% - 3 место
+    от 80% до 85% - 4 место
+    от 75% до 80% - 5 место
+    от 70% до 75% - 6 место
+    от 65% до 70% - 7 место
+    от 60% до 65% - 8 место
+    от 55% до 60% - 9 место
+    от 50% до 55% - 10 место
+    от 45% до 50% - 11 место
+    от 40% до 45% - 12 место
+    от 35% до 40% - 13 место
+    от 30% до 35% - 14 место
+    от 25% до 30% - 15 место
+    от 20% до 25% - 16 место
+    от 15% до 20% - 17 место
+    от 10% до 15% - 18 место
+    от 5% до 10% - 19 место
+    от 0% до 5% - 20 место
+    """
+    today = date.today()
+    cutoff_date = date(2024, 6, 15)
+
+    logger.info(
+        'Удаляем все записи из Q5Ranking, Q5TandemRanking'
+    )
+    Q5TandemRanking.objects.all().delete()
+    Q5Ranking.objects.all().delete()
+    solo_entries = CompetitionParticipants.objects.filter(
+        competition_id=competition_id,
+        junior_detachment=True,
+        detachment__isnull=True
+    )
+    tandem_entries = CompetitionParticipants.objects.filter(
+        competition_id=competition_id,
+        junior_detachment=True,
+        detachment=True
+    )
+    for entry in solo_entries:
+        entry_report = entry.junior_detachment.q5detachmentreport_detachment_reports.get(competition_id=competition_id)
+        if not entry_report:
+            continue
+        if today <= cutoff_date:
+            logger.info(
+                f'Сегодняшняя дата {today} меньше '
+                f'cutoff date: {cutoff_date}. '
+                f'Обновляем кол-во участников.'
+            )
+            calculate_detachment_members(entry)
+        educated_participants_count = Q5EducatedParticipant.objects.filter(is_verified=True, detachment_report=entry_report).count()
+        Q5Ranking.objects.create(
+            competition_id=competition_id,
+            detachment=entry.detachment,
+            place=get_q5_place(educated_participants_count, entry_report.june_15_detachment_members)
+        )
+    for tandem_entry in tandem_entries:
+        tandem_entry_report = tandem_entry.detachment.q5detachmentreport_detachment_reports.filter(competition_id=competition_id).first()
+        junior_tandem_entry_report = tandem_entry.junior_detachment.q5detachmentreport_detachment_reports.filter(competition_id=competition_id).first()
+
+        if not tandem_entry_report or not junior_tandem_entry_report:
+            continue
+
+        if today <= cutoff_date:
+            logger.info(
+                f'Сегодняшняя дата {today} меньше '
+                f'cutoff date: {cutoff_date}. '
+                f'Обновляем кол-во участников.'
+            )
+            calculate_detachment_members(tandem_entry_report, junior_tandem_entry_report)
+
+        educated_participants_count_junior = Q5EducatedParticipant.objects.filter(
+            is_verified=True,
+            detachment=junior_tandem_entry_report
+        ).count()
+        educated_participants_count_detachment = Q5EducatedParticipant.objects.filter(
+            is_verified=True,
+            detachment=tandem_entry_report
+        ).count()
+
+        final_place = round((
+            get_q5_place(educated_participants_count_junior, junior_tandem_entry_report.june_15_detachment_members) +
+            get_q5_place(educated_participants_count_detachment, tandem_entry_report.june_15_detachment_members)
+        ) / 2)
+
+        Q5TandemRanking.objects.create(
+            competition_id=competition_id,
+            detachment=tandem_entry.detachment,
+            junior_detachment=tandem_entry.junior_detachment,
+            place=final_place
+        )
+
+
+def get_q5_place(participants_count: int, june_15_detachment_members: int) -> int:
+    percentage = (june_15_detachment_members / participants_count) * 100
+
+    if percentage > 95:
+        return 1
+    elif 90 <= percentage <= 95:
+        return 2
+    elif 85 <= percentage < 90:
+        return 3
+    elif 80 <= percentage < 85:
+        return 4
+    elif 75 <= percentage < 80:
+        return 5
+    elif 70 <= percentage < 75:
+        return 6
+    elif 65 <= percentage < 70:
+        return 7
+    elif 60 <= percentage < 65:
+        return 8
+    elif 55 <= percentage < 60:
+        return 9
+    elif 50 <= percentage < 55:
+        return 10
+    elif 45 <= percentage < 50:
+        return 11
+    elif 40 <= percentage < 45:
+        return 12
+    elif 35 <= percentage < 40:
+        return 13
+    elif 30 <= percentage < 35:
+        return 14
+    elif 25 <= percentage < 30:
+        return 15
+    elif 20 <= percentage < 25:
+        return 16
+    elif 15 <= percentage < 20:
+        return 17
+    elif 10 <= percentage < 15:
+        return 18
+    elif 5 <= percentage < 10:
+        return 19
+    else:
+        return 20
+
 
 
 def get_q3_q4_place(entry: CompetitionParticipants, category: str):
