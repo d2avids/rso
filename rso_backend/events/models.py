@@ -7,7 +7,7 @@ from events.utils import document_path, image_path
 class Event(models.Model):
     class EventFormat(models.TextChoices):
         ONLINE = 'Онлайн', 'Онлайн'
-        OFFLINE = 'Оффлайн', 'Оффлайн'
+        OFFLINE = 'Офлайн', 'Офлайн'
 
     class EventDirection(models.TextChoices):
         VOLUNTARY = 'Добровольческое', 'Добровольческое'
@@ -92,7 +92,7 @@ class Event(models.Model):
         max_length=250,
         blank=True,
         null=True,
-        verbose_name='Адрес проведения (если мероприятие оффлайн)',
+        verbose_name='Адрес проведения (если мероприятие офлайн)',
     )
     participants_number = models.PositiveIntegerField(
         verbose_name='Количество участников'
