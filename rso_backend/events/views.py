@@ -345,8 +345,10 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
         выводится предупреждение.
         """
         instance = self.get_object()
-        serializer = EventParticipantsSerializer(data=request.data,
-                                                 context={'request': request})
+        serializer = EventParticipantsSerializer(
+            data=request.data,
+            context={'request': request,
+                     'application': instance})
         serializer.is_valid(raise_exception=True)
         try:
             with transaction.atomic():
