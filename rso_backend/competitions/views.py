@@ -454,16 +454,31 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
     Фильтрация:
         - is_tandem: фильтр по типу участия (старт или тандем),
           принимает значения True и False (или true и false в нижнем регистре).
+    Сортировка:
+        - доступные поля для сортировки: junior_detachment__name,
+                                         detachment__name,
+                                         created_at.
+        - порядок сортировки по дефолту: junior_detachment__name,
+                                         detachment__name,
+                                         created_at.
     """
     queryset = CompetitionParticipants.objects.all()
     serializer_class = CompetitionParticipantsSerializer
     permission_classes = (permissions.AllowAny,)
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter,)
+    filter_backends = (DjangoFilterBackend,
+                       filters.SearchFilter,
+                       filters.OrderingFilter)
     filterset_class = CompetitionParticipantsFilter
     search_fields = (
         'detachment__name',
         'junior_detachment__name'
     )
+    ordering_fields = ('detachment__name',
+                       'junior_detachment__name',
+                       'created_at')
+    ordering = ('junior_detachment__name',
+                'detachment__name',
+                'created_at')
 
     def get_queryset(self):
         return CompetitionParticipants.objects.filter(
