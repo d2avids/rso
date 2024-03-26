@@ -601,59 +601,6 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
         })
 
 
-@api_view(['GET'])
-def get_place_q1(request, competition_pk):
-    """Вью для показателя 'Численность членов линейного студенческого
-    отряда в соответствии с объемом уплаченных членских взносов'.
-
-    Место в рейтинге автоматически рассчитается 15 апреля 2024 года,
-    до этого дня для участников будет выводится ошибка 400
-    {'error': 'Рейтинг еще не сформирован'}.
-
-    После 15 апреля, при запросе участником мероприятия будет
-    возвращаться место в формате {'place': int}
-
-    Для тандем заявки место для обоих участников будет одинаковым.
-
-    Доступ: все авторизованные пользователи.
-    Если пользователь не командир, либо не участвует в мероприятии -
-    выводится ошибка 404.
-    """
-    if request.user.is_anonymous:
-        return Response(status=status.HTTP_401_UNAUTHORIZED)
-    detachment_start = get_detachment_start(
-        request.user, competition_pk
-    )
-    if detachment_start is None:
-        detachment_tandem = get_detachment_tandem(
-            request.user, competition_pk
-        )
-        # Если командир, но не участник старт и не участник тандем
-        if detachment_tandem is None:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
-        if detachment_start:
-            ranking_start = Q1Ranking.objects.filter(
-                competition_id=competition_pk,
-                detachment=detachment_start
-            ).first()
-            if ranking_start:
-                return Response({'place': ranking_start.place})
-
-        if detachment_tandem:
-            ranking_tandem = Q1TandemRanking.objects.filter(
-                Q(competition_id=competition_pk) &
-                Q(junior_detachment=detachment_tandem) |
-                Q(detachment=detachment_tandem)
-            ).first()
-            if ranking_tandem:
-                return Response({'place': ranking_tandem.place})
-
-    # Если отряд является участником конкурса, но нет рейтинга
-    return Response({'error': 'Рейтинг еще не сформирован'},
-                    status=status.HTTP_400_BAD_REQUEST)
-
-
 class Q2DetachmentReportViewSet(RetrieveCreateViewSet):
 
     """
@@ -1018,9 +965,6 @@ class Q7ViewSet(
         )
 
     def get_permissions(self):
-        # if self.action == 'retrieve':
-        #     return [permissions.IsAuthenticated(),
-        #             IsCommanderDetachmentInParameterOrRegionalCommissioner()]
         if self.action == 'create':
             return [permissions.IsAuthenticated(),
                     IsCommanderAndCompetitionParticipant()]
@@ -2399,9 +2343,9 @@ class Q19DetachmentReportViewset(CreateListRetrieveUpdateViewSet):
     @action(detail=True,
             methods=['post', 'delete'],
             url_path='verify',
-            # permission_classes=(permissions.IsAuthenticated,
-            #                     IsRegionalCommanderOrAdmin,)
-     )
+            permission_classes=(permissions.IsAuthenticated,
+                                IsRegionalCommanderOrAdmin,)
+    )
     @swagger_auto_schema(
         request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={},),
         responses={200: Q19DetachmenrtReportSerializer}
@@ -2728,6 +2672,58 @@ class Q20ViewSet(CreateListRetrieveUpdateViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save(competition=competition, detachment=detachment)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_place_q1(request, competition_pk):
+    """Вью для показателя 'Численность членов линейного студенческого
+    отряда в соответствии с объемом уплаченных членских взносов'.
+
+    Место в рейтинге автоматически рассчитается 15 апреля 2024 года,
+    до этого дня для участников будет выводится ошибка 400
+    {'error': 'Рейтинг еще не сформирован'}.
+
+    После 15 апреля, при запросе участником мероприятия будет
+    возвращаться место в формате {'place': int}
+
+    Для тандем заявки место для обоих участников будет одинаковым.
+
+    Доступ: все авторизованные пользователи.
+    Если пользователь не командир, либо не участвует в мероприятии -
+    выводится ошибка 404.
+    """
+    detachment_start = get_detachment_start(
+        request.user, competition_pk
+    )
+    if detachment_start is None:
+        detachment_tandem = get_detachment_tandem(
+            request.user, competition_pk
+        )
+        # Если командир, но не участник старт и не участник тандем
+        if detachment_tandem is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        if detachment_start:
+            ranking_start = Q1Ranking.objects.filter(
+                competition_id=competition_pk,
+                detachment=detachment_start
+            ).first()
+            if ranking_start:
+                return Response({'place': ranking_start.place})
+
+        if detachment_tandem:
+            ranking_tandem = Q1TandemRanking.objects.filter(
+                Q(competition_id=competition_pk) &
+                Q(junior_detachment=detachment_tandem) |
+                Q(detachment=detachment_tandem)
+            ).first()
+            if ranking_tandem:
+                return Response({'place': ranking_tandem.place})
+
+    # Если отряд является участником конкурса, но нет рейтинга
+    return Response({'error': 'Рейтинг еще не сформирован'},
+                    status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET'])

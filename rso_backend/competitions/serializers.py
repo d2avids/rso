@@ -941,8 +941,6 @@ class Q18DetachmentReportSerializer(serializers.ModelSerializer):
 
 
 class Q19DetachmenrtReportSerializer(serializers.ModelSerializer):
-    detachment = ShortDetachmentCompetitionSerializer(read_only=True)
-
     class Meta:
         model = Q19Report
         fields = (
@@ -981,7 +979,6 @@ class Q19DetachmenrtReportSerializer(serializers.ModelSerializer):
 
 
 class Q20ReportSerializer(serializers.ModelSerializer):
-    detachment = ShortDetachmentCompetitionSerializer(read_only=True)
 
     class Meta:
         model = Q20Report
