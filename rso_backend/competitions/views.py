@@ -1668,7 +1668,15 @@ class Q5DetachmentReportViewSet(RetrieveCreateViewSet):
         )
         serializer.save(competition=competition, detachment=detachment)
 
-    @action(detail=False, methods=['get'], url_path='get-place')
+    def get_competitions(self):
+        return get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+
+    def get_detachment(self, obj):
+        return obj.detachment
+
+    @action(detail=False, methods=['get'], url_path='get-place', permission_classes=(IsCompetitionParticipantAndCommander,))
     def get_place(self, request, **kwargs):
         detachment = self.request.user.detachment_commander
         report = Q5DetachmentReport.objects.filter(
@@ -1928,6 +1936,14 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
             competition_id=competition.id
         )
 
+    def get_competitions(self):
+        return get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+
+    def get_detachment(self, obj):
+        return obj.detachment
+
     def perform_create(self, serializer):
         competition = get_object_or_404(
             Competitions, id=self.kwargs.get('competition_pk')
@@ -1937,7 +1953,7 @@ class Q13DetachmentReportViewSet(RetrieveCreateViewSet):
         )
         serializer.save(competition=competition, detachment=detachment)
 
-    @action(detail=False, methods=['get'], url_path='get-place')
+    @action(detail=False, methods=['get'], url_path='get-place', permission_classes=(IsCompetitionParticipantAndCommander,))
     def get_place(self, request, **kwargs):
         detachment = self.request.user.detachment_commander
         report = Q13DetachmentReport.objects.filter(
@@ -2228,7 +2244,15 @@ class Q18DetachmentReportViewSet(RetrieveCreateViewSet):
             detachment_report.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=False, methods=['get'], url_path='get-place')
+    def get_competitions(self):
+        return get_object_or_404(
+            Competitions, id=self.kwargs.get('competition_pk')
+        )
+
+    def get_detachment(self, obj):
+        return obj.detachment
+
+    @action(detail=False, methods=['get'], url_path='get-place', permission_classes=(IsCompetitionParticipantAndCommander,))
     def get_place(self, request, **kwargs):
         detachment = self.request.user.detachment_commander
         report = Q18DetachmentReport.objects.filter(
@@ -2279,8 +2303,9 @@ class Q19DetachmentReportViewset(CreateListRetrieveUpdateViewSet):
         - update командирам отрядов-участников конкурса;
     """
     serializer_class = Q19DetachmenrtReportSerializer
-    # permission_classes = (permissions.IsAuthenticated,
-    #                       IsCompetitionParticipantAndCommander)
+    permission_classes = (
+        permissions.IsAuthenticated, IsCompetitionParticipantAndCommander
+    )
 
     MAX_PLACE = 2
 
@@ -2348,7 +2373,8 @@ class Q19DetachmentReportViewset(CreateListRetrieveUpdateViewSet):
     )
     @swagger_auto_schema(
         request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={},),
-        responses={200: Q19DetachmenrtReportSerializer}
+        responses={200: {"status": "Данные "
+                           "Успешно верифицированы"}}
     )
     def verify(self, request, competition_pk, pk, *args, **kwargs):
         """
@@ -2366,6 +2392,7 @@ class Q19DetachmentReportViewset(CreateListRetrieveUpdateViewSet):
             report.is_verified = True
             report.save()
             participants_entry = CompetitionParticipants.objects.filter(
+                competition_id=settings.COMPETITION_ID,
                 junior_detachment=report.detachment
             ).first()
 
@@ -2387,6 +2414,7 @@ class Q19DetachmentReportViewset(CreateListRetrieveUpdateViewSet):
                     elder_detachment_report = None
                     try:
                         elder_detachment_report = Q19Report.objects.get(
+                            competition_id=settings.COMPETITION_ID,
                             detachment=tandem_ranking.detachment
                         )
                     except Q19Report.DoesNotExist:
@@ -2395,6 +2423,7 @@ class Q19DetachmentReportViewset(CreateListRetrieveUpdateViewSet):
                         tandem_ranking.place += calculate_q19_place(elder_detachment_report)
                 else:
                     participants_entry = CompetitionParticipants.objects.filter(
+                        competition_id=settings.COMPETITION_ID,
                         detachment=report.detachment
                     ).first()
                     if not participants_entry:
@@ -2411,6 +2440,7 @@ class Q19DetachmentReportViewset(CreateListRetrieveUpdateViewSet):
                     junior_detachment_report = None
                     try:
                         junior_detachment_report = Q19Report.objects.get(
+                            competition_id=settings.COMPETITION_ID,
                             detachment=tandem_ranking.junior_detachment
                         )
                     except Q19Report.DoesNotExist:
@@ -2732,43 +2762,43 @@ def get_place_q3(request, competition_pk=None):
     """
     Action для получения рейтинга по данному показателю.
 
-    Доступ: командиры отрядов, которые участвуют в конкурсе.
-    Если отчета еще не подан, вернется ошибка 404. (данные не отправлены)
-    Если отчет подан, но еще не верифицировн - вернется
-    {"place": "Показатель в обработке"}.
-    Если отчет подан и верифицирован - вернется место в рейтинге:
-    {"place": int}
+    Возвращает место в формате {'place': int}
+
+    Для тандем заявки место для обоих участников будет одинаковым.
+
+    Доступ: все авторизованные пользователи.
+    Если пользователь не командир, либо не участвует в мероприятии -
+    выводится ошибка 404.
     """
-    detachment = request.user.detachment_commander
-    if not detachment:
-        return Response(status=status.HTTP_404_NOT_FOUND)
-    tandem_ranking = Q3TandemRanking.objects.filter(
-        detachment=detachment
-    ).first()
-    if not tandem_ranking:
-        tandem_ranking = Q3TandemRanking.objects.filter(
-            junior_detachment=detachment
-        ).first()
-
-    if tandem_ranking and tandem_ranking.place is not None:
-        return Response(
-            {"place": tandem_ranking.place},
-            status=status.HTTP_200_OK
-        )
-
-    ranking = Q3Ranking.objects.filter(
-        detachment=detachment
-    ).first()
-    if ranking and ranking.place is not None:
-        return Response(
-            {"place": ranking.place}, status=status.HTTP_200_OK
-        )
-
-    return Response(
-        {"place": "Показатель в обработке"},
-        status=status.HTTP_404_NOT_FOUND
+    detachment_start = get_detachment_start(
+        request.user, competition_pk
     )
+    if detachment_start is None:
+        detachment_tandem = get_detachment_tandem(
+            request.user, competition_pk
+        )
+        if detachment_tandem is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
+        if detachment_start:
+            ranking_start = Q3Ranking.objects.filter(
+                competition_id=competition_pk,
+                detachment=detachment_start
+            ).first()
+            if ranking_start:
+                return Response({'place': ranking_start.place})
+
+        if detachment_tandem:
+            ranking_tandem = Q3TandemRanking.objects.filter(
+                Q(competition_id=competition_pk) &
+                Q(junior_detachment=detachment_tandem) |
+                Q(detachment=detachment_tandem)
+            ).first()
+            if ranking_tandem:
+                return Response({'place': ranking_tandem.place})
+
+    return Response({'error': 'Рейтинг еще не сформирован'},
+                    status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
@@ -2776,39 +2806,40 @@ def get_place_q4(request, competition_pk=None):
     """
     Action для получения рейтинга по данному показателю.
 
-    Доступ: командиры отрядов, которые участвуют в конкурсе.
-    Если отчета еще не подан, вернется ошибка 404. (данные не отправлены)
-    Если отчет подан, но еще не верифицировн - вернется
-    {"place": "Показатель в обработке"}.
-    Если отчет подан и верифицирован - вернется место в рейтинге:
-    {"place": int}
+    Возвращает место в формате {'place': int}
+
+    Для тандем заявки место для обоих участников будет одинаковым.
+
+    Доступ: все авторизованные пользователи.
+    Если пользователь не командир, либо не участвует в мероприятии -
+    выводится ошибка 404.
     """
-    detachment = request.user.detachment_commander
-    if not detachment:
-        return Response(status=status.HTTP_404_NOT_FOUND)
-    tandem_ranking = Q4TandemRanking.objects.filter(
-        detachment=detachment
-    ).first()
-    if not tandem_ranking:
-        tandem_ranking = Q4TandemRanking.objects.filter(
-            junior_detachment=detachment
-        ).first()
-
-    if tandem_ranking and tandem_ranking.place is not None:
-        return Response(
-            {"place": tandem_ranking.place},
-            status=status.HTTP_200_OK
-        )
-
-    ranking = Q4Ranking.objects.filter(
-        detachment=detachment
-    ).first()
-    if ranking and ranking.place is not None:
-        return Response(
-            {"place": ranking.place}, status=status.HTTP_200_OK
-        )
-
-    return Response(
-        {"place": "Показатель в обработке"},
-        status=status.HTTP_404_NOT_FOUND
+    detachment_start = get_detachment_start(
+        request.user, competition_pk
     )
+    if detachment_start is None:
+        detachment_tandem = get_detachment_tandem(
+            request.user, competition_pk
+        )
+        if detachment_tandem is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        if detachment_start:
+            ranking_start = Q4Ranking.objects.filter(
+                competition_id=competition_pk,
+                detachment=detachment_start
+            ).first()
+            if ranking_start:
+                return Response({'place': ranking_start.place})
+
+        if detachment_tandem:
+            ranking_tandem = Q4TandemRanking.objects.filter(
+                Q(competition_id=competition_pk) &
+                Q(junior_detachment=detachment_tandem) |
+                Q(detachment=detachment_tandem)
+            ).first()
+            if ranking_tandem:
+                return Response({'place': ranking_tandem.place})
+
+    return Response({'error': 'Рейтинг еще не сформирован'},
+                    status=status.HTTP_400_BAD_REQUEST)
