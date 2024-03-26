@@ -8,7 +8,7 @@ from competitions.models import (
     Q10, Q11, Q12, Q7, Q8, Q9, CompetitionApplications,
     CompetitionParticipants, Competitions,
     LinksQ7, LinksQ8, Q10Report, Q11Report, Q12Report,
-    Q13EventOrganization, Q13DetachmentReport,
+    Q13EventOrganization, Q13DetachmentReport, Q15DetachmentReport, Q15Event, Q15Link,
     Q18DetachmentReport, Q19Report, Q20Report, Q2DetachmentReport, Q7Report,
     Q8Report, Q9Report, Q5EducatedParticipant)
 from headquarters.models import Detachment
@@ -901,6 +901,55 @@ class Q13DetachmentReportSerializer(serializers.ModelSerializer):
             detachment_report=instance
         )
         return Q13EventOrganizationSerializer(organized_events, many=True).data
+
+
+class Q15EventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Q15Event
+        fields = (
+            'id',
+            'source_name'
+        )
+
+
+class Q15LinkSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Q15Link
+        fields = ('id', 'link')
+
+
+class Q15DetachmentReportSerializer(serializers.ModelSerializer):
+
+    #TODO: вложенные сериализаторы и запись данных в их таблицы
+    q15_event = Q15EventSerializer()
+    q15_link = Q15LinkSerializer()
+
+    class Meta:
+        model = Q15DetachmentReport
+        fields = (
+            'id',
+            'detachment',
+            'competition',
+            'is_verified',
+            'q15_event',
+            'q15_link'
+        )
+        read_only_fields = ('is_verified', 'detachment', 'competition',)
+
+    # def create(self, validated_data):
+
+    #     link = validated_data.pop('q15_link')
+    #     event = validated_data.pop('q15_event')
+    #     with transaction.atomic():
+    #         report = super().create(validated_data)
+    #         links_serializer = Q15LinkSerializer(
+    #             many=True,
+    #             data=link,
+    #             context={
+    #                 'request': self.context.get('request'),
+    #                 'detachment_report': report???
+    #             }
+    #         )
 
 
 class Q18DetachmentReportSerializer(serializers.ModelSerializer):

@@ -360,6 +360,7 @@ class Q2TandemRanking(QBaseTandemRanking):
         verbose_name='Итоговое место по показателю в тандеме',
         default=3.0,
     )
+
     class Meta:
         verbose_name = 'Тандем-место по 2 показателю'
         verbose_name_plural = 'Тандем-места по 2 показателю'
@@ -1084,6 +1085,58 @@ class Q13EventOrganization(models.Model):
         verbose_name='Отчет отряда',
     )
     is_verified = models.BooleanField(default=False)
+
+
+class Q15Link(Links):
+    pass
+
+
+class Q15Event(models.Model):
+    source_name = models.CharField(
+        max_length=500,
+    )
+
+class Q15DetachmentReport(QBaseReport, QBaseReportIsVerified):
+    q15_event = models.ForeignKey(
+        'Q15Event',
+        on_delete=models.CASCADE,
+        related_name='q15_event',
+        verbose_name='Название источника статьи'
+    )
+    q15_link = models.ForeignKey(
+        'Q15Link',
+        on_delete=models.CASCADE,
+        related_name='q15_link',
+        verbose_name='Ссылка на статью об участии отряда'
+    )
+
+    class Meta:
+        verbose_name = 'Отчет по 15 показателю'
+        verbose_name_plural = 'Отчеты по 15 показателю'
+        constraints = [models.UniqueConstraint( #одни сми могут напистаь про несколько событий. убрать
+            fields=('q15_event', 'q15_link'),
+            name='unique_q15_event_link'
+        ),]
+
+
+class Q15Ranking(QBaseRanking):
+    place = models.PositiveSmallIntegerField(
+        verbose_name='Итоговое место по показателю'
+    )
+
+    class Meta:
+        verbose_name = 'Место по 15 показателю'
+        verbose_name_plural = 'Места по 15 показателю'
+
+
+class Q15TandemRanking(QBaseTandemRanking):
+    place = models.FloatField(
+        verbose_name='Итоговое место по показателю в тандеме',
+    )
+
+    class Meta:
+        verbose_name = 'Тандем-место по 15 показателю'
+        verbose_name_plural = 'Тандем-места по 15 показателю'
 
 
 class Q18TandemRanking(QBaseTandemRanking):

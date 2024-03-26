@@ -33,7 +33,7 @@ from competitions.models import (
     Q10, Q11, Q12, Q7, Q8, Q9, CompetitionApplications,
     CompetitionParticipants, Competitions, Q10Report, Q11Report, Q12Report,
     Q13EventOrganization,
-    Q13DetachmentReport, Q13Ranking, Q13TandemRanking, Q19Report, Q1Ranking,
+    Q13DetachmentReport, Q13Ranking, Q13TandemRanking, Q15DetachmentReport, Q19Report, Q1Ranking,
     Q1TandemRanking, Q20Report, Q2DetachmentReport, Q2Ranking,
     Q2TandemRanking, Q7Report, Q18DetachmentReport,
     Q18TandemRanking, Q18Ranking, Q8Report, Q9Report, Q19Ranking,
@@ -48,7 +48,7 @@ from competitions.serializers import (
     CompetitionSerializer, CreateQ10Serializer, CreateQ11Serializer,
     CreateQ12Serializer, CreateQ7Serializer, CreateQ8Serializer,
     CreateQ9Serializer, Q10ReportSerializer, Q10Serializer,
-    Q11ReportSerializer, Q11Serializer, Q12ReportSerializer, Q12Serializer,
+    Q11ReportSerializer, Q11Serializer, Q12ReportSerializer, Q12Serializer, Q15DetachmentReportSerializer,
     Q19DetachmenrtReportSerializer, Q20ReportSerializer,
     Q2DetachmentReportSerializer, Q7ReportSerializer, Q7Serializer,
     Q8ReportSerializer, Q8Serializer, Q9ReportSerializer, Q9Serializer,
@@ -2279,6 +2279,11 @@ class Q13EventOrganizationViewSet(UpdateDestroyViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         return super().destroy(request, *args, **kwargs)
+
+class Q15DetachmentReportViewSet(RetrieveCreateViewSet):
+
+    serializer_class = Q15DetachmentReportSerializer
+    queryset = Q15DetachmentReport.objects.all()
 
 
 class Q18DetachmentReportViewSet(RetrieveCreateViewSet):
