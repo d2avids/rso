@@ -469,7 +469,7 @@ class Q5Ranking(QBaseRanking):
 
 
 class Q5DetachmentReport(QBaseReport):
-    pass
+    june_15_detachment_members = models.PositiveSmallIntegerField(default=1)
 
 
 class Q5EducatedParticipant(models.Model):
