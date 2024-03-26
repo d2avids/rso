@@ -1087,56 +1087,52 @@ class Q13EventOrganization(models.Model):
     is_verified = models.BooleanField(default=False)
 
 
-class Q15Link(Links):
+class Q17Link(Links):
     pass
 
 
-class Q15Event(models.Model):
+class Q17Event(models.Model):
     source_name = models.CharField(
         max_length=500,
     )
 
-class Q15DetachmentReport(QBaseReport, QBaseReportIsVerified):
-    q15_event = models.ForeignKey(
-        'Q15Event',
+class Q17DetachmentReport(QBaseReport, QBaseReportIsVerified):
+    q17_event = models.ForeignKey(
+        'competitions.Q17Event',
         on_delete=models.CASCADE,
-        related_name='q15_event',
+        related_name='q17_event',
         verbose_name='Название источника статьи'
     )
-    q15_link = models.ForeignKey(
-        'Q15Link',
+    q17_link = models.ForeignKey(
+        'competitions.Q17Link',
         on_delete=models.CASCADE,
-        related_name='q15_link',
+        related_name='q17_link',
         verbose_name='Ссылка на статью об участии отряда'
     )
 
     class Meta:
-        verbose_name = 'Отчет по 15 показателю'
-        verbose_name_plural = 'Отчеты по 15 показателю'
-        constraints = [models.UniqueConstraint( #одни сми могут напистаь про несколько событий. убрать
-            fields=('q15_event', 'q15_link'),
-            name='unique_q15_event_link'
-        ),]
+        verbose_name = 'Отчет по 17 показателю'
+        verbose_name_plural = 'Отчеты по 17 показателю'
 
 
-class Q15Ranking(QBaseRanking):
+class Q17Ranking(QBaseRanking):
     place = models.PositiveSmallIntegerField(
         verbose_name='Итоговое место по показателю'
     )
 
     class Meta:
-        verbose_name = 'Место по 15 показателю'
-        verbose_name_plural = 'Места по 15 показателю'
+        verbose_name = 'Место по 17 показателю'
+        verbose_name_plural = 'Места по 17 показателю'
 
 
-class Q15TandemRanking(QBaseTandemRanking):
+class Q17TandemRanking(QBaseTandemRanking):
     place = models.FloatField(
         verbose_name='Итоговое место по показателю в тандеме',
     )
 
     class Meta:
-        verbose_name = 'Тандем-место по 15 показателю'
-        verbose_name_plural = 'Тандем-места по 15 показателю'
+        verbose_name = 'Тандем-место по 17 показателю'
+        verbose_name_plural = 'Тандем-места по 17 показателю'
 
 
 class Q18TandemRanking(QBaseTandemRanking):

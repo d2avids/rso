@@ -170,8 +170,8 @@ router.register(
 )
 router.register(
     r'competitions/(?P<competition_pk>\d+)/reports/q15',
-    Q5DetachmentReportViewSet,
-    basename='q5'
+    Q15DetachmentReportViewSet,
+    basename='q15'
 )
 router.register(
     r'competitions/(?P<competition_pk>\d+)/reports/q13/(?P<report_pk>\d+)/participants',

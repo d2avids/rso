@@ -33,7 +33,7 @@ from competitions.models import (
     Q10, Q11, Q12, Q7, Q8, Q9, CompetitionApplications,
     CompetitionParticipants, Competitions, Q10Report, Q11Report, Q12Report,
     Q13EventOrganization,
-    Q13DetachmentReport, Q13Ranking, Q13TandemRanking, Q15DetachmentReport, Q19Report, Q1Ranking,
+    Q13DetachmentReport, Q13Ranking, Q13TandemRanking, Q17DetachmentReport, Q19Report, Q1Ranking,
     Q1TandemRanking, Q20Report, Q2DetachmentReport, Q2Ranking,
     Q2TandemRanking, Q7Report, Q18DetachmentReport,
     Q18TandemRanking, Q18Ranking, Q8Report, Q9Report, Q19Ranking,
@@ -48,7 +48,7 @@ from competitions.serializers import (
     CompetitionSerializer, CreateQ10Serializer, CreateQ11Serializer,
     CreateQ12Serializer, CreateQ7Serializer, CreateQ8Serializer,
     CreateQ9Serializer, Q10ReportSerializer, Q10Serializer,
-    Q11ReportSerializer, Q11Serializer, Q12ReportSerializer, Q12Serializer, Q15DetachmentReportSerializer,
+    Q11ReportSerializer, Q11Serializer, Q12ReportSerializer, Q12Serializer, Q17DetachmentReportSerializer,
     Q19DetachmenrtReportSerializer, Q20ReportSerializer,
     Q2DetachmentReportSerializer, Q7ReportSerializer, Q7Serializer,
     Q8ReportSerializer, Q8Serializer, Q9ReportSerializer, Q9Serializer,
@@ -634,11 +634,8 @@ class Q2DetachmentReportViewSet(RetrieveCreateViewSet):
                           IsCompetitionParticipantAndCommander)
 
     def get_queryset(self):
-        competition = get_object_or_404(
-            Competitions, id=self.kwargs.get('competition_pk')
-        )
         return Q2DetachmentReport.objects.filter(
-            competition=competition
+            competition_id=self.kwargs.get('competition_pk')
         )
 
     def get_permissions(self):
@@ -739,7 +736,7 @@ class Q2DetachmentReportViewSet(RetrieveCreateViewSet):
             url_path='get-place',
             serializer_class=None
     )
-    def get_place(self, request, *args, **kwargs):
+    def get_place(self, request, competition_pk, **kwargs):
         """Определение места по показателю.
 
         Возвращается место или статус показателя.
@@ -747,7 +744,7 @@ class Q2DetachmentReportViewSet(RetrieveCreateViewSet):
         """
 
         detachment = self.request.user.detachment_commander
-        report = Q18DetachmentReport.objects.filter(
+        report = Q2DetachmentReport.objects.filter(
             detachment=detachment,
             competition_id=self.kwargs.get('competition_pk')
         ).first()
@@ -765,18 +762,18 @@ class Q2DetachmentReportViewSet(RetrieveCreateViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
                 data={'detail': 'Показатель в обработке.'}
             )
-        tandem_ranking = Q2TandemRanking.objects.filter(
-            detachment=report.detachment
-        ).first()
+        tandem_ranking = getattr(
+            detachment, 'q2tandemranking_main_detachment'
+        ).filter(competition_id=competition_pk).first()
         if not tandem_ranking:
-            tandem_ranking = Q2TandemRanking.objects.filter(
-                junior_detachment=report.detachment
-            ).first()
+            tandem_ranking = getattr(
+                detachment, 'q2tandemranking_junior_detachment'
+            ).filter(competition_id=competition_pk).first()
 
         if is_tandem:
             if tandem_ranking and tandem_ranking.place is not None:
                 return Response(
-                    {"place": tandem_ranking.place},
+                    {'place': tandem_ranking.place},
                     status=status.HTTP_200_OK
                 )
         else:
@@ -785,7 +782,7 @@ class Q2DetachmentReportViewSet(RetrieveCreateViewSet):
             ).first()
             if ranking and ranking.place is not None:
                 return Response(
-                    {"place": ranking.place}, status=status.HTTP_200_OK
+                    {'place': ranking.place}, status=status.HTTP_200_OK
                 )
 
         return Response(
@@ -1604,11 +1601,9 @@ class Q5DetachmentReportViewSet(RetrieveCreateViewSet):
         organization_data = request.data.get('organization_data', [])
 
         if not CompetitionParticipants.objects.filter(
-                competition=competition,
-                junior_detachment=detachment
-        ).exists() and not CompetitionParticipants.objects.filter(
-            competition=competition,
-            detachment=detachment
+                Q(competition=competition) &
+                Q(detachment=detachment) |
+                Q(junior_detachment=detachment)
         ).exists():
             return Response(
                 {
@@ -2163,8 +2158,8 @@ class Q13EventOrganizationViewSet(UpdateDestroyViewSet):
 
 class Q15DetachmentReportViewSet(RetrieveCreateViewSet):
 
-    serializer_class = Q15DetachmentReportSerializer
-    queryset = Q15DetachmentReport.objects.all()
+    serializer_class = Q17DetachmentReportSerializer
+    queryset = Q17DetachmentReport.objects.all()
 
 
 class Q18DetachmentReportViewSet(RetrieveCreateViewSet):
