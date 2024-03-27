@@ -2437,8 +2437,7 @@ class Q19DetachmentReportViewset(CreateListRetrieveUpdateViewSet):
     )
     @swagger_auto_schema(
         request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={},),
-        responses={200: {"status": "Данные "
-                           "Успешно верифицированы"}}
+        responses={200: "Данные успешно верифицированы"}
     )
     def verify(self, request, competition_pk, pk, *args, **kwargs):
         """
