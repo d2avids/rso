@@ -1588,7 +1588,9 @@ class Q5DetachmentReportViewSet(ListRetrieveCreateViewSet):
     """
 
     serializer_class = Q5DetachmentReportSerializer
-    permission_classes = (IsCompetitionParticipantAndCommander,)
+    permission_classes = (
+        permissions.IsAuthenticated, IsCompetitionParticipantAndCommander,
+    )
 
     MAX_PLACE = 20
 
@@ -1624,12 +1626,13 @@ class Q5DetachmentReportViewSet(ListRetrieveCreateViewSet):
         detachment = get_object_or_404(
             Detachment, id=self.request.user.detachment_commander.id
         )
-        organization_data = request.data.get('organization_data', [])
+        participants_data = request.data.get('participants_data', [])
+        print(request.data)
 
-        if not organization_data:
+        if not participants_data:
             return Response(
                 {
-                    'non_field_errors': 'organization_data '
+                    'non_field_errors': 'participants_data '
                                         'должно быть заполнено'
                 },
                 status=status.HTTP_400_BAD_REQUEST
@@ -1640,9 +1643,9 @@ class Q5DetachmentReportViewSet(ListRetrieveCreateViewSet):
                 detachment_id=detachment.id
             )
 
-            for event_data in organization_data:
+            for participant_data in participants_data:
                 event_serializer = Q5EducatedParticipantSerializer(
-                    data=event_data)
+                    data=participant_data)
                 if event_serializer.is_valid(raise_exception=True):
                     Q5EducatedParticipant.objects.create(
                         **event_serializer.validated_data,

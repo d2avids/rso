@@ -482,7 +482,8 @@ class Q5EducatedParticipant(models.Model):
     )
     document = models.FileField(
         verbose_name='Документ, подтверждающий прохождение '
-                     'профессионального обучения.'
+                     'профессионального обучения.',
+        blank=True
     )
     is_verified = models.BooleanField(default=False)
 
