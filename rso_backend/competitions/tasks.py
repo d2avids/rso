@@ -14,7 +14,7 @@ from competitions.models import (
 from competitions.q_calculations import (
     calculate_q18_place,
     calculate_place,
-    calculate_q1_score, calculate_q3_q4_place
+    calculate_q1_score, calculate_q3_q4_place, calculate_q5_place
 )
 
 logger = logging.getLogger('tasks')
@@ -116,3 +116,9 @@ def calculate_q20_places_task():
 def calculate_q3_q4_places_task():
     """Считает места по 3-4 показателям."""
     calculate_q3_q4_place(competition_id=settings.COMPETITION_ID)
+
+
+@shared_task
+def calculate_q5_places_task():
+    """Считает места по 3-4 показателям."""
+    calculate_q5_place(competition_id=settings.COMPETITION_ID)

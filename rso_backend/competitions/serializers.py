@@ -857,7 +857,7 @@ class Q5DetachmentReportSerializer(serializers.ModelSerializer):
         read_only_fields = ('competition', 'detachment')
 
     @staticmethod
-    def get_organized_events(instance):
+    def get_educated_participants(instance):
         educated_participants = Q5EducatedParticipant.objects.filter(
             detachment_report=instance
         )

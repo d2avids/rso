@@ -5,8 +5,9 @@ import logging
 from competitions.models import Q13EventOrganization, Q18Ranking, \
     Q18DetachmentReport, CompetitionParticipants, Q18TandemRanking, Q19Ranking, \
     Q19Report, Q19TandemRanking, Q1Report, Q7Ranking, Q7Report, \
-    Q7TandemRanking, Q3Ranking, Q3TandemRanking, Q4Ranking, Q4TandemRanking, Q5TandemRanking, Q5Ranking, \
-    Q5EducatedParticipant
+    Q7TandemRanking, Q3Ranking, Q3TandemRanking, Q4Ranking, Q4TandemRanking, \
+    Q5TandemRanking, Q5Ranking, \
+    Q5EducatedParticipant, Q5DetachmentReport
 from headquarters.models import UserDetachmentPosition
 from questions.models import Attempt
 
@@ -372,23 +373,27 @@ def calculate_q3_q4_place(competition_id: int):
     logger.info('Считаем места по 3 показателю')
     solo_entries = CompetitionParticipants.objects.filter(
         competition_id=competition_id,
-        junior_detachment=True,
+        junior_detachment__isnull=False,
         detachment__isnull=True
     )
     tandem_entries = CompetitionParticipants.objects.filter(
         competition_id=competition_id,
-        junior_detachment=True,
-        detachment=True
+        junior_detachment__isnull=False,
+        detachment__isnull=False
     )
     for entry in solo_entries:
         # Получаем результаты для командира отряда
-        q3_place = get_q3_q4_place(entry, 'university')
-        q4_place = get_q3_q4_place(entry, 'safety')
+        try:
+            entry_report = entry.junior_detachment.q5detachmentreport_detachment_reports.get(competition_id=competition_id)
+        except Q5DetachmentReport.DoesNotExist:
+            continue
+        q3_place = get_q3_q4_place(entry_report, 'university')
+        q4_place = get_q3_q4_place(entry_report, 'safety')
         if q3_place:
             logger.info(f'Для СОЛО {entry} посчитали Q3 место - {q3_place}')
             Q3Ranking.objects.create(
                 competition_id=competition_id,
-                detachment=entry,
+                detachment=entry_report.detachment,
                 place=q3_place,
             )
         if q4_place:
@@ -399,10 +404,16 @@ def calculate_q3_q4_place(competition_id: int):
                 place=q3_place,
             )
     for tandem_entry in tandem_entries:
-        q3_place_1 = get_q3_q4_place(tandem_entry.junior_detachment, 'university')
-        q3_place_2 = get_q3_q4_place(tandem_entry.detachment, 'university')
-        q4_place_1 = get_q3_q4_place(tandem_entry.junior_detachment, 'safety')
-        q4_place_2 = get_q3_q4_place(tandem_entry.detachment, 'safety')
+        try:
+            tandem_entry_report = tandem_entry.detachment.q5detachmentreport_detachment_reports.get(competition_id=competition_id)
+            junior_tandem_entry_report = tandem_entry.junior_detachment.q5detachmentreport_detachment_reports.get(competition_id=competition_id)
+            logger.info(f'detachment reports for tandem entries: {tandem_entry_report}, {junior_tandem_entry_report}')
+        except Q5DetachmentReport.DoesNotExist:
+            continue
+        q3_place_1 = get_q3_q4_place(junior_tandem_entry_report, 'university')
+        q3_place_2 = get_q3_q4_place(tandem_entry_report, 'university')
+        q4_place_1 = get_q3_q4_place(junior_tandem_entry_report, 'safety')
+        q4_place_2 = get_q3_q4_place(tandem_entry_report, 'safety')
         if q3_place_1 and q3_place_2:
             final_place = round((q3_place_1 + q3_place_2) / 2)
             logger.info(f'Для ТАНДЕМ {tandem_entry} посчитали Q3 место - {final_place}')
@@ -461,16 +472,21 @@ def calculate_q5_place(competition_id: int):
     Q5Ranking.objects.all().delete()
     solo_entries = CompetitionParticipants.objects.filter(
         competition_id=competition_id,
-        junior_detachment=True,
+        junior_detachment__isnull=False,
         detachment__isnull=True
     )
     tandem_entries = CompetitionParticipants.objects.filter(
         competition_id=competition_id,
-        junior_detachment=True,
-        detachment=True
+        junior_detachment__isnull=False,
+        detachment__isnull=False
     )
+    logger.info(f'solo entries: {solo_entries}, tandem entries: {tandem_entries}')
     for entry in solo_entries:
-        entry_report = entry.junior_detachment.q5detachmentreport_detachment_reports.get(competition_id=competition_id)
+        try:
+            entry_report = entry.junior_detachment.q5detachmentreport_detachment_reports.get(competition_id=competition_id)
+        except Q5DetachmentReport.DoesNotExist:
+            continue
+        logger.info(f'detachment report for solo entry: {entry_report}')
         if not entry_report:
             continue
         if today <= cutoff_date:
@@ -479,17 +495,20 @@ def calculate_q5_place(competition_id: int):
                 f'cutoff date: {cutoff_date}. '
                 f'Обновляем кол-во участников.'
             )
-            calculate_detachment_members(entry)
+            calculate_detachment_members(entry_report)
         educated_participants_count = Q5EducatedParticipant.objects.filter(is_verified=True, detachment_report=entry_report).count()
         Q5Ranking.objects.create(
             competition_id=competition_id,
-            detachment=entry.detachment,
+            detachment=entry_report.detachment,
             place=get_q5_place(educated_participants_count, entry_report.june_15_detachment_members)
         )
     for tandem_entry in tandem_entries:
-        tandem_entry_report = tandem_entry.detachment.q5detachmentreport_detachment_reports.filter(competition_id=competition_id).first()
-        junior_tandem_entry_report = tandem_entry.junior_detachment.q5detachmentreport_detachment_reports.filter(competition_id=competition_id).first()
-
+        try:
+            tandem_entry_report = tandem_entry.detachment.q5detachmentreport_detachment_reports.get(competition_id=competition_id)
+            junior_tandem_entry_report = tandem_entry.junior_detachment.q5detachmentreport_detachment_reports.get(competition_id=competition_id)
+            logger.info(f'detachment reports for tandem entries: {tandem_entry_report}, {junior_tandem_entry_report}')
+        except Q5DetachmentReport.DoesNotExist:
+            continue
         if not tandem_entry_report or not junior_tandem_entry_report:
             continue
 
@@ -503,11 +522,11 @@ def calculate_q5_place(competition_id: int):
 
         educated_participants_count_junior = Q5EducatedParticipant.objects.filter(
             is_verified=True,
-            detachment=junior_tandem_entry_report
+            detachment_report=junior_tandem_entry_report
         ).count()
         educated_participants_count_detachment = Q5EducatedParticipant.objects.filter(
             is_verified=True,
-            detachment=tandem_entry_report
+            detachment_report=tandem_entry_report
         ).count()
 
         final_place = round((
@@ -524,7 +543,7 @@ def calculate_q5_place(competition_id: int):
 
 
 def get_q5_place(participants_count: int, june_15_detachment_members: int) -> int:
-    percentage = (june_15_detachment_members / participants_count) * 100
+    percentage = (participants_count / june_15_detachment_members) * 100
 
     if percentage > 95:
         return 1
@@ -566,7 +585,6 @@ def get_q5_place(participants_count: int, june_15_detachment_members: int) -> in
         return 19
     else:
         return 20
-
 
 
 def get_q3_q4_place(entry: CompetitionParticipants, category: str):

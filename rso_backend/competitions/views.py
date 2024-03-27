@@ -1595,14 +1595,6 @@ class Q5DetachmentReportViewSet(ListRetrieveCreateViewSet):
     MAX_PLACE = 20
 
     def get_queryset(self):
-        if self.action == 'list':
-            regional_headquarter = (
-                self.request.user.userregionalheadquarterposition.headquarter
-            )
-            return self.serializer_class.Meta.model.objects.filter(
-                detachment__regional_headquarter=regional_headquarter,
-                competition_id=self.kwargs.get('competition_pk')
-            )
         if self.action == 'me':
             return self.serializer_class.Meta.model.objects.filter(
                 detachment__commander=self.request.user,
@@ -1724,7 +1716,7 @@ class Q5DetachmentReportViewSet(ListRetrieveCreateViewSet):
         methods=['post', 'delete'],
         url_path='verify-raw/(?P<participant_id>\d+)',
         permission_classes=[
-            permissions.IsAuthenticated, IsRegionalCommissioner,
+            permissions.IsAuthenticated
         ]
     )
     def verify_raw(self, request, competition_pk=None, pk=None,
@@ -1733,6 +1725,12 @@ class Q5DetachmentReportViewSet(ListRetrieveCreateViewSet):
         Верифицирует конкретное мероприятие по его ID.
         """
         report = self.get_object()
+        detachment = report.detachment
+        if detachment.regional_headquarter.commander != request.user:
+            return Response({
+                'detail': 'Только командир РШ из иерархии может '
+                          'верифицировать отчеты по данному показателю'
+            }, status=status.HTTP_403_FORBIDDEN)
         raw = get_object_or_404(
             Q5EducatedParticipant,
             pk=participant_id,
@@ -2288,10 +2286,10 @@ class Q18DetachmentReportViewSet(ListRetrieveCreateViewSet):
         url_path='verify',
         methods=(['POST', 'DELETE']),
         permission_classes=[
-            permissions.IsAuthenticated, IsRegionalCommanderOrAdmin
+            permissions.IsAuthenticated
         ]
     )
-    def verify(self, *args, **kwargs):
+    def verify(self, request, *args, **kwargs):
         """Верификация отчета по показателю.
 
         Доступно только командиру РШ связанного с отрядом.
@@ -2299,6 +2297,12 @@ class Q18DetachmentReportViewSet(ListRetrieveCreateViewSet):
         ошибки `{"detail": "Данный отчет уже верифицирован"}`.
         """
         detachment_report = self.get_object()
+        detachment = detachment_report.detachment
+        if detachment.regional_headquarter.commander != request.user:
+            return Response({
+                'detail': 'Только командир РШ из иерархии может '
+                          'верифицировать отчеты по данному показателю'
+            }, status=status.HTTP_403_FORBIDDEN)
         if detachment_report.is_verified:
             return Response({
                 'detail': 'Данный отчет уже верифицирован'
