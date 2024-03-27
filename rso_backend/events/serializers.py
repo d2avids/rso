@@ -274,7 +274,7 @@ class EventParticipantsSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         request = self.context.get('request')
         if request.method == 'POST':
-            user = request.user
+            user = self.context.get('application').user
             event_id = request.parser_context.get('kwargs').get('event_pk')
             event = get_object_or_404(Event, id=event_id)
             if EventParticipants.objects.filter(
