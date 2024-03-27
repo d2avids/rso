@@ -8,6 +8,26 @@ from pythonjsonlogger import jsonlogger
 
 load_dotenv()
 
+# Redis cache TTL
+DETACHMENT_LIST_TTL = 120
+EDUCATIONALS_LIST_TTL = 120
+LOCALS_LIST_TTL = 240
+REGIONALS_LIST_TTL = 300
+DISTRICTS_LIST_TTL = 300
+POSITIONS_LIST_TTL = 60
+AREAS_LIST_TTL = 60
+REGIONS_LIST_TTL = 300
+CENTRAL_OBJECT_CACHE_TTL = 30
+DISTR_OBJECT_CACHE_TTL = 30
+REG_OBJECT_CACHE_TTL = 30
+RSOUSERS_CACHE_TTL = 30
+HEADQUARTERS_MEMBERS_CACHE_TTL = 30
+DISTRCICTHQ_MEMBERS_CACHE_TTL = 40
+CENTRALHQ_MEMBERS_CACHE_TTL = 180
+EVENTS_CACHE_TTL = 45
+EDU_INST_CACHE_TTL = 180
+
+
 MIN_FOUNDING_DATE = 1000
 MAX_FOUNDING_DATE = 9999
 CENTRAL_HEADQUARTER_FOUNDING_DATE = 1959
@@ -263,11 +283,13 @@ LOGGING = {
 }
 
 
+REDIS_HOST = '127.0.0.1' if RUN_TYPE != 'DOCKER' else 'redis'
+
 # REDIS CACHE
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379',
+        'LOCATION': f'redis://{REDIS_HOST}:6379',
         'OPTIONS': {
             'db': '1',
             'parser_class': 'redis.connection.PythonParser',
@@ -277,7 +299,6 @@ CACHES = {
 }
 
 # CELERY-REDIS CONFIG
-REDIS_HOST = '127.0.0.1' if RUN_TYPE != 'DOCKER' else 'redis'
 REDIS_PORT = '6379'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'
@@ -402,6 +423,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 100
 }
 
 DJOSER = {

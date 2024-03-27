@@ -603,6 +603,36 @@ def is_regional_commander(user):
              user.is_staff))
 
 
+def get_detachment_commander_num(user) -> int | None:
+    """Получение id отряда, в котором юзер командир."""
+
+    try:
+        detachment_commander_num = Detachment.objects.get(
+            commander=user
+        ).id
+    except (
+        Detachment.DoesNotExist, AttributeError, ValueError,
+        Detachment.MultipleObjectsReturned
+    ):
+        return None
+    return detachment_commander_num
+
+
+def get_regional_hq_commander_num(user) -> int | None:
+    """Получение id регионального штаба, в котором юзер командир."""
+
+    try:
+        reghq_commander_num = RegionalHeadquarter.objects.get(
+            commander=user
+        ).id
+    except (
+        RegionalHeadquarter.DoesNotExist, AttributeError, ValueError,
+        RegionalHeadquarter.MultipleObjectsReturned
+    ):
+        return None
+    return reghq_commander_num
+
+
 def is_commander_this_detachment(user, detachment):
     """Проверяет, является ли пользователь командиром отряда."""
     return user.is_authenticated and detachment.commander == user

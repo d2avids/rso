@@ -128,7 +128,7 @@ class Unit(models.Model):
         verbose_name='Баннер'
     )
     slogan = models.CharField(
-        max_length=100,
+        max_length=250,
         verbose_name='Девиз',
         null=True,
         blank=True,
@@ -252,7 +252,7 @@ class RegionalHeadquarter(Unit):
         null=True,
     )
     requisites = models.CharField(
-        max_length=250,
+        max_length=1000,
         verbose_name='Реквизиты (для справок)',
         blank=True,
         null=True,
@@ -426,6 +426,10 @@ class Detachment(Unit):
         verbose_name='Дата основания',
     )
 
+    class Meta:
+        verbose_name_plural = 'Отряды'
+        verbose_name = 'Отряд'
+
     def check_headquarters_relations(self) -> None:
         """
         Проверяет согласованность между
@@ -515,10 +519,6 @@ class Detachment(Unit):
     def __str__(self):
         return self.name
 
-    class Meta:
-        verbose_name_plural = 'Отряды'
-        verbose_name = 'Отряд'
-
 
 class Position(models.Model):
     """Хранение наименований должностей для членов отрядов и штабов."""
@@ -562,6 +562,9 @@ class UserUnitPosition(models.Model):
         blank=True,
     )
     is_trusted = models.BooleanField(default=False, verbose_name='Доверенный')
+
+    class Meta:
+        abstract = True
 
     def save(self, *args, **kwargs):
         """
@@ -623,9 +626,6 @@ class UserUnitPosition(models.Model):
         self.delete_user_from_all_units()
         super().delete(*args, **kwargs)
 
-    class Meta:
-        abstract = True
-
     def __str__(self):
         position = self.position.name if self.position else 'без должности'
         return (
@@ -663,6 +663,10 @@ class UserDistrictHeadquarterPosition(UserUnitPosition):
         related_name='members'
     )
 
+    class Meta:
+        verbose_name_plural = 'Члены окружных штабов'
+        verbose_name = 'Член окружного штаба'
+
     def save(self, *args, **kwargs):
         if self._state.adding:
             default_position, _ = Position.objects.get_or_create(
@@ -678,10 +682,6 @@ class UserDistrictHeadquarterPosition(UserUnitPosition):
             kwargs['class_above'] = UserCentralHeadquarterPosition
         super().save(*args, **kwargs)
 
-    class Meta:
-        verbose_name_plural = 'Члены окружных штабов'
-        verbose_name = 'Член окружного штаба'
-
 
 class UserRegionalHeadquarterPosition(UserUnitPosition):
     headquarter = models.ForeignKey(
@@ -691,15 +691,15 @@ class UserRegionalHeadquarterPosition(UserUnitPosition):
         related_name='members'
     )
 
+    class Meta:
+        verbose_name_plural = 'Члены региональных штабов'
+        verbose_name = 'Член регионального штаба'
+
     def save(self, *args, **kwargs):
         if self._state.adding:
             kwargs['headquarter'] = self.headquarter.district_headquarter
             kwargs['class_above'] = UserDistrictHeadquarterPosition
         super().save(*args, **kwargs)
-
-    class Meta:
-        verbose_name_plural = 'Члены региональных штабов'
-        verbose_name = 'Член регионального штаба'
 
 
 class UserLocalHeadquarterPosition(UserUnitPosition):
@@ -710,15 +710,15 @@ class UserLocalHeadquarterPosition(UserUnitPosition):
         related_name='members'
     )
 
+    class Meta:
+        verbose_name_plural = 'Члены местных штабов'
+        verbose_name = 'Член местного штаба'
+
     def save(self, *args, **kwargs):
         if self._state.adding:
             kwargs['headquarter'] = self.headquarter.regional_headquarter
             kwargs['class_above'] = UserRegionalHeadquarterPosition
         super().save(*args, **kwargs)
-
-    class Meta:
-        verbose_name_plural = 'Члены местных штабов'
-        verbose_name = 'Член местного штаба'
 
 
 class UserEducationalHeadquarterPosition(UserUnitPosition):
@@ -728,6 +728,10 @@ class UserEducationalHeadquarterPosition(UserUnitPosition):
         verbose_name='Образовательный штаб',
         related_name='members'
     )
+
+    class Meta:
+        verbose_name_plural = 'Члены образовательных штабов'
+        verbose_name = 'Член образовательного штаба'
 
     def get_first_filled_headquarter(self):
         """
@@ -749,10 +753,6 @@ class UserEducationalHeadquarterPosition(UserUnitPosition):
                 kwargs['class_above'] = UserRegionalHeadquarterPosition
         super().save(*args, **kwargs)
 
-    class Meta:
-        verbose_name_plural = 'Члены образовательных штабов'
-        verbose_name = 'Член образовательного штаба'
-
 
 class UserDetachmentPosition(UserUnitPosition):
     headquarter = models.ForeignKey(
@@ -761,6 +761,10 @@ class UserDetachmentPosition(UserUnitPosition):
         verbose_name='Отряд',
         related_name='members'
     )
+
+    class Meta:
+        verbose_name_plural = 'Члены отрядов'
+        verbose_name = 'Член отряда'
 
     def get_first_filled_headquarter(self):
         """
@@ -792,10 +796,6 @@ class UserDetachmentPosition(UserUnitPosition):
             elif isinstance(headquarter, RegionalHeadquarter):
                 kwargs['class_above'] = UserRegionalHeadquarterPosition
         super().save(*args, **kwargs)
-
-    class Meta:
-        verbose_name_plural = 'Члены отрядов'
-        verbose_name = 'Член отряда'
 
 
 class UserDetachmentApplication(models.Model):

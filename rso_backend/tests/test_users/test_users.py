@@ -2,6 +2,8 @@ from http import HTTPStatus
 
 import pytest
 
+from tests.test_headquarters import conftest
+
 
 @pytest.mark.django_db
 def test_rsouser_filters(
@@ -34,31 +36,31 @@ def test_rsouser_filters(
             'Response status code is not 200'
         )
     response = authenticated_client.get(
-        f'/api/v1/rsousers?gender=male'
+        '/api/v1/rsousers?gender=male'
     )
     assert response.status_code == HTTPStatus.OK, (
         'Response status code is not 200'
     )
     response = authenticated_client.get(
-        f'/api/v1/rsousers?is_verified=False'
+        '/api/v1/rsousers?is_verified=False'
     )
     assert response.status_code == HTTPStatus.OK, (
         'Response status code is not 200'
     )
     response = authenticated_client.get(
-        f'/api/v1/rsousers?membership_fee=False'
+        '/api/v1/rsousers?membership_fee=False'
     )
     assert response.status_code == HTTPStatus.OK, (
         'Response status code is not 200'
     )
     response = authenticated_client.get(
-        f'/api/v1/rsousers?date_of_birth=2020-01-01'
+        '/api/v1/rsousers?date_of_birth=2020-01-01'
     )
     assert response.status_code == HTTPStatus.OK, (
         'Response status code is not 200'
     )
     response = authenticated_client.get(
-        f'/api/v1/rsousers?region=1'
+        '/api/v1/rsousers?region=1'
     )
     assert response.status_code == HTTPStatus.OK, (
         'Response status code is not 200'
@@ -80,3 +82,93 @@ def test_rsouser_filters(
     assert response.status_code == HTTPStatus.OK, (
         'Response status code is not 200'
     )
+
+
+@pytest.mark.django_db
+class TestRSOUsers:
+
+    rsousers_url = '/api/v1/rsousers/'
+
+    @pytest.mark.parametrize(
+        'client_name, expected_status',
+        [
+            ('authenticated_regional_commander_1a', HTTPStatus.OK),
+            ('authenticated_det_com_1a', HTTPStatus.OK),
+        ]
+    )
+    def test_retrieve_user_object_for_allowed_roles(
+            self, client, regional_hq_1a, detachment_1a, detachment_positions,
+            user_with_position_in_detachment, detachment_commander_1a,
+            regional_commander_1a, regional_commander_1b,
+            verification_request_user_with_position_in_detachment,
+            expected_status, client_name, request
+    ):
+        """Получение пользователя  по id юзерами с разрешенными ролями."""
+
+        test_client = request.getfixturevalue(client_name)
+        response = test_client.get(
+            f'{self.rsousers_url}{user_with_position_in_detachment.pk}/'
+        )
+        assert response.status_code == expected_status, (
+            'Response code is not ' + str(expected_status)
+        )
+        data = response.data
+        assert data['username'] == user_with_position_in_detachment.username
+        assert data['is_verified'] is False
+
+
+    @pytest.mark.parametrize(
+        'client_name, expected_status',
+        [
+            ('authenticated_regional_commander_1b', HTTPStatus.FORBIDDEN),
+            ('anonymous_client', HTTPStatus.UNAUTHORIZED),
+            ('authenticated_unverified', HTTPStatus.FORBIDDEN),
+            ('authenticated_user_with_position_in_detachment', HTTPStatus.FORBIDDEN),
+            ('authenticated_user_with_position_in_edu_hq', HTTPStatus.FORBIDDEN),
+            ('authenticated_user_with_position_in_local_hq', HTTPStatus.FORBIDDEN),
+            ('authenticated_user_with_position_in_regional_hq', HTTPStatus.FORBIDDEN),
+            ('authenticated_user_with_position_in_distr_hq', HTTPStatus.FORBIDDEN),
+            ('authenticated_user_with_position_in_centr_hq', HTTPStatus.FORBIDDEN),
+            ('authenticated_trusted_in_detachment', HTTPStatus.FORBIDDEN),
+            ('authenticated_trusted_in_edu_hq', HTTPStatus.FORBIDDEN),
+            ('authenticated_trusted_in_local_hq', HTTPStatus.FORBIDDEN),
+            ('authenticated_trusted_in_regional_hq', HTTPStatus.FORBIDDEN),
+            ('authenticated_trusted_in_district_hq', HTTPStatus.FORBIDDEN),
+            ('authenticated_trusted_in_centr_hq', HTTPStatus.FORBIDDEN),
+            ('authenticated_centr_commander', HTTPStatus.FORBIDDEN),
+            ('authenticated_distr_commander_1a', HTTPStatus.FORBIDDEN),
+            ('authenticated_distr_commander_1b', HTTPStatus.FORBIDDEN),
+            ('authenticated_local_commander_1a', HTTPStatus.FORBIDDEN),
+            ('authenticated_local_commander_1b', HTTPStatus.FORBIDDEN),
+            ('authenticated_edu_commander_1a', HTTPStatus.FORBIDDEN),
+            ('authenticated_edu_commander_1b', HTTPStatus.FORBIDDEN),
+            ('authenticated_det_com_1b', HTTPStatus.FORBIDDEN),
+            ('admin_client', HTTPStatus.FORBIDDEN),
+        ]
+    )
+    def test_retrieve_user_object_for_forbidden_users(
+            self, client, central_hq, district_hq_1a, district_hq_1b,
+            regional_hq_1b, local_hq_1a, local_hq_1b,
+            edu_hq_1a, edu_hq_1b, detachment_1a, detachment_1b,
+            detachment_positions, centr_commander, distr_commander_1b,
+            user_with_position_in_detachment, user_with_position_in_edu_hq,
+            user_with_position_in_local_hq, user_with_position_in_regional_hq,
+            user_with_position_in_district_hq, user_with_position_in_centr_hq,
+            user_trusted_in_detachment, user_trusted_in_edu_hq,
+            user_trusted_in_local_hq, user_trusted_in_regional_hq,
+            user_trusted_in_district_hq, user_trusted_in_centr_hq,
+            detachment_commander_1b, distr_commander_1a,
+            edu_commander_1a, edu_commander_1b, local_commander_1a,
+            local_commander_1b, regional_commander_1b,
+            verification_request_user_with_position_in_detachment,
+            expected_status, client_name, request
+    ):
+        """Получение пользователя  по id юзерами с запрещенными ролями."""
+
+        test_client = request.getfixturevalue(client_name)
+        response = test_client.get(
+            f'{self.rsousers_url}{user_with_position_in_detachment.pk}/'
+        )
+        assert response.status_code == expected_status, (
+            'Response code is not ' + str(expected_status)
+        )

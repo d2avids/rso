@@ -1,6 +1,6 @@
-import pytest
-
 from http import HTTPStatus
+
+import pytest
 
 from tests.test_headquarters.conftest import user_with_position_in_local_hq
 

@@ -167,6 +167,7 @@ class Event(models.Model):
     )
 
     class Meta:
+        ordering = ['-id']
         verbose_name_plural = 'Мероприятия'
         verbose_name = 'Мероприятие'
 
@@ -175,7 +176,7 @@ class Event(models.Model):
 
         EventTimeData.objects.get_or_create(event_id=self.id)
         EventDocumentData.objects.get_or_create(event_id=self.id)
-        EventOrganizationData.objects.create(
+        EventOrganizationData.objects.get_or_create(
             event_id=self.id,
             organizer=self.author,
         )
@@ -190,7 +191,8 @@ class Event(models.Model):
             'org_detachment',]]
         if sum(filled_fields) != 1:
             raise ValidationError(
-                'Структурная единица-организатор может быть только один'
+                'Структурная единица-организатор должна быть '
+                'заполнена в одном из полей и только в одном.'
             )
 
     def __str__(self):
@@ -344,8 +346,6 @@ class EventOrganizationData(models.Model):
         on_delete=models.CASCADE,
         related_name='events',
         verbose_name='Пользователь-организатор',
-        blank=True,
-        null=True,
     )
     organizer_phone_number = models.CharField(
         max_length=30,
@@ -412,7 +412,7 @@ class EventOrganizationData(models.Model):
 
     def __str__(self):
         return (
-            f'{self.organizer.first_name, self.organizer.last_name} '
+            f'{self.organizer.first_name}, {self.organizer.last_name} '
             f'- {self.organizer_phone_number}, '
             f'id {self.organizer} - организатора '
             f'мероприятия {self.event.name}, id {self.event.id}'
@@ -434,6 +434,7 @@ class EventAdditionalIssue(models.Model):
     )
 
     class Meta:
+        ordering = ['-id']
         verbose_name_plural = 'Дополнительные вопросы мероприятий'
         verbose_name = 'Дополнительные вопросы мероприятия'
 
@@ -580,6 +581,70 @@ class EventUserDocument(models.Model):
         )
 
 
+class GroupEventApplication(models.Model):
+    """Таблица для хранения заявок на участие в групповом мероприятии."""
+    event = models.ForeignKey(
+        to='Event',
+        on_delete=models.CASCADE,
+        related_name='group_event_applications',
+        verbose_name='Мероприятие',
+    )
+    author = models.ForeignKey(
+        to='users.RSOUser',
+        on_delete=models.CASCADE,
+        related_name='group_event_applications',
+        verbose_name='Автор заявки'
+    )
+    created_at = models.DateTimeField(
+        verbose_name='Дата и время создания заявки',
+        auto_now_add=True
+    )
+    applicants = models.ManyToManyField(
+        to='users.RSOUser',
+        through='GroupEventApplicant',
+        verbose_name='Участники',
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ['-id']
+        verbose_name_plural = 'Заявки на участие в групповых мероприятиях'
+        verbose_name = 'Заявка на участие в групповом мероприятии'
+
+    def __str__(self):
+        return f'Заявка {self.event.name} id {self.id}'
+
+
+class GroupEventApplicant(models.Model):
+    """Таблица для хранения поданных в груп. заявке участников мероприятия."""
+    application = models.ForeignKey(
+        to='GroupEventApplication',
+        on_delete=models.CASCADE,
+        related_name='group_applicants',
+        verbose_name='Заявка на участие'
+    )
+    user = models.ForeignKey(
+        to='users.RSOUser',
+        on_delete=models.CASCADE,
+        related_name='group_event_applicant',
+        verbose_name='Участник'
+    )
+
+    class Meta:
+        ordering = ['-id']
+        verbose_name = 'Участник группового мероприятия'
+        verbose_name_plural = 'Участники групповых мероприятий'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['application', 'user'],
+                name='unique_group_event_application_participant'
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.user} в заявке {self.application}'
+
+
 class MultiEventApplication(models.Model):
     """Таблица для хранения заявок на участие в многоэтапном мероприятии."""
     event = models.ForeignKey(
@@ -659,7 +724,7 @@ class MultiEventApplication(models.Model):
 
     class Meta:
         ordering = ['-id']
-        verbose_name_plural = 'Заявки на участие в многоэтапном мероприятии'
+        verbose_name_plural = 'Заявки на участие в многоэтапных мероприятиях'
         verbose_name = 'Заявка на участие в многоэтапном мероприятии'
         constraints = [
             models.UniqueConstraint(

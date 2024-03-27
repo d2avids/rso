@@ -104,6 +104,10 @@ class RSOUser(AbstractUser):
         verbose_name='Статус верификации',
         default=False,
     )
+    is_rso_member = models.BooleanField(
+        verbose_name='Статус членства в РСО',
+        default=False
+    )
     membership_fee = models.BooleanField(
         default=False,
         verbose_name='Членский взнос оплачен'
@@ -174,7 +178,7 @@ class UserEducation(models.Model):
     )
     study_year = models.CharField(
         verbose_name='Курс',
-        max_length=10,
+        max_length=50,
         blank=True,
         null=True,
     )
@@ -429,13 +433,13 @@ class UserRegion(models.Model):
         verbose_name='Регион прописки'
     )
     reg_town = models.CharField(
-        max_length=40,
+        max_length=80,
         blank=True,
         null=True,
         verbose_name='Населенный пункт прописки'
     )
     reg_house = models.CharField(
-        max_length=180,
+        max_length=250,
         blank=True,
         null=True,
         verbose_name='Улица, дом, кв. прописки'
@@ -453,13 +457,13 @@ class UserRegion(models.Model):
         verbose_name='Регион проживания'
     )
     fact_town = models.CharField(
-        max_length=40,
+        max_length=80,
         blank=True,
         null=True,
         verbose_name='Населенный пункт проживания'
     )
     fact_house = models.CharField(
-        max_length=40,
+        max_length=250,
         blank=True,
         null=True,
         verbose_name='Улица, дом, кв. проживания'

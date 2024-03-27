@@ -2,6 +2,8 @@ import os
 import shutil
 from datetime import datetime as dt
 
+from users.models import UserVerificationRequest
+
 
 def image_path(instance, filename):
     """Функция для формирования пути сохранения изображения.
@@ -12,9 +14,12 @@ def image_path(instance, filename):
     Сохраняем в filepath/{instance.id}/filename
     """
 
-    filename = dt.today().strftime('%Y%m%d%') + '_' + filename[:15]
+    filename = (
+            dt.today().strftime('%Y%m%d%') + '_' + filename[:15] +
+            filename[-5:]
+    )
     filepath = 'images/headquarters'
-    return os.path.join(filepath, instance.id, filename)
+    return os.path.join(filepath, instance.name[:15], filename)
 
 
 def headquarter_media_folder_delete(instance):
@@ -59,3 +64,21 @@ def headquarter_image_delete(instance, model):
                 pass
         except model.DoesNotExist:
             pass
+
+
+def get_detachment_members_to_verify(detachment):
+    user_ids_in_verification_request = (
+        UserVerificationRequest.objects.values_list(
+            'user_id', flat=True
+        )
+    )
+    members_to_verify = detachment.members.filter(
+        user__id__in=user_ids_in_verification_request
+    ).select_related('user')
+    return members_to_verify
+
+
+def get_regional_hq_members_to_verify(regional_headquarter):
+    return UserVerificationRequest.objects.filter(
+            user__region=regional_headquarter.region,
+        ).select_related('user')

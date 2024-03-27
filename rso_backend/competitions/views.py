@@ -1,10 +1,12 @@
 import os
 from datetime import date
 
+from dal import autocomplete
 from django.conf import settings
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import Q
+from django_filters.rest_framework import DjangoFilterBackend
 from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
@@ -62,6 +64,18 @@ from competitions.signal_handlers import (
     create_score_q7, create_score_q8, create_score_q9, create_score_q10,
     create_score_q11, create_score_q12, create_score_q20
 )
+from api.mixins import ListRetrieveDestroyViewSet
+from api.permissions import (IsRegionalCommanderOrAdmin,
+                             IsRegionalCommanderOrAdminOrAuthor)
+from competitions.filters import CompetitionParticipantsFilter
+from competitions.models import (CompetitionApplications,
+                                 CompetitionParticipants, Competitions)
+from competitions.serializers import (CompetitionApplicationsObjectSerializer,
+                                      CompetitionApplicationsSerializer,
+                                      CompetitionParticipantsObjectSerializer,
+                                      CompetitionParticipantsSerializer,
+                                      CompetitionSerializer,
+                                      ShortDetachmentCompetitionSerializer)
 from competitions.swagger_schemas import (request_update_application,
                                           response_competitions_applications,
                                           response_competitions_participants,
@@ -70,6 +84,11 @@ from competitions.swagger_schemas import (request_update_application,
                                           q7schema_request, q9schema_request)
 from headquarters.models import Detachment, RegionalHeadquarter, UserDetachmentPosition
 from users.models import RSOUser
+from headquarters.serializers import ShortDetachmentSerializer
+from headquarters.models import (
+    Detachment, RegionalHeadquarter, UserDetachmentPosition
+)
+from rso_backend.settings import BASE_DIR
 
 
 class CompetitionViewSet(viewsets.ModelViewSet):
@@ -263,7 +282,8 @@ class CompetitionApplicationsViewSet(viewsets.ModelViewSet):
             if regional_headquarter:
                 user_region = regional_headquarter.first().region
                 return CompetitionApplications.objects.filter(
-                    junior_detachment__region=user_region
+                    Q(junior_detachment__region=user_region) &
+                    Q(competition_id=self.kwargs.get('competition_pk'))
                 )
             return CompetitionApplications.objects.filter(
                 competition_id=self.kwargs.get('competition_pk')
@@ -483,11 +503,15 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
     Поиск:
         - ключ для поиска: ?search
         - поле для поиска: name младшего отряда и отряда-наставника.
+    Фильтрация:
+        - is_tandem: фильтр по типу участия (старт или тандем),
+          принимает значения True и False (или true и false в нижнем регистре).
     """
     queryset = CompetitionParticipants.objects.all()
     serializer_class = CompetitionParticipantsSerializer
     permission_classes = (permissions.AllowAny,)
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter,)
+    filterset_class = CompetitionParticipantsFilter
     search_fields = (
         'detachment__name',
         'junior_detachment__name'
@@ -548,6 +572,85 @@ class CompetitionParticipantsViewSet(ListRetrieveDestroyViewSet):
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = CompetitionParticipantsObjectSerializer(participant_unit)
         return Response(serializer.data)
+
+    @action(detail=False,
+            methods=['get'],
+            url_path='status',
+            permission_classes=(permissions.IsAuthenticated,))
+    @swagger_auto_schema(responses={
+        status.HTTP_200_OK: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'is_commander_detachment': openapi.Schema(
+                    type=openapi.TYPE_BOOLEAN,
+                    title='Является ли командиром отряда-участника конкурса',
+                    read_only=True
+                ),
+                'is_commissar_detachment': openapi.Schema(
+                    type=openapi.TYPE_BOOLEAN,
+                    title='Является ли комиссаром отряда-участника конкурса',
+                    read_only=True
+                )
+            }
+            )
+        })
+    def status(self, request, competition_pk, *args, **kwargs):
+        """Action для получения статуса пользователя в конкурсе.
+
+        Доступ: все пользователи.
+        """
+        if self.get_queryset().filter(
+            Q(detachment__commander=request.user) |
+            Q(junior_detachment__commander=request.user)
+        ).exists():
+            return Response({
+                'is_commander_detachment': True,
+                'is_commissar_detachment': False
+            })
+        try:
+            position = request.user.userdetachmentposition.position
+        except UserDetachmentPosition.DoesNotExist:
+            return Response({
+                'is_commander_detachment': False,
+                'is_commissar_detachment': False
+            })
+        if position.name == 'Комиссар':
+            return Response({
+                'is_commander_detachment': False,
+                'is_commissar_detachment': True
+            })
+        return Response({
+            'is_commander_detachment': False,
+            'is_commissar_detachment': False
+        })
+
+
+class CompetitionDetachmentAutoComplete(
+    autocomplete.Select2QuerySetView
+):
+    def get_queryset(self):
+        qs = Detachment.objects.filter(
+            founding_date__lt=date(*settings.DATE_JUNIOR_SQUAD)
+        )
+
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+
+        return qs.order_by('name')
+
+
+class CompetitionJuniorDetachmentAutoComplete(
+    autocomplete.Select2QuerySetView
+):
+    def get_queryset(self):
+        qs = Detachment.objects.filter(
+            founding_date__gte=date(*settings.DATE_JUNIOR_SQUAD)
+        )
+
+        if self.q:
+            qs = qs.filter(name__icontains=self.q)
+
+        return qs.order_by('name')
 
     @action(detail=False,
             methods=['get'],
