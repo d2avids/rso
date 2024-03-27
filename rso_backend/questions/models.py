@@ -35,7 +35,7 @@ class AnswerOption(models.Model):
     question = models.ForeignKey(
         Question, on_delete=models.CASCADE, related_name='answer_options'
     )
-    text = models.TextField(blank=True)
+    text = models.TextField(blank=True, null=True)
     image = models.ImageField(upload_to='answers/', blank=True, null=True)
     is_correct = models.BooleanField(default=False)
 
