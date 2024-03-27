@@ -641,7 +641,7 @@ class DetachmentApplicationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         detachment_id = self.kwargs.get('pk')
-        detachment = UserDetachmentApplication.objects.get(id=detachment_id)
+        detachment = get_object_or_404(Detachment, id=detachment_id)
         return UserDetachmentApplication.objects.filter(detachment=detachment)
 
     def perform_create(self, serializer):

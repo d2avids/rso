@@ -879,9 +879,9 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
                                       - event.event_participants.count())
             if len(participants_to_create) > (available_participants):
                 return Response(
-                    {'message': f'Слишком много участников, в мероприятии '
-                                f'осталось {available_participants} мест'},
-                    status=status.HTTP_200_OK
+                    {'error': f'Слишком много участников, в мероприятии '
+                              f'осталось {available_participants} мест'},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
             try:
                 with transaction.atomic():

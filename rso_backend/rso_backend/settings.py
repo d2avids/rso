@@ -77,6 +77,8 @@ EMAIL_SERVER = EMAIL_HOST_USER
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 EMAIL_ADMIN = EMAIL_HOST_USER
 
+COMPETITION_ID = 1
+
 INSTALLED_APPS = [
     'dal',
     'dal_select2',
@@ -102,6 +104,7 @@ INSTALLED_APPS += [
     'headquarters.apps.HeadquartersConfig',
     'events.apps.EventsConfig',
     'competitions.apps.CompetitionsConfig',
+    'questions.apps.QuestionsConfig'
 ]
 
 MIDDLEWARE = [
@@ -316,6 +319,58 @@ CELERY_BEAT_SCHEDULE = {
             month_of_year=10,
         )
     },
+    'calculate_q18': {
+        'task': 'competitions.tasks.calculate_q18_places_task',
+        'schedule': timedelta(hours=24)
+    },
+    'calculate_q1': {
+        'task': 'competitions.tasks.calculate_q1_places_task',
+        'schedule': timedelta(hours=24)
+    },
+    'calculate_q3_q4': {
+        'task': 'competitions.tasks.calculate_q3_q4_places_task',
+        'schedule': timedelta(minutes=10)
+    },
+    'calculate_q5': {
+        'task': 'competitions.tasks.calculate_q5_places_task',
+        'schedule': timedelta(seconds=25)
+    },
+    'calculate_q7': {
+        'task': 'competitions.tasks.calculate_q7_places_task',
+        'schedule': timedelta(hours=24)
+    },
+    'calculate_q8': {
+        'task': 'competitions.tasks.calculate_q7_places_task',
+        'schedule': timedelta(hours=24)
+    },
+    'calculate_q9': {
+        'task': 'competitions.tasks.calculate_q9_places_task',
+        'schedule': timedelta(hours=24)
+    },
+    'calculate_q10': {
+        'task': 'competitions.tasks.calculate_q10_places_task',
+        'schedule': timedelta(hours=24)
+    },
+    'calculate_q11': {
+        'task': 'competitions.tasks.calculate_q11_places_task',
+        'schedule': timedelta(hours=24)
+    },
+    'calculate_q12': {
+        'task': 'competitions.tasks.calculate_q12_places_task',
+        'schedule': timedelta(hours=24)
+    },
+    'calculate_q1_score': {
+        'task': 'competitions.tasks.calculate_q1_score_task',
+        'schedule': timedelta(hours=24)
+    },
+    'calculate_q19': {
+        'task': 'competitions.tasks.calculate_q19',
+        'schedule': timedelta(hours=30)
+    },
+    'calculate_q20_': {
+        'task': 'competitions.tasks.calculate_q20_places_task',
+        'schedule': timedelta(hours=24)
+    },
 }
 
 if DEBUG:
@@ -330,7 +385,6 @@ if DEBUG:
 
 # FOR WINDOWS:
 # celery -A rso_backend worker --loglevel=info -P eventlet
-# celery -A rso_backend beat -l info -P eventlet
 
 CORS_ORIGIN_WHITELIST = [
     'http://localhost:3000',

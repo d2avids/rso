@@ -1,4 +1,4 @@
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status
 from rest_framework.permissions import BasePermission
@@ -11,9 +11,14 @@ from api.utils import (check_commander_or_not, check_roles_for_edit,
                        check_trusted_for_eduhead, check_trusted_for_localhead,
                        check_trusted_for_regionalhead,
                        check_trusted_in_headquarters, check_trusted_user,
+                       is_commander_this_detachment,
+                       is_regional_commander, is_regional_commissioner,
+                       is_safe_method,
                        get_detachment_commander_num, is_regional_commander,
                        get_regional_hq_commander_num, is_safe_method,
                        is_stuff_or_central_commander)
+from competitions.models import CompetitionParticipants, Q13DetachmentReport, Q5DetachmentReport
+from competitions.utils import is_competition_participant
 from events.models import Event, EventOrganizationData
 from headquarters.models import (CentralHeadquarter, Detachment,
                                  DistrictHeadquarter, EducationalHeadquarter,
@@ -777,7 +782,8 @@ class IsCommanderOrTrustedAnywhere(BasePermission):
 
 
 class IsRegionalCommanderOrAdmin(BasePermission):
-    """Проверяет, является ли пользователь командиром
+    """
+    Проверяет, является ли пользователь командиром
     регионального штаба или администратором.
     """
 
@@ -789,7 +795,8 @@ class IsRegionalCommanderOrAdmin(BasePermission):
 
 
 class IsRegionalCommanderOrAdminOrAuthor(BasePermission):
-    """Для операций с одним объектом.
+    """
+    Для операций с одним объектом.
     Проверяет, является ли пользователь командиром
     регионального штаба, администратором или отрядом из заявки в конкурс.
     """
@@ -802,6 +809,171 @@ class IsRegionalCommanderOrAdminOrAuthor(BasePermission):
                     application.detachment == current_detachment or
                     is_regional_commander(request.user))
         return is_regional_commander(request.user)
+
+
+class IsCommanderAndCompetitionParticipant(BasePermission):
+    """
+    Для detail=False - проверяет, является ли пользователь командиром
+    отряда, который является участником конкурса.
+    Для detail=True - проверяет, является ли пользователь командиром отряда
+    из инстанса(отчета), и этот отряд является участником конкурса.
+
+    Метод для отчетов q где есть поля detachment_report.
+    """
+    def has_permission(self, request, view):
+        competition = view.get_competitions()
+        try:
+            detachment = request.user.detachment_commander
+        except Detachment.DoesNotExist:
+            return False
+        return (
+            CompetitionParticipants.objects.filter(
+                Q(competition=competition, detachment=detachment) |
+                Q(competition=competition, junior_detachment=detachment)
+            ).exists()
+        )
+
+    def has_object_permission(self, request, view, obj):
+        detachment = view.get_detachment(obj)
+        competition = view.get_competitions()
+        return (
+            is_commander_this_detachment(request.user, detachment) and
+            is_competition_participant(detachment, competition)
+        )
+
+
+class IsCompetitionParticipantAndCommander(
+    IsCommanderAndCompetitionParticipant
+):
+    """
+    Для detail=False - проверяет, является ли пользователь командиром
+    отряда, который является участником конкурса.
+    Для detail=True - проверяет, является ли пользователь командиром отряда
+    из инстанса(отчета), и этот отряд является участником конкурса.
+
+    Метод для отчетов q где нет полей detachment_report.
+    """
+    def has_permission(self, request, view):
+        competition = view.get_competitions()
+        try:
+            detachment = request.user.detachment_commander
+        except Detachment.DoesNotExist:
+            return False
+        return (
+            CompetitionParticipants.objects.filter(
+                Q(competition=competition, detachment=detachment) |
+                Q(competition=competition, junior_detachment=detachment)
+            ).exists()
+        )
+
+    def has_object_permission(self, request, view, obj):
+        detachment = obj.detachment
+        competition = obj.competition
+        if detachment:
+            return (
+                is_commander_this_detachment(request.user, detachment) and
+                is_competition_participant(detachment, competition)
+            )
+
+
+class IsCommanderDetachmentInParameterOrRegionalCommissioner(
+    BasePermission
+):
+    """
+    Проверяет, является ли пользователь командиром отряда из
+    инстанса параметра или региональным комиссаром.
+
+    Только для операций с одиночными объектами.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        detachment = view.get_detachment(obj)
+        if detachment:
+            return (
+                is_commander_this_detachment(request.user, detachment) or
+                is_regional_commissioner(request.user)
+            )
+
+
+class IsRegionalCommissioner(BasePermission):
+    """
+    Проверяет, является ли пользователь комиссаром регионального штаба.
+    """
+    def has_permission(self, request, view):
+        return is_regional_commissioner(request.user)
+
+    def has_object_permission(self, request, view, obj):
+        return is_regional_commissioner(request.user)
+
+
+class IsRegionalCommissionerOrCommanderDetachmentWithVerif(
+    BasePermission
+):
+    """
+    Для операций с одиночным объектом.
+    Если заявка верифицирована, проверяет, является ли пользователь
+    комиссаром регионального штаба.
+    Если заявка не верифицирована, проверяет, является ли пользователь
+    комиссаром регионального штаба или командиром отряда из заявки.
+    Пермишен для 'update', 'partial_update', 'destroy' отчетов конкурса.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        if obj.is_verified:
+            return is_regional_commissioner(request.user)
+        detachment = view.get_detachment(obj)
+        return (
+            is_regional_commissioner(request.user) or
+            is_commander_this_detachment(request.user,
+                                         detachment)
+        )
+
+
+class IsQ13DetachmentReportAuthor(permissions.BasePermission):
+    """
+    Позволяет доступ к операциям только если подразделение пользователя
+    соответствует подразделению в отчете.
+    """
+
+    def has_permission(self, request, view):
+        try:
+            detachment_id = Detachment.objects.get(commander=request.user).id
+        except Detachment.DoesNotExist:
+            return False
+        report_pk = view.kwargs.get('report_pk')
+        report = get_object_or_404(Q13DetachmentReport, pk=report_pk)
+        return report.detachment_id == detachment_id
+
+
+class IsQ5DetachmentReportAuthor(permissions.BasePermission):
+    """
+    Позволяет доступ к операциям только если подразделение пользователя
+    соответствует подразделению в отчете.
+    """
+
+    def has_permission(self, request, view):
+        try:
+            detachment_id = Detachment.objects.get(commander=request.user).id
+        except Detachment.DoesNotExist:
+            return False
+        report_pk = view.kwargs.get('report_pk')
+        report = get_object_or_404(Q5DetachmentReport, pk=report_pk)
+        return report.detachment_id == detachment_id
+
+
+class IsRegionalCommanderOrAuthor(permissions.BasePermission):
+    """
+    Проверяет, является ли пользователь командиром регионального штаба
+    или командиром отряда из инстанса параметра.
+
+    Только для операций с одиночными объектами.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        return (
+            is_regional_commander(request.user) or
+            obj.detachment.commander == request.user
+        )
 
 
 class IsDetComOrRegComAndRegionMatches(permissions.BasePermission):

@@ -50,6 +50,7 @@ pytest_plugins = [
     'tests.fixtures.fixture_user',
     'tests.fixtures.fixture_headquarter',
     'tests.fixtures.fixture_event',
+    'tests.fixtures.fixture_rank',
 ]
 
 

@@ -34,6 +34,7 @@ services:
       - db
       - redis
     volumes:
+      - ./rso_backend:/app
       - ./logs:/app/logs
       - static:/backend_static/static
       - media:/app/media
@@ -45,6 +46,7 @@ services:
     command: celery -A rso_backend worker --loglevel=info
     volumes:
       - ./logs:/app/logs
+      - ./rso_backend:/app
     depends_on:
       - backend
     networks:
@@ -55,7 +57,21 @@ services:
     command: celery -A rso_backend beat -l info
     volumes:
       - ./logs:/app/logs
+      - ./rso_backend:/app
     depends_on:
       - celery_worker
+    networks:
+      - internal
+  nginx:
+    image: nginx:alpine
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "9000:80"
+    volumes:
+      - static:/static/
+      - media:/media/
+      - ./nginx_dev.conf:/etc/nginx/conf.d/default.conf
     networks:
       - internal
