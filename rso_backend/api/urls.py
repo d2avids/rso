@@ -174,7 +174,12 @@ router.register(
     basename='q15'
 )
 router.register(
-    r'competitions/(?P<competition_pk>\d+)/reports/q13/(?P<report_pk>\d+)/participants',
+    r'competitions/(?P<competition_pk>\d+)/reports/q5',
+    Q5DetachmentReportViewSet,
+    basename='q5'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q5/(?P<report_pk>\d+)/participants',
     Q5EducatedParticipantViewSet,
     basename='q5educatedparticipant'
 )

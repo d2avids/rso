@@ -10,7 +10,7 @@ from competitions.models import (
     LinksQ7, LinksQ8, Q10Report, Q11Report, Q12Report,
     Q13EventOrganization, Q13DetachmentReport, Q17DetachmentReport, Q17Event, Q17Link,
     Q18DetachmentReport, Q19Report, Q20Report, Q2DetachmentReport, Q7Report,
-    Q8Report, Q9Report, Q5EducatedParticipant)
+    Q8Report, Q9Report, Q5EducatedParticipant, Q5DetachmentReport)
 from headquarters.models import Detachment
 from headquarters.serializers import BaseShortUnitSerializer
 
@@ -846,7 +846,7 @@ class Q5DetachmentReportSerializer(serializers.ModelSerializer):
     educated_participants = serializers.SerializerMethodField()
 
     class Meta:
-        model = Q13DetachmentReport
+        model = Q5DetachmentReport
         fields = (
             'id',
             'competition',

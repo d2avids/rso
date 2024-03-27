@@ -88,10 +88,10 @@ class CreateRetrieveUpdateViewSet(mixins.CreateModelMixin,
     pass
 
 
-class RetrieveCreateViewSet(mixins.RetrieveModelMixin,
-                            mixins.ListModelMixin,
-                            mixins.CreateModelMixin,
-                            GenericViewSet):
+class ListRetrieveCreateViewSet(mixins.RetrieveModelMixin,
+                                mixins.ListModelMixin,
+                                mixins.CreateModelMixin,
+                                GenericViewSet):
     """Миксин для конкурсных показателей (отчеты)."""
     pass
 
