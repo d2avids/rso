@@ -90,6 +90,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         'is_verified',
         'membership_fee',
         'is_staff',
+        'region',
         'date_joined',
         'last_login'
     )
@@ -99,8 +100,6 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         'last_name',
         'patronymic_name',
         'email',
-        'first_name',
-        'last_name'
     )
     readonly_fields = ('date_joined', 'last_login')
     list_filter = (

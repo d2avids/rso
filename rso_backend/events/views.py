@@ -64,7 +64,29 @@ from users.serializers import ShortUserSerializer
 
 
 class EventViewSet(viewsets.ModelViewSet):
-    """Представляет мероприятия."""
+    """Представляет мероприятия.
+
+    Поддерживает фильтрацию по следующим параметрам:
+    - format_type: Фильтр по формату мероприятия.
+      Пример использования: `?format_type=онлайн`.
+    - direction: Фильтр по направлению мероприятия.
+      Пример использования: `?direction=Добровольческое`.
+    - status: Фильтр по статусу мероприятия.
+      Пример использования: `?status=string`.
+    - scale: Фильтр по масштабу мероприятия.
+      Пример использования: `?scale=масштаб`.
+
+    Особый фильтр 'scale_or_direction' позволяет фильтровать мероприятия по
+    масштабу или направлению, если соответствует хотя бы одно из условий.
+    Пример использования:
+    `?scale_or_direction=scale=Отрядное|direction=Добровольческое`.
+
+    Поддерживает поиск по полям: название ('name'), адрес ('address'),
+    описание ('description'). Поиск выполняется по части слова
+    (нечёткий поиск). Пример использования: `?search=фестиваль`.
+
+    Фильтры и поиск можно комбинировать для создания сложных запросов.
+    """
 
     queryset = Event.objects.all()
     serializer_class = EventSerializer
@@ -323,8 +345,10 @@ class EventApplicationsViewSet(CreateListRetrieveDestroyViewSet):
         выводится предупреждение.
         """
         instance = self.get_object()
-        serializer = EventParticipantsSerializer(data=request.data,
-                                                 context={'request': request})
+        serializer = EventParticipantsSerializer(
+            data=request.data,
+            context={'request': request,
+                     'application': instance})
         serializer.is_valid(raise_exception=True)
         try:
             with transaction.atomic():
@@ -855,9 +879,9 @@ class MultiEventViewSet(CreateListRetrieveDestroyViewSet):
                                       - event.event_participants.count())
             if len(participants_to_create) > (available_participants):
                 return Response(
-                    {'message': f'Слишком много участников, в мероприятии '
-                                f'осталось {available_participants} мест'},
-                    status=status.HTTP_200_OK
+                    {'error': f'Слишком много участников, в мероприятии '
+                              f'осталось {available_participants} мест'},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
             try:
                 with transaction.atomic():

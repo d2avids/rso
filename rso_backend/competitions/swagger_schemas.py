@@ -129,3 +129,77 @@ response_junior_detachments = {
         )
     )
 }
+
+
+q7schema_request = openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                required=['event_name', 'number_of_participants', 'links'],
+                properties={
+                    'event_name': openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        title='Название мероприятия',
+                        required='true'
+                    ),
+                    'number_of_participants': openapi.Schema(
+                        type=openapi.TYPE_INTEGER,
+                        title='Количество участников',
+                        required='true',
+                        minimum=1,
+                        maximum=100
+                    ),
+                    'links': openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        description='Ссылки на публикации',
+                        items=openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            required=['link'],
+                            properties={
+                                'link': openapi.Schema(
+                                    type=openapi.TYPE_STRING,
+                                    title='Ссылка на публикацию о мероприятии',
+                                    format='url',
+                                    minLength=1,
+                                    maxLength=500
+                                )
+                            }
+                        )
+                    ),
+                    'certificate_scans': openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        title='Сканы сертификатов',
+                        format='url',
+                        x_nullable=True
+                    )
+                }
+            )
+        )
+
+
+q9schema_request = openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                required=['event_name', 'prize_place''certificate_scans'],
+                properties={
+                    'event_name': openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        title='Название мероприятия',
+                        required='true'
+                    ),
+                    'prize_place': openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        title='Количество участников',
+                        required='true',
+                        enum=[1, 2, 3]
+                    ),
+                    'certificate_scans': openapi.Schema(
+                        type=openapi.TYPE_STRING,
+                        title='Сканы сертификатов',
+                        required='true',
+                        format='url'
+                    )
+                }
+            )
+        )

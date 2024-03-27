@@ -11,9 +11,17 @@ from api.constants import (CREATE_DELETE, CREATE_METHOD, DELETE,
 from api.views import (AreaViewSet, EducationalInstitutionViewSet,
                        MemberCertViewSet, RegionViewSet,
                        change_membership_fee_status, verify_user)
-from competitions.views import (CompetitionApplicationsViewSet,
-                                CompetitionParticipantsViewSet,
-                                CompetitionViewSet)
+from competitions.models import Q5EducatedParticipant
+from competitions.views import (
+    CompetitionApplicationsViewSet, CompetitionParticipantsViewSet,
+    CompetitionViewSet, Q10ViewSet, Q11ViewSet, Q12ViewSet, Q15DetachmentReportViewSet,
+    Q19DetachmentReportViewset, Q20ViewSet, Q2DetachmentReportViewSet,
+    Q7ViewSet,
+    Q13DetachmentReportViewSet, Q13EventOrganizationViewSet,
+    Q18DetachmentReportViewSet, Q8ViewSet, Q9ViewSet, get_place_q1,
+    get_place_q3, get_place_q4,
+    Q5DetachmentReport, Q5DetachmentReportViewSet, Q5EducatedParticipantViewSet
+)
 from events.views import (AnswerDetailViewSet, EventAdditionalIssueViewSet,
                           EventApplicationsViewSet,
                           EventOrganizationDataViewSet,
@@ -38,6 +46,7 @@ from users.views import (CustomUserViewSet, ForeignUserDocumentsViewSet,
                          UserProfessionalEducationViewSet, UserRegionViewSet,
                          UsersParentViewSet, UserStatementDocumentsViewSet,
                          apply_for_verification)
+from questions.views import QuestionsView, submit_answers
 
 app_name = 'api'
 
@@ -106,7 +115,86 @@ router.register(
     CompetitionParticipantsViewSet,
     basename='competition-participants'
 )
-
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q2',
+    Q2DetachmentReportViewSet,
+    basename='q2_report'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q7',
+    Q7ViewSet,
+    basename='q7'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q8',
+    Q8ViewSet,
+    basename='q8'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q9',
+    Q9ViewSet,
+    basename='q9'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q10',
+    Q10ViewSet,
+    basename='q10'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q11',
+    Q11ViewSet,
+    basename='q11'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q12',
+    Q12ViewSet,
+    basename='q12'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q15',
+    Q15DetachmentReportViewSet,
+    basename='q15_report'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q19',
+    Q19DetachmentReportViewset,
+    basename='q19'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q20',
+    Q20ViewSet,
+    basename='q20'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q18',
+    Q18DetachmentReportViewSet,
+    basename='q18'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q13',
+    Q13DetachmentReportViewSet,
+    basename='q13'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q13/(?P<report_pk>\d+)/events',
+    Q13EventOrganizationViewSet,
+    basename='q13eventorganization'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q15',
+    Q15DetachmentReportViewSet,
+    basename='q15'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q5',
+    Q5DetachmentReportViewSet,
+    basename='q5'
+)
+router.register(
+    r'competitions/(?P<competition_pk>\d+)/reports/q5/(?P<report_pk>\d+)/participants',
+    Q5EducatedParticipantViewSet,
+    basename='q5educatedparticipant'
+)
 
 UserEduVS = UserEducationViewSet.as_view(UPDATE_RETRIEVE)
 UserProfEduRetrieveCreateVS = UserProfessionalEducationViewSet.as_view(
@@ -336,6 +424,21 @@ user_nested_urls = [
         group_applications_me,
         name='get-group-applications-me'
     ),
+    path(
+        'competitions/<int:competition_pk>/reports/q1/get_place/',
+        get_place_q1,
+        name='get-place-q1'
+    ),
+    path(
+        'competitions/<int:competition_pk>/reports/q3/get_place/',
+        get_place_q3,
+        name='get-place-q3'
+    ),
+    path(
+        'competitions/<int:competition_pk>/reports/q4/get_place/',
+        get_place_q4,
+        name='get-place-q4'
+    ),
     path('', include('djoser.urls')),
 ]
 
@@ -349,5 +452,7 @@ urlpatterns = [
     path(
         'rsousers', CustomUserViewSet.as_view(LIST),
     ),
+    path('questions/', QuestionsView.as_view(), name='questions'),
+    path('submit_answers/', submit_answers, name='submit-answers'),
     path('', include(router.urls)),
 ] + user_nested_urls

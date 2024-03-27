@@ -158,7 +158,7 @@ def change_membership_fee_status(request, pk):
 
 
 class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
-    """Представляет сертификаты пользователей.
+    """Выдача справок о членстве в РСО.
 
     Разрешение на выдачу справок имеет только командир РШ.
     """
@@ -218,7 +218,9 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
 
         """Сбор данных из БД и запроса к эндпоинту."""
         data = request.data
-
+        reg_hq_commander_fn = request.user.first_name
+        reg_hq_commander_ln = request.user.last_name
+        reg_hq_commander_pn = request.user.patronymic_name
         username = user.username
         first_name = user.first_name
         last_name = user.last_name
@@ -264,7 +266,17 @@ class MemberCertViewSet(viewsets.ReadOnlyModelViewSet):
             data.get('cert_end_date'),
             '%Y-%m-%d'
         )
-        signatory = data.get('signatory', 'Фамилия Имя Отчество')
+        if reg_hq_commander_pn is None:
+            signatory = data.get(
+                'signatory',
+                f'{reg_hq_commander_ln} {reg_hq_commander_fn}'
+            )
+        else:
+            signatory = data.get(
+                'signatory',
+                (f'{reg_hq_commander_ln} {reg_hq_commander_fn} '
+                 f'{reg_hq_commander_pn}')
+            )
         position_procuration = data.get(
             'position_procuration', 'Руководитель регионального отделения'
         )
